@@ -1,0 +1,271 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  LayoutDashboard, DollarSign, Users, Briefcase, UserPlus, Heart, 
+  Clock, Receipt, Target, Shield, BarChart2, Settings, HelpCircle, 
+  LogOut, ChevronDown, ChevronRight, CheckCircle2
+} from "lucide-react";
+import { useSidebarStore } from "@/store/useSidebarStore";
+
+type SubItem = {
+  label: string;
+  href: string;
+};
+
+type NavItem = {
+  label: string;
+  icon: React.ElementType;
+  href?: string;
+  badge?: string;
+  badgeCount?: number;
+  badgeCritical?: number;
+  subItems?: SubItem[];
+  isDivider?: boolean;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { 
+    label: "Payroll", 
+    icon: DollarSign, 
+    badge: "DRAFT",
+    subItems: [
+      { label: "Run Payroll", href: "/payroll/run" },
+      { label: "Pay Schedule", href: "/payroll/schedule" },
+      { label: "History", href: "/payroll/history" },
+      { label: "Contractors", href: "/payroll/contractors" },
+    ]
+  },
+  { label: "Employees", icon: Users, href: "/employees" },
+  { label: "Hiring", icon: Briefcase, href: "/hiring", badgeCount: 3 },
+  { label: "Onboarding", icon: UserPlus, href: "/onboarding", badgeCount: 5 },
+  { label: "Benefits", icon: Heart, href: "/benefits" },
+  { label: "Time", icon: Clock, href: "/time", badgeCount: 2 },
+  { label: "Expenses", icon: Receipt, href: "/expenses", badgeCount: 1 },
+  { label: "Performance", icon: Target, href: "/performance" },
+  { label: "Compliance", icon: Shield, href: "/compliance", badgeCritical: 1 },
+  { label: "Reports", icon: BarChart2, href: "/reports" },
+  { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
+  { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "Help", icon: HelpCircle, href: "/help" },
+];
+
+export default function AppSidebar() {
+  const pathname = usePathname();
+  const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
+  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
+    "Payroll": false
+  });
+
+  const toggleAccordion = (label: string) => {
+    setOpenAccordions(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const isRouteActive = (href?: string, subItems?: SubItem[]) => {
+    if (href && pathname?.startsWith(href)) return true;
+    if (subItems && subItems.some(sub => pathname?.startsWith(sub.href))) return true;
+    return false;
+  };
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-[#0F172A] border-r border-slate-200 dark:border-slate-800 transition-all duration-300 shadow-2xl lg:shadow-none 
+          w-[240px] lg:w-[72px] xl:w-[240px]
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}
+      >
+        {/* HEADER */}
+        <div className="h-[72px] min-h-[72px] flex items-center px-4 border-b border-slate-200 dark:border-slate-800 relative group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-sm flex items-center justify-center flex-shrink-0">
+             {/* Simple Logo stand-in */}
+             <div className="w-3 h-3 bg-white rounded-full opacity-90" />
+          </div>
+          
+          <div className="ml-3 flex-1 flex flex-col justify-center overflow-hidden lg:hidden xl:flex transition-opacity duration-300">
+             <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">Acme Corp</span>
+             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+               Switch company
+               <ChevronDown size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+             </span>
+          </div>
+
+          {/* Tooltip for 72px state */}
+          <div className="absolute left-[78px] px-2 py-1 bg-slate-800 text-white text-[12px] font-medium rounded opacity-0 invisible lg:group-hover:opacity-100 lg:group-hover:visible xl:hidden z-50 whitespace-nowrap shadow-lg whitespace-nowrap">
+             Acme Corp
+          </div>
+        </div>
+
+        {/* NAV ITEMS */}
+        <div className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+          <nav className="flex flex-col gap-1 px-3">
+            {NAV_ITEMS.map((item, idx) => {
+              if (item.isDivider) {
+                return <div key={`div-${idx}`} className="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-2 lg:mx-0 xl:mx-2" />;
+              }
+
+              const active = isRouteActive(item.href, item.subItems);
+              const hasSubItems = !!item.subItems?.length;
+              const isAccordionOpen = openAccordions[item.label];
+
+              // Base item content inside a sub-component to reuse for link/button
+              const ItemContent = () => (
+                <div className="flex items-center w-full relative group/item">
+                  <item.icon 
+                    size={20} 
+                    className={`flex-shrink-0 lg:mx-auto xl:mx-0 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 group-hover/btn:text-slate-700 dark:group-hover/btn:text-slate-200"}`} 
+                    strokeWidth={active ? 2.5 : 2}
+                  />
+                  
+                  {/* Tooltip for 72px state */}
+                  <div className="absolute left-[56px] px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/item:opacity-100 lg:group-hover/item:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
+                    {item.label}
+                  </div>
+                  
+                  <div className="ml-3 flex-1 flex items-center justify-between overflow-hidden lg:hidden xl:flex">
+                     <span className={`text-[14px] font-semibold truncate ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
+                       {item.label}
+                     </span>
+                     
+                     <div className="flex items-center gap-1.5">
+                       {/* Badges */}
+                       {item.badge && (
+                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase text-amber-700 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 tracking-wider">
+                           {item.badge}
+                         </span>
+                       )}
+                       {item.badgeCount ? (
+                         <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-1">
+                           {item.badgeCount}
+                         </span>
+                       ) : null}
+                       {item.badgeCritical ? (
+                         <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold px-1 border border-red-200 dark:border-red-500/30">
+                           {item.badgeCritical}
+                         </span>
+                       ) : null}
+
+                       {/* Accordion Chevron */}
+                       {hasSubItems && (
+                         <ChevronDown 
+                           size={14} 
+                           className={`text-slate-400 transition-transform duration-200 ${isAccordionOpen ? "rotate-180" : ""}`} 
+                         />
+                       )}
+                     </div>
+                  </div>
+                </div>
+              );
+
+              return (
+                <div key={item.label} className="flex flex-col">
+                  {hasSubItems ? (
+                    <button
+                      onClick={() => toggleAccordion(item.label)}
+                      className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
+                        ${active 
+                          ? "bg-[#EFF6FF] dark:bg-[#1E293B]" 
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }
+                      `}
+                    >
+                      {active && (
+                        <div className="absolute left-0 top-1.5 bottom-1.5 w-[4px] bg-blue-600 dark:bg-blue-500 rounded-r-full" />
+                      )}
+                      <ItemContent />
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.href || "#"}
+                      className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
+                        ${active 
+                          ? "bg-[#EFF6FF] dark:bg-[#1E293B]" 
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }
+                      `}
+                    >
+                      {active && (
+                        <div className="absolute left-0 top-1.5 bottom-1.5 w-[4px] bg-blue-600 dark:bg-blue-500 rounded-r-full" />
+                      )}
+                      <ItemContent />
+                    </Link>
+                  )}
+
+                  {/* Accordion Content */}
+                  {hasSubItems && (
+                    <AnimatePresence>
+                      {isAccordionOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden lg:hidden xl:block"
+                        >
+                          <div className="flex flex-col gap-0.5 pt-1 pb-2 pl-[42px] pr-2">
+                            {item.subItems!.map((sub) => {
+                              const isSubActive = pathname === sub.href;
+                              return (
+                                <Link
+                                  key={sub.label}
+                                  href={sub.href}
+                                  className={`text-[13px] py-1.5 px-2 rounded-md font-medium transition-colors ${
+                                    isSubActive 
+                                      ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10" 
+                                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                                  }`}
+                                >
+                                  {sub.label}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* BOTTOM USER PROFILE */}
+        <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center w-full group/user cursor-pointer rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 -m-2 transition-colors relative">
+             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
+                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="User" className="w-full h-full object-cover" />
+             </div>
+             
+             {/* Tooltip for 72px state */}
+             <div className="absolute left-[62px] bottom-2 px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/user:opacity-100 lg:group-hover/user:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
+                Alex HR Admin
+             </div>
+
+             <div className="ml-3 flex-1 overflow-hidden lg:hidden xl:block">
+                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">Alex HR Admin</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">alex@acme.corp</div>
+             </div>
+
+             <div className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity lg:hidden xl:block text-slate-400 hover:text-red-500 dark:hover:text-red-400" title="Log Out">
+                <LogOut size={16} />
+             </div>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}
