@@ -267,7 +267,7 @@ const TabReports = () => {
       
       <div className="flex-1 w-full mt-4 pr-10 relative">
         <div className="absolute inset-0 w-full h-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart data={data}>
               <Tooltip 
                 cursor={{ fill: 'rgba(255,255,255,0.05)' }}
