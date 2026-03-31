@@ -24,7 +24,7 @@ const FOOTER_LINKS = {
   resources: [
     { label: "Blog", href: "/blog" },
     { label: "HR Guides", href: "/guides" },
-    { label: "Glossary", href: "/glossary" },
+    { label: "Glossary", href: "/blog/labor-law-dictionary" },
     { label: "Webinars", href: "/webinars" },
     { label: "Templates", href: "/templates" },
     { label: "Changelog", href: "/changelog" },

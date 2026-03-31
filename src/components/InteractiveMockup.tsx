@@ -12,16 +12,19 @@ type MockTab = "dashboard" | "employees" | "payroll" | "benefits" | "compliance"
 
 interface InteractiveMockupProps {
   accentColor?: string;
+  accent?: string;
   moduleName?: string;
-  initialTab?: MockTab;
+  initialTab?: MockTab | "payroll" | "dashboard";
 }
 
 export default function InteractiveMockup({ 
   accentColor = "#3B82F6", 
+  accent,
   moduleName = "Payroll",
   initialTab = "dashboard"
 }: InteractiveMockupProps) {
-  const [activeTab, setActiveTab] = useState<MockTab>(initialTab);
+  const finalAccent = accent || accentColor;
+  const [activeTab, setActiveTab] = useState<MockTab>(initialTab as MockTab);
 
   const tabs: { id: MockTab; label: string; icon: any }[] = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -50,7 +53,7 @@ export default function InteractiveMockup({
         {/* Sidebar */}
         <div className="w-48 bg-[#0A1628] border-r border-white/5 flex flex-col p-3 gap-1 shrink-0">
           <div className="flex items-center gap-2 px-3 py-4 mb-2">
-            <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center transition-colors" style={{ backgroundColor: finalAccent }}>
               <Rocket size={14} className="text-white" />
             </div>
             <span className="text-[12px] font-bold text-white tracking-tight">CircleWorks</span>
@@ -66,7 +69,7 @@ export default function InteractiveMockup({
                   : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
               }`}
             >
-              <tab.icon size={14} className={activeTab === tab.id ? "text-blue-400" : ""} />
+              <tab.icon size={14} style={{ color: activeTab === tab.id ? finalAccent : undefined }} />
               <span className="text-[11px] font-bold tracking-wide uppercase">{tab.label}</span>
             </button>
           ))}
@@ -97,7 +100,8 @@ export default function InteractiveMockup({
                   <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-[#0F1C2E]" />
                 </div>
                 <button 
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
+                  className="text-white text-[11px] font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all opacity-90 hover:opacity-100 shadow-lg shadow-blue-900/20"
+                  style={{ backgroundColor: finalAccent }}
                 >
                   <Plus size={14} /> New Entry
                 </button>
@@ -133,7 +137,7 @@ export default function InteractiveMockup({
                    <div className="flex items-center justify-between mb-6">
                      <span className="text-xs font-bold text-white">Expense Distribution</span>
                      <div className="flex gap-4 text-[10px] font-bold text-slate-500">
-                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /> Salary</div>
+                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: finalAccent }} /> Salary</div>
                         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-500" /> Taxes</div>
                         <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-cyan-500" /> Benefits</div>
                      </div>
@@ -141,8 +145,8 @@ export default function InteractiveMockup({
                    <div className="h-32 flex items-end gap-2 px-2">
                       {[60, 45, 80, 55, 90, 70, 85, 40, 65, 75, 50, 95].map((h, i) => (
                         <div key={i} className="flex-1 bg-white/5 rounded-t-sm group relative">
-                           <div className="absolute bottom-0 left-0 right-0 bg-blue-500/40 rounded-t-sm transition-all group-hover:bg-blue-400/60" style={{ height: `${h}%` }} />
-                           <div className="absolute bottom-[30%] left-0 right-0 bg-indigo-500/40 rounded-t-sm transition-all" style={{ height: `${h/2}%` }} />
+                           <div className="absolute bottom-0 left-0 right-0 rounded-t-sm transition-all group-hover:brightness-110" style={{ height: `${h}%`, backgroundColor: finalAccent + '88' }} />
+                           <div className="absolute bottom-[30%] left-0 right-0 bg-white/10 rounded-t-sm transition-all" style={{ height: `${h/2}%` }} />
                         </div>
                       ))}
                    </div>
@@ -170,7 +174,7 @@ export default function InteractiveMockup({
                       ].map((batch, i) => (
                         <div key={i} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors cursor-pointer group">
                            <div className="flex gap-4 items-center">
-                              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: finalAccent + '22', color: finalAccent }}>
                                 <CreditCard size={16} />
                               </div>
                               <div>
@@ -180,7 +184,7 @@ export default function InteractiveMockup({
                            </div>
                            <div className="text-right">
                               <div className="text-[13px] font-black text-white">{batch.amount}</div>
-                              <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400">{batch.status}</div>
+                              <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: finalAccent }}>{batch.status}</div>
                            </div>
                         </div>
                       ))}
@@ -199,7 +203,7 @@ export default function InteractiveMockup({
                       { name: "Alex Rivera", role: "HR Director", status: "Active", dept: "People" },
                     ].map((emp, i) => (
                       <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-xl flex items-center gap-4 hover:bg-white/[0.08] transition-colors">
-                         <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold">
+                         <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: finalAccent + '22', color: finalAccent }}>
                             {emp.name[0]}
                          </div>
                          <div className="flex-1">
@@ -230,7 +234,7 @@ export default function InteractiveMockup({
                          </div>
                          <div className="space-y-3">
                             {stage.names.map((name, j) => (
-                              <div key={j} className="p-3 bg-white/5 border border-white/5 rounded-lg text-[12px] text-white font-medium border-l-2 border-l-blue-500">
+                              <div key={j} className="p-3 bg-white/5 border border-white/5 rounded-lg text-[12px] text-white font-medium border-l-2" style={{ borderLeftColor: finalAccent }}>
                                 {name}
                               </div>
                             ))}
@@ -257,7 +261,7 @@ export default function InteractiveMockup({
                        <span className="text-xs font-bold text-white mb-4 block">Active Plans</span>
                        <div className="flex gap-3">
                           <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center"><Heart size={16} /></div>
-                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center"><ShieldCheck size={16} /></div>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: finalAccent + '33', color: finalAccent }}><ShieldCheck size={16} /></div>
                        </div>
                     </div>
                  </div>
