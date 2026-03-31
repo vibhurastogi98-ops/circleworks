@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
+import FeatureVisual from "@/components/FeatureVisual";
 
 const MODULES = [
   {
@@ -204,32 +205,7 @@ export default function ProductPage() {
                     transition={{ duration: 0.6 }}
                     className="flex-1 w-full"
                   >
-                    <div className="relative w-full aspect-[4/3] rounded-2xl bg-[#0A1628] border border-slate-200 shadow-2xl overflow-hidden group">
-                      {/* Browser Top Bar */}
-                      <div className="absolute top-0 left-0 right-0 h-10 bg-[#0F172A] border-b border-slate-700/50 flex items-center px-4 gap-2 z-10">
-                        <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                      </div>
-                      
-                      {/* Abstract Visual Content to represent UI */}
-                      <div className="absolute inset-0 pt-10 p-6 flex flex-col gap-4 bg-gradient-to-br from-[#0A1628] to-[#152336]">
-                        <div className="w-1/3 h-6 bg-slate-700/50 rounded-lg animate-pulse" />
-                        <div className="w-full flex-1 flex gap-4">
-                           <div className="flex-1 bg-white/5 rounded-xl border border-white/5 relative overflow-hidden">
-                              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_2s_infinite]" />
-                           </div>
-                           <div className="w-1/3 bg-white/5 rounded-xl border border-white/5" />
-                        </div>
-                      </div>
-
-                      {/* Floating Badge */}
-                      <div className="absolute -bottom-10 group-hover:bottom-6 left-1/2 -translate-x-1/2 transition-all duration-300">
-                        <div className="px-4 py-2 bg-blue-600 text-white font-bold rounded-full text-sm shadow-[0_0_20px_rgba(37,99,235,0.4)] whitespace-nowrap">
-                          {mod.name} Preview
-                        </div>
-                      </div>
-                    </div>
+                    <FeatureVisual headline={mod.name} accent="bg-blue-600" accentBg="bg-blue-600" />
                   </motion.div>
 
                 </div>

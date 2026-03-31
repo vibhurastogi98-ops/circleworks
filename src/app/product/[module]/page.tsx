@@ -182,12 +182,12 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
       {mod.complianceNote && (
         <section className="py-20 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className={`rounded-3xl p-10 border-2 ${accent.bg} border-opacity-20 ${accent.lightBg} relative overflow-hidden`}>
+            <div className={`rounded-3xl p-10 border-2 ${accent.bg.replace('bg-', 'border-')} border-opacity-20 ${accent.lightBg} relative overflow-hidden shadow-sm`}>
                <ShieldCheck size={120} className={`absolute -right-10 -bottom-10 opacity-10 ${accent.text}`} />
                <h3 className={`text-2xl font-black ${accent.text} mb-4 flex items-center gap-3`}>
                  <ShieldCheck size={28} /> Built-in USA Compliance
                </h3>
-               <p className="text-slate-800 text-lg font-medium leading-relaxed">
+               <p className="text-slate-900 text-lg font-medium leading-relaxed relative z-10">
                  {mod.complianceNote}
                </p>
             </div>

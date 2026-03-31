@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumb from "@/components/Breadcrumb";
 import InteractiveMockup from "@/components/InteractiveMockup";
+import FeatureVisual from "@/components/FeatureVisual";
 
 interface FeatureItem {
   icon: string;
@@ -152,8 +153,8 @@ export default function SolutionPageTemplate({
               </ul>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-3xl p-12 border border-white/10 flex items-center justify-center aspect-square">
-              <div className="text-7xl text-center">🎯</div>
+            <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} className="flex-1 w-full relative">
+              <FeatureVisual headline={title} accent="bg-blue-600" accentBg="bg-blue-600" />
             </motion.div>
           </div>
         </div>

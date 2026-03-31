@@ -189,34 +189,101 @@ export default function InteractiveMockup({
               </motion.div>
             )}
 
-            {(activeTab !== "dashboard" && activeTab !== "payroll") && (
-              <motion.div
-                key="other"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="h-full flex flex-col items-center justify-center text-center py-12"
-              >
-                <div className="w-16 h-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-500 mb-6">
-                   {(() => {
-                     const Icon = tabs.find(t => t.id === activeTab)?.icon;
-                     return Icon ? <Icon size={32} /> : null;
-                   })()}
-                </div>
-                <h4 className="text-xl font-black text-white mb-2">Detailed {activeTab} Portal</h4>
-                <p className="text-slate-400 max-w-sm mb-8 text-sm">
-                  Interactive administrative view for comprehensive {activeTab} management including real-time analytics and automation logic.
-                </p>
-                <div className="w-full max-w-md space-y-3 px-4">
-                   {[1, 2, 3].map(i => (
-                     <div key={i} className="flex gap-4 p-3 bg-white/5 rounded-xl border border-white/10">
-                        <div className="w-10 h-10 rounded-lg bg-white/5 shrink-0" />
-                        <div className="flex-1 space-y-2 py-1">
-                           <div className="h-2 w-1/3 bg-white/10 rounded-full" />
-                           <div className="h-2 w-2/3 bg-white/5 rounded-full" />
-                        </div>
-                     </div>
-                   ))}
-                </div>
+            {activeTab === "employees" && (
+              <motion.div key="employees" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { name: "Sarah Jenkins", role: "Sr. Engineer", status: "Active", dept: "Engineering" },
+                      { name: "Michael Chen", role: "Product Manager", status: "Onboarding", dept: "Product" },
+                      { name: "Emily Roberts", role: "Account Exec", status: "Active", dept: "Sales" },
+                      { name: "Alex Rivera", role: "HR Director", status: "Active", dept: "People" },
+                    ].map((emp, i) => (
+                      <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-xl flex items-center gap-4 hover:bg-white/[0.08] transition-colors">
+                         <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold">
+                            {emp.name[0]}
+                         </div>
+                         <div className="flex-1">
+                            <div className="text-[14px] font-bold text-white">{emp.name}</div>
+                            <div className="text-[10px] text-slate-500">{emp.role} • {emp.dept}</div>
+                         </div>
+                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${emp.status === 'Active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {emp.status}
+                         </span>
+                      </div>
+                    ))}
+                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === "hiring" && (
+              <motion.div key="hiring" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                 <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+                    {[
+                      { stage: "Applied", count: 24, names: ["John D.", "Lisa K."] },
+                      { stage: "Interview", count: 8, names: ["Mark S.", "Anna P."] },
+                      { stage: "Offer", count: 2, names: ["Tom H."] },
+                    ].map((stage, i) => (
+                      <div key={i} className="w-64 shrink-0 bg-white/5 border border-white/10 rounded-xl p-4">
+                         <div className="flex items-center justify-between mb-4">
+                            <span className="text-xs font-black uppercase text-slate-400">{stage.stage}</span>
+                            <span className="text-[10px] bg-white/10 text-white px-2 py-0.5 rounded-full">{stage.count}</span>
+                         </div>
+                         <div className="space-y-3">
+                            {stage.names.map((name, j) => (
+                              <div key={j} className="p-3 bg-white/5 border border-white/5 rounded-lg text-[12px] text-white font-medium border-l-2 border-l-blue-500">
+                                {name}
+                              </div>
+                            ))}
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === "benefits" && (
+              <motion.div key="benefits" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
+                       <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">Enrollment Status</span>
+                          <span className="text-[10px] text-emerald-400 font-black">92% Complete</span>
+                       </div>
+                       <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500" style={{ width: '92%' }} />
+                       </div>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                       <span className="text-xs font-bold text-white mb-4 block">Active Plans</span>
+                       <div className="flex gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center"><Heart size={16} /></div>
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center"><ShieldCheck size={16} /></div>
+                       </div>
+                    </div>
+                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === "compliance" && (
+              <motion.div key="compliance" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
+                 <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    <div className="divide-y divide-white/5">
+                       {[
+                         { task: "Federal 941 Quarterly", status: "Completed", icon: ShieldCheck, color: "text-emerald-400" },
+                         { task: "State Unemployment Tax", status: "Review Required", icon: Bell, color: "text-amber-400" },
+                         { task: "Labor Law Poster (Remote)", status: "Completed", icon: ShieldCheck, color: "text-emerald-400" },
+                         { task: "EEO-1 Diversity Reporting", status: "In Progress", icon: Clock, color: "text-blue-400" },
+                       ].map((item, i) => (
+                         <div key={i} className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                               <item.icon size={16} className={item.color} />
+                               <span className="text-[13px] font-medium text-white">{item.task}</span>
+                            </div>
+                            <span className={`text-[10px] font-bold ${item.color}`}>{item.status}</span>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
               </motion.div>
             )}
           </AnimatePresence>
