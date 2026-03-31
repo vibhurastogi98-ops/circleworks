@@ -130,7 +130,7 @@ const AnalyticsChart = () => {
   return (
     <div className="h-48 w-full mt-6 relative" style={{ minHeight: '192px' }}>
       <div className="absolute inset-0">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+        <ResponsiveContainer width="100%" height={192} minWidth={1} minHeight={1}>
           <BarChart data={data}>
             <Bar dataKey="amt" radius={[6, 6, 0, 0]} animationDuration={2000} fill="#1D4ED8" />
           </BarChart>
