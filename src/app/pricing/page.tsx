@@ -179,6 +179,12 @@ function FAQItem({ q, a, index }: { q: string; a: string; index: number }) {
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingCycle>("monthly");
   const [employees, setEmployees] = useState(25);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const isAnnual = billing === "annual";
 
   // Per-seat pricing
@@ -523,22 +529,28 @@ export default function PricingPage() {
               {/* Bar Chart */}
               <div className="h-64 relative" style={{ minHeight: '256px' }}>
                 <div className="absolute inset-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 700, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                      <Tooltip
-                        formatter={(value: any) => [`$${value}/mo`, ""]}
-                        contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontWeight: 700 }}
-                      />
-                      <Bar dataKey="cost" radius={[8, 8, 0, 0]}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {!isMounted ? (
+                    <div className="w-full h-full bg-slate-100/50 rounded-xl animate-pulse flex items-center justify-center">
+                      <BarChart3 className="text-slate-300 animate-bounce" size={40} />
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 700, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+                        <Tooltip
+                          formatter={(value: any) => [`$${value}/mo`, ""]}
+                          contentStyle={{ borderRadius: "12px", border: "1px solid #e2e8f0", fontWeight: 700 }}
+                        />
+                        <Bar dataKey="cost" radius={[8, 8, 0, 0]}>
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>
