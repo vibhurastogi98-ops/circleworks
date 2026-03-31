@@ -387,5 +387,123 @@ export const segments: Record<string, SegmentContent> = {
     ],
     seoTitle: "Non-Profit Payroll & HR Software | CircleWorks",
     seoDesc: "Empower your mission with automated payroll and grant-based cost tracking. Discounted pricing for 501(c)(3) organizations."
-  }
+  },
+  "rapid-scaling": {
+    title: "Scale your workforce from 10 to 500 without breaking",
+    sub: "Automated state registrations, bulk onboarding, and sophisticated HR workflows. The growth engine for high-velocity teams.",
+    ctaHero: "Get Scaling Plan",
+    ctaSub: "See Growth Tools",
+    heroGradient: "from-indigo-600 via-blue-600 to-cyan-500",
+    painPoints: [
+      { icon: "📈", title: "Onboarding Bottlenecks", description: "Manual data entry for 20 new hires a week is a recipe for disaster." },
+      { icon: "🗺️", title: "State Nexus Risk", description: "Hiring in new states without proper tax registration leads to massive fines." },
+      { icon: "📊", title: "Reporting Drag", description: "Leadership needs headcount and burnout data, but gathering it takes days." }
+    ],
+    features: [
+      { name: "Bulk Onboarding", description: "Onboard entire cohorts in minutes with automated offer letters and I-9 check-ins.", icon: "🚀" },
+      { name: "Auto-State Registration", description: "We handle the paperwork for every new state your team expands into.", icon: "📍" },
+      { name: "Predictive Analytics", description: "Heads-up alerts on burnout risk and turnover trends before they happen.", icon: "📉" }
+    ],
+    testimonial: {
+      quote: "We grew from 50 to 200 people in 6 months. CircleWorks was the only system that didn't just 'work'—it accelerated us.",
+      author: "Michael R.",
+      role: "Head of People, AstroTech",
+      avatar: "MR"
+    },
+    faq: [
+      { q: "How many states do you support?", a: "All 50 US states, plus DC. We handle registrations, filings, and payments everywhere." }
+    ],
+    seoTitle: "HR & Payroll for Rapidly Scaling Companies | CircleWorks",
+    seoDesc: "Automate your growth. High-velocity hiring, multi-state tax compliance, and advanced HR analytics for scale-ups."
+  },
+  "compliance": {
+    title: "Bulletproof compliance for complex industries",
+    sub: "Automated labor law tracking, secure document storage, and audit-ready reporting. Sleep better knowing your back-office is secure.",
+    ctaHero: "Audit Modernization",
+    ctaSub: "Security Overview",
+    heroGradient: "from-slate-800 via-slate-900 to-black",
+    painPoints: [
+      { icon: "⚖️", title: "Labor Law Changes", description: "Missing a local wage update can cost tens of thousands in penalties." },
+      { icon: "📂", title: "Document Splrawl", description: "I-9s and sensitive contracts scattered across email and shared drives." },
+      { icon: "🔍", title: "Audit Anxiety", description: "Spending weeks gathering data when the DOL or IRS comes knocking." }
+    ],
+    features: [
+      { name: "Compliance Guard", description: "Real-time alerts for local labor law changes affecting your specific locations.", icon: "🛡️" },
+      { name: "Secure Vault", description: "Encrypted, permission-based storage for all essential employee documents.", icon: "🔐" },
+      { name: "1-Click Audit Export", description: "Generate comprehensive compliance reports for any period in seconds.", icon: "📑" }
+    ],
+    testimonial: {
+      quote: "Our SOC-2 audit was a breeze because CircleWorks had every document organized and every check documented.",
+      author: "Rachel K.",
+      role: "Compliance Officer, SecureHealth",
+      avatar: "RK"
+    },
+    faq: [
+      { q: "Is your platform SOC-2 compliant?", a: "Yes, we are SOC-2 Type II compliant and undergo regular security audits." }
+    ],
+    seoTitle: "HR Compliance & Risk Management Software | CircleWorks",
+    seoDesc: "Automate your labor law compliance. Multi-state tax filings, secure I-9 storage, and audit-ready financial reporting."
+  },
+  "cost-optimization": {
+    title: "Optimize your labor spend & maximize tax credits",
+    sub: "Identify R&D credits, reduce payroll overhead, and get deep visibility into your true cost of labor. CircleWorks pays for itself.",
+    ctaHero: "Start Saving",
+    ctaSub: "Calculate My ROI",
+    heroGradient: "from-emerald-700 via-green-600 to-teal-500",
+    painPoints: [
+      { icon: "💸", title: "Wasted Overhead", description: "Legacy payroll fees and manual admin time are eating your margins." },
+      { icon: "💎", title: "Missed Tax Credits", description: "Companies leave billions in R&D and ERTC credits on the table every year." },
+      { icon: "📊", title: "Shadow Labor Costs", description: "Not understanding the fully-loaded cost of each department or project." }
+    ],
+    features: [
+      { name: "R&D Credit Finder", description: "Automatically identify payroll expenses qualifying for high-value tax credits.", icon: "🧪" },
+      { name: "Benefit Price-Matching", description: "We shop the market to find the best rates for your team's health and 401k.", icon: "🏥" },
+      { name: "Fully-Loaded Costing", description: "See the true cost of every employee, inclusive of taxes, benefits, and overhead.", icon: "💰" }
+    ],
+    testimonial: {
+      quote: "CircleWorks found $45k in R&D credits we didn't even know we qualified for. The platform paid for itself in day one.",
+      author: "David L.",
+      role: "Founder, InnovateCo",
+      avatar: "DL"
+    },
+    faq: [
+      { q: "How much can I save on payroll fees?", a: "Most companies save 30-50% on legacy processing fees by switching to our unified platform." }
+    ],
+    seoTitle: "Payroll Cost Optimization & Tax Credit Software | CircleWorks",
+    seoDesc: "Reduce your labor costs. Automated R&D credit tracking, benefit optimization, and transparent payroll pricing."
+  },
+  "remote-teams": {
+    title: "The operating system for global, remote teams",
+    sub: "IT provisioning, global EOR, and culture-building tools in one unified dashboard. Hire, pay, and equip your team anywhere on Earth.",
+    ctaHero: "Go Global",
+    ctaSub: "See Remote Features",
+    heroGradient: "from-blue-600 via-indigo-600 to-sky-500",
+    painPoints: [
+      { icon: "🌍", title: "Global Nexus Chaos", description: "Managing compliance and currencies for a 20-country team is impossible." },
+      { icon: "💻", title: "IT Logistical Hell", description: "Spending hours tracking down laptops and setting up software accounts." },
+      { icon: "🤝", title: "Cultural Isolation", description: "Remote employees feeling disconnected from the company mission and team." }
+    ],
+    features: [
+      { name: "IT Provisioning", description: "Automated hardware shipping and software account creation in one click.", icon: "💻" },
+      { name: "Global EOR Portal", description: "Hire in 150+ countries without setting up local legal entities.", icon: "🌍" },
+      { name: "Remote Culture Hub", description: "Integrated shout-outs, birthday alerts, and team-building workflows.", icon: "🎉" }
+    ],
+    testimonial: {
+      quote: "CircleWorks made our 'remote-first' promise actually scalable. We can now hire talent anywhere without the HR overhead.",
+      author: "Emma S.",
+      role: "COO, Horizon Global",
+      avatar: "ES"
+    },
+    faq: [
+      { q: "Can I pay international contractors?", a: "Yes, we support contractor payments in 120+ currencies with local compliance built-in." }
+    ],
+    seoTitle: "HR & Payroll for Remote & Global Teams | CircleWorks",
+    seoDesc: "The premier platform for global hiring. IT provisioning, localized payroll, and remote culture tools for modern teams."
+  },
 };
+
+// Aliases for the specific names requested by the user
+segments["technology-saas"] = segments.tech;
+segments["health-wellness"] = segments.healthcare;
+segments["retail-ecommerce"] = segments.retail;
+segments["professional-services"] = segments.agencies;

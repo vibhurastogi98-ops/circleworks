@@ -30,6 +30,7 @@ import {
   FileCheck,
   Clock,
   Wallet,
+  PieChart,
   MonitorPlay,
   GraduationCap
 } from "lucide-react";
@@ -43,17 +44,18 @@ const PRODUCT_MENU = {
     { label: "ATS", desc: "Source to hire pipelines", icon: Target, href: "/product/ats" },
     { label: "Onboarding", desc: "Digital offer letters & I-9s", icon: Briefcase, href: "/product/onboarding" },
     { label: "Benefits", desc: "401k, Health, and Commuter", icon: Heart, href: "/product/benefits" },
-    { label: "Time Tracking", desc: "Scheduling and attendance", icon: Clock, href: "/product/time" },
+    { label: "Time Tracking", desc: "Scheduling and attendance", icon: Clock, href: "/product/time-tracking" },
     { label: "Expenses", desc: "Automated receipt matching", icon: Wallet, href: "/product/expenses" },
     { label: "Performance", desc: "Reviews and goal tracking", icon: Activity, href: "/product/performance" },
-    { label: "Compliance", desc: "Multi-state labor laws handled", icon: ShieldCheck, href: "/product/compliance" },
+    { label: "Compliance Hub", desc: "Multi-state labor laws handled", icon: ShieldCheck, href: "/product/compliance" },
+    { label: "Reporting", desc: "Board-ready analytics", icon: PieChart, href: "/product/reporting" },
   ],
   why: [
     { label: "Customer Stories", desc: "See how companies scale", icon: Star, href: "/customers" },
     { label: "Security", desc: "Bank-level encryption", icon: ShieldCheck, href: "/security" },
     { label: "Integrations", desc: "Connect your tech stack", icon: Zap, href: "/integrations" },
     { label: "Pricing", desc: "Transparent, simple plans", icon: Calculator, href: "/pricing" },
-    { label: "ROI Calculator", desc: "Calculate your savings", icon: Target, href: "/roi-calculator" },
+    { label: "ROI Calculator", desc: "Calculate your savings", icon: Target, href: "/resources/roi-calculator" },
   ],
 };
 
@@ -65,12 +67,18 @@ const SOLUTIONS_MENU = {
     { label: "Enterprise", desc: "Custom configurations", icon: Globe, href: "/solutions/enterprise" },
   ],
   industries: [
-    { label: "Tech", desc: "Software & SaaS companies", icon: MonitorPlay, href: "/solutions/tech" },
-    { label: "Healthcare", desc: "Clinics & care providers", icon: Heart, href: "/solutions/healthcare" },
-    { label: "Retail", desc: "Stores & e-commerce", icon: ShoppingBag, href: "/solutions/retail" },
+    { label: "Technology & SaaS", desc: "Software & high-growth tech", icon: MonitorPlay, href: "/solutions/technology-saas" },
+    { label: "Healthcare & Wellness", desc: "Clinics & care providers", icon: Heart, href: "/solutions/health-wellness" },
+    { label: "Retail & Ecommerce", desc: "Stores & digital commerce", icon: ShoppingBag, href: "/solutions/retail-ecommerce" },
     { label: "Non-Profit", desc: "Organizations & charities", icon: Landmark, href: "/solutions/nonprofit" },
     { label: "Creators", desc: "Talent, royalties & 1099s", icon: Star, href: "/solutions/creators" },
-    { label: "Professional Services", desc: "Agencies & consulting", icon: Briefcase, href: "/solutions/agencies" },
+    { label: "Professional Services", desc: "Agencies & consulting", icon: Briefcase, href: "/solutions/professional-services" },
+  ],
+  useCases: [
+    { label: "Rapid Scaling", desc: "Hire 10 to 500 quickly", icon: Rocket, href: "/solutions/rapid-scaling" },
+    { label: "Compliance & Risk", desc: "Audit-ready operations", icon: ShieldCheck, href: "/solutions/compliance" },
+    { label: "Cost Optimization", desc: "Maximize your margins", icon: Coins, href: "/solutions/cost-optimization" },
+    { label: "Remote Teams", desc: "Operate a global team", icon: Globe, href: "/solutions/remote-teams" },
   ],
 };
 
@@ -89,15 +97,14 @@ const RESOURCES_MENU = {
   learn: [
     { label: "Blog", desc: "HR & Payroll insights", icon: FileCheck, href: "/blog" },
     { label: "Guides & Templates", desc: "Free HR assets", icon: BookOpen, href: "/guides" },
-    { label: "Glossary", desc: "Industry terms defined", icon: GraduationCap, href: "/glossary" },
-    { label: "Webinars", desc: "Live training sessions", icon: MonitorPlay, href: "/webinars" },
-    { label: "Compliance Hub", desc: "State-by-state guides", icon: ShieldCheck, href: "/compliance-hub" },
+    { label: "Payroll Glossary", desc: "Industry terms defined", icon: GraduationCap, href: "/blog/labor-law-dictionary" },
+    { label: "State Tax Guides", desc: "Jurisdiction compliance", icon: Globe, href: "/resources/state-tax-guides" },
+    { label: "Overtime Tracker", desc: "State specific rules", icon: Clock, href: "/resources/overtime-tracker" },
   ],
   tools: [
     { label: "Help Center", desc: "Support articles & FAQs", icon: HelpCircle, href: "/help" },
     { label: "API Docs", desc: "Developer documentation", icon: FileCode2, href: "/docs" },
-    { label: "Changelog", desc: "Latest product updates", icon: Clock, href: "/changelog" },
-    { label: "Status Page", desc: "System uptime monitoring", icon: Activity, href: "/status" },
+    { label: "Payroll Calculator", desc: "Calculate paychecks", icon: Calculator, href: "/resources/payroll-calculator" },
     { label: "Community", desc: "Connect with native users", icon: MessageCircle, href: "/community" },
   ],
 };
@@ -406,7 +413,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
 
                 {/* Solutions Menu */}
                 {activeMenu === "SOLUTIONS" && (
-                  <div className="bg-white dark:bg-[#0F1C2E] rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-2xl border border-slate-200 dark:border-slate-800 p-8 flex gap-12 w-[680px] origin-top">
+                  <div className="bg-white dark:bg-[#0F1C2E] rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-2xl border border-slate-200 dark:border-slate-800 p-8 flex gap-12 w-[960px] origin-top">
                     <div className="flex-1">
                       <h3 className="text-[12px] font-bold text-slate-400 tracking-wider mb-5 uppercase">By Company Size</h3>
                       <div className="flex flex-col gap-3">
@@ -419,6 +426,14 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                       <h3 className="text-[12px] font-bold text-slate-400 tracking-wider mb-5 uppercase">By Industry</h3>
                       <div className="flex flex-col gap-3">
                         {SOLUTIONS_MENU.industries.map((item) => (
+                          <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-[12px] font-bold text-slate-400 tracking-wider mb-5 uppercase">By Use Case</h3>
+                      <div className="flex flex-col gap-3">
+                        {SOLUTIONS_MENU.useCases.map((item) => (
                           <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
                         ))}
                       </div>
@@ -505,6 +520,10 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                   ))}
                   <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-1">By Industry</div>
                   {SOLUTIONS_MENU.industries.map(item => (
+                    <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                  ))}
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-1">By Use Case</div>
+                  {SOLUTIONS_MENU.useCases.map(item => (
                     <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
                   ))}
                 </div>

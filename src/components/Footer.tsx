@@ -15,11 +15,11 @@ const FOOTER_LINKS = {
     { label: "HRIS", href: "/product/hris" },
     { label: "ATS", href: "/product/ats" },
     { label: "Benefits", href: "/product/benefits" },
-    { label: "Time", href: "/product/time" },
+    { label: "Time & Scheduling", href: "/product/time-tracking" },
     { label: "Expenses", href: "/product/expenses" },
     { label: "Performance", href: "/product/performance" },
     { label: "Compliance", href: "/product/compliance" },
-    { label: "Analytics", href: "/product/analytics" },
+    { label: "Reporting & Analytics", href: "/product/reporting" },
   ],
   resources: [
     { label: "Blog", href: "/blog" },

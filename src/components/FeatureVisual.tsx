@@ -20,6 +20,14 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
   const isHiring = headline.toLowerCase().includes("hiring") || headline.toLowerCase().includes("career");
   const isOnboarding = headline.toLowerCase().includes("onboarding") || headline.toLowerCase().includes("checklist");
   const isSync = headline.toLowerCase().includes("connect") || headline.toLowerCase().includes("sync") || headline.toLowerCase().includes("integration");
+  const isEquity = headline.toLowerCase().includes("equity") || headline.toLowerCase().includes("carta");
+  const isHealthcare = headline.toLowerCase().includes("credential") || headline.toLowerCase().includes("license") || headline.toLowerCase().includes("health");
+  const isPortal = headline.toLowerCase().includes("portal") || headline.toLowerCase().includes("multi-tenancy");
+  const isAnalytics = headline.toLowerCase().includes("analytic") || headline.toLowerCase().includes("reporting") || headline.toLowerCase().includes("headcount");
+  const isScaling = headline.toLowerCase().includes("scaling") || headline.toLowerCase().includes("growth") || headline.toLowerCase().includes("cohort");
+  const isCompliance = headline.toLowerCase().includes("compliance") || headline.toLowerCase().includes("audit") || headline.toLowerCase().includes("risk");
+  const isOptimization = headline.toLowerCase().includes("optimiz") || headline.toLowerCase().includes("savings") || headline.toLowerCase().includes("cost");
+  const isRemote = headline.toLowerCase().includes("remote") || headline.toLowerCase().includes("global") || headline.toLowerCase().includes("provisioning");
 
   return (
     <div className={`w-full aspect-[4/3] rounded-3xl bg-slate-50 border border-slate-200 shadow-xl overflow-hidden relative group p-6`}>
@@ -39,7 +47,7 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
         </div>
 
         <div className="flex-1 p-5 overflow-hidden">
-          {isTax ? (
+          {isTax || isCompliance ? (
             <div className="space-y-4">
                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -70,6 +78,152 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
                     </div>
                  </div>
                ))}
+            </div>
+          ) : isEquity ? (
+            <div className="space-y-4 h-full flex flex-col justify-center">
+              <div className="text-center mb-6">
+                <div className="text-xs font-black uppercase text-slate-400 mb-2">Automated Exercise Calculation</div>
+                <div className="text-4xl font-black text-slate-900">$240,500.00</div>
+                <div className="text-xs font-bold text-blue-500">Withholding Calculated via Carta API</div>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: "Option Grant #124", val: "Exercise Pending" },
+                  { label: "Tax Liability (Fed)", val: "$54,200.00" },
+                  { label: "Tax Liability (CA)", val: "$22,000.00" }
+                ].map((row, i) => (
+                  <div key={i} className="flex justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-[11px] font-bold text-slate-600">{row.label}</span>
+                    <span className="text-[11px] font-black text-slate-900">{row.val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : isScaling ? (
+            <div className="h-full flex flex-col gap-6">
+               <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="text-[14px] font-black text-slate-900">Scaling Benchmarks</h5>
+                    <p className="text-[10px] text-slate-500">Growth trajectory vs sector avg.</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                     <Rocket size={20} />
+                  </div>
+               </div>
+               <div className="flex-1 flex items-end gap-3 px-4">
+                  {[30, 50, 40, 70, 95, 85, 100].map((h, i) => (
+                    <motion.div 
+                        key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ duration: 1, delay: i * 0.1 }}
+                        className={`flex-1 bg-indigo-500 rounded-t-lg opacity-80`}
+                    />
+                  ))}
+               </div>
+               <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                     <div className="text-[9px] font-black text-slate-400 uppercase">Automated Onboarding</div>
+                     <div className="text-lg font-black text-emerald-500">Active</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                     <div className="text-[9px] font-black text-slate-400 uppercase">State Nexus</div>
+                     <div className="text-lg font-black text-indigo-500">All 50</div>
+                  </div>
+               </div>
+            </div>
+          ) : isAnalytics ? (
+            <div className="h-full flex flex-col gap-6">
+               <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="text-[14px] font-black text-slate-900">Attrition Prediction</h5>
+                    <p className="text-[10px] text-slate-500">ML-driven retention risk modeling.</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                     <PieChart size={20} />
+                  </div>
+               </div>
+               <div className="flex-1 flex items-end gap-3 px-4">
+                  {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                    <motion.div 
+                        key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ duration: 1, delay: i * 0.1 }}
+                        className={`flex-1 ${accent} rounded-t-lg opacity-80`}
+                    />
+                  ))}
+               </div>
+               <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                     <div className="text-[9px] font-black text-slate-400 uppercase">Retention Score</div>
+                     <div className="text-lg font-black text-emerald-500">92%</div>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                     <div className="text-[9px] font-black text-slate-400 uppercase">Growth Index</div>
+                     <div className="text-lg font-black text-blue-500">+14%</div>
+                  </div>
+               </div>
+            </div>
+          ) : isHealthcare ? (
+            <div className="space-y-4">
+               <div className="flex items-center gap-3 mb-6 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                  <ShieldCheck className="text-emerald-600" />
+                  <div>
+                    <div className="text-xs font-black text-emerald-900 leading-tight">Credentialing Audit</div>
+                    <div className="text-[10px] text-emerald-600">124 Certifications Verified Today</div>
+                  </div>
+               </div>
+               {[
+                 { name: "Dr. Elena Rossi", doc: "Medical License", exp: "Expired in 14d", risk: "high" },
+                 { name: "Nurse James L.", doc: "BLS Certification", exp: "Active", risk: "low" },
+                 { name: "Mark V. (Tech)", doc: "HIPAA Training", exp: "Renewed", risk: "low" }
+               ].map((c, i) => (
+                 <div key={i} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl shadow-sm">
+                    <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{c.name[0]}</div>
+                       <div>
+                          <div className="text-[11px] font-bold text-slate-900">{c.name}</div>
+                          <div className="text-[9px] text-slate-500">{c.doc}</div>
+                       </div>
+                    </div>
+                    <div className={`text-[9px] font-black px-2 py-0.5 rounded-full ${c.risk === 'high' ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-500'}`}>
+                      {c.exp}
+                    </div>
+                 </div>
+               ))}
+            </div>
+          ) : isPortal ? (
+            <div className="h-full flex flex-col gap-4">
+               <div className="flex items-center gap-2 mb-2">
+                 <div className="p-2 bg-blue-600 rounded-lg text-white"><Globe size={14} /></div>
+                 <span className="text-xs font-black text-slate-900 uppercase">Global Managed Accounts</span>
+               </div>
+               <div className="grid grid-cols-2 gap-3 mb-4">
+                  {[
+                    { name: "Acme Corp", loc: "NY, US", status: "Active" },
+                    { name: "Flux AI", loc: "SF, US", status: "Active" },
+                    { name: "Zenith Hub", loc: "London, UK", status: "Active" },
+                    { name: "Peak Agency", loc: "Berlin, DE", status: "Active" }
+                  ].map((acc, i) => (
+                    <div key={i} className="p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-200 transition-colors cursor-pointer">
+                       <div className="text-[11px] font-black text-slate-900">{acc.name}</div>
+                       <div className="flex items-center justify-between mt-1">
+                          <span className="text-[9px] text-slate-400">{acc.loc}</span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                       </div>
+                    </div>
+                  ))}
+               </div>
+               <div className="mt-auto p-4 bg-slate-900 rounded-2xl flex items-center justify-between text-white">
+                  <div>
+                    <div className="text-[9px] font-bold text-slate-400 uppercase">Total Billable Labor</div>
+                    <div className="text-xl font-black">$2,410,224.50</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                     <ArrowUpRight size={14} />
+                  </div>
+               </div>
             </div>
           ) : isPayment ? (
             <div className="space-y-5">

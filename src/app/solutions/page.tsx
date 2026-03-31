@@ -16,14 +16,14 @@ const industriySolutions = [
     gradient: "from-purple-400 to-blue-400",
   },
   {
-    title: "Health & Wellness",
+    title: "Healthcare & Wellness",
     description: "Hourly staff, compliance-heavy, shift management with HIPAA-ready platform.",
     emoji: "⚕️",
     href: "/solutions/health-wellness",
     gradient: "from-green-400 to-teal-400",
   },
   {
-    title: "Retail & E-commerce",
+    title: "Retail & Ecommerce",
     description: "Shift-based workers, multi-location payroll, and labor cost control.",
     emoji: "🛍️",
     href: "/solutions/retail-ecommerce",
@@ -40,7 +40,7 @@ const industriySolutions = [
 
 const useCaseSolutions = [
   {
-    title: "Remote & Distributed Teams",
+    title: "Remote & Global Teams",
     description: "Multi-state tax complexity, nexus tracking, and compliance automation.",
     emoji: "🌎",
     href: "/solutions/remote-teams",
