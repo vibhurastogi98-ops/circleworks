@@ -7,6 +7,7 @@ import { Check, ChevronRight, MessageSquare, ShieldCheck, Zap } from "lucide-rea
 import Link from "next/link";
 import { MODULE_DATA, ModuleData } from "./moduleData"; // we'll split data to another file
 import InteractiveMockup from "@/components/InteractiveMockup";
+import FeatureVisual from "@/components/FeatureVisual";
 
 export function generateStaticParams() {
   return Object.keys(MODULE_DATA).map((slug) => ({ module: slug }));
@@ -167,12 +168,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
                     </div>
 
                     <div className="flex-1 w-full">
-                      <div className={`aspect-[4/3] rounded-3xl ${accent.bg} bg-opacity-10 border border-slate-200 shadow-xl overflow-hidden relative group`}>
-                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/10 to-transparent" />
-                         <div className="absolute inset-4 bg-white rounded-2xl shadow-lg border border-slate-100 flex items-center justify-center">
-                            <span className="text-slate-400 font-bold tracking-widest uppercase">{feature.headline} Visual</span>
-                         </div>
-                      </div>
+                       <FeatureVisual headline={feature.headline} accent={accent.bg} accentBg={accent.bg} />
                     </div>
                     
                  </div>
