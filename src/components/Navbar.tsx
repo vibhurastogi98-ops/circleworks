@@ -88,9 +88,9 @@ const INTEGRATIONS_MENU = [
   { label: "Okta", desc: "Seamless employee provision", href: "/integrations/okta", icon: Zap },
   { label: "Checkr", desc: "Fast background checks", href: "/integrations/checkr", icon: Zap },
   { label: "DocuSign", desc: "E-signature integration", href: "/integrations/docusign", icon: Zap },
-  { label: "Guideline", desc: "Retirement contributions", href: "/integrations/guideline", icon: Zap },
+  { label: "Guideline", desc: "Retirement contributions", href: "/integrations/guideline-401-k", icon: Zap },
   { label: "Xero", desc: "Accounting synchronization", href: "/integrations/xero", icon: Zap },
-  { label: "Google Workspace", desc: "Directory & email sync", href: "/integrations/google", icon: Zap },
+  { label: "Google Workspace", desc: "Directory & email sync", href: "/integrations/google-workspace", icon: Zap },
 ];
 
 const RESOURCES_MENU = {

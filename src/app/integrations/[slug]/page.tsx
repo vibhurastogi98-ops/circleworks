@@ -16,7 +16,18 @@ import { ArrowUpRight, Clock, Rocket, ShieldCheck } from "lucide-react";
 
 export default async function IntegrationDetailPage({ params }: { params: { slug: string } }) {
   const { slug } = await params;
-  const integration = integrations.find(int => generateSlug(int.name) === slug);
+  
+  // Find integration, supporting aliases for common shorthand slugs
+  const integration = integrations.find(int => {
+    const currentSlug = generateSlug(int.name);
+    if (currentSlug === slug) return true;
+    
+    // Alias support
+    if (slug === "guideline" && currentSlug === "guideline-401-k") return true;
+    if (slug === "google" && currentSlug === "google-workspace") return true;
+    
+    return false;
+  });
 
   if (!integration) {
     notFound();
