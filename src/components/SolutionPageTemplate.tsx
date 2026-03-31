@@ -5,6 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Breadcrumb from "@/components/Breadcrumb";
+import InteractiveMockup from "@/components/InteractiveMockup";
 
 interface FeatureItem {
   icon: string;
@@ -103,11 +104,9 @@ export default function SolutionPageTemplate({
             </motion.div>
           </div>
 
-          {/* Right Hero Emoji */}
+          {/* Right Hero Mockup */}
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }} className="flex-1 hidden lg:flex items-center justify-center">
-            <div className="w-64 h-64 rounded-3xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-white/10 flex items-center justify-center text-8xl shadow-2xl">
-              {heroEmoji}
-            </div>
+            <InteractiveMockup moduleName={breadcrumbLabel} initialTab="dashboard" />
           </motion.div>
         </div>
       </section>

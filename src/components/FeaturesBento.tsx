@@ -128,12 +128,14 @@ const AnalyticsChart = () => {
   }
 
   return (
-    <div className="h-48 w-full mt-6 pr-4">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <Bar dataKey="amt" radius={[6, 6, 0, 0]} animationDuration={2000} fill="#1D4ED8" />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="h-48 w-full mt-6 relative" style={{ minHeight: '192px' }}>
+      <div className="absolute inset-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <Bar dataKey="amt" radius={[6, 6, 0, 0]} animationDuration={2000} fill="#1D4ED8" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
       <div className="text-center mt-2 text-[12px] font-bold text-slate-400 tracking-wider">LABOR OVERHEAD TRENDS</div>
     </div>
   );

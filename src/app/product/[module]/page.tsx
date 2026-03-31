@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Check, ChevronRight, MessageSquare, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { MODULE_DATA, ModuleData } from "./moduleData"; // we'll split data to another file
+import InteractiveMockup from "@/components/InteractiveMockup";
 
 export function generateStaticParams() {
   return Object.keys(MODULE_DATA).map((slug) => ({ module: slug }));
@@ -78,20 +79,17 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
 
             {/* Browser Mockup Visual */}
             <div className="flex-1 w-full max-w-lg lg:max-w-xl perspective-1000">
-              <div className="w-full aspect-[4/3] rounded-2xl bg-[#0F1C2E] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden animate-[floatUp_6s_ease-in-out_infinite]">
-                 <div className="bg-[#152336] px-4 py-3 flex items-center gap-2 border-b border-white/5">
-                    <div className="w-3 h-3 rounded-full bg-slate-600" />
-                    <div className="w-3 h-3 rounded-full bg-slate-600" />
-                    <div className="w-3 h-3 rounded-full bg-slate-600" />
-                 </div>
-                 <div className="p-6 h-full flex flex-col gap-4">
-                    <div className="h-8 w-1/3 bg-white/10 rounded-lg" />
-                    <div className="flex-1 flex gap-4">
-                        <div className={`flex-1 ${accent.bg} opacity-10 rounded-xl`} />
-                        <div className="w-1/3 bg-white/5 rounded-xl" />
-                    </div>
-                 </div>
-              </div>
+               <InteractiveMockup 
+                  moduleName={mod.name} 
+                  initialTab={
+                    modKey === 'payroll' ? 'payroll' : 
+                    modKey === 'hris' ? 'employees' : 
+                    modKey === 'ats' ? 'hiring' : 
+                    modKey === 'benefits' ? 'benefits' : 
+                    modKey === 'compliance' ? 'compliance' : 
+                    'dashboard'
+                  } 
+               />
             </div>
           </div>
         </div>

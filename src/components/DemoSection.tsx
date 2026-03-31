@@ -265,21 +265,23 @@ const TabReports = () => {
         <div className="text-cyan-400 font-bold text-[24px]">+18.5% <span className="text-slate-500 text-[12px] font-medium block text-right">vs Last Year</span></div>
       </div>
       
-      <div className="flex-1 w-full mt-4 pr-10">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <Tooltip 
-              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-              contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }}
-              formatter={(value) => [`$${value}k`, "Total Cost"]}
-            />
-            <Bar dataKey="cost" radius={[6, 6, 0, 0]} animationDuration={1000}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={index === data.length - 1 ? "#06B6D4" : "#3B82F6"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="flex-1 w-full mt-4 pr-10 relative">
+        <div className="absolute inset-0 w-full h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <Tooltip 
+                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }}
+                formatter={(value) => [`$${value}k`, "Total Cost"]}
+              />
+              <Bar dataKey="cost" radius={[6, 6, 0, 0]} animationDuration={1000}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={index === data.length - 1 ? "#06B6D4" : "#3B82F6"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
