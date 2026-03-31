@@ -11,6 +11,9 @@ export async function generateStaticParams() {
   }));
 }
 
+import FeatureVisual from "@/components/FeatureVisual";
+import { ArrowUpRight, Clock, Rocket, ShieldCheck } from "lucide-react";
+
 export default async function IntegrationDetailPage({ params }: { params: { slug: string } }) {
   const { slug } = await params;
   const integration = integrations.find(int => generateSlug(int.name) === slug);
@@ -55,25 +58,28 @@ export default async function IntegrationDetailPage({ params }: { params: { slug
               {/* Logo Lockup */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 mb-10">
                 <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-[#0A1628] flex items-center justify-center shadow-lg border border-slate-100 flex-shrink-0">
-                      <div className="text-white font-black text-xl">CW</div>
+                    <div className="w-20 h-20 rounded-2xl bg-[#0A1628] flex items-center justify-center shadow-lg border border-slate-100 flex-shrink-0">
+                       <Rocket size={32} className="text-white" />
                     </div>
                     <div className="text-slate-300">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14m-7-7h14"/></svg>
                     </div>
-                    <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center shadow-sm border border-slate-200 flex-shrink-0">
-                      <span className="text-2xl font-black text-slate-400">{integration.logo}</span>
+                    <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-md border border-slate-100 flex-shrink-0">
+                      <span className="text-3xl font-black text-slate-900">{integration.logo}</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <span className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded w-max">
-                      {integration.cat}
-                    </span>
-                    <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded flex items-center gap-1.5 w-max">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Connected
-                    </span>
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded w-max">
+                        {integration.cat}
+                      </span>
+                      <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded flex items-center gap-1.5 w-max">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Connected
+                      </span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-400">Official Partner Integration</div>
                 </div>
               </div>
 
@@ -82,7 +88,7 @@ export default async function IntegrationDetailPage({ params }: { params: { slug
               </h1>
               
               <p className="text-lg text-slate-600 mb-10 leading-relaxed font-medium">
-                {integration.desc} Use this integration to streamline your workflow and eliminate manual data entry.
+                {integration.desc} Use this integration to streamline your workflow and eliminate manual data entry. Built by CircleWorks in collaboration with {integration.name}.
               </p>
 
               {/* Benefits */}
@@ -108,35 +114,39 @@ export default async function IntegrationDetailPage({ params }: { params: { slug
               {/* Setup Steps */}
               <div>
                 <h2 className="text-2xl font-black text-[#0A1628] mb-6 tracking-tight">How to connect</h2>
-                <div className="space-y-8">
-                  <div className="flex gap-6">
+                <div className="space-y-12">
+                  <div className="flex gap-8">
                     <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 font-black flex items-center justify-center border-2 border-slate-200">1</div>
-                      <div className="w-0.5 h-full bg-slate-100 mt-2"></div>
+                      <div className="w-10 h-10 rounded-full bg-white text-slate-900 font-black flex items-center justify-center border-2 border-slate-100 shadow-sm">1</div>
+                      <div className="w-0.5 flex-1 bg-slate-100 my-4"></div>
                     </div>
-                    <div className="pb-8">
-                      <h3 className="text-lg font-bold text-[#0A1628] mb-2">Find {integration.name}</h3>
-                      <p className="text-slate-500 font-medium">Log into CircleWorks, navigate to Settings &gt; Integrations, and search for {integration.name}.</p>
-                      <div className="mt-4 bg-slate-100 border border-slate-200 rounded-xl w-full h-32 flex items-center justify-center text-slate-400 font-bold text-sm">Screenshot placeholder</div>
+                    <div className="pb-4 flex-1">
+                      <h3 className="text-xl font-bold text-[#0A1628] mb-2">Find {integration.name}</h3>
+                      <p className="text-slate-500 font-medium mb-6">Log into CircleWorks, navigate to Settings &gt; Integrations, and search for {integration.name}.</p>
+                      <div className="max-w-2xl">
+                         <FeatureVisual headline="Sync Data" accent="#2563eb" accentBg="bg-blue-600" />
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-6">
+                  <div className="flex gap-8">
                     <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shadow-md">2</div>
-                      <div className="w-0.5 h-full bg-slate-100 mt-2"></div>
+                      <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-black flex items-center justify-center shadow-lg shadow-blue-600/20">2</div>
+                      <div className="w-0.5 flex-1 bg-slate-100 my-4"></div>
                     </div>
-                    <div className="pb-8">
-                      <h3 className="text-lg font-bold text-[#0A1628] mb-2">Authorize Connection</h3>
-                      <p className="text-slate-500 font-medium">Click &quot;Connect&quot;, log into your {integration.name} account, and authorize the requested permissions.</p>
-                      <div className="mt-4 bg-slate-100 border border-slate-200 rounded-xl w-full h-32 flex items-center justify-center text-slate-400 font-bold text-sm">Screenshot placeholder</div>
+                    <div className="pb-4 flex-1">
+                      <h3 className="text-xl font-bold text-[#0A1628] mb-2">Authorize Connection</h3>
+                      <p className="text-slate-500 font-medium mb-6">Click &quot;Connect&quot;, log into your {integration.name} account, and authorize the requested permissions.</p>
+                      <div className="max-w-2xl grayscale brightness-110 opacity-80 border-dashed border-2 border-slate-100 rounded-3xl p-1">
+                         <FeatureVisual headline="Authorize Sync" accent="#2563eb" accentBg="bg-blue-600" />
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-6">
+                  <div className="flex gap-8">
                     <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 font-black flex items-center justify-center border-2 border-slate-200">3</div>
+                      <div className="w-10 h-10 rounded-full bg-white text-slate-900 font-black flex items-center justify-center border-2 border-slate-100 shadow-sm">3</div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-[#0A1628] mb-2">Configure Settings</h3>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-[#0A1628] mb-2">Configure Settings</h3>
                       <p className="text-slate-500 font-medium">Map your fields and define your sync frequency. Click save, and your integration is ready.</p>
                     </div>
                   </div>
@@ -147,52 +157,81 @@ export default async function IntegrationDetailPage({ params }: { params: { slug
           </div>
 
           {/* RIGHT COL: Sidebar */}
-          <div className="lg:w-1/3 space-y-8">
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 sticky top-32">
-              <Link href="/signup" className="block w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-center rounded-xl transition-colors shadow-md shadow-blue-600/20 mb-4">
-                Connect Now
-              </Link>
-              <Link href="/contact" className="block w-full py-4 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-center rounded-xl border border-slate-200 transition-colors">
-                Talk to Sales
-              </Link>
+          <div className="lg:w-1/3">
+            <div className="sticky top-32 space-y-6">
+              <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-slate-200">
+                <div className="bg-[#0A1628] p-8 text-white relative">
+                   <div className="relative z-10">
+                      <h3 className="text-2xl font-black mb-2 tracking-tight">Need help?</h3>
+                      <p className="text-blue-200 text-sm font-medium leading-relaxed opacity-80">
+                         Our partnership team can assist with high-volume data migrations and custom API configurations.
+                      </p>
+                   </div>
+                   <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Rocket size={80} />
+                   </div>
+                </div>
+                
+                <div className="p-8 space-y-6">
+                  <div className="space-y-4">
+                    <Link href="/signup" className="flex items-center justify-center w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-600/20 group">
+                      Connect Now
+                      <ArrowUpRight size={18} className="ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </Link>
+                    <Link href="/contact" className="flex items-center justify-center w-full py-4 bg-slate-50 hover:bg-slate-100 text-[#0A1628] font-bold rounded-2xl border border-slate-200 transition-colors">
+                      Talk to Sales
+                    </Link>
+                  </div>
 
-              <hr className="my-8 border-slate-100" />
+                  <hr className="border-slate-100" />
 
-              <div className="space-y-6">
-                <div>
-                  <div className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-1.5">Requirements</div>
-                  <div className="text-slate-700 font-bold flex items-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    Requires Pro or Enterprise plan
+                  <div className="space-y-5">
+                    <div>
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Requirements</div>
+                      <div className="text-slate-900 font-bold flex items-center gap-2.5 text-sm">
+                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                           <ShieldCheck size={14} strokeWidth={3} />
+                        </div>
+                        Requires Pro or Enterprise plan
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Categories</div>
+                      <div className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg w-max shadow-sm border border-slate-100">
+                        {integration.cat}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Integration Owner</div>
+                      <div className="text-slate-900 font-bold flex items-center gap-2.5 text-sm">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-[10px] shrink-0 border border-emerald-100">
+                           CW
+                        </div>
+                        CircleWorks Partner Team
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 text-sm leading-relaxed">Resources</div>
+                      <Link href="#" className="group flex items-center gap-2 text-blue-600 font-bold text-sm">
+                        View Integration Guide
+                        <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-1.5">Categories</div>
-                  <div className="bg-slate-100 text-slate-600 text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded w-max">
-                    {integration.cat}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-1.5">Developer</div>
-                  <div className="text-slate-700 font-bold flex items-center gap-2">
-                    CircleWorks Partner Team
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-1.5">Documentation</div>
-                  <Link href="#" className="text-blue-600 font-bold flex items-center gap-2 hover:underline">
-                    View Integration Guide &rarr;
-                  </Link>
                 </div>
               </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-blue-600 to-[#0A1628] rounded-3xl p-8 shadow-xl text-white">
-              <h3 className="text-xl font-black mb-2">Need help?</h3>
-              <p className="text-blue-100 text-sm leading-relaxed mb-6 font-medium">Our implementation team can set up your integrations for you during onboarding.</p>
-              <button className="bg-white text-[#0A1628] font-bold px-6 py-2.5 rounded-xl text-sm hover:scale-105 transition-transform w-full shadow-lg">
-                View Onboarding Plans
-              </button>
+              
+              <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-blue-600 rounded-lg text-white">
+                    <Clock size={16} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[#0A1628] text-sm mb-1">Average Setup Time</h4>
+                    <p className="text-slate-500 text-[13px] font-medium">Under 5 minutes for Standard accounts.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

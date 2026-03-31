@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { 
   CheckCircle2, Clock, ShieldCheck, 
   ArrowUpRight, FileText, Globe, 
-  CreditCard, PieChart, Landmark
+  CreditCard, PieChart, Landmark, Rocket
 } from "lucide-react";
 
 interface FeatureVisualProps {
@@ -19,6 +19,7 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
   const isPayment = headline.toLowerCase().includes("payment") || headline.toLowerCase().includes("deduction");
   const isHiring = headline.toLowerCase().includes("hiring") || headline.toLowerCase().includes("career");
   const isOnboarding = headline.toLowerCase().includes("onboarding") || headline.toLowerCase().includes("checklist");
+  const isSync = headline.toLowerCase().includes("connect") || headline.toLowerCase().includes("sync") || headline.toLowerCase().includes("integration");
 
   return (
     <div className={`w-full aspect-[4/3] rounded-3xl bg-slate-50 border border-slate-200 shadow-xl overflow-hidden relative group p-6`}>
@@ -98,6 +99,55 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
                           <span className="text-[11px] font-bold text-slate-700">{t.name}</span>
                        </div>
                        <span className="text-[11px] font-black text-slate-900">{t.amount}</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          ) : isSync ? (
+            <div className="h-full flex flex-col items-center justify-center p-4">
+               <div className="flex items-center gap-10 mb-10 w-full justify-around">
+                  <div className="flex flex-col items-center gap-3">
+                     <div className="w-16 h-16 rounded-2xl bg-[#0A1628] flex items-center justify-center shadow-xl border border-white/10 ring-4 ring-blue-500/5">
+                        <Rocket size={32} className="text-white" />
+                     </div>
+                     <span className="text-[10px] font-black uppercase text-slate-400">CircleWorks</span>
+                  </div>
+
+                  <div className="relative flex-1 flex items-center justify-center h-2">
+                     <div className="absolute inset-0 bg-slate-100 rounded-full" />
+                     <motion.div 
+                        initial={{ left: -20 }}
+                        animate={{ left: "100%" }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        className="absolute w-12 h-0.5 bg-blue-500 shadow-[0_0_10px_#2563eb]" 
+                     />
+                     <div className="absolute -top-6 bg-emerald-50 text-emerald-600 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1 animate-pulse">
+                        <CheckCircle2 size={10} /> Live API
+                     </div>
+                  </div>
+
+                  <div className="flex flex-col items-center gap-3">
+                     <div className={`w-16 h-16 rounded-2xl ${accentBg} flex items-center justify-center shadow-xl border border-white/5 ring-4 ring-slate-100`}>
+                        <Globe size={32} className="text-white" />
+                     </div>
+                     <span className="text-[10px] font-black uppercase text-slate-400">Partner App</span>
+                  </div>
+               </div>
+
+               <div className="w-full space-y-3">
+                  {[
+                    { label: "Journal Entry Sync", val: "Success", time: "2 min ago" },
+                    { label: "Employee Mapping", val: "124 Mapped", time: "Active" }
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                       <div className="flex items-center gap-3">
+                          <Clock size={14} className="text-slate-400" />
+                          <span className="text-[11px] font-bold text-slate-700">{row.label}</span>
+                       </div>
+                       <div className="text-right">
+                          <div className="text-[10px] font-black text-slate-900">{row.val}</div>
+                          <div className="text-[8px] text-slate-400 uppercase tracking-widest">{row.time}</div>
+                       </div>
                     </div>
                   ))}
                </div>

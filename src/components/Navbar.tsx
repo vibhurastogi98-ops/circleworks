@@ -69,7 +69,8 @@ const SOLUTIONS_MENU = {
     { label: "Healthcare", desc: "Clinics & care providers", icon: Heart, href: "/solutions/healthcare" },
     { label: "Retail", desc: "Stores & e-commerce", icon: ShoppingBag, href: "/solutions/retail" },
     { label: "Non-Profit", desc: "Organizations & charities", icon: Landmark, href: "/solutions/nonprofit" },
-    { label: "Professional Services", desc: "Agencies & consulting", icon: Briefcase, href: "/solutions/services" },
+    { label: "Creators", desc: "Talent, royalties & 1099s", icon: Star, href: "/solutions/creators" },
+    { label: "Professional Services", desc: "Agencies & consulting", icon: Briefcase, href: "/solutions/agencies" },
   ],
 };
 
