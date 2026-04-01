@@ -135,7 +135,7 @@ const TabEmployees = () => {
           ))}
           {filtered.length === 0 && (
             <div className="col-span-2 text-center py-12 text-slate-500">
-              No employees found matching "{search}"
+              No employees found matching &quot;{search}&quot;
             </div>
           )}
         </AnimatePresence>

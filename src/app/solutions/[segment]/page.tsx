@@ -49,7 +49,15 @@ export default async function SegmentPage({ params }: { params: { segment: strin
 
       {/* HERO SECTION */}
       <section className={`relative pt-32 pb-24 lg:pt-48 lg:pb-32 overflow-hidden bg-gradient-to-br ${data.heroGradient} text-white`}>
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20" />
+        <div 
+          className="absolute inset-0 opacity-20" 
+          style={{ 
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.2) 1px, transparent 1px)', 
+            backgroundSize: '32px 32px',
+            maskImage: 'linear-gradient(180deg, white, rgba(255,255,255,0))',
+            WebkitMaskImage: 'linear-gradient(180deg, white, rgba(255,255,255,0))'
+          }} 
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">

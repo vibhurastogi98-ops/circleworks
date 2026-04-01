@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { 
   CheckCircle2, Clock, ShieldCheck, 
   ArrowUpRight, FileText, Globe, 
-  CreditCard, PieChart, Landmark, Rocket, Briefcase, Star, BarChart2, UserPlus
+  CreditCard, PieChart, Landmark, Rocket, Briefcase, Star, UserPlus
 } from "lucide-react";
 
 interface FeatureVisualProps {
