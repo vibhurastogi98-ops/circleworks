@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, BarChart3, Clock, Heart, ShieldCheck, 
-  ChevronRight, Search, Bell, Settings, Plus,
-  CreditCard, Briefcase, Target, Rocket
+  Search, Bell, Plus,
+  CreditCard, Target, Rocket
 } from "lucide-react";
 
 type MockTab = "dashboard" | "employees" | "payroll" | "benefits" | "compliance" | "hiring";
@@ -26,7 +26,7 @@ export default function InteractiveMockup({
   const finalAccent = accent || accentColor;
   const [activeTab, setActiveTab] = useState<MockTab>(initialTab as MockTab);
 
-  const tabs: { id: MockTab; label: string; icon: any }[] = [
+  const tabs: { id: MockTab; label: string; icon: React.ElementType }[] = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "employees", label: "Employees", icon: Users },
     { id: "payroll", label: "Payroll", icon: CreditCard },

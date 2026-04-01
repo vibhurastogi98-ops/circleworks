@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Zap, MessageSquare, ShieldCheck, Globe, FileCheck, FileText, Heart, Landmark, Activity, CreditCard, Terminal, Layers, Clock, ShoppingBag } from "lucide-react";
+import { ArrowRight, Zap, MessageSquare, ShieldCheck, Globe, FileCheck, FileText, Heart, Landmark, Activity, CreditCard, Terminal } from "lucide-react";
 
 const INTEGRATIONS = [
   { name: "QuickBooks", color: "#2CA01C" },
@@ -24,7 +24,7 @@ const INTEGRATIONS = [
 ];
 
 const LogoTile = ({ name, color }: { name: string; color: string }) => {
-  const IconMap: Record<string, any> = {
+  const IconMap: Record<string, React.ElementType> = {
     QuickBooks: Landmark,
     Slack: MessageSquare,
     Okta: ShieldCheck,

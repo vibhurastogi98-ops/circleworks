@@ -3,7 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Play, Check, ChevronRight, ArrowRight, LayoutDashboard, Users, CreditCard, Heart, ShieldCheck } from "lucide-react";
+import { Play, Check, ChevronRight, LayoutDashboard, Users, CreditCard, Heart, ShieldCheck } from "lucide-react";
 
 const logos = [
   "Acme Corp",
@@ -27,9 +27,7 @@ const MOCK_TABS = [
 
 export default function HeroSection() {
   const [activeMockTab, setActiveMockTab] = React.useState("Dashboard");
-  const line1 = "Run Payroll & HR".split(" ");
-  const line2Part1 = "The ".split(" ");
-  const line2Part2 = "American Way.".split(" ");
+
 
   const wordAnimation = {
     hidden: { opacity: 0, y: 20 },

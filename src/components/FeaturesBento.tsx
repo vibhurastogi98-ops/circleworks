@@ -18,7 +18,7 @@ const PayrollDemo = () => {
       setActiveState((prev) => (prev + 1) % states.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [states.length]);
 
   return (
     <div className="flex flex-col gap-2 mt-6 bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-inner">

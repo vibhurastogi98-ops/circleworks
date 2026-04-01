@@ -57,7 +57,7 @@ export default function SolutionPageTemplate({
   subtitle,
   breadcrumbLabel,
   heroGradient,
-  heroEmoji,
+
   problems,
   solutionIntro,
   solutionPoints,
