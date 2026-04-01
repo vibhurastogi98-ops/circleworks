@@ -74,7 +74,8 @@ export default function HeroSection() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-cyan-400 text-[12px] font-bold uppercase tracking-[0.2em] mb-4"
         >
-          THE #1 PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES
+          {/* SEO Update */}
+          THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES
         </motion.div>
 
         {/* H1 HEADER */}
