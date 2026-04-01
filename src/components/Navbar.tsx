@@ -286,7 +286,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                 </span>
                 <span className={`text-[10px] font-medium tracking-wide uppercase mt-[-4px] hidden sm:block ${isNavWhite ? "text-slate-500" : "text-slate-400"
                   }`}>
-                  Built for the Creator Economy
+                  Managed Payroll & HR — Done For You.
                 </span>
               </div>
             </Link>

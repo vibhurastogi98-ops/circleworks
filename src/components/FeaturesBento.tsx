@@ -151,12 +151,12 @@ export default function FeaturesSection() {
         
         {/* SECTION HEADER */}
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
-          <span className="text-blue-600 text-[13px] font-black uppercase tracking-[0.2em] mb-4">THE PLATFORM</span>
+          <span className="text-blue-600 text-[13px] font-black uppercase tracking-[0.2em] mb-4">WHAT WE DO FOR YOU</span>
           <h2 className="text-[36px] md:text-[48px] font-black text-slate-900 leading-tight mb-5 tracking-tight">
-            Everything a Creator Agency Needs &mdash; One Platform.
+            A Full HR & Payroll Team — Without Hiring One.
           </h2>
           <p className="text-[18px] md:text-[20px] text-slate-500 font-medium">
-            Stop juggling spreadsheets, payroll tools, and talent contracts. Replace 7 tools with one login.
+            We act as your back-office people operations team. From onboarding talent to filing taxes, we handle every step so your agency never misses a beat.
           </p>
         </div>
 
@@ -169,11 +169,11 @@ export default function FeaturesSection() {
               <div className="p-3 bg-cyan-500/20 rounded-xl text-cyan-400">
                 <DollarSign size={24} />
               </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-black tracking-wider uppercase border border-emerald-500/30">P0 Core</span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-black tracking-wider uppercase border border-emerald-500/30">Managed Payroll</span>
             </div>
-            <h3 className="text-white text-[24px] font-bold mt-6">Pay Anyone in 3 Clicks</h3>
+            <h3 className="text-white text-[24px] font-bold mt-6">Managed Payroll — We Run It For You</h3>
             <p className="text-slate-400 text-[15px] mt-2 mb-2 leading-relaxed">
-              W-2 employees, 1099 creators, and freelance talent &mdash; processed together. Auto tax filing. Direct deposit. All 50 states handled.
+              Every pay cycle, our team processes payroll for your W-2 employees and 1099 creator talent. Auto tax filing, direct deposits, and all 50 states covered. You approve — we execute.
             </p>
             <PayrollDemo />
           </div>
@@ -183,9 +183,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-blue-50 rounded-xl text-blue-600 w-fit">
               <UserPlus size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Hire Talent at the Speed of Culture</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Talent Onboarding & Contracts</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Built-in ATS to pipeline creators, talent managers, and production staff. From offer to onboarded in hours, not weeks.
+              We handle offer letters, contractor agreements, NDAs, and digital onboarding for every new creator or hire. Your talent is set up fast, legally, and professionally.
             </p>
             <AtsPipeline />
           </div>
@@ -195,9 +195,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-rose-50 rounded-xl text-rose-500 w-fit">
               <Heart size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Benefits That Attract Top Creative Talent</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Benefits Administration</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Enterprise-grade health, dental, vision, and 401k &mdash; without enterprise complexity. Help your team feel valued.
+              We source, enroll, and manage health, dental, vision, and 401k benefits for your team — including part-time and hybrid creator talent.
             </p>
             <Benefits2x2 />
           </div>
@@ -207,9 +207,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-amber-50 rounded-xl text-amber-500 w-fit">
               <Clock size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Track Hours Across Projects</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Time, Expenses & Project Tracking</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Campaign-based time tracking that syncs directly to payroll. No manual entry. No errors.
+              We track hours, approve timesheets, and reconcile expenses across campaigns and clients — then feed it directly into payroll.
             </p>
             <ClockDemo />
           </div>
@@ -219,24 +219,23 @@ export default function FeaturesSection() {
             <div className="p-3 bg-emerald-50 rounded-xl text-emerald-500 w-fit">
               <Shield size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">1099 & W-2 Compliance, Guaranteed</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">1099 & W-2 Compliance Management</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Creator agencies live in the contractor world. We auto-file 1099-NECs, handle state registrations, and flag misclassification risks before they become problems.
+              We classify your talent correctly, file 1099-NECs at year-end, manage state registrations, and keep you audit-proof — all done for you.
             </p>
             <ShieldDemo />
           </div>
 
           {/* Row 2: Card F (col-span-2) */}
           <div className={`${cardClass} lg:col-span-2 relative`}>
-            {/* Absolute decorative gradient */}
             <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none -mr-20 -mt-20" />
             
             <div className="p-3 bg-blue-50 rounded-xl text-blue-600 w-fit relative z-10">
               <BarChart2 size={24} />
             </div>
-            <h3 className="text-slate-900 text-[24px] font-bold mt-6 relative z-10">Know Your Labor Costs by Client</h3>
+            <h3 className="text-slate-900 text-[24px] font-bold mt-6 relative z-10">Dedicated HR & People Strategy</h3>
             <p className="text-slate-500 text-[15px] mt-2 mb-2 leading-relaxed relative z-10 max-w-md">
-              Visualize team costs by campaign, client, or department. Make smarter hiring and budget decisions with real data.
+              Every client gets a dedicated account manager who knows your team, your contracts, and your goals. Real humans. Real support. Not just a chatbot.
             </p>
             <AnalyticsChart />
           </div>

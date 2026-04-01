@@ -80,23 +80,23 @@ function CountUpNumber({ endString }: { endString: string }) {
 const STATS_DATA = [
   { 
     value: "50 States", 
-    label: "Full USA Payroll Coverage", 
-    subLabel: "+ DC, no extra charge" 
+    label: "We're Licensed & Compliant Everywhere", 
+    subLabel: "Multi-state payroll handled for you" 
   },
   { 
     value: "$2B+", 
-    label: "Creator Payroll Processed", 
+    label: "Payroll Managed for Creator Businesses", 
     subLabel: "Trusted by 500+ agencies" 
   },
   { 
     value: "99.99%", 
-    label: "Platform Uptime", 
-    subLabel: "SOC 2 Certified & Secure" 
+    label: "On-Time Payroll Accuracy Rate", 
+    subLabel: "Peace of mind guaranteed" 
   },
   { 
     value: "<24 Hrs", 
-    label: "From Signup to First Payroll Run", 
-    subLabel: "Set up in record time" 
+    label: "Average Onboarding to First Payroll Run", 
+    subLabel: "Fast setup, expert execution" 
   },
 ];
 

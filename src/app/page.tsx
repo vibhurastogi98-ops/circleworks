@@ -7,6 +7,8 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/Hero";
 import StatsSection from "@/components/StatsRow";
 import FeaturesSection from "@/components/FeaturesBento";
+import HowItWorks from "@/components/HowItWorks";
+import WhoWeServe from "@/components/WhoWeServe";
 import DemoSection from "@/components/DemoSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import PricingTeaser from "@/components/PricingTeaser";
@@ -19,40 +21,40 @@ import CirceWidget from "@/components/CirceWidget";
 /* ─── Metadata (Next.js App Router) ─── */
 
 export const metadata: Metadata = {
-  title: "CircleWorks | Payroll & HR for Creator Agencies",
+  title: "CircleWorks | Managed Payroll & HR — Done For You",
   description:
-    "CircleWorks is the #1 Payroll & HR platform built for creator agencies, studios, and companies. Pay W-2 staff and 1099 talent flawlessly. Trusted by 500+ agencies nationwide.",
+    "CircleWorks is a fully managed payroll and HR service built for creators, talent agencies, and companies. We handle your payroll, HR, and compliance so you can focus on creating.",
   keywords: [
+    "managed payroll for creators",
+    "managed HR for agencies",
     "creator economy payroll",
-    "agency payroll software",
-    "influencer payments",
-    "1099 compliance for agencies",
-    "HR platform for studios",
-    "talent management payroll",
+    "agency payroll service",
+    "1099 compliance managed",
+    "talent agency HR support",
     "CircleWorks",
   ],
   openGraph: {
-    title: "CircleWorks | Payroll & HR Built for the Creator Economy",
+    title: "CircleWorks | Managed Payroll & HR — Done For You",
     description:
-      "All-in-one platform for W-2 staff, 1099 influencers, and contractor talent. Built for agencies running the creator economy.",
+      "We handle your payroll, HR & compliance — so you can focus on creating. Built for creators, talent agencies, and companies.",
     type: "website",
     siteName: "CircleWorks",
     url: "https://circleworks.com",
     images: [
       {
-        url: "https://circleworks.com/og-image-agency.png",
+        url: "https://circleworks.com/og-image-managed.png",
         width: 1200,
         height: 630,
-        alt: "CircleWorks — Payroll & HR for Creator Agencies",
+        alt: "CircleWorks — Managed Payroll & HR for Creator Agencies",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CircleWorks | Payroll & HR for Creator Agencies",
+    title: "CircleWorks | Managed Payroll & HR — Done For You",
     description:
-      "All-in-one Payroll & HR platform built for creator agencies. Pay W-2 and 1099 talent in one place.",
-    images: ["https://circleworks.com/og-image-agency.png"],
+      "Fully managed payroll and HR service for the creator economy. We run it for you.",
+    images: ["https://circleworks.com/og-image-managed.png"],
   },
   alternates: {
     canonical: "https://circleworks.com",
@@ -80,7 +82,7 @@ const organizationSchema = {
     availableLanguage: "en",
   },
   description:
-    "CircleWorks is the all-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform built for creator agencies and studios.",
+    "CircleWorks is a fully managed Payroll and HR service provider for creators, talent agencies, and media companies.",
 };
 
 const softwareAppSchema = {
@@ -91,10 +93,10 @@ const softwareAppSchema = {
   applicationCategory: "BusinessApplication",
   offers: {
     "@type": "Offer",
-    price: "6.00",
+    price: "49.00",
     priceCurrency: "USD",
     priceValidUntil: "2026-12-31",
-    description: "Per employee per month, starting at Agency Starter plan",
+    description: "Managed service plans scaled to your team",
   },
   aggregateRating: {
     "@type": "AggregateRating",
@@ -104,7 +106,7 @@ const softwareAppSchema = {
     worstRating: "1",
   },
   description:
-    "All-in-one Payroll and HR platform for creator agencies, handling both W-2 and 1099 talent.",
+    "Fully managed payroll and HR platform for creator agencies, handling both W-2 and 1099 talent.",
   url: "https://circleworks.com",
 };
 
@@ -167,9 +169,19 @@ export default function HomePage() {
           <StatsSection />
         </Suspense>
 
-        {/* ── Features Bento ── */}
+        {/* ── Services Section (formerly features) ── */}
         <Suspense fallback={<SectionSkeleton height="h-[600px]" />}>
           <FeaturesSection />
+        </Suspense>
+
+        {/* ── How It Works ── */}
+        <Suspense fallback={<LightSectionSkeleton height="h-[500px]" />}>
+          <HowItWorks />
+        </Suspense>
+
+        {/* ── Who We Serve ── */}
+        <Suspense fallback={<SectionSkeleton height="h-[500px]" />}>
+          <WhoWeServe />
         </Suspense>
 
         {/* ── Demo ── */}
@@ -207,6 +219,7 @@ export default function HomePage() {
           <SiteFooter />
         </Suspense>
       </main>
+
 
       {/* ── Circe AI Widget (fixed, over all content) ── */}
       <CirceWidget />
