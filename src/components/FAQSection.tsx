@@ -157,9 +157,11 @@ export default function FAQSection() {
           {/* Header */}
           <div className="text-center mb-14">
             <h2 className="text-[32px] md:text-[40px] font-black text-gray-900 tracking-tight">
+              {/* SEO Update ── Creators & Agencies FAQ ── */}
               Questions from Creators, Agencies & Companies
             </h2>
             <p className="mt-4 text-[16px] text-gray-500 max-w-xl mx-auto leading-relaxed">
+              {/* SEO Update ── Creators & Agencies FAQ ── */}
               Everything you need to know about how CircleWorks handles agency-specific payroll and HR.
             </p>
           </div>

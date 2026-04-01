@@ -24,8 +24,8 @@ import {
   Building,
   Rocket,
   ArrowRight,
-  Menu,
-  X,
+  // Menu,
+  // X,
   Coins,
   FileCheck,
   Clock,
@@ -36,6 +36,21 @@ import {
 } from "lucide-react";
 
 // --- Data Definitions ---
+
+interface MegaMenuLinkProps {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  desc: string;
+  onClick?: () => void;
+}
+
+interface MobileAccordionProps {
+  label: string;
+  children: React.ReactNode;
+  activeLabel: string | null;
+  setActiveLabel: (label: string | null) => void;
+}
 
 const PRODUCT_MENU = {
   platform: [
@@ -119,7 +134,7 @@ const NAV_ITEMS = [
 
 // --- Subcomponents ---
 
-const MegaMenuLink = ({ href, icon: Icon, label, desc, onClick }: any) => (
+const MegaMenuLink = ({ href, icon: Icon, label, desc, onClick }: MegaMenuLinkProps) => (
   <Link href={href} onClick={onClick} className="flex gap-3 p-2 -m-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
     <div className="flex-shrink-0 mt-0.5">
       <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
@@ -135,7 +150,7 @@ const MegaMenuLink = ({ href, icon: Icon, label, desc, onClick }: any) => (
   </Link>
 );
 
-const MobileAccordion = ({ label, children, activeLabel, setActiveLabel }: any) => {
+const MobileAccordion = ({ label, children, activeLabel, setActiveLabel }: MobileAccordionProps) => {
   const isOpen = activeLabel === label;
   return (
     <div className="border-b border-slate-200 dark:border-slate-800">

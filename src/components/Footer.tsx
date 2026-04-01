@@ -76,7 +76,8 @@ export default function SiteFooter() {
               </span>
             </Link>
             <p className="text-[15px] text-slate-400 font-medium">
-              Payroll & HR. Built for Creators, Agencies & Companies.
+              {/* SEO Update */}
+              All-in-one Payroll, HRIS, ATS, and Benefits built for US companies.
             </p>
           </div>
 

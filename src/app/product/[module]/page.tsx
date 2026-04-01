@@ -13,14 +13,48 @@ export function generateStaticParams() {
   return Object.keys(MODULE_DATA).map((slug) => ({ module: slug }));
 }
 
+// {/* SEO Update */} ── Dynamic Metadata ──
 export async function generateMetadata({ params }: { params: Promise<{ module: string }> }): Promise<Metadata> {
   const { module } = await params;
-  const mod = MODULE_DATA[module as keyof typeof MODULE_DATA];
-  if (!mod) return { title: "Not Found" };
+  const modData = {
+    payroll: {
+      title: "Payroll Software for US Companies",
+      description: "Automated payroll across all 50 states. Tax filing, direct deposit, W-2s & 1099s — done in 3 clicks. Try free for 30 days."
+    },
+    hris: {
+      title: "HRIS Software — Employee Records & HR",
+      description: "Centralize your people data. CircleWorks HRIS handles employee records, onboarding, org charts, and compliance in one platform."
+    },
+    ats: {
+      title: "ATS & Hiring Software for US Teams",
+      description: "From job post to first day — CircleWorks ATS streamlines hiring, interviews, offers, and onboarding in one seamless pipeline."
+    },
+    benefits: {
+      title: "Employee Benefits Administration",
+      description: "Offer enterprise-tier health, dental, vision & 401k benefits. CircleWorks syncs benefits directly with payroll deductions automatically."
+    },
+    "time-tracking": {
+      title: "Time Tracking & Scheduling Software",
+      description: "Clock-in, timesheet approvals, and PTO management that syncs natively to payroll. Eliminate manual errors and spreadsheets."
+    }
+  };
+
+  const selected = modData[module as keyof typeof modData] || {
+    title: `${module.charAt(0).toUpperCase() + module.slice(1)} | CircleWorks`,
+    description: "Payroll & HR built for US Companies"
+  };
   
   return {
-    title: `${mod.name} | CircleWorks`,
-    description: mod.hero.headline,
+    title: selected.title,
+    description: selected.description,
+    openGraph: {
+      title: selected.title,
+      description: selected.description,
+      url: `https://circleworks.vercel.app/product/${module}`,
+    },
+    alternates: {
+      canonical: `https://circleworks.vercel.app/product/${module}`,
+    }
   };
 }
 

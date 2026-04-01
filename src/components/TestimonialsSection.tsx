@@ -175,7 +175,7 @@ export default function TestimonialsSection() {
               <div className="flex flex-col gap-4">
                 <StarRating />
                 <p className="text-[16px] text-slate-700 leading-relaxed line-clamp-4 min-h-[96px]">
-                  "{card.quote}"
+                  &quot;{card.quote}&quot;
                 </p>
               </div>
 

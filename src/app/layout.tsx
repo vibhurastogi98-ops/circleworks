@@ -1,50 +1,59 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0A1628",
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://circleworks.vercel.app"),
   title: {
-    default: "CircleWorks | Payroll & HR for Creator Agencies",
+    default: "CircleWorks — Payroll Software for US Companies & HR Platform",
     template: "%s | CircleWorks",
   },
   description:
-    "CircleWorks is the #1 Payroll & HR platform built for creator agencies, studios, and companies. Pay W-2 staff and 1099 talent flawlessly. Trusted by 500+ agencies nationwide.",
+    "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no setup fees.",
   keywords: [
-    "US payroll software",
-    "HR platform USA",
-    "payroll SaaS",
-    "HRIS",
-    "ATS",
-    "employee benefits",
-    "time tracking",
+    "payroll software USA",
+    "HR platform",
+    "online payroll",
+    "small business payroll software",
+    "all-in-one HR platform",
     "CircleWorks",
   ],
+  alternates: {
+    canonical: "./",
+    languages: {
+      "en-US": "/",
+    },
+  },
   openGraph: {
-    title: "CircleWorks | USA Payroll & HR Platform",
-    description:
-      "All-in-one: Payroll, HRIS, ATS, Benefits, Time, Expenses. Built for every US company.",
+    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+    description: "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
     type: "website",
     siteName: "CircleWorks",
-    url: "https://circleworks.com",
+    url: "https://circleworks.vercel.app",
     images: [
       {
-        url: "https://circleworks.com/og-image.png",
+        url: "https://circleworks.vercel.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "CircleWorks — USA Payroll & HR Platform",
       },
     ],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+    description: "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
+    images: ["https://circleworks.vercel.app/og-image.png"],
+  },
   robots: {
     index: true,
     follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
   },
 };
 
@@ -64,6 +73,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* SEO Update */}
+        <meta charSet="UTF-8" />
+        <meta name="robots" content="index, follow" />
+        <link rel="alternate" hrefLang="en-us" href="https://circleworks.vercel.app/" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         {/* ── Google Fonts ── */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

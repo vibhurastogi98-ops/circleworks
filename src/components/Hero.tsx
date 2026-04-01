@@ -80,6 +80,7 @@ export default function HeroSection() {
         {/* H1 HEADER */}
         <h1 className="text-[32px] sm:text-[44px] md:text-[52px] font-black text-white leading-[1.1] tracking-tight mb-6">
           <div className="flex flex-wrap justify-center gap-x-[0.2em] gap-y-1 text-center">
+            {/* SEO Update ── Creators & Agencies Positioning ── */}
             {["The", "HR", "&", "Payroll", "Platform", "Built", "for"].map((word, i) => (
               <motion.span
                 key={`h1-w-${i}`}
@@ -99,7 +100,7 @@ export default function HeroSection() {
                 initial="hidden"
                 animate="visible"
                 variants={wordAnimation}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
+                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4] text-[22px] sm:text-[30px] md:text-[36px]"
               >
                 {word}
               </motion.span>
@@ -130,8 +131,8 @@ export default function HeroSection() {
               href="/signup"
               className="h-[56px] px-8 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
             >
-              Start Free — No Credit Card
-              <ChevronRight size={18} />
+              Start Free — No Credit Card {/* SEO Update */}
+              <ChevronRight size={18} aria-label="Start free trial — no credit card required" />
             </Link>
 
             {/* Secondary Outline */}

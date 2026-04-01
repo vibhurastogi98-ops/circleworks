@@ -20,94 +20,153 @@ import CirceWidget from "@/components/CirceWidget";
 
 /* ─── Metadata (Next.js App Router) ─── */
 
+// {/* SEO Update */} ── Homepage Metadata ──
 export const metadata: Metadata = {
-  title: "CircleWorks | Managed Payroll & HR — Done For You",
+  title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
   description:
-    "CircleWorks is a fully managed payroll and HR service built for creators, talent agencies, and companies. We handle your payroll, HR, and compliance so you can focus on creating.",
+    "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no credit card required.",
   keywords: [
-    "managed payroll for creators",
-    "managed HR for agencies",
-    "creator economy payroll",
-    "agency payroll service",
-    "1099 compliance managed",
-    "talent agency HR support",
+    "payroll software USA",
+    "HR platform",
+    "online payroll",
+    "small business payroll software",
+    "all-in-one HR platform",
     "CircleWorks",
   ],
   openGraph: {
-    title: "CircleWorks | Managed Payroll & HR — Done For You",
+    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
     description:
-      "We handle your payroll, HR & compliance — so you can focus on creating. Built for creators, talent agencies, and companies.",
+      "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no credit card required.",
     type: "website",
     siteName: "CircleWorks",
-    url: "https://circleworks.com",
+    url: "https://circleworks.vercel.app",
     images: [
       {
-        url: "https://circleworks.com/og-image-managed.png",
+        url: "https://circleworks.vercel.app/og-image.png",
         width: 1200,
         height: 630,
-        alt: "CircleWorks — Managed Payroll & HR for Creator Agencies",
+        alt: "CircleWorks — USA Payroll & HR Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CircleWorks | Managed Payroll & HR — Done For You",
+    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
     description:
-      "Fully managed payroll and HR service for the creator economy. We run it for you.",
-    images: ["https://circleworks.com/og-image-managed.png"],
+      "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
+    images: ["https://circleworks.vercel.app/og-image.png"],
   },
   alternates: {
-    canonical: "https://circleworks.com",
+    canonical: "https://circleworks.vercel.app",
   },
 };
 
-/* ─── Structured Data (Organization + SoftwareApplication) ─── */
-
+// {/* SEO Update */} ── Structured Data ──
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "CircleWorks",
-  url: "https://circleworks.com",
-  logo: "https://circleworks.com/logo.png",
-  sameAs: [
-    "https://twitter.com/circleworks",
-    "https://linkedin.com/company/circleworks",
-    "https://github.com/circleworks",
-  ],
-  contactPoint: {
+  "name": "CircleWorks",
+  "url": "https://circleworks.vercel.app",
+  "logo": "https://circleworks.vercel.app/logo.png",
+  "description": "All-in-one Payroll, HRIS, ATS, and Benefits platform built for US companies.",
+  "contactPoint": {
     "@type": "ContactPoint",
-    telephone: "+1-800-CIR-WORK",
-    contactType: "customer service",
-    areaServed: "US",
-    availableLanguage: "en",
+    "contactType": "Customer Support",
+    "url": "https://circleworks.vercel.app/contact"
   },
-  description:
-    "CircleWorks is a fully managed Payroll and HR service provider for creators, talent agencies, and media companies.",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "US"
+  }
+};
+
+const webpageSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "CircleWorks — #1 Payroll & HR Platform for US Companies",
+  "url": "https://circleworks.vercel.app",
+  "description": "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
+  "publisher": {
+    "@type": "Organization",
+    "name": "CircleWorks"
+  }
 };
 
 const softwareAppSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "CircleWorks",
-  operatingSystem: "Web",
-  applicationCategory: "BusinessApplication",
-  offers: {
-    "@type": "Offer",
-    price: "49.00",
-    priceCurrency: "USD",
-    priceValidUntil: "2026-12-31",
-    description: "Managed service plans scaled to your team",
-  },
-  aggregateRating: {
+  "name": "CircleWorks",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web, iOS, Android",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Starter",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free base + $8/employee/month"
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro",
+      "price": "79",
+      "priceCurrency": "USD",
+      "description": "$79/mo base + $14/employee/month"
+    }
+  ],
+  "aggregateRating": {
     "@type": "AggregateRating",
-    ratingValue: "4.9",
-    ratingCount: "1240",
-    bestRating: "5",
-    worstRating: "1",
-  },
-  description:
-    "Fully managed payroll and HR platform for creator agencies, handling both W-2 and 1099 talent.",
-  url: "https://circleworks.com",
+    "ratingValue": "4.8",
+    "reviewCount": "342",
+    "bestRating": "5"
+  }
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can I pay W-2 employees AND 1099 creators from one platform?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — this is CircleWorks' core strength. Creators, agencies, and companies can run payroll for staff and contractor talent in the same pay cycle."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can CircleWorks handle multi-state teams and creators?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — CircleWorks natively supports payroll across all 50 US states, perfect for agencies and companies with distributed creator teams."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does CircleWorks handle tax filing automatically?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "CircleWorks calculates, withholds, and files federal, state, and local payroll taxes every pay period, including quarterly 941s, W-2s and 1099s."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does CircleWorks work for 1099 contractors?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. CircleWorks lets you pay W-2 employees and 1099 contractors from the same platform with year-end 1099-NEC filing included."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is CircleWorks HIPAA and SOC 2 compliant?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. CircleWorks maintains full HIPAA compliance and annual SOC 2 Type II audits with AES-256 encryption."
+      }
+    }
+  ]
 };
 
 /* ─── Skeleton Fallbacks ─── */
@@ -141,7 +200,7 @@ function LightSectionSkeleton({ height = "h-96" }: { height?: string }) {
 export default function HomePage() {
   return (
     <>
-      {/* Structured Data */}
+      {/* SEO Update ── Structured Data ── */}
       <Script
         id="org-jsonld"
         type="application/ld+json"
@@ -149,9 +208,21 @@ export default function HomePage() {
         strategy="afterInteractive"
       />
       <Script
+        id="webpage-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webpageSchema) }}
+        strategy="afterInteractive"
+      />
+      <Script
         id="software-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+        strategy="afterInteractive"
+      />
+      <Script
+        id="faq-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         strategy="afterInteractive"
       />
 
