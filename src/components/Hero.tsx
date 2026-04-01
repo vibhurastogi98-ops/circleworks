@@ -3,7 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Play, Check, ChevronRight, ArrowRight } from "lucide-react";
+import { Play, Check, ChevronRight, ArrowRight, LayoutDashboard, Users, CreditCard, Heart, ShieldCheck } from "lucide-react";
 
 const logos = [
   "Acme Corp",
@@ -16,6 +16,14 @@ const logos = [
 
 // Double the array for seamless CSS marquee scroll
 const marqueeLogos = [...logos, ...logos];
+
+const MOCK_TABS = [
+  { id: "Dashboard", icon: LayoutDashboard },
+  { id: "Employees", icon: Users },
+  { id: "Payroll", icon: CreditCard },
+  { id: "Benefits", icon: Heart },
+  { id: "Compliance", icon: ShieldCheck },
+];
 
 export default function HeroSection() {
   const [activeMockTab, setActiveMockTab] = React.useState("Dashboard");
@@ -183,36 +191,37 @@ export default function HeroSection() {
             </div>
 
             {/* Dashboard Mock UI Wrapper */}
-            <div className="flex h-[350px] sm:h-[450px] md:h-[550px]">
+            <div className="flex h-auto sm:h-[450px] md:h-[550px] min-h-[400px]">
 
               {/* Sidebar */}
-              <div className="hidden sm:flex w-48 lg:w-56 bg-[#0F172A]/90 border-r border-slate-700/50 p-4 flex-col gap-5">
+              {/* SEO Update ── Ensure sidebar visibility ── */}
+              <div className="flex w-16 sm:w-48 lg:w-56 bg-[#0F172A]/90 border-r border-slate-700/50 p-2 sm:p-4 flex-col gap-5 overflow-hidden">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center p-1.5 text-white">
                     <div className="w-full h-full border-2 border-white rounded-full" />
                   </div>
-                  <span className="text-white text-[14px] font-black tracking-tight">CircleWorks</span>
+                  <span className="hidden sm:block text-white text-[14px] font-black tracking-tight">CircleWorks</span>
                 </div>
                 
                 <div className="flex flex-col gap-1">
-                   {["Dashboard", "Employees", "Payroll", "Benefits", "Compliance"].map((item) => (
-                     <button
-                       key={item}
-                       onClick={() => setActiveMockTab(item)}
-                       className={`h-8 rounded-lg flex items-center gap-3 px-3 transition-all duration-200 cursor-pointer w-full text-left focus:outline-none ${activeMockTab === item ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:bg-slate-800'}`}
-                     >
-                        <div className={`w-3.5 h-3.5 rounded ${activeMockTab === item ? 'bg-blue-400' : 'bg-slate-700'}`} />
-                        <span className="text-[12px] font-bold">{item}</span>
-                     </button>
-                   ))}
+                    {MOCK_TABS.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveMockTab(item.id)}
+                        className={`h-10 rounded-lg flex items-center justify-center sm:justify-start gap-0 sm:gap-3 px-0 sm:px-3 transition-all duration-200 cursor-pointer w-full text-left focus:outline-none ${activeMockTab === item.id ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:bg-slate-800'}`}
+                      >
+                         <item.icon size={16} className={`shrink-0 ${activeMockTab === item.id ? 'text-blue-400' : 'text-slate-600'}`} />
+                         <span className="hidden sm:block text-[12px] font-bold truncate">{item.id}</span>
+                      </button>
+                    ))}
                 </div>
 
                 <div className="mt-auto pt-6 border-t border-slate-700/30">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center text-white text-[10px] font-bold shadow-md">VR</div>
-                    <div className="flex flex-col">
-                      <div className="text-white text-[12px] font-bold leading-none">Vibhu Rastogi</div>
-                      <div className="text-slate-500 text-[10px] font-medium mt-1 uppercase tracking-tighter">Admin Account</div>
+                    <div className="hidden sm:flex flex-col overflow-hidden">
+                      <div className="text-white text-[12px] font-bold leading-none truncate">Vibhu Rastogi</div>
+                      <div className="text-slate-500 text-[10px] font-medium mt-1 uppercase tracking-tighter truncate">Admin Account</div>
                     </div>
                   </div>
                 </div>
@@ -232,15 +241,16 @@ export default function HeroSection() {
                 </div>
 
                 {/* KPI Cards Row */}
-                <div className="grid grid-cols-3 gap-3 md:gap-4">
+                {/* SEO Update ── Mobile responsiveness for mockup ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 overflow-hidden shrink-0">
                    {[
                      { label: "Active Staff", val: "142", color: "blue" },
                      { label: "Monthly Gross", val: "$912k", color: "cyan" },
                      { label: "Tax Liability", val: "$182k", color: "emerald" }
                    ].map((kpi) => (
-                     <div key={kpi.label} className="bg-[#0F172A] border border-slate-700/30 p-3 md:p-4 rounded-xl flex flex-col gap-1 shadow-sm hover:border-slate-600 transition-colors cursor-default">
-                        <span className="text-slate-500 text-[10px] md:text-[12px] font-bold uppercase tracking-wider">{kpi.label}</span>
-                        <span className="text-white text-[18px] md:text-[24px] font-black tracking-tight">{kpi.val}</span>
+                     <div key={kpi.label} className="bg-[#0F172A] border border-slate-700/30 p-2 sm:p-3 md:p-4 rounded-xl flex flex-col gap-0.5 shadow-sm hover:border-slate-600 transition-colors cursor-default">
+                        <span className="text-slate-500 text-[9px] md:text-[12px] font-bold uppercase tracking-wider">{kpi.label}</span>
+                        <span className="text-white text-[16px] md:text-[24px] font-black tracking-tight">{kpi.val}</span>
                      </div>
                    ))}
                 </div>

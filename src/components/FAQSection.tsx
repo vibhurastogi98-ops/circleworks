@@ -22,6 +22,22 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   {
     question: "Can we give our accountant or client access?",
     answer: "Yes. Creators, agencies, and companies can invite a bookkeeper or client finance contact with a free read-only or admin role at no extra cost."
+  },
+  {
+    question: "Do you handle international payments for offshore creators?",
+    answer: "Yes. CircleWorks enables agencies and companies to pay international contractors and creators in over 120 countries, with local currency options and compliant global contracts built-in."
+  },
+  {
+    question: "Can small agencies offer high-end health benefits through CircleWorks?",
+    answer: "Absolutely. We provide access to enterprise-grade health, dental, and vision plans (including top-tier carriers like Blue Cross and Aetna) that small agencies and companies can offer to their teams starting at just 2 employees."
+  },
+  {
+    question: "Are there any hidden setup fees or long-term contracts?",
+    answer: "No. CircleWorks operates on a transparent, month-to-month subscription for creators, agencies, and companies. No setup fees, no cancellation fees, and no hidden 'per-state' surcharges."
+  },
+  {
+    question: "How secure is the data for my creators and company?",
+    answer: "CircleWorks is SOC 2 Type II compliant and uses 256-bit SSL encryption. We protect sensitive creator and company data with the same grade of security used by major US financial institutions."
   }
 ];
 
@@ -139,8 +155,8 @@ export default function FAQSection() {
   );
 
   /* Split into two columns */
-  const leftColumn = FAQ_ITEMS.slice(0, 2);
-  const rightColumn = FAQ_ITEMS.slice(2, 4);
+  const leftColumn = FAQ_ITEMS.slice(0, 4);
+  const rightColumn = FAQ_ITEMS.slice(4, 8);
 
   return (
     <>
@@ -184,7 +200,7 @@ export default function FAQSection() {
             {/* RIGHT COLUMN */}
             <div className="border-t border-gray-200">
               {rightColumn.map((item, i) => {
-                const globalIndex = i + 2;
+                const globalIndex = i + 4;
                 return (
                   <AccordionItem
                     key={globalIndex}

@@ -51,34 +51,35 @@ export default function InteractiveMockup({
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-48 bg-[#0A1628] border-r border-white/5 flex flex-col p-3 gap-1 shrink-0">
+        {/* SEO Update ── Ensure sidebar visibility and responsiveness ── */}
+        <div className="flex w-14 sm:w-48 bg-[#0A1628] border-r border-white/5 flex-col p-2 sm:p-3 gap-1 shrink-0 overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-4 mb-2">
             <div className="w-6 h-6 rounded-md flex items-center justify-center transition-colors" style={{ backgroundColor: finalAccent }}>
               <Rocket size={14} className="text-white" />
             </div>
-            <span className="text-[12px] font-bold text-white tracking-tight">CircleWorks</span>
+            <span className="hidden sm:block text-[12px] font-bold text-white tracking-tight truncate">CircleWorks</span>
           </div>
 
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-3 px-0 sm:px-3 py-2.5 sm:py-2 rounded-lg transition-all ${
                 activeTab === tab.id 
                   ? "bg-white/10 text-white shadow-sm" 
                   : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
               }`}
             >
-              <tab.icon size={14} style={{ color: activeTab === tab.id ? finalAccent : undefined }} />
-              <span className="text-[11px] font-bold tracking-wide uppercase">{tab.label}</span>
+              <tab.icon size={16} className="shrink-0" style={{ color: activeTab === tab.id ? finalAccent : undefined }} />
+              <span className="hidden sm:block text-[11px] font-bold tracking-wide uppercase truncate">{tab.label}</span>
             </button>
           ))}
 
-          <div className="mt-auto px-3 py-4 border-t border-white/5 flex items-center gap-3">
-             <div className="w-6 h-6 rounded-full bg-slate-800" />
-             <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-white">Alex Rivera</span>
-               <span className="text-[9px] text-slate-500">Admin</span>
+          <div className="mt-auto px-1 sm:px-3 py-4 border-t border-white/5 flex items-center justify-center sm:justify-start gap-3">
+             <div className="w-6 h-6 rounded-full bg-slate-800 shrink-0" />
+             <div className="hidden sm:flex flex-col overflow-hidden">
+               <span className="text-[10px] font-bold text-white truncate">Alex Rivera</span>
+               <span className="text-[9px] text-slate-500 truncate">Admin</span>
              </div>
           </div>
         </div>
@@ -117,16 +118,17 @@ export default function InteractiveMockup({
                 exit={{ opacity: 0, scale: 1.02 }}
                 className="space-y-6"
               >
-                <div className="grid grid-cols-3 gap-4">
+                {/* SEO Update ── Mobile responsiveness ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 shrink-0">
                   {[
                     { label: "Active Employees", val: "124", change: "+12%" },
                     { label: "Avg. Payroll", val: "$182K", change: "+4%" },
                     { label: "Open Roles", val: "8", change: "-2" },
                   ].map((stat, i) => (
-                    <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</div>
-                      <div className="text-xl font-black text-white mt-1">{stat.val}</div>
-                      <div className={`text-[10px] mt-1 ${stat.change.startsWith("+") ? "text-emerald-400" : "text-amber-400"}`}>
+                    <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 transition-colors hover:bg-white/10">
+                      <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</div>
+                      <div className="text-lg md:text-xl font-black text-white mt-0.5 md:mt-1">{stat.val}</div>
+                      <div className={`text-[9px] md:text-[10px] mt-0.5 md:mt-1 ${stat.change.startsWith("+") ? "text-emerald-400" : "text-amber-400"}`}>
                         {stat.change} vs last month
                       </div>
                     </div>

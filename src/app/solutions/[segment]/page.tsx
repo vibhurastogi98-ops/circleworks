@@ -9,7 +9,7 @@ import FeatureVisual from "@/components/FeatureVisual";
 import { 
   ArrowRight, CheckCircle2, ChevronDown, 
   HelpCircle, MessageSquare, Quote, 
-  ShieldCheck, Star, Zap 
+  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, Target
 } from "lucide-react";
 
 export async function generateStaticParams() {
@@ -181,13 +181,59 @@ export default async function SegmentPage({ params }: { params: { segment: strin
                   </div>
                </div>
                
-               <div className="grid grid-cols-2 gap-6">
-                  {[1, 2, 3, 4].map(i => (
-                     <div key={i} className="aspect-video bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-                        <div className="text-2xl font-black text-white/20">PARTNER_{i}</div>
-                     </div>
-                  ))}
-               </div>
+                <div className="grid grid-cols-2 gap-6">
+                  {data.partners.map((partner, i) => {
+                     // Helper for icons used in map but need specific names if they differ
+                     const MonitorPlayIcon = Zap; // Fallback if MonitorPlay not seen
+                     
+                     const IconMap: Record<string, any> = {
+                       Shopify: ShoppingBag,
+                       QuickBooks: Landmark,
+                       Slack: MessageSquare,
+                       Okta: ShieldCheck,
+                       GitHub: Terminal,
+                       YouTube: MonitorPlayIcon,
+                       Stripe: CreditCard,
+                       Toast: Zap,
+                       Clover: Layers,
+                       Square: Landmark,
+                       NetSuite: Terminal,
+                       Workday: Globe,
+                       Patreon: Star,
+                       Twitch: MessageSquare,
+                       Carta: ShieldCheck,
+                       Pulley: Layers,
+                       Harvest: Clock,
+                       Toggl: Clock,
+                       Xero: Landmark,
+                       "7shifts": Clock,
+                       Google: Globe,
+                       Microsoft: Terminal,
+                       "G-Suite": Globe,
+                       Jira: Layers,
+                       Azure: Terminal,
+                       Salesforce: Globe,
+                       DonorDrive: Heart,
+                       Gave: Heart,
+                     };
+                     
+                     const Icon = IconMap[partner.name] || Globe;
+
+                     return (
+                      <div key={i} className="aspect-video bg-white/5 border border-white/10 rounded-3xl flex flex-col items-center justify-center p-6 hover:bg-white/10 hover:border-white/20 transition-all group/partner cursor-default">
+                          <div 
+                            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg mb-3 group-hover/partner:scale-110 transition-transform"
+                            style={{ backgroundColor: partner.color }}
+                          >
+                            <Icon size={24} />
+                          </div>
+                          <div className="text-xs font-black text-white/40 tracking-widest uppercase group-hover/partner:text-white/60 transition-colors">
+                            {partner.name}
+                          </div>
+                      </div>
+                     );
+                  })}
+                </div>
             </div>
          </div>
       </section>

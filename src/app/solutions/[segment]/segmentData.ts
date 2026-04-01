@@ -8,6 +8,7 @@ export interface SegmentContent {
   features: { name: string; description: string; icon: string }[];
   testimonial: { quote: string; author: string; role: string; avatar: string };
   faq: { q: string; a: string }[];
+  partners: { name: string; color: string }[];
   seoTitle: string;
   seoDesc: string;
 }
@@ -41,8 +42,14 @@ export const segments: Record<string, SegmentContent> = {
       { q: "Can I manage multiple companies from one login?", a: "Yes, our Agency portal allows you to toggle between client accounts instantly without logging out." },
       { q: "Do you support both W-2 and 1099?", a: "Yes, we are a unified platform for employees and contractors of all types." }
     ],
+    partners: [
+      { name: "Harvest", color: "#FA5D00" },
+      { name: "Toggl", color: "#E01E5A" },
+      { name: "Xero", color: "#13B5EA" },
+      { name: "QuickBooks", color: "#2CA01C" }
+    ],
     seoTitle: "Payroll for Professional Services & Agencies | CircleWorks",
-    seoDesc: "The \#1 payroll platform for marketing, creative, and consulting agencies. Manage multiple clients, white-label reports, and track project costs."
+    seoDesc: "The #1 payroll platform for marketing, creative, and consulting agencies. Manage multiple clients, white-label reports, and track project costs."
   },
   services: {
     title: "Payroll for professional service firms",
@@ -72,8 +79,14 @@ export const segments: Record<string, SegmentContent> = {
       { q: "Can I manage multiple companies from one login?", a: "Yes, our Agency portal allows you to toggle between client accounts instantly without logging out." },
       { q: "Do you support both W-2 and 1099?", a: "Yes, we are a unified platform for employees and contractors of all types." }
     ],
+    partners: [
+      { name: "Harvest", color: "#FA5D00" },
+      { name: "Toggl", color: "#E01E5A" },
+      { name: "Xero", color: "#13B5EA" },
+      { name: "QuickBooks", color: "#2CA01C" }
+    ],
     seoTitle: "Payroll for Professional Services & Agencies | CircleWorks",
-    seoDesc: "The \#1 payroll platform for marketing, creative, and consulting agencies. Manage multiple clients, white-label reports, and track project costs."
+    seoDesc: "The #1 payroll platform for marketing, creative, and consulting agencies. Manage multiple clients, white-label reports, and track project costs."
   },
   agency: {
     title: "Payroll for agencies & professional service firms",
@@ -103,8 +116,14 @@ export const segments: Record<string, SegmentContent> = {
       { q: "Can I manage multiple companies from one login?", a: "Yes, our Agency portal allows you to toggle between client accounts instantly without logging out." },
       { q: "Do you support both W-2 and 1099?", a: "Yes, we are a unified platform for employees and contractors of all types." }
     ],
+    partners: [
+      { name: "Harvest", color: "#FA5D00" },
+      { name: "Toggl", color: "#E01E5A" },
+      { name: "Xero", color: "#13B5EA" },
+      { name: "QuickBooks", color: "#2CA01C" }
+    ],
     seoTitle: "Payroll for Professional Services & Agencies | CircleWorks",
-    seoDesc: "The \#1 payroll platform for marketing, creative, and consulting agencies. Manage multiple clients, white-label reports, and track project costs."
+    seoDesc: "The #1 payroll platform for marketing, creative, and consulting agencies. Manage multiple clients, white-label reports, and track project costs."
   },
   creators: {
     title: "Pay your talent, track royalties, and file 1099s — all in one place",
@@ -132,6 +151,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "How do I generate 1099s for my talent?", a: "CircleWorks tracks all contractor payments throughout the year and files 1099s automatically for you in January." },
       { q: "Can I pay international collaborators?", a: "Yes, we support payments to over 120 countries with local currency options." }
+    ],
+    partners: [
+      { name: "YouTube", color: "#FF0000" },
+      { name: "Twitch", color: "#9146FF" },
+      { name: "Patreon", color: "#FF424D" },
+      { name: "Stripe", color: "#635BFF" }
     ],
     seoTitle: "Payroll for Creators & Influencers | CircleWorks",
     seoDesc: "Automate your talent payouts and 1099 filings. The premier financial platform built for the creator economy."
@@ -161,6 +186,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "Does CircleWorks support international hiring?", a: "Yes, through our EOR and independent contractor portals, you can hire in 150+ countries." }
     ],
+    partners: [
+      { name: "Carta", color: "#000000" },
+      { name: "Pulley", color: "#6366F1" },
+      { name: "Slack", color: "#4A154B" },
+      { name: "GitHub", color: "#24292F" }
+    ],
     seoTitle: "Payroll for High-Growth Startups | CircleWorks",
     seoDesc: "The preferred payroll and HR stack for VC-backed startups. Scale faster with automated state nexus and equity sync."
   },
@@ -188,6 +219,12 @@ export const segments: Record<string, SegmentContent> = {
     },
     faq: [
       { q: "Do you support 8/80 overtime rules?", a: "Yes, our engine is fully configurable for healthcare-specific wage and hour rules." }
+    ],
+    partners: [
+      { name: "Okta", color: "#007DC1" },
+      { name: "Google", color: "#4285F4" },
+      { name: "Microsoft", color: "#00A4EF" },
+      { name: "Workday", color: "#E17000" }
     ],
     seoTitle: "Healthcare Payroll & HR Software | CircleWorks",
     seoDesc: "HIPAA-compliant payroll and HR for medical practices, clinics, and hospitals. Manage shifts and credentials with ease."
@@ -217,6 +254,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "Which apps do you integrate with for security?", a: "We integrate with Okta, Google Workspace, Slack, Jira, GitHub, and 1,000+ others via OAuth." }
     ],
+    partners: [
+      { name: "GitHub", color: "#24292F" },
+      { name: "Slack", color: "#4A154B" },
+      { name: "Okta", color: "#007DC1" },
+      { name: "Jira", color: "#0052CC" }
+    ],
     seoTitle: "Payroll & IT Provisioning for Tech Companies | CircleWorks",
     seoDesc: "The modern workforce OS. Unified payroll, benefits, and automated IT onboarding for tech teams."
   },
@@ -244,6 +287,12 @@ export const segments: Record<string, SegmentContent> = {
     },
     faq: [
       { q: "Does this integrate with my POS?", a: "Yes, we have native integrations with Toast, Square, Clover, and Breadcrumb." }
+    ],
+    partners: [
+      { name: "Toast", color: "#F05A28" },
+      { name: "Square", color: "#000000" },
+      { name: "Clover", color: "#45B649" },
+      { name: "7shifts", color: "#FF4D4D" }
     ],
     seoTitle: "Restaurant Payroll Software | Tip Management | CircleWorks",
     seoDesc: "The #1 payroll platform for restaurants and hospitality. Automate tip credits, POS sync, and high-volume onboarding."
@@ -273,6 +322,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "How fast can I run payroll?", a: "With 2rd-day direct deposit, you can run payroll on Tuesday for a Friday payday." }
     ],
+    partners: [
+      { name: "QuickBooks", color: "#2CA01C" },
+      { name: "Slack", color: "#4A154B" },
+      { name: "Google", color: "#4285F4" },
+      { name: "Stripe", color: "#635BFF" }
+    ],
     seoTitle: "Small Business Payroll & HR Software | CircleWorks",
     seoDesc: "Everything small businesses need to pay, manage, and care for their teams. Automated tax filings and easy benefits."
   },
@@ -300,6 +355,12 @@ export const segments: Record<string, SegmentContent> = {
     },
     faq: [
       { q: "Do you support custom general ledger mapping?", a: "Yes, our native accounting integrations support complex, multi-entity mapping." }
+    ],
+    partners: [
+      { name: "NetSuite", color: "#374151" },
+      { name: "Sage", color: "#00DC82" },
+      { name: "Dynamics", color: "#0078D4" },
+      { name: "Workday", color: "#E17000" }
     ],
     seoTitle: "Mid-Market Payroll & HRIS | CircleWorks",
     seoDesc: "The modern HR stack for growing mid-sized companies. Advanced analytics, global payroll, and automated performance reviews."
@@ -329,6 +390,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "Is the platform SOC-2 Type II compliant?", a: "Yes, CircleWorks maintains SOC-2 Type II, GDPR, CCPA, and HIPAA compliance." }
     ],
+    partners: [
+      { name: "Okta", color: "#007DC1" },
+      { name: "Azure", color: "#0089D6" },
+      { name: "Salesforce", color: "#00A1E0" },
+      { name: "Workday", color: "#E17000" }
+    ],
     seoTitle: "Enterprise Payroll & Global HR Platform | CircleWorks",
     seoDesc: "Scale your workforce globally with safe, compliant, and unified payroll. Built for the world's most demanding enterprises."
   },
@@ -356,6 +423,12 @@ export const segments: Record<string, SegmentContent> = {
     },
     faq: [
       { q: "Can I manage different pay rates for differet roles?", a: "Yes, CircleWorks supports unlimited pay rates per employee based on location or role." }
+    ],
+    partners: [
+      { name: "Shopify", color: "#96BF48" },
+      { name: "Square", color: "#000000" },
+      { name: "Toast", color: "#F05A28" },
+      { name: "Clover", color: "#45B649" }
     ],
     seoTitle: "Retail Payroll & Scheduling Software | CircleWorks",
     seoDesc: "Modernize your retail operations. Automated multi-location payroll, shift scheduling, and mobile-first onboarding."
@@ -385,6 +458,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "Do you offer discounts for non-profits?", a: "Yes, we offer special pricing tiers for 501(c)(3) organizations." }
     ],
+    partners: [
+      { name: "Google", color: "#4285F4" },
+      { name: "Slack", color: "#4A154B" },
+      { name: "Gave", color: "#111111" },
+      { name: "DonorDrive", color: "#007DC1" }
+    ],
     seoTitle: "Non-Profit Payroll & HR Software | CircleWorks",
     seoDesc: "Empower your mission with automated payroll and grant-based cost tracking. Discounted pricing for 501(c)(3) organizations."
   },
@@ -412,6 +491,12 @@ export const segments: Record<string, SegmentContent> = {
     },
     faq: [
       { q: "How many states do you support?", a: "All 50 US states, plus DC. We handle registrations, filings, and payments everywhere." }
+    ],
+    partners: [
+      { name: "Slack", color: "#4A154B" },
+      { name: "G-Suite", color: "#4285F4" },
+      { name: "Jira", color: "#0052CC" },
+      { name: "GitHub", color: "#24292F" }
     ],
     seoTitle: "HR & Payroll for Rapidly Scaling Companies | CircleWorks",
     seoDesc: "Automate your growth. High-velocity hiring, multi-state tax compliance, and advanced HR analytics for scale-ups."
@@ -441,6 +526,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "Is your platform SOC-2 compliant?", a: "Yes, we are SOC-2 Type II compliant and undergo regular security audits." }
     ],
+    partners: [
+      { name: "Okta", color: "#007DC1" },
+      { name: "OneLogin", color: "#000000" },
+      { name: "Duo", color: "#00D364" },
+      { name: "Checkr", color: "#1B9CFC" }
+    ],
     seoTitle: "HR Compliance & Risk Management Software | CircleWorks",
     seoDesc: "Automate your labor law compliance. Multi-state tax filings, secure I-9 storage, and audit-ready financial reporting."
   },
@@ -469,6 +560,12 @@ export const segments: Record<string, SegmentContent> = {
     faq: [
       { q: "How much can I save on payroll fees?", a: "Most companies save 30-50% on legacy processing fees by switching to our unified platform." }
     ],
+    partners: [
+      { name: "Guideline", color: "#00B386" },
+      { name: "HSA Bank", color: "#0072CE" },
+      { name: "Stripe", color: "#635BFF" },
+      { name: "Plaid", color: "#111111" }
+    ],
     seoTitle: "Payroll Cost Optimization & Tax Credit Software | CircleWorks",
     seoDesc: "Reduce your labor costs. Automated R&D credit tracking, benefit optimization, and transparent payroll pricing."
   },
@@ -496,6 +593,12 @@ export const segments: Record<string, SegmentContent> = {
     },
     faq: [
       { q: "Can I pay international contractors?", a: "Yes, we support contractor payments in 120+ currencies with local compliance built-in." }
+    ],
+    partners: [
+      { name: "Okta", color: "#007DC1" },
+      { name: "Slack", color: "#4A154B" },
+      { name: "Google", color: "#4285F4" },
+      { name: "GitHub", color: "#24292F" }
     ],
     seoTitle: "HR & Payroll for Remote & Global Teams | CircleWorks",
     seoDesc: "The premier platform for global hiring. IT provisioning, localized payroll, and remote culture tools for modern teams."

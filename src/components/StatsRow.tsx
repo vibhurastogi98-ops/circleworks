@@ -117,15 +117,16 @@ export default function StatsSection() {
                 className={`flex flex-col items-center text-center px-6 ${dividerClasses}`}
               >
                 {/* Responsive Gradient Statistic Wrapper */}
-                <div className="flex flex-col items-center justify-center min-h-[140px]">
-                  <div className="text-[52px] md:text-[64px] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 leading-[0.85] tracking-tight flex flex-col items-center">
+                <div className="flex flex-col items-center justify-center min-h-[120px]">
+                  {/* SEO Update ── 20% font size reduction ── */}
+                  <div className="text-[42px] md:text-[52px] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 leading-[0.85] tracking-tight flex flex-col items-center">
                     {stat.top && <CountUpNumber endString={stat.top} />}
                     {stat.middle && <span className="mt-[-2px]">{stat.middle}</span>}
                   </div>
                 </div>
                 
                 {/* Slate Label with Refined Font Size */}
-                <div className="text-[15px] md:text-[17px] font-bold text-[#0F172A] mt-6 max-w-[180px] leading-snug">
+                <div className="text-[13px] md:text-[15px] font-bold text-[#0F172A] mt-5 max-w-[150px] leading-snug">
                   {stat.bottom}
                 </div>
               </div>

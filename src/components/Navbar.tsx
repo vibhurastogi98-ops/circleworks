@@ -272,6 +272,15 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
     setMobileOpen(false);
   };
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    closeMenus();
+    if (pathname === "/") {
+      // SEO Update: smooth scroll to top instead of reload on homepage
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   // Determine navbar styles
   // The user prompt specifically asked for navy text on light, white text on dark for the logo, and a sticky nav with white bg + shadow-md after 80px scroll.
   const isNavWhite = scrolled || forceLight;
@@ -289,7 +298,12 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
         <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between">
             {/* LEFT: Logo */}
-            <Link href="/" className="flex items-center gap-2 group z-50" onClick={closeMenus} onMouseEnter={handleMouseLeave}>
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 group z-50" 
+              onClick={handleLogoClick} 
+              onMouseEnter={handleMouseLeave}
+            >
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="16" cy="16" r="14" stroke={isNavWhite ? "#0A1628" : "currentColor"} className="dark:stroke-white" strokeWidth="3" />
                 <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
