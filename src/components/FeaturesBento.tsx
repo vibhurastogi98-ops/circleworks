@@ -153,10 +153,10 @@ export default function FeaturesSection() {
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
           <span className="text-blue-600 text-[13px] font-black uppercase tracking-[0.2em] mb-4">THE PLATFORM</span>
           <h2 className="text-[36px] md:text-[48px] font-black text-slate-900 leading-tight mb-5 tracking-tight">
-            Everything your HR team needs &mdash; one platform.
+            Everything a Creator Agency Needs &mdash; One Platform.
           </h2>
           <p className="text-[18px] md:text-[20px] text-slate-500 font-medium">
-            Replace 7 tools. One login. One source of truth.
+            Stop juggling spreadsheets, payroll tools, and talent contracts. Replace 7 tools with one login.
           </p>
         </div>
 
@@ -171,9 +171,9 @@ export default function FeaturesSection() {
               </div>
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-black tracking-wider uppercase border border-emerald-500/30">P0 Core</span>
             </div>
-            <h3 className="text-white text-[24px] font-bold mt-6">Run Payroll in 3 Clicks</h3>
+            <h3 className="text-white text-[24px] font-bold mt-6">Pay Anyone in 3 Clicks</h3>
             <p className="text-slate-400 text-[15px] mt-2 mb-2 leading-relaxed">
-              All 50 states. Auto tax filing. Direct deposit in minutes. We handle the math so you don't have to.
+              W-2 employees, 1099 creators, and freelance talent &mdash; processed together. Auto tax filing. Direct deposit. All 50 states handled.
             </p>
             <PayrollDemo />
           </div>
@@ -183,9 +183,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-blue-50 rounded-xl text-blue-600 w-fit">
               <UserPlus size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Hire to First Day</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Hire Talent at the Speed of Culture</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Integrated ATS & Onboarding pipelines.
+              Built-in ATS to pipeline creators, talent managers, and production staff. From offer to onboarded in hours, not weeks.
             </p>
             <AtsPipeline />
           </div>
@@ -195,9 +195,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-rose-50 rounded-xl text-rose-500 w-fit">
               <Heart size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Benefits That Compete</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Benefits That Attract Top Creative Talent</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Enterprise-tier options for startups.
+              Enterprise-grade health, dental, vision, and 401k &mdash; without enterprise complexity. Help your team feel valued.
             </p>
             <Benefits2x2 />
           </div>
@@ -207,9 +207,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-amber-50 rounded-xl text-amber-500 w-fit">
               <Clock size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Time & Attendance</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Track Hours Across Projects</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Syncs natively to payroll batches.
+              Campaign-based time tracking that syncs directly to payroll. No manual entry. No errors.
             </p>
             <ClockDemo />
           </div>
@@ -219,9 +219,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-emerald-50 rounded-xl text-emerald-500 w-fit">
               <Shield size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Tax & Compliance</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">1099 & W-2 Compliance, Guaranteed</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Guaranteed flawless filings everywhere.
+              Creator agencies live in the contractor world. We auto-file 1099-NECs, handle state registrations, and flag misclassification risks before they become problems.
             </p>
             <ShieldDemo />
           </div>
@@ -234,9 +234,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-blue-50 rounded-xl text-blue-600 w-fit relative z-10">
               <BarChart2 size={24} />
             </div>
-            <h3 className="text-slate-900 text-[24px] font-bold mt-6 relative z-10">People Analytics</h3>
+            <h3 className="text-slate-900 text-[24px] font-bold mt-6 relative z-10">Know Your Labor Costs by Client</h3>
             <p className="text-slate-500 text-[15px] mt-2 mb-2 leading-relaxed relative z-10 max-w-md">
-              Custom labor overhead trends, EEO-1 reporting, and powerful visualization metrics straight from your core data source.
+              Visualize team costs by campaign, client, or department. Make smarter hiring and budget decisions with real data.
             </p>
             <AnalyticsChart />
           </div>

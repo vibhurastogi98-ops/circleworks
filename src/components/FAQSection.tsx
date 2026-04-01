@@ -33,24 +33,24 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
       "Your data remains accessible for 90 days after cancellation. You can export complete payroll records, employee files, and tax documents at any time. We retain legally required tax records for 7 years per IRS guidelines, even after account closure.",
   },
   {
-    question: "Does it work for 1099 contractors?",
+    question: "Can I pay both W-2 employees AND 1099 creators from one platform?",
     answer:
-      "Yes. CircleWorks lets you pay W-2 employees and 1099 contractors from the same platform. Contractor payments, year-end 1099-NEC filing, and compliance documentation are all handled seamlessly alongside your regular payroll runs.",
+      "Yes — this is one of CircleWorks' core strengths. Run payroll for your full-time staff and issue contractor payments to your creator talent in the same pay cycle, with automatic 1099-NEC filing at year end.",
   },
   {
-    question: "Is CircleWorks HIPAA compliant?",
+    question: "We work with creators in multiple states. Can CircleWorks handle that?",
     answer:
-      "Yes. CircleWorks maintains full HIPAA compliance for all benefits-related data. We use AES-256 encryption at rest and TLS 1.3 in transit, conduct annual SOC 2 Type II audits, and sign Business Associate Agreements (BAAs) with every customer.",
+      "Absolutely. All 50 states are supported. We auto-handle state registrations, local tax rates, and compliance — even if your talent is spread coast to coast.",
   },
   {
-    question: "Can my accountant access CircleWorks?",
+    question: "How does CircleWorks handle high-volume contractor payments?",
     answer:
-      "Absolutely. You can invite your accountant, CPA, or bookkeeper with a free read-only or admin-level role. They get their own login, a dedicated accountant dashboard, and can pull payroll journals, tax liability reports, and general ledger exports instantly.",
+      "Built for it. Batch pay hundreds of contractors at once, auto-generate payment records, and file all 1099s at year end — zero manual work.",
   },
   {
-    question: "Do you integrate with QuickBooks?",
+    question: "Can we give clients or accountants access?",
     answer:
-      "Yes — we offer native two-way sync with QuickBooks Online and QuickBooks Desktop. Payroll journal entries, tax liabilities, and employee reimbursements automatically flow into your chart of accounts after every pay run. We also integrate with Xero, Sage, and NetSuite.",
+      "Yes. Add your bookkeeper or client finance contact as a read-only or admin user at no extra cost.",
   },
   {
     question: "What states are supported?",
@@ -201,10 +201,10 @@ export default function FAQSection() {
           {/* Header */}
           <div className="text-center mb-14">
             <h2 className="text-[32px] md:text-[40px] font-black text-gray-900 tracking-tight">
-              Frequently asked questions
+              Questions Creator Agencies Ask Us Most
             </h2>
             <p className="mt-4 text-[16px] text-gray-500 max-w-xl mx-auto leading-relaxed">
-              Everything you need to know about CircleWorks payroll and HR platform.
+              Everything you need to know about how CircleWorks handles agency-specific payroll and HR.
             </p>
           </div>
 

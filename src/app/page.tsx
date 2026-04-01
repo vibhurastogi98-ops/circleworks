@@ -19,42 +19,40 @@ import CirceWidget from "@/components/CirceWidget";
 /* ─── Metadata (Next.js App Router) ─── */
 
 export const metadata: Metadata = {
-  title: "CircleWorks | USA Payroll & HR Platform",
+  title: "CircleWorks | Payroll & HR for Creator Agencies",
   description:
-    "CircleWorks is the all-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform built for every US company. Run payroll in under 5 minutes. Trusted by 5,000+ businesses nationwide.",
+    "CircleWorks is the #1 Payroll & HR platform built for creator agencies, studios, and companies. Pay W-2 staff and 1099 talent flawlessly. Trusted by 500+ agencies nationwide.",
   keywords: [
-    "US payroll software",
-    "HR platform USA",
-    "payroll SaaS",
-    "HRIS",
-    "ATS",
-    "employee benefits",
-    "time tracking",
-    "expense management",
+    "creator economy payroll",
+    "agency payroll software",
+    "influencer payments",
+    "1099 compliance for agencies",
+    "HR platform for studios",
+    "talent management payroll",
     "CircleWorks",
   ],
   openGraph: {
-    title: "CircleWorks | USA Payroll & HR Platform",
+    title: "CircleWorks | Payroll & HR Built for the Creator Economy",
     description:
-      "All-in-one: Payroll · HRIS · ATS · Benefits · Time · Expenses. Built for every US company. Run payroll in under 5 minutes.",
+      "All-in-one platform for W-2 staff, 1099 influencers, and contractor talent. Built for agencies running the creator economy.",
     type: "website",
     siteName: "CircleWorks",
     url: "https://circleworks.com",
     images: [
       {
-        url: "https://circleworks.com/og-image.png",
+        url: "https://circleworks.com/og-image-agency.png",
         width: 1200,
         height: 630,
-        alt: "CircleWorks — USA Payroll & HR Platform",
+        alt: "CircleWorks — Payroll & HR for Creator Agencies",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CircleWorks | USA Payroll & HR Platform",
+    title: "CircleWorks | Payroll & HR for Creator Agencies",
     description:
-      "All-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform for US companies.",
-    images: ["https://circleworks.com/og-image.png"],
+      "All-in-one Payroll & HR platform built for creator agencies. Pay W-2 and 1099 talent in one place.",
+    images: ["https://circleworks.com/og-image-agency.png"],
   },
   alternates: {
     canonical: "https://circleworks.com",
@@ -82,7 +80,7 @@ const organizationSchema = {
     availableLanguage: "en",
   },
   description:
-    "CircleWorks is the all-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform built for every US company.",
+    "CircleWorks is the all-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform built for creator agencies and studios.",
 };
 
 const softwareAppSchema = {
@@ -96,17 +94,17 @@ const softwareAppSchema = {
     price: "6.00",
     priceCurrency: "USD",
     priceValidUntil: "2026-12-31",
-    description: "Per employee per month, starting at Starter plan",
+    description: "Per employee per month, starting at Agency Starter plan",
   },
   aggregateRating: {
     "@type": "AggregateRating",
-    ratingValue: "4.8",
-    ratingCount: "912",
+    ratingValue: "4.9",
+    ratingCount: "1240",
     bestRating: "5",
     worstRating: "1",
   },
   description:
-    "All-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform for US companies.",
+    "All-in-one Payroll and HR platform for creator agencies, handling both W-2 and 1099 talent.",
   url: "https://circleworks.com",
 };
 

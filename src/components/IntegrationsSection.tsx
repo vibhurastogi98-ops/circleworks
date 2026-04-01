@@ -42,9 +42,12 @@ export default function IntegrationsSection() {
 
   return (
     <section className="bg-slate-50 py-16 w-full border-t border-slate-200 overflow-hidden">
-      <div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10">
-        <p className="text-center text-slate-500 text-[18px] font-medium">
-          Connects with the tools your team already uses
+      <div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10 text-center">
+        <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 tracking-tight leading-tight mb-4">
+          Connects with Every Tool Your Agency Already Uses
+        </h2>
+        <p className="text-slate-500 text-[18px] font-medium max-w-2xl mx-auto">
+          QuickBooks, Slack, Stripe, DocuSign, Greenhouse, and 50+ more — so your stack stays intact.
         </p>
       </div>
 

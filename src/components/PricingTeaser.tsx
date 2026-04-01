@@ -15,10 +15,10 @@ export default function PricingTeaser() {
         {/* HEADER */}
         <div className="text-center flex flex-col items-center mb-16">
           <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 tracking-tight leading-tight mb-4">
-            Transparent pricing — no surprises
+            Transparent Pricing for Growing Agencies
           </h2>
           <p className="text-[18px] text-slate-500 font-medium">
-            No setup fees. No hidden costs. Cancel anytime.
+            Scale from 5 to 500+ — no hidden fees, no surprises, cancel anytime.
           </p>
           
           {/* TAB TOGGLE */}
@@ -66,7 +66,7 @@ export default function PricingTeaser() {
           
           {/* STARTER CARD */}
           <div className="bg-white border-2 border-slate-200 rounded-2xl p-8 flex flex-col h-[460px] shadow-sm hover:shadow-md transition-shadow">
-            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Starter</h3>
+            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Agency Starter</h3>
             <div className="min-h-[80px] flex flex-col justify-start">
               <div className="text-[14px] text-slate-500 font-semibold mb-1">Free base +</div>
               <div className="flex items-end gap-1 text-slate-900">
@@ -121,7 +121,7 @@ export default function PricingTeaser() {
               Most Popular
             </div>
 
-            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Pro</h3>
+            <h3 className="text-[20px] font-bold text-slate-900 mb-2">Agency Pro</h3>
             <div className="min-h-[80px] flex flex-col justify-start">
               <div className="text-[14px] text-blue-600 font-bold mb-1 flex items-center gap-1">
                 <AnimatePresence mode="popLayout">
@@ -165,7 +165,7 @@ export default function PricingTeaser() {
             <div className="flex flex-col gap-4 mt-auto border-t border-slate-100 pt-6">
               <div className="flex items-start gap-3">
                 <CheckCircle2 size={20} className="text-blue-600 shrink-0 mt-0.5" />
-                <span className="text-slate-800 font-bold text-[15px] leading-tight">Everything in Starter, plus:</span>
+                <span className="text-slate-800 font-bold text-[15px] leading-tight">Everything in Agency Starter, plus:</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 size={20} className="text-blue-600 shrink-0 mt-0.5" />
@@ -180,7 +180,7 @@ export default function PricingTeaser() {
 
           {/* ENTERPRISE CARD */}
           <div className="bg-[#0A1628] border-2 border-slate-800 rounded-2xl p-8 flex flex-col h-[460px] shadow-xl">
-            <h3 className="text-[20px] font-bold text-white mb-2">Enterprise</h3>
+            <h3 className="text-[20px] font-bold text-white mb-2">Studio Enterprise</h3>
             <div className="min-h-[80px] flex flex-col justify-start">
               <div className="text-[14px] text-slate-400 font-semibold mb-1">For large teams</div>
               <div className="flex items-end gap-1 text-white">
@@ -198,7 +198,7 @@ export default function PricingTeaser() {
             <div className="flex flex-col gap-4 mt-auto border-t border-slate-800 pt-6">
                <div className="flex items-start gap-3">
                 <CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5" />
-                <span className="text-white font-bold text-[15px] leading-tight">Everything in Pro, plus:</span>
+                <span className="text-white font-bold text-[15px] leading-tight">Everything in Agency Pro, plus:</span>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5" />

@@ -75,50 +75,104 @@ export default function HeroSection() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-cyan-400 text-[12px] font-bold uppercase tracking-[0.2em] mb-4"
         >
-          THE #1 PAYROLL & HR PLATFORM FOR USA COMPANIES
+          THE #1 PAYROLL & HR PLATFORM FOR CREATOR AGENCIES
         </motion.div>
 
         {/* H1 HEADER */}
-        <h1 className="text-[44px] sm:text-[56px] md:text-[72px] font-black text-white leading-[1.05] tracking-tight mb-6">
-          <div className="overflow-hidden flex flex-wrap justify-center gap-[0.3em]">
-            {line1.map((word, i) => (
-              <motion.span
-                key={i}
-                custom={i}
-                initial="hidden"
-                animate="visible"
-                variants={wordAnimation}
-                className="inline-block"
-              >
-                {word}
-              </motion.span>
-            ))}
+        <h1 className="text-[36px] sm:text-[48px] md:text-[60px] font-black text-white leading-[1.1] tracking-tight mb-6">
+          <div className="overflow-hidden flex flex-wrap sm:flex-nowrap justify-center gap-x-[0.25em] gap-y-0">
+            <motion.span
+              key="h1-1"
+              custom={0}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block"
+            >
+              Pay
+            </motion.span>
+            <motion.span
+              key="h1-2"
+              custom={1}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block"
+            >
+              Creators,
+            </motion.span>
+            <motion.span
+              key="h1-3"
+              custom={2}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block"
+            >
+              Talent
+            </motion.span>
+            <motion.span
+              key="h1-4"
+              custom={3}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block"
+            >
+              &
+            </motion.span>
+            <motion.span
+              key="h1-5"
+              custom={4}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block"
+            >
+              Teams
+            </motion.span>
           </div>
-          <div className="overflow-hidden flex flex-wrap justify-center gap-[0.3em]">
-            {line2Part1.map((word, i) => (
-              <motion.span
-                key={`p1-${i}`}
-                custom={line1.length + i}
-                initial="hidden"
-                animate="visible"
-                variants={wordAnimation}
-                className="inline-block"
-              >
-                {word}
-              </motion.span>
-            ))}
-            {line2Part2.map((word, i) => (
-              <motion.span
-                key={`p2-${i}`}
-                custom={line1.length + line2Part1.length + i}
-                initial="hidden"
-                animate="visible"
-                variants={wordAnimation}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
-              >
-                {word}
-              </motion.span>
-            ))}
+          <div className="overflow-hidden flex flex-wrap sm:flex-nowrap justify-center gap-x-[0.25em] gap-y-0">
+            <motion.span
+              key="h1-6"
+              custom={5}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block"
+            >
+              —
+            </motion.span>
+            <motion.span
+              key="h1-7"
+              custom={6}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
+            >
+              Without
+            </motion.span>
+            <motion.span
+              key="h1-8"
+              custom={7}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
+            >
+              the
+            </motion.span>
+            <motion.span
+              key="h1-9"
+              custom={8}
+              initial="hidden"
+              animate="visible"
+              variants={wordAnimation}
+              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
+            >
+              Chaos.
+            </motion.span>
           </div>
         </h1>
 
@@ -129,7 +183,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="text-[18px] md:text-[20px] text-slate-300 max-w-2xl leading-relaxed mb-8 font-medium"
         >
-          All-in-one: Payroll &middot; HRIS &middot; ATS &middot; Benefits &middot; Time &middot; Expenses. Built for every USA company.
+          CircleWorks handles payroll for W-2 staff, 1099 influencers, and contractor talent — all in one platform. Built for agencies and companies running the creator economy.
         </motion.p>
 
         {/* CTA ROW */}
@@ -145,7 +199,7 @@ export default function HeroSection() {
               href="/signup"
               className="h-[56px] px-8 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
             >
-              Start Free &mdash; No Credit Card
+              Start Free — No Credit Card
               <ChevronRight size={18} />
             </Link>
 
@@ -368,7 +422,7 @@ export default function HeroSection() {
           className="mt-16 sm:mt-20 lg:mt-24 w-full flex flex-col items-center overflow-hidden relative"
         >
           <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wider mb-6 text-center">
-            Trusted by 5,000+ US companies
+            Trusted by 500+ Creator Agencies & Studios
           </p>
 
           {/* Shadow Edges to blend scrolling logos seamlessly */}

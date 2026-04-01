@@ -7,61 +7,61 @@ import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle } from "lucide-reac
 
 const FEATURED_QUOTES = [
   {
-    quote: "Switching to CircleWorks was the best operational decision we've made this year. We replaced five disjointed tools with one platform, completely eliminating manual data entry across our HR stack.",
-    name: "Sarah Jenkins",
-    title: "VP of People Operations",
-    company: "Acme Corp",
+    quote: "We manage 40+ contractors and 12 full-time staff across 6 states. CircleWorks is the first platform that handles both without breaking a sweat.",
+    name: "Jordan Mills",
+    title: "Head of Ops",
+    company: "Hype House Studios",
   },
   {
-    quote: "The compliant onboarding workflows alone saved us countless hours. We hired 40 people across 12 states last quarter and CircleWorks handled all the local state tax registrations automatically without us lifting a finger.",
-    name: "David Rodriguez",
-    title: "Chief Financial Officer",
-    company: "TechFlow Solutions",
+    quote: "Our talent payouts used to take 3 days and a prayer. Now we run the whole thing in 20 minutes. Our creators are happier, and so are we.",
+    name: "Priya Sethi",
+    title: "Founder",
+    company: "Collabs Agency",
   },
   {
-    quote: "Our employees absolutely love the intuitive mobile experience. They can track their time, request PTO, and access their paystubs entirely from their phones. It's transformed our internal satisfaction metrics dramatically.",
-    name: "Emily Chen",
-    title: "Director of HR",
-    company: "BrightStar Retail",
+    quote: "CircleWorks replaced our payroll service, benefits broker, and HRIS — and it costs less than what we were paying for just one of those.",
+    name: "Marcus Osei",
+    title: "CEO",
+    company: "Creator Co.",
   }
 ];
 
 const GRID_QUOTES = [
   {
-    quote: "CircleWorks is incredibly intuitive. I had our new benefits program configured and deeply integrated directly with payroll deductions within 48 hours. Phenomenal platform.",
-    name: "Marcus Thorne",
-    role: "HR Business Partner",
-    company: "Nexus Dynamics"
+    quote: "1099 compliance was keeping me up at night. CircleWorks flags issues before we run payroll. It's like having an HR lawyer on staff.",
+    name: "Rachel Kim",
+    role: "COO",
+    company: "Talent Lane"
   },
   {
-    quote: "The built-in ATS pipeline completely changed how we hire. Moving candidates from applied to screened to hired is seamless, and their employee profiles are automatically generated upon offer acceptance.",
-    name: "Anna Pavlova",
-    role: "Talent Acquisition",
-    company: "Elevate AI"
+    quote: "We onboard new content creators as contractors weekly. CircleWorks makes it so fast — contracts, payments, tax forms, done.",
+    name: "Tom Nakamura",
+    role: "Producer",
+    company: "Studio Zero"
   },
   {
-    quote: "Compliance used to keep me up at night. Now, CircleWorks proactively flags potential overtime violations and minimum wage updates before we even run the bi-weekly preview. A lifesaver.",
-    name: "Robert Gaines",
-    role: "Operations Manager",
-    company: "Summit Logistics"
+    quote: "Finally a platform that gets that our employees aren't always employees. W-2 and 1099 in one place? Game changer.",
+    name: "Sofia Reyes",
+    role: "Talent Director",
+    company: "Reach Collective"
   },
    {
-    quote: "Running payroll across 15 states used to take our accounting team three full days. With CircleWorks, we literally click three buttons and our entire workforce is paid correctly within minutes.",
-    name: "Lisa Wong",
-    role: "Controller",
-    company: "Apex Healthcare"
+    quote: "Batch paying our 200+ influencers used to be a week-long nightmare. Now it's a 3-click process. Absolute game changer.",
+    name: "Lexi Rivera",
+    role: "Talent Manager",
+    company: "Amplify Agency"
   },
     {
-    quote: "The time tracking integration is flawless. Our hourly employees clock in via the app, and managers approve timesheets with one click. It eliminates all manual spreadsheet errors.",
-    name: "Thomas Keller",
-    role: "General Manager",
-    company: "FreshFoods Inc"
+    quote: "The multi-state compliance automated everything. We hired creators in 14 new states this year without any tax headaches.",
+    name: "Derek Zhang",
+    role: "Ops Director",
+    company: "Vibe Studios"
   },
     {
-    quote: "We were paying for a separate expensive HRIS, benefits broker, and payroll provider. CircleWorks consolidated all of it into one beautiful interface for half the total price.",
-    name: "Samantha Reed",
-    role: "Founder & CEO",
-    company: "Starlight Digital"
+    quote: "Integrating our creative production budget directly with payroll data has given us a clear view of our true campaign costs.",
+    name: "Chloe Lee",
+    role: "CFO",
+    company: "Brand Talent Inc"
   }
 ];
 
@@ -116,7 +116,7 @@ export default function TestimonialsSection() {
         {/* HEADER */}
         <div className="text-center mb-16">
           <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 tracking-tight">
-            What USA companies say
+            What Creator Agencies Are Saying
           </h2>
         </div>
 

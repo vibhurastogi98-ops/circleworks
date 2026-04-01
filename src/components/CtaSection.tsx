@@ -6,8 +6,8 @@ import Link from "next/link";
 
 const BULLETS = [
   "30-day free trial — no credit card",
-  "Set up in under 5 minutes",
-  "Cancel anytime, no questions asked",
+  "Set up in under 24 hours",
+  "Cancel anytime",
 ];
 
 export default function CtaSection() {
@@ -37,15 +37,15 @@ export default function CtaSection() {
 
         {/* Heading */}
         <h2 className="text-[32px] sm:text-[40px] md:text-[48px] font-black text-white tracking-tight leading-[1.1] mb-6">
-          Ready to run payroll the{" "}
+          Ready to Run Your Agency on{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]">
-            American way?
+            One Platform?
           </span>
         </h2>
 
         {/* Subheadline */}
         <p className="text-[17px] md:text-[19px] text-slate-300 max-w-xl leading-relaxed mb-8 font-medium">
-          Join 5,000+ US companies that trust CircleWorks for payroll, HR, benefits, and compliance — all in one platform.
+          Join 500+ creator agencies and companies that trust CircleWorks for payroll, HR, and compliance — so they can focus on building, not admin.
         </p>
 
         {/* CTA buttons */}

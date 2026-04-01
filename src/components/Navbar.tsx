@@ -279,10 +279,16 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                 <circle cx="16" cy="16" r="14" stroke={isNavWhite ? "#0A1628" : "currentColor"} className="dark:stroke-white" strokeWidth="3" />
                 <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
               </svg>
-              <span className={`text-[22px] font-bold tracking-tight transition-colors ${isNavWhite ? "text-[#0A1628]" : "text-white"
-                }`}>
-                Circle<span className="text-blue-500">Works</span>
-              </span>
+              <div className="flex flex-col">
+                <span className={`text-[22px] font-bold tracking-tight transition-colors ${isNavWhite ? "text-[#0A1628]" : "text-white"
+                  }`}>
+                  Circle<span className="text-blue-500">Works</span>
+                </span>
+                <span className={`text-[10px] font-medium tracking-wide uppercase mt-[-4px] hidden sm:block ${isNavWhite ? "text-slate-500" : "text-slate-400"
+                  }`}>
+                  Built for the Creator Economy
+                </span>
+              </div>
             </Link>
 
             {/* CENTER: Desktop Nav */}

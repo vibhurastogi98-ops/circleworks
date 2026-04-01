@@ -85,18 +85,18 @@ const STATS_DATA = [
   },
   { 
     value: "$2B+", 
-    label: "Payroll Processed", 
-    subLabel: "By US companies on CircleWorks" 
+    label: "Creator Payroll Processed", 
+    subLabel: "Trusted by 500+ agencies" 
   },
   { 
-    value: "99.97%", 
+    value: "99.99%", 
     label: "Platform Uptime", 
-    subLabel: "SLA-guaranteed, SOC 2 certified" 
+    subLabel: "SOC 2 Certified & Secure" 
   },
   { 
-    value: "<5 Min", 
-    label: "Average First Payroll Setup", 
-    subLabel: "From signup to first run" 
+    value: "<24 Hrs", 
+    label: "From Signup to First Payroll Run", 
+    subLabel: "Set up in record time" 
   },
 ];
 

@@ -76,7 +76,7 @@ export default function SiteFooter() {
               </span>
             </Link>
             <p className="text-[15px] text-slate-400 font-medium">
-              Payroll & HR. Simplified for America.
+              Payroll & HR. Simplified for the Creator Economy.
             </p>
           </div>
 

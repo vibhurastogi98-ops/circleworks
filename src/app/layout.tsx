@@ -4,11 +4,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "CircleWorks | USA Payroll & HR Platform",
+    default: "CircleWorks | Payroll & HR for Creator Agencies",
     template: "%s | CircleWorks",
   },
   description:
-    "CircleWorks is an all-in-one Payroll, HRIS, ATS, Benefits, Time & Expense platform built for every US company. Run payroll in under 5 minutes. Trusted by 5,000+ businesses.",
+    "CircleWorks is the #1 Payroll & HR platform built for creator agencies, studios, and companies. Pay W-2 staff and 1099 talent flawlessly. Trusted by 500+ agencies nationwide.",
   keywords: [
     "US payroll software",
     "HR platform USA",
