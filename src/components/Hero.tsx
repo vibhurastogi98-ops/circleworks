@@ -90,7 +90,7 @@ export default function HeroSection() {
         <h1 className="text-[32px] sm:text-[44px] md:text-[52px] font-black text-white leading-[1.1] tracking-tight mb-6">
           <div className="flex flex-wrap justify-center gap-x-[0.2em] gap-y-1 text-center">
             {/* SEO Update ── Creators & Agencies Positioning ── */}
-            {["The", "HR", "&", "Payroll", "Platform", "Built", "for"].map((word, i) => (
+            {["The", "Payroll", "&", "HR", "Platform", "Built", "for"].map((word, i) => (
               <motion.span
                 key={`h1-w-${i}`}
                 custom={i}

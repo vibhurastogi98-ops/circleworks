@@ -44,7 +44,7 @@ export default function BlogPage() {
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-white leading-[1.1] tracking-tight mb-6">
-            HR & Payroll Insights for <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">US Companies</span>
+            Payroll & HR Insights for <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">US Companies</span>
           </h1>
           <p className="text-lg lg:text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
             Compliance guides, payroll tips, hiring strategies &mdash; updated weekly.
@@ -210,7 +210,7 @@ export default function BlogPage() {
       {/* SECTION 5 - NEWSLETTER SIGNUP */}
       <section className="py-24 bg-slate-50">
          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h3 className="text-3xl md:text-4xl font-black text-[#0A1628] mb-4">Get HR & payroll insights every week.</h3>
+            <h3 className="text-3xl md:text-4xl font-black text-[#0A1628] mb-4">Get Payroll & HR insights every week.</h3>
             <p className="text-slate-500 mb-10 text-lg">Join 20,000+ HR professionals staying ahead of the curve. Unsubscribe anytime.</p>
             
             <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-4" onSubmit={e=>e.preventDefault()}>

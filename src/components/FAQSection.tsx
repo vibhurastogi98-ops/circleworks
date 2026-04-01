@@ -38,6 +38,38 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   {
     question: "How secure is the data for my creators and company?",
     answer: "CircleWorks is SOC 2 Type II compliant and uses 256-bit SSL encryption. We protect sensitive creator and company data with the same grade of security used by major US financial institutions."
+  },
+  {
+    question: "Does CircleWorks handle workers' compensation insurance?",
+    answer: "Yes. We offer integrated pay-as-you-go workers' comp insurance through our partners. It automatically syncs with your payroll data, so you only pay for what you use, with no large upfront deposits."
+  },
+  {
+    question: "What about year-end filings like W-2s and 1099s?",
+    answer: "We handle all of it. CircleWorks automatically generates, files, and sends digital and paper W-2s and 1099s to your team and the IRS/SSA at year-end. No extra per-employee fees."
+  },
+  {
+    question: "Can we migrate our existing payroll data to CircleWorks?",
+    answer: "Yes. Our concierge onboarding team handles the migration for you. We'll import your historical year-to-date data so your tax filings remain accurate and your team's pay history is preserved."
+  },
+  {
+    question: "Is there a mobile app for employees and creators?",
+    answer: "Yes. Employees and creators can use the CircleWorks mobile app for iOS and Android to view pay stubs, request PTO, clock in/out, and manage their benefits on the go."
+  },
+  {
+    question: "Can we automate employee onboarding workflows?",
+    answer: "Absolutely. CircleWorks allows you to build custom onboarding checklists that automatically trigger when a candidate is hired in the ATS. Assign tasks to IT, HR, and managers instantly to ensure a perfect Day 1."
+  },
+  {
+    question: "Does the platform help with diversity and EEO-1 reporting?",
+    answer: "Yes. Our analytics suite includes automated EEO-1 diversity reporting and pay parity audits, helping your agency or company maintain a fair and compliant workplace with zero manual data crunching."
+  },
+  {
+    question: "What kind of support is included with my subscription?",
+    answer: "Every CircleWorks client gets a dedicated account manager and access to our US-based compliance experts. No chat bots or ticket loops — just direct, expert support when you need it."
+  },
+  {
+    question: "Is there a free trial for the platform?",
+    answer: "Yes. We offer a full 30-day free trial of the entire CircleWorks platform for creators, agencies, and companies. No credit card is required to set up your account and explore all our features."
   }
 ];
 
@@ -154,9 +186,9 @@ export default function FAQSection() {
     []
   );
 
-  /* Split into two columns */
-  const leftColumn = FAQ_ITEMS.slice(0, 4);
-  const rightColumn = FAQ_ITEMS.slice(4, 8);
+  /* Split into two columns ── UPDATED for 16 items ── */
+  const leftColumn = FAQ_ITEMS.slice(0, 8);
+  const rightColumn = FAQ_ITEMS.slice(8, 16);
 
   return (
     <>
@@ -178,7 +210,7 @@ export default function FAQSection() {
             </h2>
             <p className="mt-4 text-[16px] text-gray-500 max-w-xl mx-auto leading-relaxed">
               {/* SEO Update ── Creators & Agencies FAQ ── */}
-              Everything you need to know about how CircleWorks handles agency-specific payroll and HR.
+              Everything you need to know about how CircleWorks handles agency-specific Payroll & HR.
             </p>
           </div>
 
@@ -200,7 +232,7 @@ export default function FAQSection() {
             {/* RIGHT COLUMN */}
             <div className="border-t border-gray-200">
               {rightColumn.map((item, i) => {
-                const globalIndex = i + 4;
+                const globalIndex = i + 8;
                 return (
                   <AccordionItem
                     key={globalIndex}

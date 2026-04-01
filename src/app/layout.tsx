@@ -11,7 +11,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://circleworks.vercel.app"),
   title: {
-    default: "CircleWorks — Payroll Software for US Companies & HR Platform",
+    default: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
     template: "%s | CircleWorks",
   },
   description:
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+    title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
     description: "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
     type: "website",
     siteName: "CircleWorks",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+    title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
     description: "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
     images: ["https://circleworks.vercel.app/og-image.png"],
   },

@@ -110,7 +110,7 @@ const INTEGRATIONS_MENU = [
 
 const RESOURCES_MENU = {
   learn: [
-    { label: "Blog", desc: "HR & Payroll insights", icon: FileCheck, href: "/blog" },
+    { label: "Blog", desc: "Payroll & HR insights", icon: FileCheck, href: "/blog" },
     { label: "Guides & Templates", desc: "Free HR assets", icon: BookOpen, href: "/guides" },
     { label: "Payroll Glossary", desc: "Industry terms defined", icon: GraduationCap, href: "/blog/labor-law-dictionary" },
     { label: "State Tax Guides", desc: "Jurisdiction compliance", icon: Globe, href: "/resources/state-tax-guides" },

@@ -9,7 +9,7 @@ import FeatureVisual from "@/components/FeatureVisual";
 import { 
   ArrowRight, CheckCircle2, ChevronDown, 
   HelpCircle, MessageSquare, Quote, 
-  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, Target
+  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, Target, MonitorPlay, Phone, Lock, Volume2
 } from "lucide-react";
 
 export async function generateStaticParams() {
@@ -97,13 +97,37 @@ export default async function SegmentPage({ params }: { params: { segment: strin
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {data.painPoints.map((point, i) => (
-              <div key={i} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className="text-4xl mb-6">{point.icon}</div>
-                <h3 className="text-xl font-black text-slate-900 mb-3">{point.title}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{point.description}</p>
-              </div>
-            ))}
+            {data.painPoints.map((point, i) => {
+              const IconMap: Record<string, any> = {
+                building: Building,
+                clock: Clock,
+                tag: Landmark,
+                dollar: CreditCard,
+                file: Landmark,
+                chart: Activity,
+                rocket: Rocket,
+                award: Star,
+                "trending-down": Activity,
+                shield: ShieldCheck,
+                briefcase: Landmark,
+                globe: Globe,
+                monitor: Landmark,
+                keyboard: Landmark,
+                scroll: Landmark,
+                search: Landmark,
+              };
+              const DisplayIcon = IconMap[point.icon] || Zap;
+
+              return (
+                <div key={i} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <DisplayIcon size={24} />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 mb-3">{point.title}</h3>
+                  <p className="text-slate-500 font-medium leading-relaxed">{point.description}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -127,21 +151,51 @@ export default async function SegmentPage({ params }: { params: { segment: strin
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div className="space-y-12">
-              {data.features.map((feature, i) => (
-                 <div key={i} className="group flex gap-6">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                       {feature.icon || "✨"}
-                    </div>
-                    <div>
-                       <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                          {feature.name}
-                       </h3>
-                       <p className="text-slate-500 font-medium leading-relaxed">
-                          {feature.description}
-                       </p>
-                    </div>
-                 </div>
-              ))}
+              {data.features.map((feature, i) => {
+                 const IconMap: Record<string, any> = {
+                   keyboard: Landmark,
+                   clock: Clock,
+                   tag: Landmark,
+                   users: Users,
+                   map: Globe,
+                   file: Landmark,
+                   video: Activity,
+                   zap: Zap,
+                   film: Activity,
+                   chart: Activity,
+                   activity: Activity,
+                   id: Landmark,
+                   shield: ShieldCheck,
+                   monitor: Landmark,
+                   ban: Landmark,
+                   smartphone: Landmark,
+                   award: Star,
+                   refresh: Landmark,
+                   phone: Landmark,
+                   rocket: Rocket,
+                   "trending-down": Activity,
+                   lock: ShieldCheck,
+                   volume: Landmark,
+                   star: Star,
+                 };
+                 const DisplayIcon = IconMap[feature.icon] || Zap;
+
+                 return (
+                  <div key={i} className="group flex gap-6">
+                     <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <DisplayIcon size={24} />
+                     </div>
+                     <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                           {feature.name}
+                        </h3>
+                        <p className="text-slate-500 font-medium leading-relaxed">
+                           {feature.description}
+                        </p>
+                     </div>
+                  </div>
+                 );
+              })}
             </div>
 
             <div className="sticky top-32">
@@ -171,8 +225,12 @@ export default async function SegmentPage({ params }: { params: { segment: strin
                      </p>
                   </div>
                   <div className="flex items-center gap-4">
-                     <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center font-black text-xl italic border-4 border-white/10 shadow-lg">
-                        {data.testimonial.avatar}
+                     <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center font-black text-xl italic border-4 border-white/10 shadow-lg overflow-hidden">
+                        {data.testimonial.avatar === "user" ? (
+                          <Users size={24} className="text-white/80" />
+                        ) : (
+                          data.testimonial.avatar
+                        )}
                      </div>
                      <div>
                         <div className="text-lg font-black">{data.testimonial.author}</div>
@@ -183,16 +241,13 @@ export default async function SegmentPage({ params }: { params: { segment: strin
                
                 <div className="grid grid-cols-2 gap-6">
                   {data.partners.map((partner, i) => {
-                     // Helper for icons used in map but need specific names if they differ
-                     const MonitorPlayIcon = Zap; // Fallback if MonitorPlay not seen
-                     
                      const IconMap: Record<string, any> = {
                        Shopify: ShoppingBag,
                        QuickBooks: Landmark,
                        Slack: MessageSquare,
                        Okta: ShieldCheck,
                        GitHub: Terminal,
-                       YouTube: MonitorPlayIcon,
+                       YouTube: MonitorPlay,
                        Stripe: CreditCard,
                        Toast: Zap,
                        Clover: Layers,
@@ -210,11 +265,17 @@ export default async function SegmentPage({ params }: { params: { segment: strin
                        Google: Globe,
                        Microsoft: Terminal,
                        "G-Suite": Globe,
+                       "Google Workspace": Globe,
                        Jira: Layers,
                        Azure: Terminal,
+                       "Microsoft Azure": Terminal,
                        Salesforce: Globe,
                        DonorDrive: Heart,
                        Gave: Heart,
+                       Everhour: Clock,
+                       Guideline: ShieldCheck,
+                       "HSA Bank": Landmark,
+                       Plaid: Landmark,
                      };
                      
                      const Icon = IconMap[partner.name] || Globe;

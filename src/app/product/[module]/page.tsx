@@ -69,16 +69,16 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
 
   // Accent combinations mapping based on the module's accent string
   const accentClasses = {
-    blue: { bg: "bg-blue-600", text: "text-blue-600", gradFrom: "from-blue-600", gradTo: "to-cyan-400", lightBg: "bg-blue-50" },
-    emerald: { bg: "bg-emerald-500", text: "text-emerald-500", gradFrom: "from-emerald-500", gradTo: "to-teal-400", lightBg: "bg-emerald-50" },
-    purple: { bg: "bg-purple-600", text: "text-purple-600", gradFrom: "from-purple-600", gradTo: "to-fuchsia-400", lightBg: "bg-purple-50" },
-    green: { bg: "bg-green-500", text: "text-green-500", gradFrom: "from-green-500", gradTo: "to-emerald-400", lightBg: "bg-green-50" },
-    orange: { bg: "bg-orange-500", text: "text-orange-500", gradFrom: "from-orange-500", gradTo: "to-amber-400", lightBg: "bg-orange-50" },
-    rose: { bg: "bg-rose-500", text: "text-rose-500", gradFrom: "from-rose-500", gradTo: "to-pink-400", lightBg: "bg-rose-50" },
-    cyan: { bg: "bg-cyan-500", text: "text-cyan-500", gradFrom: "from-cyan-500", gradTo: "to-blue-400", lightBg: "bg-cyan-50" },
-    red: { bg: "bg-red-500", text: "text-red-500", gradFrom: "from-red-500", gradTo: "to-rose-400", lightBg: "bg-red-50" },
-    fuchsia: { bg: "bg-fuchsia-500", text: "text-fuchsia-500", gradFrom: "from-fuchsia-500", gradTo: "to-purple-400", lightBg: "bg-fuchsia-50" },
-    indigo: { bg: "bg-indigo-600", text: "text-indigo-600", gradFrom: "from-indigo-600", gradTo: "to-blue-400", lightBg: "bg-indigo-50" }
+    blue: { bg: "bg-blue-600", text: "text-blue-600", gradFrom: "from-blue-600", gradTo: "to-cyan-400", lightBg: "bg-blue-50", hex: "#2563eb" },
+    emerald: { bg: "bg-emerald-500", text: "text-emerald-500", gradFrom: "from-emerald-500", gradTo: "to-teal-400", lightBg: "bg-emerald-50", hex: "#10b981" },
+    purple: { bg: "bg-purple-600", text: "text-purple-600", gradFrom: "from-purple-600", gradTo: "to-fuchsia-400", lightBg: "bg-purple-50", hex: "#9333ea" },
+    green: { bg: "bg-green-500", text: "text-green-500", gradFrom: "from-green-500", gradTo: "to-emerald-400", lightBg: "bg-green-50", hex: "#22c55e" },
+    orange: { bg: "bg-orange-500", text: "text-orange-500", gradFrom: "from-orange-500", gradTo: "to-amber-400", lightBg: "bg-orange-50", hex: "#f97316" },
+    rose: { bg: "bg-rose-500", text: "text-rose-500", gradFrom: "from-rose-500", gradTo: "to-pink-400", lightBg: "bg-rose-50", hex: "#f43f5e" },
+    cyan: { bg: "bg-cyan-500", text: "text-cyan-500", gradFrom: "from-cyan-500", gradTo: "to-blue-400", lightBg: "bg-cyan-50", hex: "#06b6d4" },
+    red: { bg: "bg-red-500", text: "text-red-500", gradFrom: "from-red-500", gradTo: "to-rose-400", lightBg: "bg-red-50", hex: "#ef4444" },
+    fuchsia: { bg: "bg-fuchsia-500", text: "text-fuchsia-500", gradFrom: "from-fuchsia-500", gradTo: "to-purple-400", lightBg: "bg-fuchsia-50", hex: "#d946ef" },
+    indigo: { bg: "bg-indigo-600", text: "text-indigo-600", gradFrom: "from-indigo-600", gradTo: "to-blue-400", lightBg: "bg-indigo-50", hex: "#4f46e5" }
   };
 
   const accent = accentClasses[mod.accent as keyof typeof accentClasses] || accentClasses.blue;
@@ -116,6 +116,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
             <div className="flex-1 w-full max-w-lg lg:max-w-xl perspective-1000">
                <InteractiveMockup 
                   moduleName={mod.name} 
+                  accent={accent.hex}
                   initialTab={
                     modKey === 'payroll' ? 'payroll' : 
                     modKey === 'hris' ? 'employees' : 
@@ -202,7 +203,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
                     </div>
 
                     <div className="flex-1 w-full">
-                       <FeatureVisual headline={feature.headline} accent={accent.bg} accentBg={accent.bg} />
+                       <FeatureVisual headline={feature.headline} accent={accent.hex} accentBg={accent.bg} />
                     </div>
                     
                  </div>

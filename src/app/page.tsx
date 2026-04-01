@@ -22,7 +22,7 @@ import CirceWidget from "@/components/CirceWidget";
 
 // {/* SEO Update */} ── Homepage Metadata ──
 export const metadata: Metadata = {
-  title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+  title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
   description:
     "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no credit card required.",
   keywords: [
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     "CircleWorks",
   ],
   openGraph: {
-    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+    title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
     description:
       "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no credit card required.",
     type: "website",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "CircleWorks — #1 Payroll & HR Platform for US Companies",
+    title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
     description:
       "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
     images: ["https://circleworks.vercel.app/og-image.png"],
@@ -83,7 +83,7 @@ const organizationSchema = {
 const webpageSchema = {
   "@context": "https://schema.org",
   "@type": "WebPage",
-  "name": "CircleWorks — #1 Payroll & HR Platform for US Companies",
+  "name": "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
   "url": "https://circleworks.vercel.app",
   "description": "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
   "publisher": {

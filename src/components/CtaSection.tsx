@@ -41,7 +41,7 @@ export default function CtaSection() {
 
         {/* Subheadline */}
         <p className="text-[17px] md:text-[19px] text-slate-300 max-w-xl leading-relaxed mb-8 font-medium">
-          Join 500+ creators, agencies, and companies that trust CircleWorks for payroll, HR, and compliance — so they can focus on building, not admin.
+          Join 500+ creators, agencies, and companies that trust CircleWorks for Payroll & HR — so they can focus on building, not admin.
         </p>
 
         {/* CTA buttons */}

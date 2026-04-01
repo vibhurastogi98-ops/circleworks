@@ -21,22 +21,22 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     painPoints: [
-      { icon: "🏢", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone." },
-      { icon: "⏰", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing is a manual slog." },
-      { icon: "🏷️", title: "Project Costing", description: "Not knowing the true labor cost of your fixed-fee projects." }
+      { icon: "building", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone." },
+      { icon: "clock", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing is a manual slog." },
+      { icon: "tag", title: "Project Costing", description: "Not knowing the true labor cost of your fixed-fee projects." }
     ],
     features: [
-      { name: "Single-Sign-On Portal", description: "One login to rule them all. Access and manage every client from a central hub.", icon: "🔑" },
-      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to move billable time into payroll.", icon: "⏰" },
-      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded reports to your clients.", icon: "🏷️" },
-      { name: "Partner-Level Access", description: "Invite your accountant or partner to view specific financial reports.", icon: "👤" },
-      { name: "Multi-State Tax Filings", description: "We handle the nexus. Automated filings for every jurisdiction your clients occupy.", icon: "🗺️" }
+      { name: "Single-Sign-On Portal", description: "One login to rule them all. Access and manage every client from a central hub.", icon: "keyboard" },
+      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to move billable time into payroll.", icon: "clock" },
+      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded reports to your clients.", icon: "tag" },
+      { name: "Partner-Level Access", description: "Invite your accountant or partner to view specific financial reports.", icon: "users" },
+      { name: "Multi-State Tax Filings", description: "We handle the nexus. Automated filings for every jurisdiction your clients occupy.", icon: "map" }
     ],
     testimonial: {
       quote: "CircleWorks is the perfect fit. It's clean, professional, and handles both our internal consulting payouts and our client accounts perfectly.",
       author: "Jessica Miller",
       role: "Founder, Peak Performance Agency",
-      avatar: "JM"
+      avatar: "user"
     },
     faq: [
       { q: "Can I manage multiple companies from one login?", a: "Yes, our Agency portal allows you to toggle between client accounts instantly without logging out." },
@@ -58,22 +58,22 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     painPoints: [
-      { icon: "🏢", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone." },
-      { icon: "⏰", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing is a manual slog." },
-      { icon: "🏷️", title: "Project Costing", description: "Not knowing the true labor cost of your fixed-fee projects." }
+      { icon: "building", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone." },
+      { icon: "clock", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing is a manual slog." },
+      { icon: "tag", title: "Project Costing", description: "Not knowing the true labor cost of your fixed-fee projects." }
     ],
     features: [
-      { name: "Single-Sign-On Portal", description: "One login to rule them all. Access and manage every client from a central hub.", icon: "🔑" },
-      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to move billable time into payroll.", icon: "⏰" },
-      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded reports to your clients.", icon: "🏷️" },
-      { name: "Partner-Level Access", description: "Invite your accountant or partner to view specific financial reports.", icon: "👤" },
-      { name: "Multi-State Tax Filings", description: "We handle the nexus. Automated filings for every jurisdiction your clients occupy.", icon: "🗺️" }
+      { name: "Single-Sign-On Portal", description: "One login to rule them all. Access and manage every client from a central hub.", icon: "keyboard" },
+      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to move billable time into payroll.", icon: "clock" },
+      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded reports to your clients.", icon: "tag" },
+      { name: "Partner-Level Access", description: "Invite your accountant or partner to view specific financial reports.", icon: "users" },
+      { name: "Multi-State Tax Filings", description: "We handle the nexus. Automated filings for every jurisdiction your clients occupy.", icon: "map" }
     ],
     testimonial: {
       quote: "CircleWorks is the perfect fit. It's clean, professional, and handles both our internal consulting payouts and our client accounts perfectly.",
       author: "Jessica Miller",
       role: "Founder, Peak Performance Agency",
-      avatar: "JM"
+      avatar: "user"
     },
     faq: [
       { q: "Can I manage multiple companies from one login?", a: "Yes, our Agency portal allows you to toggle between client accounts instantly without logging out." },
@@ -95,22 +95,22 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     painPoints: [
-      { icon: "🏢", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone." },
-      { icon: "⏰", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing is a manual slog." },
-      { icon: "🏷️", title: "Project Costing", description: "Not knowing the true labor cost of your fixed-fee projects." }
+      { icon: "building", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone." },
+      { icon: "clock", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing is a manual slog." },
+      { icon: "tag", title: "Project Costing", description: "Not knowing the true labor cost of your fixed-fee projects." }
     ],
     features: [
-      { name: "Single-Sign-On Portal", description: "One login to rule them all. Access and manage every client from a central hub.", icon: "🔑" },
-      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to move billable time into payroll.", icon: "⏰" },
-      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded reports to your clients.", icon: "🏷️" },
-      { name: "Partner-Level Access", description: "Invite your accountant or partner to view specific financial reports.", icon: "👤" },
-      { name: "Multi-State Tax Filings", description: "We handle the nexus. Automated filings for every jurisdiction your clients occupy.", icon: "🗺️" }
+      { name: "Single-Sign-On Portal", description: "One login to rule them all. Access and manage every client from a central hub.", icon: "keyboard" },
+      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to move billable time into payroll.", icon: "clock" },
+      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded reports to your clients.", icon: "tag" },
+      { name: "Partner-Level Access", description: "Invite your accountant or partner to view specific financial reports.", icon: "users" },
+      { name: "Multi-State Tax Filings", description: "We handle the nexus. Automated filings for every jurisdiction your clients occupy.", icon: "map" }
     ],
     testimonial: {
       quote: "CircleWorks is the perfect fit. It's clean, professional, and handles both our internal consulting payouts and our client accounts perfectly.",
       author: "Jessica Miller",
       role: "Founder, Peak Performance Agency",
-      avatar: "JM"
+      avatar: "user"
     },
     faq: [
       { q: "Can I manage multiple companies from one login?", a: "Yes, our Agency portal allows you to toggle between client accounts instantly without logging out." },
@@ -132,21 +132,21 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Creator Features",
     heroGradient: "from-pink-500 via-rose-500 to-orange-500",
     painPoints: [
-      { icon: "💸", title: "Talent Payouts", description: "Manual payments to editors, designers, and collaborators are messy." },
-      { icon: "📄", title: "1099 Chaos", description: "Reporting income for dozens of contractors at year-end is a nightmare." },
-      { icon: "📈", title: "Expense Tracking", description: "Mixing personal and business expenses makes tax season impossible." }
+      { icon: "dollar", title: "Talent Payouts", description: "Manual payments to editors, designers, and collaborators are messy." },
+      { icon: "file", title: "1099 Chaos", description: "Reporting income for dozens of contractors at year-end is a nightmare." },
+      { icon: "chart", title: "Expense Tracking", description: "Mixing personal and business expenses makes tax season impossible." }
     ],
     features: [
-      { name: "Automated 1099 Filing", description: "We track every payment and file your 1099-NECs automatically at year-end.", icon: "📝" },
-      { name: "Talent Portals", description: "Let your collaborators upload their own tax info and track their payouts.", icon: "🎥" },
-      { name: "Instant Payouts", description: "Send money to your team instantly. No more waiting for bank transfers.", icon: "⚡" },
-      { name: "Project-Based Costing", description: "Track exactly how much you're spending on each video or campaign.", icon: "🎬" }
+      { name: "Automated 1099 Filing", description: "We track every payment and file your 1099-NECs automatically at year-end.", icon: "file" },
+      { name: "Talent Portals", description: "Let your collaborators upload their own tax info and track their payouts.", icon: "video" },
+      { name: "Instant Payouts", description: "Send money to your team instantly. No more waiting for bank transfers.", icon: "zap" },
+      { name: "Project-Based Costing", description: "Track exactly how much you're spending on each video or campaign.", icon: "film" }
     ],
     testimonial: {
       quote: "Before CircleWorks, I spent two days a month just paying my editors. Now it's automated. It's life-changing.",
       author: "David V.",
       role: "Tech Creator (2M+ Subs)",
-      avatar: "DV"
+      avatar: "user"
     },
     faq: [
       { q: "How do I generate 1099s for my talent?", a: "CircleWorks tracks all contractor payments throughout the year and files 1099s automatically for you in January." },
@@ -168,20 +168,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Startup Features",
     heroGradient: "from-blue-400 via-cyan-400 to-emerald-400",
     painPoints: [
-      { icon: "🚀", title: "Rapid Hiring", description: "Onboarding new hires across multiple states is a compliance trap." },
-      { icon: "💎", title: "Equity Payroll", description: "Tracking stock options and tax withholdings on exercise is manual." },
-      { icon: "📉", title: "R&D Credits", description: "Startups leave millions on the table by not tracking qualifying payroll." }
+      { icon: "rocket", title: "Rapid Hiring", description: "Onboarding new hires across multiple states is a compliance trap." },
+      { icon: "award", title: "Equity Payroll", description: "Tracking stock options and tax withholdings on exercise is manual." },
+      { icon: "trending-down", title: "R&D Credits", description: "Startups leave millions on the table by not tracking qualifying payroll." }
     ],
     features: [
-      { name: "Equity Sync", description: "Connect with Carta or Pulley to automate equity-related payroll adjustments.", icon: "📊" },
-      { name: "Multi-State Onboarding", description: "Hire anywhere in the US. We handle state-specific registrations automatically.", icon: "🇺🇸" },
-      { name: "R&D Credit Tracking", description: "Automatically identify and document payroll expenses for R&D tax credits.", icon: "🧪" }
+      { name: "Equity Sync", description: "Connect with Carta or Pulley to automate equity-related payroll adjustments.", icon: "chart" },
+      { name: "Multi-State Onboarding", description: "Hire anywhere in the US. We handle state-specific registrations automatically.", icon: "map" },
+      { name: "R&D Credit Tracking", description: "Automatically identify and document payroll expenses for R&D tax credits.", icon: "activity" }
     ],
     testimonial: {
       quote: "CircleWorks is the only platform that moved at our speed. They handled our expansion into 12 states in one month.",
       author: "Sarah Chen",
       role: "CFO, Flux AI",
-      avatar: "SC"
+      avatar: "user"
     },
     faq: [
       { q: "Does CircleWorks support international hiring?", a: "Yes, through our EOR and independent contractor portals, you can hire in 150+ countries." }
@@ -202,20 +202,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Healthcare Features",
     heroGradient: "from-emerald-500 via-teal-500 to-blue-500",
     painPoints: [
-      { icon: "🏥", title: "Shift Differentials", description: "Calculating night, weekend, and holiday pay manually leads to errors." },
-      { icon: "🗄️", title: "Credentialing", description: "Tracking certifications and licenses for medical staff is a bottleneck." },
-      { icon: "⚖️", title: "Labor Law", description: "Healthcare specific overtime rules (8/80) are difficult to configure." }
+      { icon: "building", title: "Shift Differentials", description: "Calculating night, weekend, and holiday pay manually leads to errors." },
+      { icon: "briefcase", title: "Credentialing", description: "Tracking certifications and licenses for medical staff is a bottleneck." },
+      { icon: "shield", title: "Labor Law", description: "Healthcare specific overtime rules (8/80) are difficult to configure." }
     ],
     features: [
-      { name: "Advanced Scheduling", description: "Sync schedules directly to payroll. No more manual time entry.", icon: "📅" },
-      { name: "License Monitoring", description: "Automated alerts when staff certifications are nearing expiration.", icon: "🪪" },
-      { name: "HIPAA-Safe Storage", description: "All sensitive employee data is stored in our fully encrypted, HIPAA-compliant cloud.", icon: "🔐" }
+      { name: "Advanced Scheduling", description: "Sync schedules directly to payroll. No more manual time entry.", icon: "clock" },
+      { name: "License Monitoring", description: "Automated alerts when staff certifications are nearing expiration.", icon: "id" },
+      { name: "HIPAA-Safe Storage", description: "All sensitive employee data is stored in our fully encrypted, HIPAA-compliant cloud.", icon: "shield" }
     ],
     testimonial: {
       quote: "The shift differential automation alone saved our billing department 20 hours a week. It's built for medicine.",
       author: "Dr. Elena Rossi",
       role: "Director, City Health Network",
-      avatar: "ER"
+      avatar: "user"
     },
     faq: [
       { q: "Do you support 8/80 overtime rules?", a: "Yes, our engine is fully configurable for healthcare-specific wage and hour rules." }
@@ -236,20 +236,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Tech Features",
     heroGradient: "from-slate-800 via-blue-900 to-indigo-900",
     painPoints: [
-      { icon: "🌐", title: "Remote Onboarding", description: "Shipping laptops and granting access to 50+ apps is a manual slog." },
-      { icon: "💻", title: "Equipment Tracking", description: "Losing track of company assets as employees come and go." },
-      { icon: "🛡️", title: "Security Compliance", description: "Granting 'least privilege' access manually for SOC-2 is tough." }
+      { icon: "globe", title: "Remote Onboarding", description: "Shipping laptops and granting access to 50+ apps is a manual slog." },
+      { icon: "monitor", title: "Equipment Tracking", description: "Losing track of company assets as employees come and go." },
+      { icon: "shield", title: "Security Compliance", description: "Granting 'least privilege' access manually for SOC-2 is tough." }
     ],
     features: [
-      { name: "Laptop Provisioning", description: "Order, ship, and manage employee laptops directly from the HR dashboard.", icon: "💻" },
-      { name: "1-Click Offboarding", description: "Instantly revoke access to G-Suite, Slack, GitHub, and 100+ other apps.", icon: "🚫" },
-      { name: "Global EOR", description: "Hire global talent in minutes without setting up local entities.", icon: "🌍" }
+      { name: "Laptop Provisioning", description: "Order, ship, and manage employee laptops directly from the HR dashboard.", icon: "monitor" },
+      { name: "1-Click Offboarding", description: "Instantly revoke access to G-Suite, Slack, GitHub, and 100+ other apps.", icon: "ban" },
+      { name: "Global EOR", description: "Hire global talent in minutes without setting up local entities.", icon: "globe" }
     ],
     testimonial: {
       quote: "The IT provisioning integration is absolute magic. We onboarded 15 developers in a week without a single manual invite.",
       author: "Marcus Thorne",
       role: "CTO, DataStream",
-      avatar: "MT"
+      avatar: "user"
     },
     faq: [
       { q: "Which apps do you integrate with for security?", a: "We integrate with Okta, Google Workspace, Slack, Jira, GitHub, and 1,000+ others via OAuth." }
@@ -270,20 +270,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Restaurant Features",
     heroGradient: "from-orange-500 via-red-500 to-rose-600",
     painPoints: [
-      { icon: "🍳", title: "Tip Management", description: "Calculating tip credits and FICA tax offsets is a math nightmare." },
-      { icon: "🏃", title: "High Turnover", description: "Onboarding and offboarding staff weekly takes up too much time." },
-      { icon: "🍕", title: "Split Shifts", description: "Tracking staff moving between different roles and rates in one shift." }
+      { icon: "dollar", title: "Tip Management", description: "Calculating tip credits and FICA tax offsets is a math nightmare." },
+      { icon: "users", title: "High Turnover", description: "Onboarding and offboarding staff weekly takes up too much time." },
+      { icon: "clock", title: "Split Shifts", description: "Tracking staff moving between different roles and rates in one shift." }
     ],
     features: [
-      { name: "POS Integrations", description: "Sync sales and tip data directly from Toast, Square, or Clover.", icon: "📠" },
-      { name: "FICA Tip Credit", description: "Automatically calculate and report your tip credits for maximum tax savings.", icon: "💰" },
-      { name: "Mobile Onboarding", description: "Let new staff complete their W-4 and I-9 on their phones before their first shift.", icon: "📱" }
+      { name: "POS Integrations", description: "Sync sales and tip data directly from Toast, Square, or Clover.", icon: "keyboard" },
+      { name: "FICA Tip Credit", description: "Automatically calculate and report your tip credits for maximum tax savings.", icon: "dollar" },
+      { name: "Mobile Onboarding", description: "Let new staff complete their W-4 and I-9 on their phones before their first shift.", icon: "smartphone" }
     ],
     testimonial: {
       quote: "Running three restaurants meant three times the payroll stress. CircleWorks consolidated everything and automated our tip credits.",
       author: "Mario Batali",
       role: "Owner, Gusto Group",
-      avatar: "MB"
+      avatar: "user"
     },
     faq: [
       { q: "Does this integrate with my POS?", a: "Yes, we have native integrations with Toast, Square, Clover, and Breadcrumb." }
@@ -304,20 +304,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See SMB Features",
     heroGradient: "from-blue-600 via-indigo-600 to-violet-600",
     painPoints: [
-      { icon: "⏰", title: "Manual Data Entry", description: "Spending hours on spreadsheets every pay period is a waste of your talent." },
-      { icon: "💸", title: "Hidden Fees", description: "Legacy providers charge for every filing, every year-end, and every small change." },
-      { icon: "🛑", title: "Compliance Stress", description: "The fear of getting a letter from the IRS keeps most small owners up at night." }
+      { icon: "clock", title: "Manual Data Entry", description: "Spending hours on spreadsheets every pay period is a waste of your talent." },
+      { icon: "dollar", title: "💸", description: "Legacy providers charge for every filing, every year-end, and every small change." },
+      { icon: "ban", title: "Compliance Stress", description: "The fear of getting a letter from the IRS keeps most small owners up at night." }
     ],
     features: [
-      { name: "Autopilot Payroll", description: "Set it and forget it. Payroll runs automatically unless you make changes.", icon: "✈️" },
-      { name: "Integrated Benefits", description: "Sync health and 401k deductions directly with payroll in one click.", icon: "🏥" },
-      { name: "Employee Self-Service", description: "Let your team download their own paystubs and W-2s from a sleek mobile app.", icon: "📱" }
+      { name: "Autopilot Payroll", description: "Set it and forget it. Payroll runs automatically unless you make changes.", icon: "zap" },
+      { name: "Integrated Benefits", description: "Sync health and 401k deductions directly with payroll in one click.", icon: "shield" },
+      { name: "Employee Self-Service", description: "Let your team download their own paystubs and W-2s from a sleek mobile app.", icon: "smartphone" }
     ],
     testimonial: {
       quote: "CircleWorks is like having an extra person on my team. I don't even think about payroll anymore—it just happens.",
       author: "Alan Wright",
       role: "Owner, Wright Designs",
-      avatar: "AW"
+      avatar: "user"
     },
     faq: [
       { q: "How fast can I run payroll?", a: "With 2rd-day direct deposit, you can run payroll on Tuesday for a Friday payday." }
@@ -338,20 +338,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Platform Deck",
     heroGradient: "from-slate-700 via-slate-800 to-slate-900",
     painPoints: [
-      { icon: "📊", title: "Reporting Gaps", description: "Standard reports no longer meet the needs of your leadership team." },
-      { icon: "🤝", title: "Handover Friction", description: "Finance and HR are operating in two different worlds with two different datasets." },
-      { icon: "📈", title: "Performance Management", description: "Tracking annual reviews in Docs or Spreadsheets is no longer sustainable." }
+      { icon: "chart", title: "Reporting Gaps", description: "Standard reports no longer meet the needs of your leadership team." },
+      { icon: "users", title: "Handover Friction", description: "Finance and HR are operating in two different worlds with two different datasets." },
+      { icon: "activity", title: "Performance Management", description: "Tracking annual reviews in Docs or Spreadsheets is no longer sustainable." }
     ],
     features: [
-      { name: "Custom Report Builder", description: "Create, save, and automate any report you need for board meetings or internal audits.", icon: "📁" },
-      { name: "Performance Reviews", description: "Integrated 360 reviews, goal tracking, and compensation cycle management.", icon: "🏆" },
-      { name: "Advanced GL Sync", description: "Custom mapping to NetSuite, Sage Intacct, or Microsoft Dynamics.", icon: "🔄" }
+      { name: "Custom Report Builder", description: "Create, save, and automate any report you need for board meetings or internal audits.", icon: "file" },
+      { name: "Performance Reviews", description: "Integrated 360 reviews, goal tracking, and compensation cycle management.", icon: "award" },
+      { name: "Advanced GL Sync", description: "Custom mapping to NetSuite, Sage Intacct, or Microsoft Dynamics.", icon: "refresh" }
     ],
     testimonial: {
       quote: "CircleWorks gave us the visibility we needed to grow from 100 to 500 employees without doubling our HR headcount.",
       author: "Karen Smith",
       role: "VP of People, ScaleFlow",
-      avatar: "KS"
+      avatar: "user"
     },
     faq: [
       { q: "Do you support custom general ledger mapping?", a: "Yes, our native accounting integrations support complex, multi-entity mapping." }
@@ -372,20 +372,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "Request Whitepaper",
     heroGradient: "from-[#0A1628] to-[#1E3A8A]",
     painPoints: [
-      { icon: "🌍", title: "Global Silos", description: "Different systems for every country make global reporting impossible." },
-      { icon: "🔒", title: "Security Risk", description: "Scaling access while maintaining SOC-2 and GDPR compliance is a constant battle." },
-      { icon: "⚡", title: "Integration Debt", description: "Legacy systems don't talk to your modern ERP or SSO providers." }
+      { icon: "globe", title: "Global Silos", description: "Different systems for every country make global reporting impossible." },
+      { icon: "shield", title: "Security Risk", description: "Scaling access while maintaining SOC-2 and GDPR compliance is a constant battle." },
+      { icon: "zap", title: "Integration Debt", description: "Legacy systems don't talk to your modern ERP or SSO providers." }
     ],
     features: [
-      { name: "Unified Global Payroll", description: "One platform for your team in the US, EMEA, and APAC. Local compliance everywhere.", icon: "🗺️" },
-      { name: "Identity Management", description: "Deep integrations with Okta, Azure AD, and Ping Identity for automated provisioning.", icon: "🆔" },
-      { name: "Dedicated CSM", description: "A technical account manager who knows your business and your complex configurations.", icon: "📞" }
+      { name: "Unified Global Payroll", description: "One platform for your team in the US, EMEA, and APAC. Local compliance everywhere.", icon: "map" },
+      { name: "Identity Management", description: "Deep integrations with Okta, Azure AD, and Ping Identity for automated provisioning.", icon: "users" },
+      { name: "Dedicated CSM", description: "A technical account manager who knows your business and your complex configurations.", icon: "phone" }
     ],
     testimonial: {
       quote: "Switching to CircleWorks was the best decision for our digital transformation. Global compliance is no longer a 'risk'—it's a solved problem.",
       author: "Tom H.",
       role: "Director of Global HR Operations, TechCorp",
-      avatar: "TH"
+      avatar: "user"
     },
     faq: [
       { q: "Is the platform SOC-2 Type II compliant?", a: "Yes, CircleWorks maintains SOC-2 Type II, GDPR, CCPA, and HIPAA compliance." }
@@ -406,20 +406,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Retail Case Studies",
     heroGradient: "from-violet-500 via-purple-500 to-fuchsia-500",
     painPoints: [
-      { icon: "🏪", title: "Multi-Location Chaos", description: "Consolidating hours and taxes for 10+ stores is a manual nightmare." },
-      { icon: "🌀", title: "Staff Turnover", description: "The constant cycle of hiring and exiting staff eats up 40% of store manager time." },
-      { icon: "🕒", title: "Shift Compliance", description: "Managing predictive scheduling laws and overtime across locations is risky." }
+      { icon: "building", title: "Multi-Location Chaos", description: "Consolidating hours and taxes for 10+ stores is a manual nightmare." },
+      { icon: "refresh", title: "Staff Turnover", description: "The constant cycle of hiring and exiting staff eats up 40% of store manager time." },
+      { icon: "clock", title: "Shift Compliance", description: "Managing predictive scheduling laws and overtime across locations is risky." }
     ],
     features: [
-      { name: "Mobile Shift Swap", description: "Let staff swap shifts via the app. Managers just approve with a tap.", icon: "📲" },
-      { name: "Multi-Location Taxing", description: "Automatically calculate taxes based on where the work was performed.", icon: "📍" },
-      { name: "Paperless Onboarding", description: "Hire in minutes. Employees complete everything on their phone in the store.", icon: "📄" }
+      { name: "Mobile Shift Swap", description: "Let staff swap shifts via the app. Managers just approve with a tap.", icon: "smartphone" },
+      { name: "Multi-Location Taxing", description: "Automatically calculate taxes based on where the work was performed.", icon: "map" },
+      { name: "Paperless Onboarding", description: "Hire in minutes. Employees complete everything on their phone in the store.", icon: "file" }
     ],
     testimonial: {
       quote: "Our store managers finally have their time back. Onboarding is a breeze, and scheduling is handled by the staff themselves.",
       author: "Linda G.",
       role: "Operations Director, Trendset Retail",
-      avatar: "LG"
+      avatar: "user"
     },
     faq: [
       { q: "Can I manage different pay rates for differet roles?", a: "Yes, CircleWorks supports unlimited pay rates per employee based on location or role." }
@@ -440,20 +440,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "Get Non-Profit Pricing",
     heroGradient: "from-teal-600 via-emerald-600 to-green-600",
     painPoints: [
-      { icon: "📜", title: "Grant Allocation", description: "Manually splitting payroll across multiple grants and funds is tedious." },
-      { icon: "💎", title: "Tight Budgets", description: "Every dollar spent on HR admin is a dollar taken from the mission." },
-      { icon: "📋", title: "Volunteer Risk", description: "Managing workers compensation and insurance for different staff categories." }
+      { icon: "scroll", title: "Grant Allocation", description: "Manually splitting payroll across multiple grants and funds is tedious." },
+      { icon: "dollar", title: "Tight Budgets", description: "Every dollar spent on HR admin is a dollar taken from the mission." },
+      { icon: "file", title: "Volunteer Risk", description: "Managing workers compensation and insurance for different staff categories." }
     ],
     features: [
-      { name: "Labor Distribution Hub", description: "Easily allocate staff time and costs across different grants and programs.", icon: "📊" },
-      { name: "Preferential Pricing", description: "Deep discounts for verified 501(c)(3) organizations.", icon: "📢" },
-      { name: "Automated Tax Filing", description: "We handle form 941, 940, and all state-specific non-profit filings.", icon: "🗳️" }
+      { name: "Labor Distribution Hub", description: "Easily allocate staff time and costs across different grants and programs.", icon: "chart" },
+      { name: "Preferential Pricing", description: "Deep discounts for verified 501(c)(3) organizations.", icon: "volume" },
+      { name: "Automated Tax Filing", description: "We handle form 941, 940, and all state-specific non-profit filings.", icon: "file" }
     ],
     testimonial: {
       quote: "CircleWorks understands the unique world of non-profits. The grant tracking feature alone is worth the switch.",
       author: "Sarah J.",
       role: "Executive Director, Hope Foundation",
-      avatar: "SJ"
+      avatar: "user"
     },
     faq: [
       { q: "Do you offer discounts for non-profits?", a: "Yes, we offer special pricing tiers for 501(c)(3) organizations." }
@@ -474,20 +474,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Growth Tools",
     heroGradient: "from-indigo-600 via-blue-600 to-cyan-500",
     painPoints: [
-      { icon: "📈", title: "Onboarding Bottlenecks", description: "Manual data entry for 20 new hires a week is a recipe for disaster." },
-      { icon: "🗺️", title: "State Nexus Risk", description: "Hiring in new states without proper tax registration leads to massive fines." },
-      { icon: "📊", title: "Reporting Drag", description: "Leadership needs headcount and burnout data, but gathering it takes days." }
+      { icon: "chart", title: "Onboarding Bottlenecks", description: "Manual data entry for 20 new hires a week is a recipe for disaster." },
+      { icon: "map", title: "State Nexus Risk", description: "Hiring in new states without proper tax registration leads to massive fines." },
+      { icon: "chart", title: "Reporting Drag", description: "Leadership needs headcount and burnout data, but gathering it takes days." }
     ],
     features: [
-      { name: "Bulk Onboarding", description: "Onboard entire cohorts in minutes with automated offer letters and I-9 check-ins.", icon: "🚀" },
-      { name: "Auto-State Registration", description: "We handle the paperwork for every new state your team expands into.", icon: "📍" },
-      { name: "Predictive Analytics", description: "Heads-up alerts on burnout risk and turnover trends before they happen.", icon: "📉" }
+      { name: "Bulk Onboarding", description: "Onboard entire cohorts in minutes with automated offer letters and I-9 check-ins.", icon: "rocket" },
+      { name: "Auto-State Registration", description: "We handle the paperwork for every new state your team expands into.", icon: "map" },
+      { name: "Predictive Analytics", description: "Heads-up alerts on burnout risk and turnover trends before they happen.", icon: "trending-down" }
     ],
     testimonial: {
       quote: "We grew from 50 to 200 people in 6 months. CircleWorks was the only system that didn't just 'work'—it accelerated us.",
       author: "Michael R.",
       role: "Head of People, AstroTech",
-      avatar: "MR"
+      avatar: "user"
     },
     faq: [
       { q: "How many states do you support?", a: "All 50 US states, plus DC. We handle registrations, filings, and payments everywhere." }
@@ -508,20 +508,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "Security Overview",
     heroGradient: "from-slate-800 via-slate-900 to-black",
     painPoints: [
-      { icon: "⚖️", title: "Labor Law Changes", description: "Missing a local wage update can cost tens of thousands in penalties." },
-      { icon: "📂", title: "Document Splrawl", description: "I-9s and sensitive contracts scattered across email and shared drives." },
-      { icon: "🔍", title: "Audit Anxiety", description: "Spending weeks gathering data when the DOL or IRS comes knocking." }
+      { icon: "shield", title: "Labor Law Changes", description: "Missing a local wage update can cost tens of thousands in penalties." },
+      { icon: "file", title: "Document Splrawl", description: "I-9s and sensitive contracts scattered across email and shared drives." },
+      { icon: "search", title: "Audit Anxiety", description: "Spending weeks gathering data when the DOL or IRS comes knocking." }
     ],
     features: [
-      { name: "Compliance Guard", description: "Real-time alerts for local labor law changes affecting your specific locations.", icon: "🛡️" },
-      { name: "Secure Vault", description: "Encrypted, permission-based storage for all essential employee documents.", icon: "🔐" },
-      { name: "1-Click Audit Export", description: "Generate comprehensive compliance reports for any period in seconds.", icon: "📑" }
+      { name: "Compliance Guard", description: "Real-time alerts for local labor law changes affecting your specific locations.", icon: "shield" },
+      { name: "Secure Vault", description: "Encrypted, permission-based storage for all essential employee documents.", icon: "lock" },
+      { name: "1-Click Audit Export", description: "Generate comprehensive compliance reports for any period in seconds.", icon: "file" }
     ],
     testimonial: {
       quote: "Our SOC-2 audit was a breeze because CircleWorks had every document organized and every check documented.",
       author: "Rachel K.",
       role: "Compliance Officer, SecureHealth",
-      avatar: "RK"
+      avatar: "user"
     },
     faq: [
       { q: "Is your platform SOC-2 compliant?", a: "Yes, we are SOC-2 Type II compliant and undergo regular security audits." }
@@ -542,20 +542,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "Calculate My ROI",
     heroGradient: "from-emerald-700 via-green-600 to-teal-500",
     painPoints: [
-      { icon: "💸", title: "Wasted Overhead", description: "Legacy payroll fees and manual admin time are eating your margins." },
-      { icon: "💎", title: "Missed Tax Credits", description: "Companies leave billions in R&D and ERTC credits on the table every year." },
-      { icon: "📊", title: "Shadow Labor Costs", description: "Not understanding the fully-loaded cost of each department or project." }
+      { icon: "dollar", title: "Wasted Overhead", description: "Legacy payroll fees and manual admin time are eating your margins." },
+      { icon: "award", title: "Missed Tax Credits", description: "Companies leave billions in R&D and ERTC credits on the table every year." },
+      { icon: "chart", title: "Shadow Labor Costs", description: "Not understanding the fully-loaded cost of each department or project." }
     ],
     features: [
-      { name: "R&D Credit Finder", description: "Automatically identify payroll expenses qualifying for high-value tax credits.", icon: "🧪" },
-      { name: "Benefit Price-Matching", description: "We shop the market to find the best rates for your team's health and 401k.", icon: "🏥" },
-      { name: "Fully-Loaded Costing", description: "See the true cost of every employee, inclusive of taxes, benefits, and overhead.", icon: "💰" }
+      { name: "R&D Credit Finder", description: "Automatically identify payroll expenses qualifying for high-value tax credits.", icon: "activity" },
+      { name: "Benefit Price-Matching", description: "We shop the market to find the best rates for your team's health and 401k.", icon: "building" },
+      { name: "Fully-Loaded Costing", description: "See the true cost of every employee, inclusive of taxes, benefits, and overhead.", icon: "dollar" }
     ],
     testimonial: {
       quote: "CircleWorks found $45k in R&D credits we didn't even know we qualified for. The platform paid for itself in day one.",
       author: "David L.",
       role: "Founder, InnovateCo",
-      avatar: "DL"
+      avatar: "user"
     },
     faq: [
       { q: "How much can I save on payroll fees?", a: "Most companies save 30-50% on legacy processing fees by switching to our unified platform." }
@@ -576,20 +576,20 @@ export const segments: Record<string, SegmentContent> = {
     ctaSub: "See Remote Features",
     heroGradient: "from-blue-600 via-indigo-600 to-sky-500",
     painPoints: [
-      { icon: "🌍", title: "Global Nexus Chaos", description: "Managing compliance and currencies for a 20-country team is impossible." },
-      { icon: "💻", title: "IT Logistical Hell", description: "Spending hours tracking down laptops and setting up software accounts." },
-      { icon: "🤝", title: "Cultural Isolation", description: "Remote employees feeling disconnected from the company mission and team." }
+      { icon: "globe", title: "Global Nexus Chaos", description: "Managing compliance and currencies for a 20-country team is impossible." },
+      { icon: "monitor", title: "IT Logistical Hell", description: "Spending hours tracking down laptops and setting up software accounts." },
+      { icon: "users", title: "Cultural Isolation", description: "Remote employees feeling disconnected from the company mission and team." }
     ],
     features: [
-      { name: "IT Provisioning", description: "Automated hardware shipping and software account creation in one click.", icon: "💻" },
-      { name: "Global EOR Portal", description: "Hire in 150+ countries without setting up local legal entities.", icon: "🌍" },
-      { name: "Remote Culture Hub", description: "Integrated shout-outs, birthday alerts, and team-building workflows.", icon: "🎉" }
+      { name: "IT Provisioning", description: "Automated hardware shipping and software account creation in one click.", icon: "monitor" },
+      { name: "Global EOR Portal", description: "Hire in 150+ countries without setting up local legal entities.", icon: "globe" },
+      { name: "Remote Culture Hub", description: "Integrated shout-outs, birthday alerts, and team-building workflows.", icon: "star" }
     ],
     testimonial: {
       quote: "CircleWorks made our 'remote-first' promise actually scalable. We can now hire talent anywhere without the HR overhead.",
       author: "Emma S.",
       role: "COO, Horizon Global",
-      avatar: "ES"
+      avatar: "user"
     },
     faq: [
       { q: "Can I pay international contractors?", a: "Yes, we support contractor payments in 120+ currencies with local compliance built-in." }

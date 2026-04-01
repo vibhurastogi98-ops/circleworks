@@ -273,35 +273,6 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
                   ))}
                </div>
             </div>
-          ) : isHiring ? (
-            <div className="h-full flex flex-col gap-4">
-               {/* SEO Update ── Hiring Pipeline Mockup ── */}
-               <div className="flex items-center gap-2 mb-2">
-                  <Briefcase size={16} className="text-blue-600" />
-                  <span className="text-xs font-black text-slate-900 uppercase">Hiring Pipeline</span>
-               </div>
-               <div className="flex gap-3 overflow-hidden h-full">
-                  {[
-                    { stage: "Applied", names: ["John D.", "Sarah K."], count: 12 },
-                    { stage: "Interview", names: ["Mark S.", "Anna P."], count: 4 },
-                    { stage: "Offer", names: ["Tom H."], count: 1 }
-                  ].map((stage, i) => (
-                    <div key={i} className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex flex-col gap-2">
-                       <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-black text-slate-400 uppercase">{stage.stage}</span>
-                          <span className="text-[8px] px-1.5 py-0.5 bg-white border border-slate-200 rounded-full font-bold">{stage.count}</span>
-                       </div>
-                       <div className="flex flex-col gap-2 overflow-y-auto pr-1">
-                          {stage.names.map((name, j) => (
-                            <div key={j} className="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-800 shadow-sm">
-                              {name}
-                            </div>
-                          ))}
-                       </div>
-                    </div>
-                  ))}
-               </div>
-            </div>
           ) : isTax ? (
             <div className="space-y-4">
                <div className="flex items-center justify-between mb-4">
@@ -343,7 +314,7 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
               </div>
               <div className="space-y-2">
                 {[
-                  { label: "Option Grant #124", val: "Exercise Pending" },
+                  { label: "Option Grant 124", val: "Exercise Pending" },
                   { label: "Tax Liability (Fed)", val: "$54,200.00" },
                   { label: "Tax Liability (CA)", val: "$22,000.00" }
                 ].map((row, i) => (
@@ -405,7 +376,8 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
                         initial={{ height: 0 }}
                         animate={{ height: `${h}%` }}
                         transition={{ duration: 1, delay: i * 0.1 }}
-                        className={`flex-1 ${accent} rounded-t-lg opacity-80`}
+                        style={{ backgroundColor: accent, height: `${h}%` }}
+                        className="flex-1 rounded-t-lg opacity-80"
                     />
                   ))}
                </div>
@@ -564,8 +536,8 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
           ) : (
             <div className="flex flex-col h-full">
                <div className="flex items-center gap-4 mb-6">
-                  <div className={`w-12 h-12 rounded-2xl ${accent} bg-opacity-20 flex items-center justify-center`}>
-                     <ShieldCheck className={accent.replace('bg-', 'text-')} />
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center`} style={{ backgroundColor: `${accent}22` }}>
+                     <ShieldCheck style={{ color: accent }} />
                   </div>
                   <div>
                      <h4 className="text-sm font-black text-slate-900">CircleWorks {headline}</h4>

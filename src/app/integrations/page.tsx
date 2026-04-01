@@ -6,6 +6,11 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 import { categories, generateSlug, integrations } from "@/data/integrations";
+import { 
+  Landmark, MessageSquare, ShieldCheck, Globe, 
+  FileCheck, FileText, Heart, Activity, 
+  CreditCard, Terminal, Zap, ShoppingBag, Clock
+} from "lucide-react";
 
 
 
@@ -53,24 +58,49 @@ export default function IntegrationsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-black text-[#0A1628] tracking-tight mb-12 text-center">Featured Integrations</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredIntegrations.map((int) => (
-              <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block group">
-                <div className="bg-gradient-to-br w-full h-full from-blue-50 to-white rounded-3xl p-8 border border-blue-100 hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-2 transition-all duration-300">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-2xl font-black text-slate-400 group-hover:text-blue-600 group-hover:scale-110 transition-all">
-                      {int.logo}
+            {featuredIntegrations.map((int) => {
+              const IconMap: Record<string, any> = {
+                QuickBooks: Landmark,
+                Slack: MessageSquare,
+                Okta: ShieldCheck,
+                Xero: Landmark,
+                "Google Workspace": Globe,
+                "Microsoft Teams": MessageSquare,
+                "Guideline 401(k)": Heart,
+                "Human Interest": Heart,
+                Brex: CreditCard,
+                Ramp: CreditCard,
+                Greenhouse: Activity,
+                Lever: Activity,
+                Checkr: FileCheck,
+                Gusto: Zap,
+                SimplyInsured: ShieldCheck,
+                DocuSign: FileText,
+              };
+              const Icon = IconMap[int.name] || Zap;
+              
+              return (
+                <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block group">
+                  <div className="bg-gradient-to-br w-full h-full from-blue-50 to-white rounded-3xl p-8 border border-blue-100 hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-2 transition-all duration-300">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div 
+                        className="w-16 h-16 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-white group-hover:scale-110 transition-all"
+                        style={{ backgroundColor: int.color }}
+                      >
+                        <Icon size={32} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-[#0A1628] leading-tight">{int.name}</h3>
+                        <div className="text-blue-600 text-sm font-bold uppercase tracking-wider">{int.cat}</div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-[#0A1628] leading-tight">{int.name}</h3>
-                      <div className="text-blue-600 text-sm font-bold uppercase tracking-wider">{int.cat}</div>
-                    </div>
+                    <p className="text-slate-600 font-medium leading-relaxed">
+                      {int.desc}
+                    </p>
                   </div>
-                  <p className="text-slate-600 font-medium leading-relaxed">
-                    {int.desc}
-                  </p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -119,44 +149,69 @@ export default function IntegrationsPage() {
            {/* INTEGRATION GRID: 4 desktop, 3 tablet, 2 mobile */}
            <motion.div layout className="grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-4 sm:gap-6">
               <AnimatePresence mode="popLayout">
-                 {filteredIntegrations.map((int) => (
-                    <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block h-full group">
-                    <motion.div
-                       layout
-                       initial={{ opacity: 0, scale: 0.95 }}
-                       animate={{ opacity: 1, scale: 1 }}
-                       exit={{ opacity: 0, scale: 0.95 }}
-                       transition={{ duration: 0.2 }}
-                       className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 h-full"
-                    >
-                       <div className="flex items-start justify-between mb-4">
-                          <div className="w-[64px] h-[64px] bg-slate-50 rounded-xl flex items-center justify-center font-black text-xl text-slate-300 grayscale group-hover:grayscale-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all duration-300 shadow-sm border border-slate-100">
-                             {int.logo}
-                          </div>
-                       </div>
-                       
-                       <h3 className="text-[18px] font-bold text-[#0A1628] leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
-                          {int.name}
-                       </h3>
-                       
-                       <div className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded w-max mb-3">
-                          {int.cat}
-                       </div>
-                       
-                       <p className="text-slate-500 text-[14px] leading-relaxed mb-6 line-clamp-1 flex-1">
-                          {int.desc}
-                       </p>
+                 {filteredIntegrations.map((int) => {
+                    const IconMap: Record<string, any> = {
+                      QuickBooks: Landmark,
+                      Slack: MessageSquare,
+                      Okta: ShieldCheck,
+                      Xero: Landmark,
+                      "Google Workspace": Globe,
+                      "Microsoft Teams": MessageSquare,
+                      "Guideline 401(k)": Heart,
+                      "Human Interest": Heart,
+                      Brex: CreditCard,
+                      Ramp: CreditCard,
+                      Greenhouse: Activity,
+                      Lever: Activity,
+                      Checkr: FileCheck,
+                      Gusto: Zap,
+                      SimplyInsured: ShieldCheck,
+                      DocuSign: FileText,
+                    };
+                    const Icon = IconMap[int.name] || Zap;
 
-                       <div className="mt-auto pt-4 border-t border-slate-100 w-full">
-                         <button className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all ${
-                            int.status === 'Live' ? 'bg-slate-50 text-slate-700 hover:bg-blue-600 hover:text-white border border-slate-200 group-hover:border-blue-600' : 'bg-slate-50 text-slate-400'
-                         }`}>
-                           {int.status === 'Connected' ? 'Connected' : 'Connect'}
-                         </button>
-                       </div>
-                    </motion.div>
-                    </Link>
-                 ))}
+                    return (
+                      <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block h-full group">
+                      <motion.div
+                         layout
+                         initial={{ opacity: 0, scale: 0.95 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0, scale: 0.95 }}
+                         transition={{ duration: 0.2 }}
+                         className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 h-full"
+                      >
+                         <div className="flex items-start justify-between mb-4">
+                            <div 
+                              className="w-[64px] h-[64px] rounded-xl flex items-center justify-center text-white grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-300 shadow-sm border border-slate-100"
+                              style={{ backgroundColor: int.color }}
+                            >
+                               <Icon size={28} />
+                            </div>
+                         </div>
+                         
+                         <h3 className="text-[18px] font-bold text-[#0A1628] leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
+                            {int.name}
+                         </h3>
+                         
+                         <div className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded w-max mb-3">
+                            {int.cat}
+                         </div>
+                         
+                         <p className="text-slate-500 text-[14px] leading-relaxed mb-6 line-clamp-1 flex-1">
+                            {int.desc}
+                         </p>
+  
+                         <div className="mt-auto pt-4 border-t border-slate-100 w-full">
+                           <button className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all ${
+                              int.status === 'Live' ? 'bg-slate-50 text-slate-700 hover:bg-blue-600 hover:text-white border border-slate-200 group-hover:border-blue-600' : 'bg-slate-50 text-slate-400'
+                           }`}>
+                             {int.status === 'Connected' ? 'Connected' : 'Connect'}
+                           </button>
+                         </div>
+                      </motion.div>
+                      </Link>
+                    );
+                 })}
               </AnimatePresence>
            </motion.div>
 

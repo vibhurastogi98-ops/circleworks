@@ -120,7 +120,7 @@ export default function SolutionPageTemplate({
               The Challenges
             </motion.h2>
             <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Today&apos;s payroll and HR challenges demand smart, automated solutions
+              Today&apos;s Payroll & HR challenges demand smart, automated solutions
             </motion.p>
           </div>
 
@@ -168,7 +168,7 @@ export default function SolutionPageTemplate({
               Key Features
             </motion.h2>
             <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Everything you need to run payroll and HR at scale
+              Everything you need to run Payroll & HR at scale
             </motion.p>
           </div>
 

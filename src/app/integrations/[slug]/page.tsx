@@ -12,7 +12,10 @@ export async function generateStaticParams() {
 }
 
 import FeatureVisual from "@/components/FeatureVisual";
-import { ArrowUpRight, Clock, Rocket, ShieldCheck } from "lucide-react";
+import { 
+  ArrowUpRight, Clock, Rocket, ShieldCheck, Landmark, MessageSquare, Globe, 
+  FileCheck, FileText, Heart, Activity, CreditCard, Zap, ShoppingBag, Terminal
+} from "lucide-react";
 
 export default async function IntegrationDetailPage({ params }: { params: { slug: string } }) {
   const { slug } = await params;
@@ -69,15 +72,41 @@ export default async function IntegrationDetailPage({ params }: { params: { slug
               {/* Logo Lockup */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 mb-10">
                 <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-2xl bg-[#0A1628] flex items-center justify-center shadow-lg border border-slate-100 flex-shrink-0">
-                       <Rocket size={32} className="text-white" />
+                    <div className="w-20 h-20 rounded-3xl bg-[#0A1628] flex items-center justify-center shadow-xl border border-white/10 flex-shrink-0">
+                       <Rocket size={40} className="text-white" />
                     </div>
                     <div className="text-slate-300">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14m-7-7h14"/></svg>
+                      <Zap size={24} className="animate-pulse text-blue-500" />
                     </div>
-                    <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-md border border-slate-100 flex-shrink-0">
-                      <span className="text-3xl font-black text-slate-900">{integration.logo}</span>
-                    </div>
+                    {(() => {
+                      const IconMap: Record<string, any> = {
+                        QuickBooks: Landmark,
+                        Slack: MessageSquare,
+                        Okta: ShieldCheck,
+                        Xero: Landmark,
+                        "Google Workspace": Globe,
+                        "Microsoft Teams": MessageSquare,
+                        "Guideline 401(k)": Heart,
+                        "Human Interest": Heart,
+                        Brex: CreditCard,
+                        Ramp: CreditCard,
+                        Greenhouse: Activity,
+                        Lever: Activity,
+                        Checkr: FileCheck,
+                        Gusto: Zap,
+                        SimplyInsured: ShieldCheck,
+                        DocuSign: FileText,
+                      };
+                      const Icon = IconMap[integration.name] || Zap;
+                      return (
+                        <div 
+                          className="w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl border border-slate-100 flex-shrink-0 text-white"
+                          style={{ backgroundColor: (integration as any).color || "#0A1628" }}
+                        >
+                          <Icon size={40} />
+                        </div>
+                      );
+                    })()}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -252,25 +281,50 @@ export default async function IntegrationDetailPage({ params }: { params: { slug
         <div className="mt-24 pt-16 border-t border-slate-200">
           <h2 className="text-3xl font-black text-[#0A1628] tracking-tight mb-8">Related Integrations</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {related.map(int => (
-               <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block group h-full">
-                 <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 h-full">
-                    <div className="flex items-start justify-between mb-4">
-                       <div className="w-[48px] h-[48px] bg-slate-50 rounded-xl flex items-center justify-center font-black text-lg text-slate-300 grayscale group-hover:grayscale-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all duration-300 shadow-sm border border-slate-100">
-                          {int.logo}
-                       </div>
-                    </div>
-                    
-                    <h3 className="text-[16px] font-bold text-[#0A1628] leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
-                       {int.name}
-                    </h3>
-                    
-                    <div className="bg-slate-100 text-slate-600 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded w-max mb-3">
-                       {int.cat}
-                    </div>
-                 </div>
-               </Link>
-            ))}
+            {related.map(int => {
+              const IconMap: Record<string, any> = {
+                QuickBooks: Landmark,
+                Slack: MessageSquare,
+                Okta: ShieldCheck,
+                Xero: Landmark,
+                "Google Workspace": Globe,
+                "Microsoft Teams": MessageSquare,
+                "Guideline 401(k)": Heart,
+                "Human Interest": Heart,
+                Brex: CreditCard,
+                Ramp: CreditCard,
+                Greenhouse: Activity,
+                Lever: Activity,
+                Checkr: FileCheck,
+                Gusto: Zap,
+                SimplyInsured: ShieldCheck,
+                DocuSign: FileText,
+              };
+              const Icon = IconMap[int.name] || Zap;
+
+              return (
+                <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block group h-full">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 h-full">
+                     <div className="flex items-start justify-between mb-4">
+                        <div 
+                          className="w-[48px] h-[48px] rounded-xl flex items-center justify-center text-white grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-300 shadow-sm border border-slate-100"
+                          style={{ backgroundColor: (int as any).color || "#0A1628" }}
+                        >
+                           <Icon size={24} />
+                        </div>
+                     </div>
+                     
+                     <h3 className="text-[16px] font-bold text-[#0A1628] leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
+                        {int.name}
+                     </h3>
+                     
+                     <div className="bg-slate-100 text-slate-600 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded w-max mb-3">
+                        {int.cat}
+                     </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
