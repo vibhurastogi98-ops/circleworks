@@ -44,10 +44,10 @@ export default function IntegrationsSection() {
     <section className="bg-slate-50 py-16 w-full border-t border-slate-200 overflow-hidden">
       <div className="max-w-5xl mx-auto px-6 lg:px-8 mb-10 text-center">
         <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 tracking-tight leading-tight mb-4">
-          Connects with Every Tool Your Agency Already Uses
+          Connects with Every Tool Creators, Agencies & Companies Already Use
         </h2>
         <p className="text-slate-500 text-[18px] font-medium max-w-2xl mx-auto">
-          QuickBooks, Slack, Stripe, DocuSign, Greenhouse, and 50+ more — so your stack stays intact.
+          QuickBooks, Slack, Stripe, DocuSign, and 50+ more — your stack stays intact.
         </p>
       </div>
 

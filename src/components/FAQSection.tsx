@@ -8,65 +8,21 @@ import Script from "next/script";
 
 const FAQ_ITEMS: { question: string; answer: string }[] = [
   {
-    question: "Is CircleWorks really free to start?",
-    answer:
-      "Absolutely. Every CircleWorks plan includes a 30-day free trial with full access to payroll, HRIS, and time-tracking features — no credit card required. When you're ready, our Starter plan begins at just $6 per employee per month with zero setup fees.",
+    question: "Can I pay W-2 employees AND 1099 creators from one platform?",
+    answer: "Yes — this is CircleWorks' core strength. Creators, agencies, and companies can run payroll for full-time staff and contractor talent in the same pay cycle, with automatic 1099-NEC filing at year end."
   },
   {
-    question: "How long does setup take?",
-    answer:
-      "Most companies are fully onboarded and running their first payroll within 24 hours. Our guided setup wizard walks you through company details, employee imports, and tax configuration step-by-step. Dedicated onboarding specialists are available for teams of 50+.",
+    question: "We work with creators and staff across multiple states. Can you handle that?",
+    answer: "Absolutely. All 50 states supported. Perfect for agencies and companies with remote creators and distributed teams — we auto-handle all state registrations, local tax rates, and compliance."
   },
   {
-    question: "Can I handle multi-state payroll?",
-    answer:
-      "Yes — CircleWorks natively supports payroll across all 50 US states, DC, and US territories. We automatically handle state tax registrations, local withholding rates, reciprocity agreements, and year-end W-2 filings for every jurisdiction your employees work in.",
+    question: "How fast can creators, agencies, or companies get started?",
+    answer: "Most clients — whether solo creators, growing agencies, or large companies — are fully onboarded and running first payroll within 24 hours."
   },
   {
-    question: "Do you handle tax filing automatically?",
-    answer:
-      "CircleWorks calculates, withholds, and files federal, state, and local payroll taxes on your behalf every pay period. We also file quarterly 941s, annual W-2s and 1099s, and handle all agency payments — backed by our tax accuracy guarantee.",
-  },
-  {
-    question: "What happens to my data if I cancel?",
-    answer:
-      "Your data remains accessible for 90 days after cancellation. You can export complete payroll records, employee files, and tax documents at any time. We retain legally required tax records for 7 years per IRS guidelines, even after account closure.",
-  },
-  {
-    question: "Can I pay both W-2 employees AND 1099 creators from one platform?",
-    answer:
-      "Yes — this is one of CircleWorks' core strengths. Run payroll for your full-time staff and issue contractor payments to your creator talent in the same pay cycle, with automatic 1099-NEC filing at year end.",
-  },
-  {
-    question: "We work with creators in multiple states. Can CircleWorks handle that?",
-    answer:
-      "Absolutely. All 50 states are supported. We auto-handle state registrations, local tax rates, and compliance — even if your talent is spread coast to coast.",
-  },
-  {
-    question: "How does CircleWorks handle high-volume contractor payments?",
-    answer:
-      "Built for it. Batch pay hundreds of contractors at once, auto-generate payment records, and file all 1099s at year end — zero manual work.",
-  },
-  {
-    question: "Can we give clients or accountants access?",
-    answer:
-      "Yes. Add your bookkeeper or client finance contact as a read-only or admin user at no extra cost.",
-  },
-  {
-    question: "What states are supported?",
-    answer:
-      "CircleWorks supports payroll in all 50 US states, Washington DC, Puerto Rico, and Guam. We stay current with every state and local tax code change — including city-level taxes in states like Ohio, Pennsylvania, and New York — so you never miss an update.",
-  },
-  {
-    question: "How is pricing calculated for part-time employees?",
-    answer:
-      "Part-time employees are billed at the same per-employee rate as full-time staff — there's no distinction. You only pay for employees who are active on your roster during a billing cycle. Terminated employees are automatically removed from billing the following month.",
-  },
-  {
-    question: "What's the difference between Starter and Pro?",
-    answer:
-      "Starter ($6/employee/mo) includes payroll, basic HRIS, and employee self-service. Pro ($12/employee/mo) adds advanced time tracking, PTO management, benefits administration, performance reviews, and custom reporting. Both include unlimited pay runs and tax filing.",
-  },
+    question: "Can we give our accountant or client access?",
+    answer: "Yes. Creators, agencies, and companies can invite a bookkeeper or client finance contact with a free read-only or admin role at no extra cost."
+  }
 ];
 
 /* ─── Schema.org FAQ JSON-LD ─── */
@@ -183,8 +139,8 @@ export default function FAQSection() {
   );
 
   /* Split into two columns */
-  const leftColumn = FAQ_ITEMS.slice(0, 6);
-  const rightColumn = FAQ_ITEMS.slice(6, 12);
+  const leftColumn = FAQ_ITEMS.slice(0, 2);
+  const rightColumn = FAQ_ITEMS.slice(2, 4);
 
   return (
     <>
@@ -201,7 +157,7 @@ export default function FAQSection() {
           {/* Header */}
           <div className="text-center mb-14">
             <h2 className="text-[32px] md:text-[40px] font-black text-gray-900 tracking-tight">
-              Questions Creator Agencies Ask Us Most
+              Questions from Creators, Agencies & Companies
             </h2>
             <p className="mt-4 text-[16px] text-gray-500 max-w-xl mx-auto leading-relaxed">
               Everything you need to know about how CircleWorks handles agency-specific payroll and HR.
@@ -226,7 +182,7 @@ export default function FAQSection() {
             {/* RIGHT COLUMN */}
             <div className="border-t border-gray-200">
               {rightColumn.map((item, i) => {
-                const globalIndex = i + 6;
+                const globalIndex = i + 2;
                 return (
                   <AccordionItem
                     key={globalIndex}

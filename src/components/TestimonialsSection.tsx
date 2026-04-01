@@ -7,43 +7,43 @@ import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle } from "lucide-reac
 
 const FEATURED_QUOTES = [
   {
-    quote: "I used to spend every other Friday stressed about payroll. Now CircleWorks just handles it and sends me a summary to approve. It changed my life as an agency owner.",
+    quote: "We manage 40+ contractors and 12 full-time staff across 6 states. CircleWorks is the first platform that handles both without breaking a sweat.",
     name: "Jordan Mills",
-    title: "Founder",
-    company: "Hype House Agency",
+    title: "Head of Ops",
+    company: "Hype House Studios",
   },
   {
-    quote: "We brought on 18 new creator contractors in one month. CircleWorks onboarded all of them — contracts, payments, 1099s — without me doing a single thing.",
+    quote: "Our creator talent payouts used to take 3 days. Now we run the whole thing in 20 minutes. Our creators are happier, and so are we.",
     name: "Priya Sethi",
-    title: "CEO",
-    company: "Collabs Talent Group",
+    title: "Founder",
+    company: "Collabs Agency",
   },
   {
-    quote: "Having a dedicated account manager who actually knows our team structure is a game changer. This feels like an in-house HR team, not a software subscription.",
+    quote: "CircleWorks replaced our payroll service, benefits broker, and HRIS — and costs less than what we paid for just one of those. Perfect for our company.",
     name: "Marcus Osei",
-    title: "COO",
-    company: "Creator Co. Studios",
+    title: "CEO",
+    company: "Creator Co.",
   }
 ];
 
 const GRID_QUOTES = [
   {
-    quote: "CircleWorks caught a multi-state compliance issue we didn't even know we had. They fixed it before it became a problem. That alone paid for the service.",
+    quote: "1099 compliance for our creator roster was keeping me up at night. CircleWorks flags issues before we run payroll. Total lifesaver for our agency.",
     name: "Rachel Kim",
-    role: "Director of Ops",
+    role: "COO",
     company: "Talent Lane"
   },
   {
-    quote: "Our talent gets paid on time, every time. No drama, no errors, no stress. CircleWorks just works — and their team is incredibly responsive.",
+    quote: "We onboard new creator contractors every week across our company. Contracts, payments, tax forms — done in minutes.",
     name: "Tom Nakamura",
-    role: "Managing Producer",
+    role: "Producer",
     company: "Studio Zero"
   },
   {
-    quote: "I was paying three separate vendors for payroll, contracts, and HR. CircleWorks replaced all three and costs less. And they actually do the work for us.",
+    quote: "Finally a platform that understands creators, agencies, and companies equally. W-2 and 1099 in one place. Absolute game changer.",
     name: "Sofia Reyes",
-    role: "Agency Lead",
-    company: "Reach Creative"
+    role: "Talent Director",
+    company: "Reach Collective"
   }
 ];
 
@@ -98,7 +98,7 @@ export default function TestimonialsSection() {
         {/* HEADER */}
         <div className="text-center mb-16">
           <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 tracking-tight">
-            What Creator Agencies Are Saying
+            What Creators, Agencies & Companies Say
           </h2>
         </div>
 

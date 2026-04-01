@@ -309,7 +309,7 @@ export default function DemoSection() {
             See CircleWorks in Action
           </h2>
           <p className="text-[18px] md:text-[20px] text-slate-400 font-medium">
-            No signup required. Explore live.
+            Built for creators, agencies & companies. No signup required. Explore live.
           </p>
         </div>
 

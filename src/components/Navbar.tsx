@@ -284,10 +284,6 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                   }`}>
                   Circle<span className="text-blue-500">Works</span>
                 </span>
-                <span className={`text-[10px] font-medium tracking-wide uppercase mt-[-4px] hidden sm:block ${isNavWhite ? "text-slate-500" : "text-slate-400"
-                  }`}>
-                  Managed Payroll & HR — Done For You.
-                </span>
               </div>
             </Link>
 
@@ -354,10 +350,10 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                 Log In
               </Link>
               <Link
-                href="/trial"
+                href="/signup"
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-full px-6 py-2.5 transition-all shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5"
               >
-                Start Free Trial
+                Start Free — No Credit Card
               </Link>
             </div>
 
@@ -578,12 +574,12 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                 Log In
               </Link>
               <Link
-                href="/trial"
+                href="/signup"
                 onClick={closeMenus}
                 className="w-full text-center py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30"
                 tabIndex={0}
               >
-                Start Free Trial
+                Start Free — No Credit Card
               </Link>
             </div>
           </motion.div>

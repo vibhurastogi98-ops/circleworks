@@ -13,13 +13,13 @@ const CARDS = [
   },
   {
     icon: Users,
-    title: "Talent & Creator Agencies",
+    title: "Agencies",
     body: "Managing rosters of talent across states and contracts? We're your outsourced HR team. Fast onboarding, clean payments, and zero compliance risk.",
     color: "blue",
   },
   {
     icon: Building,
-    title: "Media & Content Companies",
+    title: "Companies",
     body: "Studios, production houses, and content brands trust us to run payroll for blended teams — full-time staff and freelance creators — without missing a single filing.",
     color: "indigo",
   },

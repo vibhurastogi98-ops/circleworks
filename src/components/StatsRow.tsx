@@ -79,24 +79,24 @@ function CountUpNumber({ endString }: { endString: string }) {
 
 const STATS_DATA = [
   { 
-    value: "50 States", 
-    label: "We're Licensed & Compliant Everywhere", 
-    subLabel: "Multi-state payroll handled for you" 
+    top: "50", 
+    middle: "States", 
+    bottom: "Full USA Payroll Coverage" 
   },
   { 
-    value: "$2B+", 
-    label: "Payroll Managed for Creator Businesses", 
-    subLabel: "Trusted by 500+ agencies" 
+    top: "$2B+", 
+    middle: "", 
+    bottom: "Payroll Processed for Creators & Agencies" 
   },
   { 
-    value: "99.99%", 
-    label: "On-Time Payroll Accuracy Rate", 
-    subLabel: "Peace of mind guaranteed" 
+    top: "99.99%", 
+    middle: "", 
+    bottom: "Platform Uptime, SOC 2 Certified" 
   },
   { 
-    value: "<24 Hrs", 
-    label: "Average Onboarding to First Payroll Run", 
-    subLabel: "Fast setup, expert execution" 
+    top: "<24", 
+    middle: "Hrs", 
+    bottom: "Average First Payroll Setup" 
   },
 ];
 
@@ -106,30 +106,27 @@ export default function StatsSection() {
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
         
         {/* Responsive Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-12 lg:gap-y-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-16 lg:gap-y-0">
           {STATS_DATA.map((stat, idx) => {
-            // Add right border divider only for desktop screens, omitting the last item
             const isLast = idx === STATS_DATA.length - 1;
-            const dividerClasses = !isLast ? "lg:border-r lg:border-slate-200" : "";
+            const dividerClasses = !isLast ? "lg:border-r lg:border-slate-100" : "";
 
             return (
               <div 
                 key={idx} 
-                className={`flex flex-col items-center text-center px-4 md:px-6 ${dividerClasses}`}
+                className={`flex flex-col items-center text-center px-6 ${dividerClasses}`}
               >
-                {/* 64px Numeric Gradient Statistic */}
-                <div className="text-[64px] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 leading-tight tracking-tight">
-                  <CountUpNumber endString={stat.value} />
+                {/* Responsive Gradient Statistic Wrapper */}
+                <div className="flex flex-col items-center justify-center min-h-[140px]">
+                  <div className="text-[52px] md:text-[64px] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 leading-[0.85] tracking-tight flex flex-col items-center">
+                    {stat.top && <CountUpNumber endString={stat.top} />}
+                    {stat.middle && <span className="mt-[-2px]">{stat.middle}</span>}
+                  </div>
                 </div>
                 
-                {/* 20px Bold Slate Title */}
-                <div className="text-[20px] font-semibold text-slate-900 mt-3 mb-1.5 leading-snug">
-                  {stat.label}
-                </div>
-                
-                {/* 14px Sub-label Metadata */}
-                <div className="text-[14px] text-slate-500 max-w-[220px]">
-                  {stat.subLabel}
+                {/* Slate Label with Refined Font Size */}
+                <div className="text-[15px] md:text-[17px] font-bold text-[#0F172A] mt-6 max-w-[180px] leading-snug">
+                  {stat.bottom}
                 </div>
               </div>
             );

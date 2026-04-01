@@ -68,89 +68,42 @@ export default function HeroSection() {
       {/* --- CONTENT --- */}
       <div className="relative z-10 w-full max-w-5xl mx-auto px-6 flex flex-col items-center text-center">
 
-        {/* EYEBROW */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-cyan-400 text-[12px] font-bold uppercase tracking-[0.2em] mb-4"
         >
-          MANAGED PAYROLL & HR FOR THE CREATOR ECONOMY
+          THE #1 PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES
         </motion.div>
 
         {/* H1 HEADER */}
-        <h1 className="text-[36px] sm:text-[48px] md:text-[60px] font-black text-white leading-[1.1] tracking-tight mb-6">
-          <div className="overflow-hidden flex flex-wrap sm:flex-nowrap justify-center gap-x-[0.25em] gap-y-0 text-center">
-            <motion.span
-              key="h1-1"
-              custom={0}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block"
-            >
-              We
-            </motion.span>
-            <motion.span
-              key="h1-2"
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block"
-            >
-              Handle
-            </motion.span>
-            <motion.span
-              key="h1-3"
-              custom={2}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block"
-            >
-              Your
-            </motion.span>
-            <motion.span
-              key="h1-4"
-              custom={3}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
-            >
-              Payroll,
-            </motion.span>
-            <motion.span
-              key="h1-5"
-              custom={4}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
-            >
-              HR
-            </motion.span>
-            <motion.span
-              key="h1-6"
-              custom={5}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
-            >
-              &
-            </motion.span>
-            <motion.span
-              key="h1-7"
-              custom={6}
-              initial="hidden"
-              animate="visible"
-              variants={wordAnimation}
-              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
-            >
-              Compliance.
-            </motion.span>
+        <h1 className="text-[32px] sm:text-[44px] md:text-[52px] font-black text-white leading-[1.1] tracking-tight mb-6">
+          <div className="flex flex-wrap justify-center gap-x-[0.2em] gap-y-1 text-center">
+            {["The", "HR", "&", "Payroll", "Platform", "Built", "for"].map((word, i) => (
+              <motion.span
+                key={`h1-w-${i}`}
+                custom={i}
+                initial="hidden"
+                animate="visible"
+                variants={wordAnimation}
+                className="inline-block"
+              >
+                {word}
+              </motion.span>
+            ))}
+            {["Creators,", "Agencies", "&", "Companies."].map((word, i) => (
+              <motion.span
+                key={`h1-g-${i}`}
+                custom={i + 7}
+                initial="hidden"
+                animate="visible"
+                variants={wordAnimation}
+                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]"
+              >
+                {word}
+              </motion.span>
+            ))}
           </div>
         </h1>
 
@@ -161,7 +114,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="text-[18px] md:text-[20px] text-slate-300 max-w-2xl leading-relaxed mb-8 font-medium"
         >
-          CircleWorks is a fully managed payroll and HR service built for creators, talent agencies, and companies. We don't just give you software — we run it for you. W-2 staff, 1099 talent, multi-state compliance — all handled by our expert team.
+          All-in-one Payroll · HRIS · ATS · Benefits · Time · Expenses. Built for creators, agencies, and companies of every size.
         </motion.p>
 
         {/* CTA ROW */}
@@ -174,26 +127,26 @@ export default function HeroSection() {
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
             {/* Primary Blue Pill */}
             <Link 
-              href="/contact"
+              href="/signup"
               className="h-[56px] px-8 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
             >
-              Get a Free Consultation
+              Start Free — No Credit Card
               <ChevronRight size={18} />
             </Link>
 
             {/* Secondary Outline */}
             <Link
-              href="/how-it-works"
+              href="/demo"
               className="h-[56px] px-8 rounded-full bg-white/10 border border-white/20 text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-white hover:text-[#0A1628] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto group"
             >
-              <ArrowRight size={18} className="text-white group-hover:text-[#0A1628]" />
-              See How It Works
+              <Play size={18} className="text-white group-hover:text-[#0A1628] fill-current" />
+              Watch 2-Min Demo
             </Link>
           </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[14px] text-slate-400 font-medium">
-            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> No setup stress</span>
-            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> Dedicated account manager</span>
+            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> 30-day free trial</span>
+            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> No setup fees</span>
             <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> Cancel anytime</span>
           </div>
         </motion.div>
@@ -400,7 +353,7 @@ export default function HeroSection() {
           className="mt-16 sm:mt-20 lg:mt-24 w-full flex flex-col items-center overflow-hidden relative"
         >
           <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wider mb-6 text-center">
-            Trusted by 500+ Creator Agencies & Studios
+            Trusted by 500+ creators, agencies & companies across the USA
           </p>
 
           {/* Shadow Edges to blend scrolling logos seamlessly */}

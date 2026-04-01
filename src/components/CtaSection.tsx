@@ -35,17 +35,13 @@ export default function CtaSection() {
           Limited-time offer — 30 days free
         </span>
 
-        {/* Heading */}
         <h2 className="text-[32px] sm:text-[40px] md:text-[48px] font-black text-white tracking-tight leading-[1.1] mb-6">
-          Ready to Run Your Agency on{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4]">
-            One Platform?
-          </span>
+          Ready to Run Your Creator Business, Agency, or Company on One Platform?
         </h2>
 
         {/* Subheadline */}
         <p className="text-[17px] md:text-[19px] text-slate-300 max-w-xl leading-relaxed mb-8 font-medium">
-          Join 500+ creator agencies and companies that trust CircleWorks for payroll, HR, and compliance — so they can focus on building, not admin.
+          Join 500+ creators, agencies, and companies that trust CircleWorks for payroll, HR, and compliance — so they can focus on building, not admin.
         </p>
 
         {/* CTA buttons */}
