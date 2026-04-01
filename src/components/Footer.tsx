@@ -173,9 +173,9 @@ export default function SiteFooter() {
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 text-[13px] font-medium">
               <span>Copyright {new Date().getFullYear()} CircleWorks Inc.</span>
               <span className="hidden sm:inline text-slate-600">&middot;</span>
-              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/legal/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <span className="hidden sm:inline text-slate-600">&middot;</span>
-              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/legal/terms" className="hover:text-white transition-colors">Terms of Service</Link>
               <span className="hidden sm:inline text-slate-600">&middot;</span>
               <button className="hover:text-white transition-colors">Cookie Settings</button>
             </div>
