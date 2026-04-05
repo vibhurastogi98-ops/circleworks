@@ -4,6 +4,12 @@ interface AddUserBody {
 	role?: "admin" | "hr" | "employee";
 }
 
+interface ContactBody {
+	name: string;
+	email: string;
+	message: string;
+}
+
 interface Env {
 	DB: D1Database;
 }
@@ -71,7 +77,7 @@ export default {
 		// ✅ CONTACT FORM SAVE
 		if (path === "/contact" && request.method === "POST") {
 			try {
-				const body = await request.json();
+				const body = (await request.json()) as ContactBody;
 
 				await DB.prepare(
 					"INSERT INTO contact_messages (name, email, message) VALUES (?, ?, ?)"
