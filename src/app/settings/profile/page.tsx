@@ -24,6 +24,7 @@ export default function ProfilePage() {
 
       <div className="flex justify-center md:justify-start">
         <UserProfile 
+          routing="hash"
           appearance={{
             elements: {
               rootBox: "w-full shadow-none",
