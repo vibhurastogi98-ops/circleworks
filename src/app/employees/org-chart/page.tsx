@@ -60,25 +60,33 @@ export default function OrgChartPage() {
     setMounted(true);
   }, []);
 
-  // ✅ CRITICAL FIX → explicit generic
+  // ✅ Robust hierarchy generation
   const treeData = useMemo<OrgNodeData | null>(() => {
-    const list = JSON.parse(JSON.stringify(mockEmployees)) as OrgNodeData[];
+    // 1. Create a deep copy of the employees list
+    const list: OrgNodeData[] = JSON.parse(JSON.stringify(mockEmployees));
     const map = new Map<string, OrgNodeData>();
-    let root: OrgNodeData | null = null;
+    
+    // 2. Index all employees by ID
+    list.forEach(emp => map.set(emp.id, emp));
 
-    list.forEach((emp) => map.set(emp.id, emp));
-
-    list.forEach((emp) => {
+    // 3. Connect all employees to their parents
+    list.forEach(emp => {
       if (emp.managerId && map.has(emp.managerId)) {
         const parent = map.get(emp.managerId)!;
         if (!parent.children) parent.children = [];
-        parent.children.push(emp);
-      } else {
-        root = emp;
+        // Ensure we don't accidentally duplicate
+        if (!parent.children.find(c => c.id === emp.id)) {
+          parent.children.push(emp);
+        }
       }
     });
 
-    return root;
+    // 4. Explicitly find the CEO (emp-100) as the primary root
+    const ceo = map.get('emp-100');
+    if (ceo) return ceo;
+
+    // 5. Fallback: find any node that has no manager (or whose manager isn't in the list)
+    return list.find(emp => !emp.managerId || !map.has(emp.managerId)) || null;
   }, []);
 
   return (
@@ -90,19 +98,20 @@ export default function OrgChartPage() {
           <Link href="/employees" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
             <ChevronLeft size={16} /> Back
           </Link>
-          <h1 className="text-2xl font-bold">Organization Chart</h1>
+          <h1 className="text-2xl font-black text-slate-900 drop-shadow-sm">Organization Chart</h1>
+          <div className="h-1 w-12 bg-blue-600 rounded-full mt-1.5" />
         </div>
 
-        <div className="flex gap-2">
-          <ZoomIn size={18} />
-          <ZoomOut size={18} />
-          <Maximize size={18} />
-          <Download size={18} />
+        <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500">
+          <button className="hover:text-blue-600 transition-colors"><ZoomIn size={20} /></button>
+          <button className="hover:text-blue-600 transition-colors"><ZoomOut size={20} /></button>
+          <button className="hover:text-blue-600 transition-colors"><Maximize size={20} /></button>
+          <button className="hover:text-blue-600 transition-colors"><Download size={20} /></button>
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="flex-1 flex items-center justify-center bg-white rounded-xl p-8 overflow-auto">
+      {/* Chart Container */}
+      <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 overflow-auto shadow-inner">
         {!mounted ? (
           <div className="flex flex-col items-center gap-3">
              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -110,10 +119,10 @@ export default function OrgChartPage() {
           </div>
         ) : treeData ? (
           <Tree
-            lineWidth="2px"
-            lineColor="#cbd5e1"
-            lineBorderRadius="8px"
-            nodePadding="24px"
+            lineWidth="3px"
+            lineColor="#64748b"
+            lineBorderRadius="16px"
+            nodePadding="32px"
             label={<EmployeeCard node={treeData} />}
           >
             {renderNodes(treeData.children)}

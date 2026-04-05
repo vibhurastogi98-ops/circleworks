@@ -75,6 +75,24 @@ const currentDate = new Date().toISOString().split('T')[0];
 
 export const mockEmployees: Employee[] = [
   {
+    id: 'emp-100',
+    firstName: 'Alex',
+    lastName: 'Rivers',
+    email: 'alex.r@acmecorp.com',
+    avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent',
+    title: 'Chief Executive Officer',
+    department: 'Executive',
+    location: 'San Francisco, CA',
+    locationType: 'On-Site',
+    managerId: null,
+    startDate: '2018-01-01',
+    status: 'Active',
+    type: 'Full-Time',
+    history: {
+      compensation: [], benefits: [], activity: [], performance: [], timeOff: []
+    }
+  },
+  {
     id: 'emp-101',
     firstName: 'Alice',
     lastName: 'Johnson',
@@ -84,7 +102,7 @@ export const mockEmployees: Employee[] = [
     department: 'Engineering',
     location: 'San Francisco, CA',
     locationType: 'Hybrid',
-    managerId: 'emp-100', // Assuming CEO
+    managerId: 'emp-100',
     startDate: '2021-03-15',
     status: 'Active',
     type: 'Full-Time',
@@ -187,7 +205,6 @@ export const mockEmployees: Employee[] = [
       timeOff: []
     }
   },
-  // Adding a few more to make directory interesting
   {
     id: 'emp-105',
     firstName: 'Eve',
@@ -198,7 +215,7 @@ export const mockEmployees: Employee[] = [
     department: 'Sales',
     location: 'Chicago, IL',
     locationType: 'On-Site',
-    managerId: null,
+    managerId: 'emp-100',
     startDate: '2020-05-20',
     status: 'Terminated',
     type: 'Full-Time',

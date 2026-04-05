@@ -1,13 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --navy: #0A1628;
-  --navy-light: #0f1f3d;
-  --navy-medium: #122040;
-  --blue-primary: #2563eb;
-  --blue-light: #3b82f6;
-  --cyan: #22d3ee;
-  --cyan-light: #67e8f9;
+  /* Primary Palette */
+  --color-primary: #0A1628;
+  /* Navy — auth backgrounds, dark sections */
+  --color-blue-600: #1D4ED8;
+  /* Primary actions, links, active states */
+  --color-blue-500: #3B82F6;
+  /* Hover states, secondary highlights */
+  --color-cyan-500: #06B6D4;
+  /* Data viz, accent highlights, badges */
+  --color-green-500: #10B981;
+  /* Success, paid status, checkmarks */
+  --color-orange-500: #F97316;
+  /* Alerts, callouts, urgency */
+  --color-red-600: #DC2626;
+  /* Errors, destructive, critical */
+  --color-purple-600: #7C3AED;
+  /* AI features, Circe branding */
+  /* Neutral Scale */
+  --color-gray-950: #0F172A;
+  /* Primary text */
+  --color-gray-700: #374151;
+  /* Secondary text */
+  --color-gray-50: #6B7280;
+  /* Subtext, placeholders */
+  --color-gray-300: #D1D5DB;
+  /* Borders, dividers */
+  --color-gray-100: #F3F4F6;
+  /* Surface backgrounds */
+  --color-gray-50: #F9FAFB;
+  /* Page background */
+  --color-white: #FFFFFF;
+  /* Cards, content areas */
+  /* Semantic Aliases */
+  --text-primary: var(--color-gray-950);
+  --text-secondary: var(--color-gray-500);
+  --border-default: #e2e8f0;
+  --surface-default: var(--color-white);
+  --surface-subtle: var(--color-gray-50);
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -2px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -4px rgba(0, 0, 0, 0.10);
+  --shadow-glow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+  /* Focus ring */
+  /* Transitions */
+  --transition-fast: 100ms ease-out;
+  --transition-base: 150ms ease-out;
+  --transition-slow: 300ms ease-out;
+}
+
+.dark {
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --border-default: #1E293B;
+  --surface-default: #0F172A;
+  --surface-subtle: #1E293B;
 }
 
 * {
@@ -19,12 +84,81 @@ html {
 }
 
 body {
-  background-color: var(--navy);
-  color: white;
+  @apply bg-slate-50 text-slate-900 transition-colors;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body {
+  @apply bg-[#030712] text-white;
+}
+
+/* Typography Scale */
+@layer utilities {
+  .text-display {
+    font-size: 4.5rem;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+  }
+
+  .text-h1 {
+    font-size: 3rem;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  .text-h2 {
+    font-size: 2.25rem;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  .text-h3 {
+    font-size: 1.5rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  .text-h4 {
+    font-size: 1.25rem;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+
+  .text-body-lg {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .text-body {
+    font-size: 1rem;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
 }
 
 /* Animated gradient mesh */
@@ -174,6 +308,7 @@ body {
   0% {
     transform: translateX(-50%);
   }
+
   100% {
     transform: translateX(0%);
   }
@@ -408,125 +543,113 @@ body {
   background: rgba(59, 130, 246, 0.8);
 }
 
-:root {
-  /* Primary Palette */
-  --color-primary: #0A1628;
-  /* Navy — auth backgrounds, dark sections */
-  --color-blue-600: #1D4ED8;
-  /* Primary actions, links, active states */
-  --color-blue-500: #3B82F6;
-  /* Hover states, secondary highlights */
-  --color-cyan-500: #06B6D4;
-  /* Data viz, accent highlights, badges */
-  --color-green-500: #10B981;
-  /* Success, paid status, checkmarks */
-  --color-orange-500: #F97316;
-  /* Alerts, callouts, urgency */
-  --color-red-600: #DC2626;
-  /* Errors, destructive, critical */
-  --color-purple-600: #7C3AED;
-  /* AI features, Circe branding */
-  /* Neutral Scale */
-  --color-gray-950: #0F172A;
-  /* Primary text */
-  --color-gray-700: #374151;
-  /* Secondary text */
-  --color-gray-500: #6B7280;
-  /* Subtext, placeholders */
-  --color-gray-300: #D1D5DB;
-  /* Borders, dividers */
-  --color-gray-100: #F3F4F6;
-  /* Surface backgrounds */
-  --color-gray-50: #F9FAFB;
-  /* Page background */
-  --color-white: #FFFFFF;
-  /* Cards, content areas */
-  /* Semantic Aliases */
-  --text-primary: var(--color-gray-950);
-  --text-secondary: var(--color-gray-500);
-  --border-default: var(--color-gray-200);
-  --surface-default: var(--color-white);
-  --surface-subtle: var(--color-gray-50);
-  /* Spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-  --space-16: 64px;
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 24px;
-  --radius-full: 4.5px;
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -2px rgba(0, 0, 0, 0.10);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -4px rgba(0, 0, 0, 0.10);
-  --shadow-glow: 0 0 0 3px rgba(29, 78, 216, 0.15);
-  /* Focus ring */
-  /* Transitions */
-  --transition-fast: 100ms ease-out;
-  --transition-base: 150ms ease-out;
-  --transition-slow: 300ms ease-out;
-}
-
-.dark {
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --border-default: #1E293B;
-  --surface-default: #0F172A;
-  --surface-subtle: #1E293B;
-}
 
 /* Hero background mesh animations */
 @keyframes floatingFrame {
-  0% { transform: translateY(0px); }
-  100% { transform: translateY(-8px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  100% {
+    transform: translateY(-8px);
+  }
 }
+
 .animate-floating-frame {
   animation: floatingFrame 3s ease-in-out infinite alternate;
   will-change: transform;
 }
 
 @keyframes marqueeScroll {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
+
 .animate-marquee-css {
   animation: marqueeScroll 25s linear infinite;
   will-change: transform;
 }
 
 @keyframes meshOne {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(4vw, -6vh) scale(1.1); }
-  66% { transform: translate(-3vw, 4vh) scale(0.95); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(4vw, -6vh) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-3vw, 4vh) scale(0.95);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
+
 @keyframes meshTwo {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-5vw, 4vh) scale(1.15); }
-  66% { transform: translate(4vw, -2vh) scale(0.9); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-5vw, 4vh) scale(1.15);
+  }
+
+  66% {
+    transform: translate(4vw, -2vh) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
+
 @keyframes meshThree {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(3vw, 5vh) scale(0.9); }
-  66% { transform: translate(-4vw, -5vh) scale(1.1); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(3vw, 5vh) scale(0.9);
+  }
+
+  66% {
+    transform: translate(-4vw, -5vh) scale(1.1);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
-.bg-mesh-1 { animation: meshOne 18s ease-in-out infinite; will-change: transform; }
-.bg-mesh-2 { animation: meshTwo 22s ease-in-out infinite; will-change: transform; }
-.bg-mesh-3 { animation: meshThree 25s ease-in-out infinite; will-change: transform; }
+
+.bg-mesh-1 {
+  animation: meshOne 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+.bg-mesh-2 {
+  animation: meshTwo 22s ease-in-out infinite;
+  will-change: transform;
+}
+
+.bg-mesh-3 {
+  animation: meshThree 25s ease-in-out infinite;
+  will-change: transform;
+}
 
 /* Respect user's reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -534,5 +657,5 @@ body {
 }
 
 .rounded-full {
-  border-radius: 4.5px !important;
+  border-radius: 9999px !important;
 }
