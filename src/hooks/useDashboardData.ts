@@ -12,19 +12,35 @@ import {
 } from "@/data/dashboard";
 
 export function useDashboardData() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
 
-  // Consider user "new" if created within the last 48 hours, or if they don't exist in Clerk (fallback)
-  const isNew = user ? (Date.now() - new Date(user.createdAt!).getTime() < 48 * 60 * 60 * 1000) : false;
-
-  // Retrieve company data: Metadata > localStorage > default
-  const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
+  // Retrieve company data from localStorage early to avoid '---' flickering
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
   const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.data?.companyName : null;
-  
+  const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
   const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
 
+  // If still loading Clerk, return a skeleton/loading state but with the derived company name
+  if (!isLoaded) {
+    return {
+      isLoading: true,
+      currentUser: { firstName: "---", lastName: "", companyName: displayCompanyName },
+      nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
+      kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
+      alerts: [],
+      payrollTrend: [],
+      quickActions: QUICK_ACTIONS,
+      newHires: [],
+      teamCalendar: [],
+      activityFeed: [],
+    };
+  }
+
+  // Consider user "new" if created within the last 48 hours
+  const isNew = user ? (Date.now() - new Date(user.createdAt!).getTime() < 48 * 60 * 60 * 1000) : false;
+
   return {
+    isLoading: false,
     isNewUser: isNew,
     currentUser: {
       firstName: user?.firstName || "Welcome",

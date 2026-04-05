@@ -12,8 +12,10 @@ import AlertsPanel from "@/components/dashboard/AlertsPanel";
 import QuickActions from "@/components/dashboard/QuickActions";
 import NewHires from "@/components/dashboard/NewHires";
 import TeamCalendar from "@/components/dashboard/TeamCalendar";
+import { Loader2 } from "lucide-react";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OnboardingTour from "@/components/OnboardingTour";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 // Recharts client-only
 const PayrollChart = dynamic(
@@ -22,10 +24,28 @@ const PayrollChart = dynamic(
 );
 
 export default function DashboardPage() {
+  const { isLoading } = useDashboardData();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0 lg:ml-[72px] xl:ml-[240px]">
+          <AppTopBar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4 text-slate-400">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <p className="text-sm font-medium animate-pulse">Syncing your workspace...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <QueryProvider>
       <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
-
         {/* Sidebar */}
         <AppSidebar />
 
