@@ -80,7 +80,7 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
-  { label: "Settings", icon: Settings, href: "/settings/profile" },
+  { label: "Settings", icon: Settings, href: "/settings/company" },
   { label: "Help", icon: HelpCircle, href: "/help" },
 ];
 
