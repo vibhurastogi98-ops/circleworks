@@ -1,0 +1,243 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronRight, ChevronLeft, Check, UploadCloud } from "lucide-react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+
+const STEPS = ["Personal Info", "Employment", "Compensation", "Tax & Banking"];
+
+export default function AddEmployeeWizard() {
+  const router = useRouter();
+  const { currentUser } = useDashboardData();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    personalEmail: "",
+    workEmail: "",
+    jobTitle: "",
+    department: "",
+    manager: "",
+    startDate: "",
+    type: "Full-Time",
+    locationType: "Remote",
+    salary: "",
+    payFrequency: "Bi-Weekly",
+    bankName: "",
+    accountNumber: "",
+    routingNumber: ""
+  });
+  
+  // Basic validation per step
+  const validateStep = (step: number) => {
+    switch(step) {
+      case 0:
+        return formData.firstName.length > 0 && formData.lastName.length > 0 && formData.personalEmail.length > 0;
+      case 1:
+        return formData.jobTitle.length > 0 && formData.startDate.length > 0;
+      case 2:
+        return formData.salary.length > 0;
+      case 3:
+        return formData.bankName.length > 0 && formData.accountNumber.length > 0;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      if (currentStep < STEPS.length - 1) {
+        setCurrentStep(s => s + 1);
+        
+        // Auto-fill work email based on company domain if on employment step
+        if (currentStep === 0 && !formData.workEmail) {
+          const domain = currentUser?.companyName?.toLowerCase().replace(/[^a-z0-9]/g, "") || "company";
+          setFormData(f => ({ ...f, workEmail: `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${domain}.com` }));
+        }
+      } else {
+        // Complete wizard
+        // In real app, this sends an invite email
+        router.push("/employees");
+      }
+    } else {
+      alert("Please fill in the required fields to proceed.");
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <Link href="/employees" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors w-fit">
+          <ChevronLeft size={16} /> Back to Directory
+        </Link>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Add New Employee</h1>
+      </div>
+
+      {/* Wizard Container */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row min-h-[500px]">
+        {/* Progress Sidebar */}
+        <div className="w-full md:w-64 bg-slate-50 dark:bg-slate-800/50 p-6 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col gap-6">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider hidden md:block">Steps</h2>
+          <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-visible">
+            {STEPS.map((step, idx) => {
+              const isActive = currentStep === idx;
+              const isPast = currentStep > idx;
+              return (
+                <div key={step} className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors flex-shrink-0
+                    ${isActive ? "border-blue-600 bg-blue-600 text-white" : 
+                      isPast ? "border-green-500 bg-green-500 text-white" : 
+                      "border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-600 bg-transparent"}`}
+                  >
+                    {isPast ? <Check size={16} /> : idx + 1}
+                  </div>
+                  <div className="flex flex-col whitespace-nowrap">
+                    <span className={`text-sm font-medium ${isActive ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"}`}>
+                      {step}
+                    </span>
+                  </div>
+                  {idx < STEPS.length - 1 && <div className="hidden md:block absolute w-0.5 h-6 bg-slate-200 dark:bg-slate-700 left-[27px] mt-[44px]" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Form Content */}
+        <div className="flex-1 p-6 sm:p-8 flex flex-col">
+          <div className="flex-1">
+            {currentStep === 0 && (
+              <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Personal Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">First Name <span className="text-red-500">*</span></label>
+                    <input type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Jane" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Last Name <span className="text-red-500">*</span></label>
+                    <input type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Doe" />
+                  </div>
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Personal Email <span className="text-red-500">*</span></label>
+                    <input type="email" value={formData.personalEmail} onChange={e => setFormData({...formData, personalEmail: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="jane.doe@gmail.com" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 1 && (
+              <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Employment Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Job Title <span className="text-red-500">*</span></label>
+                    <input type="text" value={formData.jobTitle} onChange={e => setFormData({...formData, jobTitle: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. Senior Designer" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
+                    <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select Dept</option>
+                      <option value="Engineering">Engineering</option>
+                      <option value="Design">Design</option>
+                      <option value="Sales">Sales</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Work Email (Auto-generated)</label>
+                    <input type="email" value={formData.workEmail} onChange={e => setFormData({...formData, workEmail: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Start Date <span className="text-red-500">*</span></label>
+                    <input type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 text-slate-500 dark:text-slate-400" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
+                    <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                      <option value="Full-Time">Full-Time</option>
+                      <option value="Part-Time">Part-Time</option>
+                      <option value="Contractor">Contractor</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Compensation</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Base Salary / Rate <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
+                      <input type="number" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} className="w-full pl-8 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="80000" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Pay Frequency</label>
+                    <select value={formData.payFrequency} onChange={e => setFormData({...formData, payFrequency: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                      <option value="Weekly">Weekly</option>
+                      <option value="Bi-Weekly">Bi-Weekly</option>
+                      <option value="Semi-Monthly">Semi-Monthly</option>
+                      <option value="Monthly">Monthly</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Tax & Banking Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Bank Name <span className="text-red-500">*</span></label>
+                    <input type="text" value={formData.bankName} onChange={e => setFormData({...formData, bankName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. Chase" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Routing Number <span className="text-red-500">*</span></label>
+                    <input type="text" value={formData.routingNumber} onChange={e => setFormData({...formData, routingNumber: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="xxxxxxxxx" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Number <span className="text-red-500">*</span></label>
+                    <input type="password" value={formData.accountNumber} onChange={e => setFormData({...formData, accountNumber: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="•••••••••" />
+                  </div>
+
+                  <div className="sm:col-span-2 mt-4 p-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <UploadCloud className="text-slate-400" size={24} />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Upload W-4 Form Document</span>
+                    <span className="text-xs text-slate-500">(Optional for now)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <button 
+              onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
+              disabled={currentStep === 0}
+              className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              Back
+            </button>
+            <button 
+              onClick={handleNext}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+            >
+              {currentStep === STEPS.length - 1 ? (
+                <>Complete & Invite <Check size={16} /></>
+              ) : (
+                <>Next Step <ChevronRight size={16} /></>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
