@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { KPI_CARDS, KpiCard } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import Link from "next/link";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -106,45 +107,55 @@ function KpiCardComponent({ card, index }: { card: KpiCard; index: number }) {
     ShieldCheck: "#8B5CF6",
   };
 
+  const routeMap: Record<string, string> = {
+    "total-employees": "/employees",
+    "monthly-payroll": "/payroll",
+    "pending-approvals": "/time",
+    "compliance-score": "/compliance",
+  };
+  const href = routeMap[card.id] || "/dashboard";
+
   return (
     <motion.div
       id={isComplianceScore ? "tour-compliance" : undefined}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.4 }}
-      className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group cursor-default"
+      className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl shadow-sm hover:shadow-md transition-shadow group flex flex-col"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBgMap[card.icon] || "bg-slate-100 text-slate-600"}`}>
-          <Icon size={20} />
-        </div>
-        {isComplianceScore ? (
-          <ComplianceGauge score={Number(card.value)} />
-        ) : (
-          <MiniSparkline data={card.sparklineData} color={sparkColorMap[card.icon] || "#3B82F6"} />
-        )}
-      </div>
-
-      <div>
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
-          {card.label}
-        </p>
-        <div className="flex items-end gap-3">
-          <span className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
-            {isComplianceScore ? `${card.value}/100` : card.value}
-          </span>
-          {isPendingApprovals && Number(card.value) > 0 ? (
-            <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full">
-              Needs attention
-            </span>
+      <Link href={href} className="p-5 flex-1 flex flex-col cursor-pointer">
+        <div className="flex items-start justify-between mb-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBgMap[card.icon] || "bg-slate-100 text-slate-600"}`}>
+            <Icon size={20} />
+          </div>
+          {isComplianceScore ? (
+            <ComplianceGauge score={Number(card.value)} />
           ) : (
-            <span className={`flex items-center gap-0.5 text-xs font-semibold ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-              <TrendIcon size={12} />
-              {card.trendLabel}
-            </span>
+            <MiniSparkline data={card.sparklineData} color={sparkColorMap[card.icon] || "#3B82F6"} />
           )}
         </div>
-      </div>
+
+        <div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">
+            {card.label}
+          </p>
+          <div className="flex items-end gap-3 transition-transform group-hover:translate-x-1">
+            <span className="text-2xl font-bold text-slate-900 dark:text-white leading-none">
+              {isComplianceScore ? `${card.value}/100` : card.value}
+            </span>
+            {isPendingApprovals && Number(card.value) > 0 ? (
+              <span className="text-xs font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full">
+                Needs attention
+              </span>
+            ) : (
+              <span className={`flex items-center gap-0.5 text-xs font-semibold ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                <TrendIcon size={12} />
+                {card.trendLabel}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
     </motion.div>
   );
 }

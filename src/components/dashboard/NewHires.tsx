@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { NEW_HIRES } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { UserPlus } from "lucide-react";
+import Link from "next/link";
 
 function OnboardingBadge({ percent }: { percent: number }) {
   const getColor = (p: number) => {
@@ -66,12 +67,10 @@ export default function NewHires() {
           </div>
         ) : (
           newHires.map((hire, i) => (
-            <motion.div
+            <Link
               key={hire.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.35 + i * 0.07 }}
-              className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+              href={`/onboarding`}
+              className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group/hire"
             >
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-600">
@@ -94,7 +93,7 @@ export default function NewHires() {
               </div>
 
               <OnboardingBadge percent={hire.onboardingPercent} />
-            </motion.div>
+            </Link>
           ))
         )}
       </div>

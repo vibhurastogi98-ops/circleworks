@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { TEAM_CALENDAR } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import Link from "next/link";
 
 export default function TeamCalendar() {
   const { teamCalendar } = useDashboardData();
@@ -17,9 +18,9 @@ export default function TeamCalendar() {
         <h3 className="text-base font-bold text-slate-900 dark:text-white">
           Team Calendar This Week
         </h3>
-        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+        <Link href="/time" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
           View full
-        </span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-5 gap-2">

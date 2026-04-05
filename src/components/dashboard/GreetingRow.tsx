@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Calendar, Eye, Play, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
@@ -71,10 +72,10 @@ export default function GreetingRow() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+            <Link href="/payroll" className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
               <Eye size={14} />
               Preview
-            </button>
+            </Link>
             <button
               onClick={() => setPayrollRunning(true)}
               className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all hover:shadow-md"

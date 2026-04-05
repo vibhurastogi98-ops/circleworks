@@ -9,6 +9,7 @@ import {
   X,
   ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
 import { ALERTS, AlertItem, AlertSeverity } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
@@ -79,12 +80,13 @@ function AlertCard({ alert, onDismiss }: { alert: AlertItem; onDismiss: (id: str
         </div>
       </div>
 
-      <button
+      <Link
+        href={alert.action}
         className={`self-start h-7 px-3 rounded-lg text-xs font-bold ${style.actionBg} ${style.actionText} flex items-center gap-1 transition-colors shadow-sm`}
       >
         {alert.actionLabel}
         <ChevronRight size={12} />
-      </button>
+      </Link>
     </motion.div>
   );
 }

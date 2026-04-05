@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { ACTIVITY_FEED } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { ListTodo } from "lucide-react";
@@ -21,10 +22,10 @@ export default function ActivityFeed() {
         <h3 className="text-base font-bold text-slate-900 dark:text-white">
           Recent Activity
         </h3>
-        <button className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 transition-colors">
+        <Link href="/settings/profile" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 transition-colors">
           View full audit log
           <ArrowRight size={12} />
-        </button>
+        </Link>
       </div>
 
       <div className="relative">

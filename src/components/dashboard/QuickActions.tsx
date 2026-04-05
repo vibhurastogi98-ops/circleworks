@@ -9,6 +9,7 @@ import {
   BarChart3,
   ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
 import { QUICK_ACTIONS, QuickAction } from "@/data/dashboard";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -31,10 +32,8 @@ function ActionButton({ action, index }: { action: QuickAction; index: number })
   const Icon = ICON_MAP[action.icon] || UserPlus;
 
   return (
-    <motion.button
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.3 + index * 0.06 }}
+    <Link
+      href={action.href}
       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors group"
     >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${ICON_COLORS[action.icon] || "bg-slate-100 text-slate-600"}`}>
@@ -54,7 +53,7 @@ function ActionButton({ action, index }: { action: QuickAction; index: number })
         size={16}
         className="text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors flex-shrink-0"
       />
-    </motion.button>
+    </Link>
   );
 }
 

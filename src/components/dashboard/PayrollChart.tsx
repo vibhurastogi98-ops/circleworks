@@ -12,7 +12,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { PAYROLL_TREND } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
@@ -75,9 +76,9 @@ export default function PayrollChart() {
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Payroll Cost Trend
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Gross, taxes &amp; benefits breakdown
-          </p>
+          <Link href="/payroll/history" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5">
+            View history <ArrowRight size={10} />
+          </Link>
         </div>
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg p-1">
           {DATE_RANGES.map((r) => (
