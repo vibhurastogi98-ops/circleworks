@@ -19,9 +19,18 @@ Key facts about CircleWorks:
 If you don't know something specific, suggest the user contact sales@circleworks.com or visit the Help Center.
 Keep responses under 150 words.`;
 
+interface RequestMessage {
+  role: string;
+  content: string;
+}
+
+interface RequestBody {
+  messages: RequestMessage[];
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const { messages } = (await req.json()) as RequestBody;
 
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
@@ -76,7 +85,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const data = await response.json();
+    interface AnthropicResponse {
+      content?: Array<{ text?: string }>;
+    }
+    const data = (await response.json()) as AnthropicResponse;
     const reply = data.content?.[0]?.text || "I couldn't generate a response. Please try again.";
 
     return NextResponse.json({ reply });

@@ -57,7 +57,7 @@ export default function CirceWidget() {
 
       if (!res.ok) throw new Error("API error");
 
-      const data = await res.json();
+      const data = (await res.json()) as { reply?: string };
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data.reply || "Sorry, I couldn't process that. Please try again." },
