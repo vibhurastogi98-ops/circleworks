@@ -70,7 +70,15 @@ const NAV_ITEMS: NavItem[] = [
       { label: "WOTC", href: "/compliance/wotc" },
     ]
   },
-  { label: "Reports", icon: BarChart2, href: "/reports" },
+  { 
+    label: "Reports", 
+    icon: BarChart2, 
+    href: "/reports",
+    subItems: [
+      { label: "All Reports", href: "/reports" },
+      { label: "Custom Builder", href: "/reports/custom" },
+    ]
+  },
   { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
   { label: "Settings", icon: Settings, href: "/settings/profile" },
   { label: "Help", icon: HelpCircle, href: "/help" },
