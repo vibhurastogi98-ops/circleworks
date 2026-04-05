@@ -9,6 +9,7 @@ import {
   Clock, Receipt, Target, Shield, BarChart2, Settings, HelpCircle, 
   LogOut, ChevronDown, ChevronRight, CheckCircle2
 } from "lucide-react";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { useSidebarStore } from "@/store/useSidebarStore";
 
 type SubItem = {
@@ -57,9 +58,16 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
+  const { signOut } = useClerk();
+  const { user } = useUser();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     "Payroll": false
   });
+
+  // Derive display info from Clerk user
+  const displayName = user?.fullName || user?.firstName || "User";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
+  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
 
   const toggleAccordion = (label: string) => {
     setOpenAccordions(prev => ({ ...prev, [label]: !prev[label] }));
@@ -247,22 +255,26 @@ export default function AppSidebar() {
         <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center w-full group/user cursor-pointer rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 -m-2 transition-colors relative">
              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
-                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="User" className="w-full h-full object-cover" />
+                <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
              </div>
              
              {/* Tooltip for 72px state */}
              <div className="absolute left-[62px] bottom-2 px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/user:opacity-100 lg:group-hover/user:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
-                Alex HR Admin
+                {displayName}
              </div>
 
              <div className="ml-3 flex-1 overflow-hidden lg:hidden xl:block">
-                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">Alex HR Admin</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">alex@acme.corp</div>
+                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">{displayName}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{displayEmail}</div>
              </div>
 
-             <div className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity lg:hidden xl:block text-slate-400 hover:text-red-500 dark:hover:text-red-400" title="Log Out">
+             <button
+                onClick={() => signOut({ redirectUrl: "/login" })}
+                className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity lg:hidden xl:block text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer"
+                title="Log Out"
+             >
                 <LogOut size={16} />
-             </div>
+             </button>
           </div>
         </div>
       </aside>

@@ -7,6 +7,7 @@ import {
   Menu, Search, Bell, HelpCircle, Sun, Moon, AlertTriangle, X, 
   Settings, User, CreditCard, LogOut, Loader2, Sparkles, ChevronRight
 } from "lucide-react";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import Breadcrumb from "./Breadcrumb";
@@ -14,6 +15,13 @@ import Breadcrumb from "./Breadcrumb";
 export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
+  const { signOut } = useClerk();
+  const { user } = useUser();
+
+  // Derive display info from Clerk user (fallback to defaults)
+  const displayName = user?.fullName || user?.firstName || "User";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
+  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
   const { toggleSidebar } = useSidebarStore();
   
   // Platform global state
@@ -203,7 +211,7 @@ export default function AppTopBar() {
                onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
                className="flex items-center justify-center w-[36px] h-[36px] rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-offset-slate-900 transition-all cursor-pointer"
              >
-               <img src="https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent" alt="User Avatar" className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" />
+               <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" />
              </button>
 
              <AnimatePresence>
@@ -216,12 +224,15 @@ export default function AppTopBar() {
                     className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden"
                   >
                     <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                       <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">Alex HR Admin</p>
-                       <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">alex@acme.corp</p>
+                       <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{displayName}</p>
+                       <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{displayEmail}</p>
                     </div>
                     
                     <div className="p-2 flex flex-col gap-1">
-                       <button className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors">
+                       <button
+                         onClick={() => { setIsAvatarMenuOpen(false); router.push("/settings/profile"); }}
+                         className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                       >
                          <User size={16} className="text-slate-400" /> My Profile
                        </button>
                        <button className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors">
@@ -233,7 +244,10 @@ export default function AppTopBar() {
                     </div>
 
                     <div className="p-2 border-t border-slate-100 dark:border-slate-700">
-                       <button className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors">
+                       <button
+                         onClick={() => signOut({ redirectUrl: "/login" })}
+                         className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors"
+                       >
                          <LogOut size={16} /> Log Out
                        </button>
                     </div>

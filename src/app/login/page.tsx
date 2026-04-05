@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Key, Mail, ShieldCheck } from "lucide-react";
@@ -8,19 +8,31 @@ import { ArrowLeft, Key, Mail, ShieldCheck } from "lucide-react";
 // familiar { isLoaded, signIn, setActive } shape that works with
 // password auth and authenticateWithRedirect.
 import { useSignIn } from "@clerk/nextjs/legacy";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { isLoaded, signIn, setActive } = useSignIn();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
+  // If already signed in, redirect to dashboard
+  useEffect(() => {
+    if (isSignedIn) {
+      router.replace("/dashboard");
+    }
+  }, [isSignedIn, router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isLoaded || isSignedIn) {
+      if (isSignedIn) router.replace("/dashboard");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -45,6 +57,10 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (!isLoaded) return;
+    if (isSignedIn) {
+      router.replace("/dashboard");
+      return;
+    }
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
