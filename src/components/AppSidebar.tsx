@@ -33,8 +33,10 @@ const NAV_ITEMS: NavItem[] = [
   { 
     label: "Payroll", 
     icon: DollarSign, 
+    href: "/payroll",
     badge: "DRAFT",
     subItems: [
+      { label: "Overview", href: "/payroll" },
       { label: "Run Payroll", href: "/payroll/run" },
       { label: "Pay Schedule", href: "/payroll/schedule" },
       { label: "History", href: "/payroll/history" },

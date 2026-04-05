@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Menu, Search, Bell, HelpCircle, Sun, Moon, AlertTriangle, X, 
@@ -172,20 +173,22 @@ export default function AppTopBar() {
           )}
 
           {/* 1. What's New Bell (Changelog) */}
-          <button 
+          <Link 
+            href="/changelog"
             className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors group relative"
             title="What's New"
           >
             <Sparkles size={20} className="group-hover:text-amber-500 transition-colors" />
-          </button>
+          </Link>
 
           {/* 2. Help Icon */}
-          <button 
+          <Link 
+            href="/help"
             className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
             title="Help center"
           >
             <HelpCircle size={20} />
-          </button>
+          </Link>
 
           {/* 3. Notifications Bell */}
           <button 
