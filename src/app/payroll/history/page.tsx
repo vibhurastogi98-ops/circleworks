@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, Search, Calendar, FileText, Filter, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 const HISTORY = [
   { id: "pr-001", date: "Mar 15, 2026", period: "Mar 1 – Mar 15", type: "Regular", status: "Paid", employees: 47, gross: 278420, net: 196315, taxes: 82105 },
@@ -24,7 +25,7 @@ export default function HistoryPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1 ml-[52px]">View all past payroll runs, export reports, and access historical data.</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50">
+        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-900 dark:text-white">
           <Download size={16} /> Export to Excel
         </button>
       </div>
@@ -32,15 +33,15 @@ export default function HistoryPage() {
       <div className="grid grid-cols-3 gap-4 mb-2">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <p className="text-xs font-bold uppercase text-slate-400">Total Gross (YTD)</p>
-          <p className="text-2xl font-extrabold mt-1">{fmt(940400)}</p>
+          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(940400)}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <p className="text-xs font-bold uppercase text-slate-400">Total Taxes (YTD)</p>
-          <p className="text-2xl font-extrabold mt-1">{fmt(283925)}</p>
+          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(283925)}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <p className="text-xs font-bold uppercase text-slate-400">Total Net (YTD)</p>
-          <p className="text-2xl font-extrabold mt-1">{fmt(656475)}</p>
+          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(656475)}</p>
         </div>
       </div>
 
@@ -50,7 +51,7 @@ export default function HistoryPage() {
              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
              <input type="text" placeholder="Search by ID or description..." className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800" />
           </div>
-          <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"><Filter size={14}/> Filters</button>
+          <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"><Filter size={14}/> Filters</button>
         </div>
         <table className="w-full text-left">
           <thead>
@@ -70,16 +71,16 @@ export default function HistoryPage() {
               <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
                 <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{h.id}</td>
                 <td className="px-5 py-4">
-                  <p className="font-semibold">{h.date}</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">{h.date}</p>
                   <p className="text-xs text-slate-500">{h.period}</p>
                 </td>
                 <td className="px-5 py-4"><span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${h.type === 'Regular' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>{h.type}</span></td>
-                <td className="px-5 py-4 text-right font-bold">{fmt(h.gross)}</td>
+                <td className="px-5 py-4 text-right font-bold text-slate-900 dark:text-white">{fmt(h.gross)}</td>
                 <td className="px-5 py-4 text-right text-slate-500">{fmt(h.taxes)}</td>
-                <td className="px-5 py-4 text-right font-bold">{fmt(h.net)}</td>
+                <td className="px-5 py-4 text-right font-bold text-slate-900 dark:text-white">{fmt(h.net)}</td>
                 <td className="px-5 py-4 text-center"><span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold uppercase"><CheckCircle2 size={12}/> {h.status}</span></td>
                 <td className="px-5 py-4 text-right">
-                  <a href={`/payroll/run/${h.id}`} className="text-blue-600 font-semibold hover:underline">View Details</a>
+                  <Link href={`/payroll/run/${h.id}`} className="text-blue-600 font-semibold hover:underline">View Details</Link>
                 </td>
               </tr>
             ))}
