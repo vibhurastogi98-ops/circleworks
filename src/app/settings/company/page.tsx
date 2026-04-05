@@ -1,10 +1,63 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, MapPin, Globe, Mail, Phone, FileText } from "lucide-react";
+import { Building2, MapPin, Globe, Mail, Phone, FileText, Check, Loader2 } from "lucide-react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 export default function CompanySettingsPage() {
+  const { currentUser } = useDashboardData();
+  const { user } = useUser();
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    companyName: "",
+    ein: "XX-XXXXXXX",
+    website: "https://circleworks.io",
+    address: "123 Main Street",
+    city: "San Francisco",
+    state: "CA",
+    zip: "94105",
+  });
+
+  useEffect(() => {
+    if (currentUser?.companyName && currentUser.companyName !== formData.companyName) {
+      setFormData(prev => ({
+        ...prev,
+        companyName: currentUser.companyName
+      }));
+    }
+  }, [currentUser?.companyName]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          companyName: formData.companyName,
+          // Other fields could go here too if we update the API to handle them
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update settings");
+      
+      // Update Clerk user's metadata locally if possible or wait for sync
+      if (user) {
+        await user.reload();
+      }
+
+      toast.success("Company settings updated successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save changes. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -21,8 +74,13 @@ export default function CompanySettingsPage() {
             Manage your organization's legal info, workplace settings, and compliance details.
           </p>
         </div>
-        <button className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95">
-          Save Changes
+        <button 
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+          {isSaving ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
@@ -37,17 +95,32 @@ export default function CompanySettingsPage() {
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">Company Legal Name</label>
-                <input type="text" defaultValue="CircleWorks Inc." className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                <input 
+                  type="text" 
+                  value={formData.companyName} 
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">EIN (Tax ID)</label>
-                <input type="text" defaultValue="XX-XXXXXXX" className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                <input 
+                  type="text" 
+                  value={formData.ein} 
+                  onChange={(e) => setFormData({ ...formData, ein: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">Company Website</label>
                 <div className="relative">
                   <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <input type="text" defaultValue="https://circleworks.io" className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl pl-12 pr-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                  <input 
+                    type="text" 
+                    value={formData.website} 
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl pl-12 pr-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                  />
                 </div>
               </div>
             </div>

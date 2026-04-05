@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -95,6 +96,7 @@ export default function RootLayout({
         </Script>
 
         <body className="antialiased">
+          <Toaster position="top-right" richColors />
           <KeyboardShortcuts />
           <CookieBanner />
           {children}

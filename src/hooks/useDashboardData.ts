@@ -17,16 +17,19 @@ export function useDashboardData() {
   // Consider user "new" if created within the last 48 hours, or if they don't exist in Clerk (fallback)
   const isNew = user ? (Date.now() - new Date(user.createdAt!).getTime() < 48 * 60 * 60 * 1000) : false;
 
-  // Retrieve temporary company data saved from signup flow (if any)
+  // Retrieve company data: Metadata > localStorage > default
+  const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
-  const companyName = signupProgress ? JSON.parse(signupProgress)?.data?.companyName : "your new workspace";
+  const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.data?.companyName : null;
+  
+  const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
 
   return {
     isNewUser: isNew,
     currentUser: {
       firstName: user?.firstName || "Welcome",
       lastName: user?.lastName || "",
-      companyName: companyName || "CircleWorks",
+      companyName: displayCompanyName,
     },
     nextPayroll: isNew ? {
       date: "Pending Setup",

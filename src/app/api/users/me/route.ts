@@ -9,36 +9,24 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
+    const client = await clerkClient();
 
-    // Check if body has hasCompletedTour
+    // 1. Update Clerk Metadata if relevant fields are present
+    const metadataToUpdate: Record<string, any> = {};
     if (typeof body.hasCompletedTour === "boolean") {
-      const client = await clerkClient();
-      await client.users.updateUserMetadata(userId, {
-        publicMetadata: {
-          hasCompletedTour: body.hasCompletedTour
-        }
-      });
-      
-      // Also connect to database backend (Worker API)
-      const token = await getToken();
-      try {
-        await fetch("https://circleworks-worker.vibhurastogi98.workers.dev/users/me", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ hasCompletedTour: body.hasCompletedTour })
-        });
-      } catch (err) {
-        console.error("Failed to sync tour completion stat to backend DB", err);
-        // non-blocking
-      }
-
-      return NextResponse.json({ success: true, hasCompletedTour: body.hasCompletedTour });
+      metadataToUpdate.hasCompletedTour = body.hasCompletedTour;
+    }
+    if (typeof body.companyName === "string") {
+      metadataToUpdate.companyName = body.companyName;
     }
 
-    // Pass any other PATCH fields identically to Backend DB
+    if (Object.keys(metadataToUpdate).length > 0) {
+      await client.users.updateUserMetadata(userId, {
+        publicMetadata: metadataToUpdate
+      });
+    }
+
+    // 2. Sync with Backend Database (Worker API)
     const token = await getToken();
     try {
       await fetch("https://circleworks-worker.vibhurastogi98.workers.dev/users/me", {
@@ -50,10 +38,11 @@ export async function PATCH(req: Request) {
         body: JSON.stringify(body)
       });
     } catch (err) {
-      console.error("Failed to sync profile stat to backend DB", err);
+      console.error("Failed to sync profile fields to backend DB", err);
+      // non-blocking
     }
 
-    return NextResponse.json({ success: true, message: "Profile fields updated." });
+    return NextResponse.json({ success: true, updatedFields: Object.keys(body) });
   } catch (error) {
     console.error("[USERS_ME_PATCH]", error);
     return new NextResponse("Internal server error", { status: 500 });

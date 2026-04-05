@@ -188,6 +188,16 @@ export default function SignupPage() {
       methods.clearErrors();
       setStep(prev => prev + 1);
       if (step + 1 === 5) {
+        const formData = getValues();
+        // Persist companyName to Clerk Metadata
+        fetch("/api/users/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            companyName: formData.companyName,
+          }),
+        }).catch(err => console.error("Failed to persist company name on signup", err));
+
         localStorage.removeItem("circleworks_signup_progress");
         setTimeout(() => {
           confetti({

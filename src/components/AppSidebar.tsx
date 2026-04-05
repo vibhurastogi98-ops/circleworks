@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useSidebarStore } from "@/store/useSidebarStore";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 type SubItem = {
   label: string;
@@ -62,6 +63,7 @@ export default function AppSidebar() {
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { currentUser } = useDashboardData();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     "Payroll": false
   });
@@ -107,7 +109,7 @@ export default function AppSidebar() {
           </div>
           
           <div className="ml-3 flex-1 flex flex-col justify-center overflow-hidden lg:hidden xl:flex transition-opacity duration-300">
-             <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">Acme Corp</span>
+             <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{currentUser.companyName || "Your Company"}</span>
              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                Switch company
                <ChevronDown size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -116,7 +118,7 @@ export default function AppSidebar() {
 
           {/* Tooltip for 72px state */}
           <div className="absolute left-[78px] px-2 py-1 bg-slate-800 text-white text-[12px] font-medium rounded opacity-0 invisible lg:group-hover:opacity-100 lg:group-hover:visible xl:hidden z-50 whitespace-nowrap shadow-lg whitespace-nowrap">
-             Acme Corp
+             {currentUser.companyName || "Your Company"}
           </div>
         </div>
 
