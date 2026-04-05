@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSignUp } from "@clerk/nextjs/legacy";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Building2, Calendar, DollarSign, Zap, Search, Users } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Building2, Building, Calendar, DollarSign, Zap, Search, Users, ChevronDown } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -52,6 +55,10 @@ const INDUSTRIES = ["Technology", "Healthcare", "Retail", "Professional Services
 const SIZES = ["1-10", "11-50", "51-250", "251-1000", "1000+"];
 
 export default function SignupPage() {
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { isSignedIn } = useAuth();
+  const router = useRouter();
+
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
@@ -90,14 +97,47 @@ export default function SignupPage() {
     }
   }, [setValue]);
 
+  // Redirect if signed in
+  useEffect(() => {
+    if (isSignedIn) {
+      router.replace("/dashboard");
+    }
+  }, [isSignedIn, router]);
+
   // Save to local storage on change
   useEffect(() => {
     if (!mounted) return;
     const subscription = methods.watch((value) => {
-      localStorage.setItem("circleworks_signup_progress", JSON.stringify({ step, data: value }));
+      localStorage.setItem("circleworks_signup_progress", JSON.stringify({ step: step, data: value }));
     });
     return () => subscription.unsubscribe();
   }, [methods.watch, step, mounted]);
+
+  const handleGoogleSignup = async () => {
+    if (!isLoaded) return;
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
+      });
+    } catch (err) {
+      console.error("Google signup error", err);
+    }
+  };
+
+  const handleMicrosoftSignup = async () => {
+    if (!isLoaded) return;
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy: "oauth_microsoft",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
+      });
+    } catch (err) {
+      console.error("Microsoft signup error", err);
+    }
+  };
 
   const passwordValue = watch("password") || "";
   const passwordStrength = Math.min(100, passwordValue.length * 10 + (/[A-Z]/.test(passwordValue) ? 10 : 0) + (/[0-9]/.test(passwordValue) ? 10 : 0));
@@ -106,6 +146,7 @@ export default function SignupPage() {
     let isValid = false;
     if (step === 1) {
       const data = getValues();
+      methods.clearErrors(); // Clear before re-validating
       const res = step1Schema.safeParse(data);
       if (!res.success) {
         (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
@@ -114,6 +155,7 @@ export default function SignupPage() {
       }
     } else if (step === 2) {
       const data = getValues();
+      methods.clearErrors();
       const res = step2Schema.safeParse(data);
       if (!res.success) {
         (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
@@ -121,20 +163,19 @@ export default function SignupPage() {
         isValid = true;
       }
     } else if (step === 3) {
-      isValid = true; // allow skip logic via optional fields, but let's check EIN format if entered
+      isValid = true;
       const data = getValues();
+      methods.clearErrors();
       if (data.ein && !/^\d{2}-\d{7}$/.test(data.ein)) {
          methods.setError("ein", { message: "EIN must be XX-XXXXXXX" });
          isValid = false;
       }
-      // Check date if entered
       if (data.firstPayrollDate) {
          const d = new Date(data.firstPayrollDate);
          const now = new Date();
          const diffTime = Math.abs(d.getTime() - now.getTime());
          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
          if (diffDays < 4 && d > now) {
-            // Just a fast loose check for 4 days
             methods.setError("firstPayrollDate", { message: "Date must be at least 4 days from today" });
             isValid = false;
          }
@@ -235,32 +276,32 @@ export default function SignupPage() {
           </div>
         )}
 
-        <div className="max-w-xl w-full mx-auto px-6 py-12 lg:py-20 flex-1 flex flex-col">
+        <div className="max-w-xl w-full mx-auto px-6 py-8 flex-1 flex flex-col justify-center">
           {unfinishedBanner && step < 5 && (
-             <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
-               <AlertCircle size={20} className="text-amber-600 mt-0.5 shrink-0" />
+             <div className="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-2">
+               <AlertCircle size={18} className="text-amber-600 mt-0.5 shrink-0" />
                <div>
-                  <p className="text-sm font-bold text-amber-800">You have an unfinished signup.</p>
-                  <p className="text-xs font-medium text-amber-700 mt-1">We saved your progress. Would you like to continue or <button type="button" onClick={() => { localStorage.removeItem("circleworks_signup_progress"); window.location.reload(); }} className="underline">start over</button>?</p>
+                  <p className="text-xs font-bold text-amber-800">You have an unfinished signup.</p>
+                  <p className="text-xs font-medium text-amber-700 mt-0.5">We saved your progress. Would you like to continue or <button type="button" onClick={() => { localStorage.removeItem("circleworks_signup_progress"); window.location.reload(); }} className="underline">start over</button>?</p>
                </div>
              </div>
           )}
 
-          <div className="mb-8">
+          <div className="mb-6">
             {step > 1 && step < 5 && (
-              <button onClick={prevStep} className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-700 transition-colors">
+              <button onClick={prevStep} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-700 transition-colors">
                 <ArrowLeft size={16} /> Back
               </button>
             )}
             
-            <h1 className="text-3xl font-black text-[#0a1128] tracking-tight mb-2">
+            <h1 className="text-2xl lg:text-3xl font-black text-[#0a1128] tracking-tight mb-2">
               {step === 1 && "Create your account"}
               {step === 2 && "Tell us about your company"}
               {step === 3 && "Set up payroll basics"}
               {step === 4 && "Add your first employee"}
               {step === 5 && "You're ready!"}
             </h1>
-            <p className="text-slate-500 font-medium">
+            <p className="text-sm text-slate-500 font-medium">
               {step === 1 && "Start your 30-day free trial."}
               {step === 2 && "Help us customize your workspace."}
               {step === 3 && "You can always change these settings later."}
@@ -269,7 +310,7 @@ export default function SignupPage() {
             </p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-5 flex-1 flex flex-col">
+          <form onSubmit={(e) => { e.preventDefault(); nextStep(); }} className="space-y-4 flex-1 flex flex-col">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -279,35 +320,35 @@ export default function SignupPage() {
                 transition={{ duration: 0.2 }}
               >
                 {step === 1 && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-5">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
                       <div className="relative group">
                         <input
                           {...register("fullName")}
                           autoFocus
-                          className={`peer w-full px-4 pt-6 pb-2 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.fullName ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
+                          className={`peer w-full px-4 pt-5 pb-1.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.fullName ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
                           placeholder="Full Name"
                         />
                         <label className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${errors.fullName ? "text-red-500" : "text-slate-500 peer-focus:text-blue-500"}`}>Full Legal Name</label>
                         {errors.fullName && <p className="text-red-500 text-xs mt-1 absolute -bottom-5 left-1 font-medium z-10">{errors.fullName.message as string}</p>}
                       </div>
 
-                      <div className="relative group mt-[0.5rem]">
+                      <div className="relative group mt-1">
                         <input
                           type="email"
                           {...register("email")}
-                          className={`peer w-full px-4 pt-6 pb-2 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
+                          className={`peer w-full px-4 pt-5 pb-1.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
                           placeholder="Work email address"
                         />
                         <label className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${errors.email ? "text-red-500" : "text-slate-500 peer-focus:text-blue-500"}`}>Work Email Address</label>
                         {errors.email && <p className="text-red-500 text-xs mt-1 absolute -bottom-5 left-1 font-medium z-10">{errors.email.message as string}</p>}
                       </div>
                       
-                      <div className="relative group mt-[0.5rem]">
+                      <div className="relative group mt-1">
                         <input
                           type={showPassword ? "text" : "password"}
                           {...register("password")}
-                          className={`peer w-full px-4 pt-6 pb-2 pr-12 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.password ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
+                          className={`peer w-full px-4 pt-5 pb-1.5 pr-12 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.password ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
                           placeholder="Password"
                         />
                         <label className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${errors.password ? "text-red-500" : "text-slate-500 peer-focus:text-blue-500"}`}>Password (min 8 chars)</label>
@@ -321,11 +362,11 @@ export default function SignupPage() {
                         {errors.password && <p className="text-red-500 text-xs mt-1 absolute -bottom-6 left-1 font-medium z-10">{errors.password.message as string}</p>}
                       </div>
 
-                      <div className="relative group mt-[1.5rem]">
+                      <div className="relative group mt-2">
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           {...register("confirmPassword")}
-                          className={`peer w-full px-4 pt-6 pb-2 pr-12 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.confirmPassword ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
+                          className={`peer w-full px-4 pt-5 pb-1.5 pr-12 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${errors.confirmPassword ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"}`}
                           placeholder="Confirm Password"
                         />
                         <label className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${errors.confirmPassword ? "text-red-500" : "text-slate-500 peer-focus:text-blue-500"}`}>Confirm Password</label>
@@ -333,7 +374,7 @@ export default function SignupPage() {
                         {errors.confirmPassword && <p className="text-red-500 text-xs mt-1 absolute -bottom-5 left-1 font-medium z-10">{errors.confirmPassword.message as string}</p>}
                       </div>
 
-                      <div className="mt-[1.5rem] flex items-start gap-3">
+                      <div className="mt-3 flex items-start gap-3">
                         <div className="relative flex items-center justify-center w-5 h-5 mt-0.5">
                           <input 
                             type="checkbox" 
@@ -343,7 +384,7 @@ export default function SignupPage() {
                           <Check size={12} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
                         </div>
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-slate-600 select-none">
+                          <span className="text-xs font-medium text-slate-600 select-none">
                             I agree to the <Link href="/legal/terms" className="text-blue-600 hover:underline">Terms of Service</Link> and <Link href="/legal/privacy" className="text-blue-600 hover:underline">Privacy Policy</Link>.
                           </span>
                           {errors.agreeTos && <p className="text-red-500 text-xs mt-1 font-medium z-10">{errors.agreeTos.message as string}</p>}
@@ -351,17 +392,17 @@ export default function SignupPage() {
                       </div>
                     </div>
 
-                    <div className="relative pt-6 pb-2">
+                    <div className="relative pt-3 pb-1">
                       <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                      <div className="relative flex justify-center text-sm"><span className="bg-white px-4 text-slate-400 font-medium">— or sign up with —</span></div>
+                      <div className="relative flex justify-center text-sm"><span className="bg-white px-4 text-slate-400 font-medium text-xs">— or sign up with —</span></div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pb-6">
-                      <button type="button" className="flex items-center justify-center gap-2 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold text-slate-700">
+                    <div className="grid grid-cols-2 gap-3 pb-2">
+                       <button type="button" onClick={handleGoogleSignup} className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold text-slate-700">
                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.11c-.22-.67-.35-1.39-.35-2.11s.13-1.44.35-2.11V7.05H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.95l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.51 6.16-4.51z" fill="#EA4335"/></svg>
                          Google
                       </button>
-                      <button type="button" className="flex items-center justify-center gap-2 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold text-slate-700">
+                       <button type="button" onClick={handleMicrosoftSignup} className="flex items-center justify-center gap-2 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold text-slate-700">
                         <svg width="18" height="18" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
                         Microsoft
                       </button>
@@ -385,28 +426,37 @@ export default function SignupPage() {
                       <div className="grid grid-cols-2 gap-4 mt-[1.5rem]">
                         <div className="space-y-2">
                            <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Company Size</label>
-                           <select {...register("companySize")} className={`w-full bg-slate-50 border rounded-xl px-4 py-4 focus:bg-white focus:outline-none focus:ring-4 transition-all select-none appearance-none ${errors.companySize ? "border-red-300 focus:border-red-500" : "border-slate-200 focus:border-blue-500"}`}>
-                             <option value="" disabled>Select size</option>
-                             {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                           </select>
+                           <div className="relative group">
+                             <select {...register("companySize")} className={`w-full bg-slate-50 border rounded-xl px-4 py-4 focus:bg-white focus:outline-none focus:ring-4 transition-all appearance-none cursor-pointer text-slate-900 font-bold ${errors.companySize ? "border-red-300 focus:border-red-500" : "border-slate-200 focus:border-blue-500"}`}>
+                               <option value="" disabled>Select size</option>
+                               {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                             </select>
+                             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors" size={18} />
+                           </div>
                            {errors.companySize && <p className="text-red-500 text-xs mt-1 font-medium z-10">{errors.companySize.message as string}</p>}
                         </div>
                         <div className="space-y-2">
                            <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Primary State</label>
-                           <select {...register("state")} className={`w-full bg-slate-50 border rounded-xl px-4 py-4 focus:bg-white focus:outline-none focus:ring-4 transition-all appearance-none ${errors.state ? "border-red-300 focus:border-red-500" : "border-slate-200 focus:border-blue-500"}`}>
-                             <option value="" disabled>Select state</option>
-                             {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                           </select>
+                           <div className="relative group">
+                             <select {...register("state")} className={`w-full bg-slate-50 border rounded-xl px-4 py-4 focus:bg-white focus:outline-none focus:ring-4 transition-all appearance-none cursor-pointer text-slate-900 font-bold ${errors.state ? "border-red-300 focus:border-red-500" : "border-slate-200 focus:border-blue-500"}`}>
+                               <option value="" disabled>Select state</option>
+                               {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                             </select>
+                             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors" size={18} />
+                           </div>
                            {errors.state && <p className="text-red-500 text-xs mt-1 font-medium z-10">{errors.state.message as string}</p>}
                         </div>
                       </div>
 
                       <div className="space-y-2 mt-[1.5rem]">
                          <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Industry</label>
-                         <select {...register("industry")} className={`w-full bg-slate-50 border rounded-xl px-4 py-4 focus:bg-white focus:outline-none focus:ring-4 transition-all appearance-none ${errors.industry ? "border-red-300 focus:border-red-500" : "border-slate-200 focus:border-blue-500"}`}>
-                           <option value="" disabled>Select industry</option>
-                           {INDUSTRIES.map(s => <option key={s} value={s}>{s}</option>)}
-                         </select>
+                         <div className="relative group">
+                           <select {...register("industry")} className={`w-full bg-slate-50 border rounded-xl px-4 py-4 focus:bg-white focus:outline-none focus:ring-4 transition-all appearance-none cursor-pointer text-slate-900 font-bold ${errors.industry ? "border-red-300 focus:border-red-500" : "border-slate-200 focus:border-blue-500"}`}>
+                             <option value="" disabled>Select industry</option>
+                             {INDUSTRIES.map(s => <option key={s} value={s}>{s}</option>)}
+                           </select>
+                           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-focus-within:text-blue-500 transition-colors" size={18} />
+                         </div>
                          {errors.industry && <p className="text-red-500 text-xs mt-1 font-medium z-10">{errors.industry.message as string}</p>}
                       </div>
 
@@ -582,11 +632,11 @@ export default function SignupPage() {
               </motion.div>
             </AnimatePresence>
 
-            <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                {step < 5 && (
                   <button
                     type="submit"
-                    className="w-full sm:w-auto ml-auto px-8 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto ml-auto px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                   >
                     {step === 4 ? "Complete Setup" : "Continue"} <ArrowRight size={18} />
                   </button>
@@ -594,7 +644,7 @@ export default function SignupPage() {
             </div>
             
             {step === 1 && (
-               <p className="text-center text-xs font-bold text-slate-400 mt-4 tracking-wide uppercase">Start for free — no credit card needed</p>
+               <p className="text-center text-[10px] font-bold text-slate-400 mt-2 tracking-wide uppercase">Start for free — no credit card needed</p>
             )}
           </form>
         </div>
