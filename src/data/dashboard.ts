@@ -4,7 +4,7 @@ export const CURRENT_USER = {
   firstName: "Alex",
   lastName: "Rivera",
   role: "ADMIN" as const, // ADMIN | HR | EMPLOYEE
-  email: "alex@acmecorp.com",
+  email: "alex@circleworks.co",
   avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent",
 };
 

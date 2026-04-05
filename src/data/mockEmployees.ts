@@ -185,7 +185,7 @@ export const mockEmployees: Employee[] = [
     id: 'emp-104',
     firstName: 'Diana',
     lastName: 'Martinez',
-    email: 'diana.m@acmecorp.com',
+    email: 'diana.m@circleworks.co',
     avatar: 'https://i.pravatar.cc/150?u=diana.m',
     title: 'UX Researcher',
     department: 'Design',

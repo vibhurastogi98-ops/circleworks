@@ -1,7 +1,7 @@
 export const mockCompanyProfile = {
   id: "comp_123",
-  legalName: "Acme Corporation Inc.",
-  dba: "Acme Corp",
+  legalName: "CircleWorks Technologies Inc.",
+  dba: "CircleWorks",
   ein: "**-***1234",
   entityType: "C-Corporation",
   fiscalYearEnd: "12-31",
@@ -29,10 +29,10 @@ export const mockDepartments = [
 ];
 
 export const mockUsers = [
-  { id: "u_1", name: "Alex Admin", email: "alex@acme.com", role: "Super Admin", mfaState: "Enabled", lastLogin: "2026-04-05T08:30:00Z", status: "Active" },
-  { id: "u_2", name: "Jamie HR", email: "jamie@acme.com", role: "HR Manager", mfaState: "Enabled", lastLogin: "2026-04-04T15:20:00Z", status: "Active" },
-  { id: "u_3", name: "Taylor Finance", email: "taylor@acme.com", role: "Finance Admin", mfaState: "Pending", lastLogin: "2026-04-01T09:15:00Z", status: "Active" },
-  { id: "u_4", name: "Jordan Ops", email: "jordan@acme.com", role: "Operations", mfaState: "Disabled", lastLogin: "2026-03-20T11:45:00Z", status: "Inactive" },
+  { id: "u_1", name: "Alex Admin", email: "alex@circleworks.co", role: "Super Admin", mfaState: "Enabled", lastLogin: "2026-04-05T08:30:00Z", status: "Active" },
+  { id: "u_2", name: "Jamie HR", email: "jamie@circleworks.co", role: "HR Manager", mfaState: "Enabled", lastLogin: "2026-04-04T15:20:00Z", status: "Active" },
+  { id: "u_3", name: "Taylor Finance", email: "taylor@circleworks.co", role: "Finance Admin", mfaState: "Pending", lastLogin: "2026-04-01T09:15:00Z", status: "Active" },
+  { id: "u_4", name: "Jordan Ops", email: "jordan@circleworks.co", role: "Operations", mfaState: "Disabled", lastLogin: "2026-03-20T11:45:00Z", status: "Inactive" },
 ];
 
 export const mockRoles = [

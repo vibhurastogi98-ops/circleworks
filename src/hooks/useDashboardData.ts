@@ -16,7 +16,7 @@ export function useDashboardData() {
 
   // Retrieve company data from localStorage early to avoid '---' flickering
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
-  const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.data?.companyName : null;
+  const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.companyName : null;
   const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
   const clerkLogoUrl = user?.publicMetadata?.companyLogoUrl as string | undefined;
   const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
@@ -42,8 +42,10 @@ export function useDashboardData() {
     };
   }
 
-  // Consider user "new" if created within the last 48 hours
-  const isNew = user ? (Date.now() - new Date(user.createdAt!).getTime() < 48 * 60 * 60 * 1000) : false;
+  // Consider user "new" if created within the last 48 hours OR if we have signup progress in localStorage
+  const isNew = user 
+    ? (Date.now() - new Date(user.createdAt!).getTime() < 48 * 60 * 60 * 1000) || !!signupProgress
+    : !!signupProgress;
 
   return {
     isLoading: false,

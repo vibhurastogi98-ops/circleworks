@@ -3,12 +3,19 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Rocket, Check, ShieldCheck, Zap, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Rocket, Check, ShieldCheck, Zap, ArrowRight, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/Footer";
 
 export default function TrialPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    companyName: ""
+  });
 
   return (
     <main className="min-h-screen bg-[#0A1628] selection:bg-blue-500/30 selection:text-white">
@@ -83,45 +90,70 @@ export default function TrialPage() {
               transition={{ delay: 0.3 }}
               className="bg-white rounded-[2.5rem] p-8 lg:p-12 shadow-2xl relative overflow-hidden"
             >
-              {submitted ? (
-                <div className="py-12 flex flex-col items-center text-center">
-                   <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-4xl mb-8 shadow-sm ring-8 ring-emerald-50">
-                      🚀
-                   </div>
-                   <h2 className="text-3xl font-black text-[#0A1628] mb-4 tracking-tight">Your Trial is Ready!</h2>
-                   <p className="text-slate-500 mb-10 max-w-xs font-medium">
-                      Check your inbox for a magic link to set up your company profile and start running payroll in minutes.
-                   </p>
-                   <Link 
-                      href="/"
-                      className="px-8 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all hover:scale-[1.02]"
-                   >
-                      Return to Website
-                   </Link>
-                </div>
-              ) : (
-                <div className="flex flex-col">
+                 <div className="flex flex-col">
                    <h2 className="text-2xl font-black text-[#0A1628] mb-8">Start your free trial</h2>
-                   <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
+                   <form className="space-y-5" onSubmit={(e) => { 
+                      e.preventDefault(); 
+                      setLoading(true);
+                      // Persistent Context: Save signup progress for dashboard onboarding
+                      localStorage.setItem("circleworks_signup_progress", JSON.stringify({
+                        name: formData.name,
+                        companyName: formData.companyName,
+                        timestamp: new Date().toISOString()
+                      }));
+                      // Delay slightly for effect then redirect to Clerk
+                      setTimeout(() => {
+                        router.push("/sign-up");
+                      }, 1000);
+                   }}>
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Full Name</label>
-                        <input required type="text" placeholder="Sarah Connor" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" />
+                        <input 
+                          required 
+                          type="text" 
+                          placeholder="Sarah Connor" 
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" 
+                        />
                       </div>
                       
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Work Email</label>
-                        <input required type="email" placeholder="sarah@company.com" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" />
+                        <input 
+                          required 
+                          type="email" 
+                          placeholder="sarah@company.com" 
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" 
+                        />
                       </div>
                       
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Company Name</label>
-                        <input required type="text" placeholder="Acme Inc." className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" />
+                        <input 
+                          required 
+                          type="text" 
+                          placeholder="Acme Inc." 
+                          value={formData.companyName}
+                          onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" 
+                        />
                       </div>
 
-                      <button type="submit" className="w-full relative py-5 bg-gradient-to-r from-emerald-600 to-blue-600 text-white font-black rounded-2xl overflow-hidden group shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 mt-4">
+                      <button 
+                        type="submit" 
+                        disabled={loading}
+                        className="w-full relative py-5 bg-gradient-to-r from-emerald-600 to-blue-600 text-white font-black rounded-2xl overflow-hidden group shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
                         <div className="absolute inset-0 bg-white/20 w-1/2 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                         <span className="relative z-10 flex items-center justify-center gap-2">
-                          Launch Platform <ArrowRight size={20} />
+                          {loading ? (
+                            <>Creating account... <Loader2 size={20} className="animate-spin" /></>
+                          ) : (
+                            <>Launch Platform <ArrowRight size={20} /></>
+                          )}
                         </span>
                       </button>
                       
@@ -145,8 +177,7 @@ export default function TrialPage() {
                       </div>
                    </div>
                 </div>
-              )}
-            </motion.div>
+             </motion.div>
           </div>
         </div>
       </section>
