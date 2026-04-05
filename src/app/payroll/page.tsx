@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -163,6 +164,7 @@ export default function PayrollPage() {
   const [runStatus, setRunStatus] = useState<"draft" | "processing" | "paid">(
     MOCK_UPCOMING.status
   );
+  const router = useRouter();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["payroll-overview"],
@@ -170,14 +172,12 @@ export default function PayrollPage() {
   });
 
   const handleRunPayroll = useCallback(() => {
-    setRunStatus("processing");
-    // Simulate processing → paid
-    setTimeout(() => setRunStatus("paid"), 4000);
-  }, []);
+    router.push("/payroll/run");
+  }, [router]);
 
   const handlePreviewRun = useCallback(() => {
-    console.log("Previewing payroll run");
-  }, []);
+    router.push("/payroll/run");
+  }, [router]);
 
   const handleViewRun = useCallback((runId: string) => {
     console.log("View run:", runId);
