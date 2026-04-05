@@ -57,9 +57,8 @@ export default function SocketProvider({ children }: { children: React.ReactNode
     });
 
     socketInstance.on("connect_error", (err) => {
-      // Rule: Downgrade to console.warn to prevent Next.js Red Screen of Death in development
-      console.warn("⚠️ WebSocket Connection Unavailable:", err.message);
-      // Don't toast on every retry to avoid spamming
+      // Rule: Silent log during development if backend isn't running
+      console.debug("WebSocket connection attempt failed:", err.message);
     });
 
     setSocket(socketInstance);

@@ -61,6 +61,9 @@ export default function SignupPage() {
 
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
+  const [verifying, setVerifying] = useState(false);
+  const [code, setCode] = useState("");
+  const [errorHeader, setErrorHeader] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [unfinishedBanner, setUnfinishedBanner] = useState(false);
@@ -151,7 +154,39 @@ export default function SignupPage() {
       if (!res.success) {
         (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
       } else {
-        isValid = true;
+        // Real Clerk SignUp 
+        if (!isLoaded) return;
+        try {
+          await signUp.create({
+            emailAddress: data.email,
+            password: data.password,
+            firstName: data.fullName.split(' ')[0],
+            lastName: data.fullName.split(' ').slice(1).join(' '),
+          });
+          await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+          setVerifying(true);
+          setStep(1.5);
+          return; // Wait for verification
+        } catch (err: any) {
+          console.error(err);
+          methods.setError("email", { message: err.errors?.[0]?.message || "Error creating account" });
+        }
+      }
+    } else if (step === 1.5) {
+      if (!isLoaded) return;
+      try {
+        const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
+        if (completeSignUp.status !== "complete") {
+          setErrorHeader("Incorrect verification code.");
+          return;
+        }
+        if (completeSignUp.status === "complete") {
+          isValid = true;
+          setVerifying(false);
+        }
+      } catch (err: any) {
+        console.error(err);
+        setErrorHeader(err.errors?.[0]?.message || "Verification failed");
       }
     } else if (step === 2) {
       const data = getValues();
@@ -186,8 +221,8 @@ export default function SignupPage() {
 
     if (isValid) {
       methods.clearErrors();
-      setStep(prev => prev + 1);
-      if (step + 1 === 5) {
+      setStep(prev => Math.floor(prev) + 1);
+      if (Math.floor(step) + 1 === 5) {
         const formData = getValues();
         // Persist companyName to Clerk Metadata
         fetch("/api/users/me", {
@@ -197,6 +232,11 @@ export default function SignupPage() {
             companyName: formData.companyName,
           }),
         }).catch(err => console.error("Failed to persist company name on signup", err));
+
+        // Activate session
+        if (isLoaded) {
+          await setActive({ session: signUp.createdSessionId });
+        }
 
         localStorage.removeItem("circleworks_signup_progress");
         setTimeout(() => {
@@ -212,7 +252,7 @@ export default function SignupPage() {
   };
 
   const prevStep = () => {
-    setStep(prev => Math.max(1, prev - 1));
+    setStep(prev => Math.max(1, Math.floor(prev) - 1));
   };
 
   const handleEinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,11 +288,11 @@ export default function SignupPage() {
               { num: 3, title: "Payroll Setup" },
               { num: 4, title: "Add Team" },
             ].map((s) => (
-              <div key={s.num} className={`flex items-center gap-4 transition-all duration-300 ${step === s.num ? "opacity-100 scale-105" : step > s.num ? "opacity-70" : "opacity-40"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step > s.num ? "bg-emerald-500 text-white" : step === s.num ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]" : "bg-white/10 text-white"}`}>
-                  {step > s.num ? <Check size={16} /> : s.num}
+              <div key={s.num} className={`flex items-center gap-4 transition-all duration-300 ${Math.floor(step) === s.num ? "opacity-100 scale-105" : Math.floor(step) > s.num ? "opacity-70" : "opacity-40"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${Math.floor(step) > s.num ? "bg-emerald-500 text-white" : Math.floor(step) === s.num ? "bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]" : "bg-white/10 text-white"}`}>
+                  {Math.floor(step) > s.num ? <Check size={16} /> : s.num}
                 </div>
-                <span className={`font-semibold tracking-wide ${step === s.num ? "text-white" : "text-slate-300"}`}>{s.title}</span>
+                <span className={`font-semibold tracking-wide ${Math.floor(step) === s.num ? "text-white" : "text-slate-300"}`}>{s.title}</span>
               </div>
             ))}
           </div>
@@ -280,7 +320,7 @@ export default function SignupPage() {
             {[1, 2, 3, 4, 5].map((i) => (
               <div 
                 key={i} 
-                className={`flex-1 h-full transition-all duration-500 ${step > i ? "bg-emerald-500" : step === i ? "bg-blue-500" : "bg-transparent"}`} 
+                className={`flex-1 h-full transition-all duration-500 ${Math.floor(step) > i ? "bg-emerald-500" : Math.floor(step) === i ? "bg-blue-500" : "bg-transparent"}`} 
               />
             ))}
           </div>
@@ -306,6 +346,7 @@ export default function SignupPage() {
             
             <h1 className="text-2xl lg:text-3xl font-black text-[#0a1128] tracking-tight mb-2">
               {step === 1 && "Create your account"}
+              {step === 1.5 && "Check your email"}
               {step === 2 && "Tell us about your company"}
               {step === 3 && "Set up payroll basics"}
               {step === 4 && "Add your first employee"}
@@ -313,6 +354,7 @@ export default function SignupPage() {
             </h1>
             <p className="text-sm text-slate-500 font-medium">
               {step === 1 && "Start your 30-day free trial."}
+              {step === 1.5 && `We sent a code to ${watch('email')}.`}
               {step === 2 && "Help us customize your workspace."}
               {step === 3 && "You can always change these settings later."}
               {step === 4 && "Who will you be paying first? (This can be you!)"}
@@ -419,6 +461,38 @@ export default function SignupPage() {
                     </div>
                   </div>
                 )}
+
+                {step === 1.5 && (
+                   <div className="space-y-4">
+                      {errorHeader && (
+                        <div className="p-3 bg-red-50 text-red-600 rounded-xl border border-red-100 flex items-center gap-2">
+                          <AlertCircle size={18} />
+                          <span className="text-sm font-bold">{errorHeader}</span>
+                        </div>
+                      )}
+                      <div className="relative group">
+                         <input
+                           type="text"
+                           value={code}
+                           onChange={(e) => setCode(e.target.value)}
+                           autoFocus
+                           maxLength={6}
+                           className="peer w-full px-4 pt-6 pb-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 tracking-[0.5em] font-bold text-center placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-500/10 transition-all cursor-text"
+                           placeholder="000000"
+                         />
+                         <label className="absolute left-1/2 -translate-x-1/2 top-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all peer-focus:text-blue-500">6-Digit Verification Code</label>
+                      </div>
+                      <div className="text-center">
+                         <button 
+                           type="button" 
+                           onClick={() => signUp?.prepareEmailAddressVerification({ strategy: "email_code" })}
+                           className="text-xs font-bold text-blue-600 hover:text-blue-700 underline"
+                         >
+                           Resend code
+                         </button>
+                      </div>
+                   </div>
+                 )}
 
                 {step === 2 && (
                   <div className="space-y-6">
