@@ -54,7 +54,22 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Time", icon: Clock, href: "/time", badgeCount: 2 },
   { label: "Expenses", icon: Receipt, href: "/expenses", badgeCount: 1 },
   { label: "Performance", icon: Target, href: "/performance" },
-  { label: "Compliance", icon: Shield, href: "/compliance", badgeCritical: 1 },
+  { 
+    label: "Compliance", 
+    icon: Shield, 
+    href: "/compliance/dashboard",
+    badgeCritical: 1,
+    subItems: [
+      { label: "Dashboard", href: "/compliance/dashboard" },
+      { label: "Tax Filings", href: "/compliance/tax-filings" },
+      { label: "I-9 Verification", href: "/compliance/i9" },
+      { label: "ACA", href: "/compliance/aca" },
+      { label: "EEO-1", href: "/compliance/eeo" },
+      { label: "Labor Posters", href: "/compliance/posters" },
+      { label: "Handbook", href: "/compliance/handbook" },
+      { label: "WOTC", href: "/compliance/wotc" },
+    ]
+  },
   { label: "Reports", icon: BarChart2, href: "/reports" },
   { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
   { label: "Settings", icon: Settings, href: "/settings/profile" },
