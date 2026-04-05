@@ -107,6 +107,7 @@ function KpiCardComponent({ card, index }: { card: KpiCard; index: number }) {
 
   return (
     <motion.div
+      id={isComplianceScore ? "tour-compliance" : undefined}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.4 }}

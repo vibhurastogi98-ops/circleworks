@@ -131,6 +131,7 @@ export default function AppTopBar() {
         {/* CENTER: Global Search Bar */}
         <div className="flex-1 max-w-xl mx-4 lg:mx-8 hidden md:flex items-center justify-center">
           <div 
+             id="tour-search"
              className="w-full max-w-[480px] h-[36px] bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-md flex items-center px-3 gap-2.5 cursor-text border border-transparent hover:border-slate-300 dark:hover:border-slate-700 transition-all text-slate-400 dark:text-slate-500 group"
              onClick={openCommandPalette}
           >
@@ -188,6 +189,7 @@ export default function AppTopBar() {
 
           {/* 3. Notifications Bell */}
           <button 
+            id="tour-notifications"
             onClick={openNotificationPanel}
             className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors relative"
             title="Notifications"

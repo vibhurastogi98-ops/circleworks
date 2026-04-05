@@ -14,6 +14,7 @@ import QuickActions from "@/components/dashboard/QuickActions";
 import NewHires from "@/components/dashboard/NewHires";
 import TeamCalendar from "@/components/dashboard/TeamCalendar";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import OnboardingTour from "@/components/OnboardingTour";
 
 // Recharts client-only
 const PayrollChart = dynamic(
@@ -82,7 +83,8 @@ export default function DashboardPage() {
 
           {/* Content */}
           <main className="flex-1 overflow-y-auto">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+            <div id="tour-dashboard" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+              <OnboardingTour />
 
               {/* ✅ LIVE STATS (NEW) */}
               <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow">

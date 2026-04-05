@@ -91,6 +91,7 @@ export default function AppSidebar() {
 
       {/* Sidebar Container */}
       <aside 
+        id="tour-sidebar"
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-[#0F172A] border-r border-slate-200 dark:border-slate-800 transition-all duration-300 shadow-2xl lg:shadow-none 
           w-[240px] lg:w-[72px] xl:w-[240px]
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -182,6 +183,7 @@ export default function AppSidebar() {
                 <div key={item.label} className="flex flex-col">
                   {hasSubItems ? (
                     <button
+                      id={item.label === "Payroll" ? "tour-payroll" : item.label === "Employees" ? "tour-employees" : undefined}
                       onClick={() => toggleAccordion(item.label)}
                       className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
                         ${active 
@@ -195,8 +197,21 @@ export default function AppSidebar() {
                       )}
                       <ItemContent />
                     </button>
+                  ) : item.label === "Help" ? (
+                    <button
+                      onClick={() => window.dispatchEvent(new Event("circleworks:start-tour"))}
+                      className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
+                        ${active 
+                          ? "bg-[#EFF6FF] dark:bg-[#1E293B]" 
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        }
+                      `}
+                    >
+                      <ItemContent />
+                    </button>
                   ) : (
                     <Link
+                      id={item.label === "Payroll" ? "tour-payroll" : item.label === "Employees" ? "tour-employees" : undefined}
                       href={item.href || "#"}
                       className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
                         ${active 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { ClerkProvider } from "@clerk/nextjs";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -92,7 +93,10 @@ export default function RootLayout({
           `}
         </Script>
 
-        <body className="antialiased">{children}</body>
+        <body className="antialiased">
+          <KeyboardShortcuts />
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );

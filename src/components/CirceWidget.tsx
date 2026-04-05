@@ -85,6 +85,7 @@ export default function CirceWidget() {
     <>
       {/* --- FAB Button --- */}
       <button
+        id="tour-circe"
         onClick={() => setOpen(!open)}
         aria-label="Ask Circe — AI HR Assistant"
         title="Ask Circe — AI HR Assistant"
