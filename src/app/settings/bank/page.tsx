@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Building, CheckCircle2, AlertCircle, RefreshCw, X, Landmark, ShieldCheck } from "lucide-react";
+import { Plus, Building, CheckCircle2, AlertCircle, RefreshCw, X, Landmark, ShieldCheck, Trash2, Edit3 } from "lucide-react";
 import { mockBankAccounts } from "@/data/mockSettings";
 import { toast } from "sonner";
 
@@ -10,6 +10,29 @@ export default function BankSettingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [newBankName, setNewBankName] = useState("");
   const [newLast4, setNewLast4] = useState("");
+  const [editAccount, setEditAccount] = useState<any>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<any>(null);
+
+  const handleDeleteAccount = (id: string) => {
+    setAccounts(accounts.filter(a => a.id !== id));
+    setShowDeleteConfirm(null);
+    toast.success("Bank account removed.");
+  };
+
+  const handleSetPrimary = (id: string) => {
+    setAccounts(accounts.map(a => ({
+      ...a,
+      isPrimary: a.id === id
+    })));
+    toast.success("Primary funding account updated.");
+  };
+
+  const handleUpdateNickname = () => {
+    if (!editAccount || !editAccount.name) return;
+    setAccounts(accounts.map(a => a.id === editAccount.id ? editAccount : a));
+    setEditAccount(null);
+    toast.success("Account nickname updated.");
+  };
 
   const handleLinkBank = () => {
     if (!newBankName || !newLast4) return;
@@ -74,15 +97,35 @@ export default function BankSettingsPage() {
                     <p className="text-xs font-medium text-slate-500">{acc.type} •••• {acc.accountLast4}</p>
                   </div>
                 </div>
-                {acc.status === "Verified" ? (
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
-                    <CheckCircle2 size={12} /> Verified
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
-                    <AlertCircle size={12} /> Pending
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => setEditAccount({...acc})}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      title="Edit Nickname"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    {!acc.isPrimary && (
+                      <button 
+                        onClick={() => setShowDeleteConfirm(acc)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                        title="Remove Account"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {acc.status === "Verified" ? (
+                    <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
+                      <CheckCircle2 size={12} /> Verified
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+                      <AlertCircle size={12} /> Pending
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg mb-4">
@@ -107,6 +150,14 @@ export default function BankSettingsPage() {
                     className="w-full mt-2 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2"
                   >
                     <RefreshCw size={14} /> Verify Micro-deposits
+                  </button>
+                )}
+                {!acc.isPrimary && acc.status === "Verified" && (
+                  <button 
+                    onClick={() => handleSetPrimary(acc.id)}
+                    className="w-full mt-2 py-2 border border-blue-200 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg text-sm font-bold text-blue-700 dark:text-blue-400 transition-colors flex items-center justify-center gap-2"
+                  >
+                    Use as Primary Account
                   </button>
                 )}
             </div>
@@ -176,6 +227,66 @@ export default function BankSettingsPage() {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
               >
                 Add Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editAccount && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setEditAccount(null)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Edit Nickname</h3>
+              <button onClick={() => setEditAccount(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Account Nickname</label>
+                <input 
+                  value={editAccount.name}
+                  onChange={(e) => setEditAccount({...editAccount, name: e.target.value})}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" 
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              <button onClick={() => setEditAccount(null)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
+              <button 
+                onClick={handleUpdateNickname}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm"
+              >
+                Save Updates
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Remove Bank Account</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Are you sure you want to remove <span className="font-bold text-slate-900 dark:text-white">{showDeleteConfirm.name} (•••• {showDeleteConfirm.accountLast4})</span>? 
+                This will prevent using this account for future payroll funding.
+              </p>
+            </div>
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+              <button 
+                onClick={() => handleDeleteAccount(showDeleteConfirm.id)}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95"
+              >
+                Remove Account
               </button>
             </div>
           </div>

@@ -12,6 +12,14 @@ export default function UsersSettingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Super Admin");
+  const [editUser, setEditUser] = useState<any>(null);
+
+  const handleUpdateRole = () => {
+    if (!editUser) return;
+    setUsers(users.map(u => u.id === editUser.id ? editUser : u));
+    setEditUser(null);
+    toast.success(`Role for ${editUser.name} updated to ${editUser.role}.`);
+  };
 
   const handleInvite = () => {
     if (!inviteEmail) return;
@@ -101,13 +109,22 @@ export default function UsersSettingsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => handleDelete(user.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 transition-colors"
-                      title="Revoke access"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex justify-end items-center gap-1">
+                      <button 
+                        onClick={() => setEditUser({...user})}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 transition-colors"
+                        title="Edit Role"
+                      >
+                        <Shield size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(user.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 transition-colors"
+                        title="Revoke access"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -159,6 +176,47 @@ export default function UsersSettingsPage() {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
               >
                 Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editUser && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setEditUser(null)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Adjust Permissions: {editUser.name}</h3>
+              <p className="text-xs text-slate-500 font-medium">{editUser.email}</p>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Assign New Role</label>
+                <select 
+                  value={editUser.role}
+                  onChange={(e) => setEditUser({...editUser, role: e.target.value})}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                >
+                  <option>Super Admin</option>
+                  <option>HR Manager</option>
+                  <option>Payroll Admin</option>
+                  <option>Operations</option>
+                </select>
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                <p className="text-xs text-slate-500 leading-relaxed italic">
+                  Changing a user's role will immediately update their access levels across the platform. Some changes may require the user to re-authenticate.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              <button onClick={() => setEditUser(null)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
+              <button 
+                onClick={handleUpdateRole}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm"
+              >
+                Update Access
               </button>
             </div>
           </div>

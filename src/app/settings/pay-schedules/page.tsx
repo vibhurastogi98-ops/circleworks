@@ -10,6 +10,21 @@ export default function PaySchedulesSettingsPage() {
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState("");
   const [newFreq, setNewFreq] = useState("Bi-weekly");
+  const [editSchedule, setEditSchedule] = useState<any>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<any>(null);
+
+  const handleDeleteSchedule = (id: string) => {
+    setSchedules(schedules.filter(s => s.id !== id));
+    setShowDeleteConfirm(null);
+    toast.success("Pay schedule removed.");
+  };
+
+  const handleUpdateSchedule = () => {
+    if (!editSchedule || !editSchedule.name) return;
+    setSchedules(schedules.map(s => s.id === editSchedule.id ? editSchedule : s));
+    setEditSchedule(null);
+    toast.success(`Pay schedule "${editSchedule.name}" updated.`);
+  };
 
   const handleCreateSchedule = () => {
     if (!newName) return;
@@ -60,8 +75,20 @@ export default function PaySchedulesSettingsPage() {
                   <p className="text-sm text-slate-500 font-medium">{schedule.frequency}</p>
                 </div>
                 <div className="flex gap-1">
-                  <button className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"><Edit3 size={16} /></button>
-                  {!schedule.default && <button className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"><Trash2 size={16} /></button>}
+                  <button 
+                    onClick={() => setEditSchedule({...schedule})}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  {!schedule.default && (
+                    <button 
+                      onClick={() => setShowDeleteConfirm(schedule)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -129,6 +156,80 @@ export default function PaySchedulesSettingsPage() {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
               >
                 Create Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editSchedule && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setEditSchedule(null)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Edit Schedule: {editSchedule.name}</h3>
+              <button onClick={() => setEditSchedule(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Schedule Name</label>
+                <input 
+                  value={editSchedule.name}
+                  onChange={(e) => setEditSchedule({...editSchedule, name: e.target.value})}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Frequency</label>
+                <select 
+                  value={editSchedule.frequency}
+                  onChange={(e) => setEditSchedule({...editSchedule, frequency: e.target.value})}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white appearance-none"
+                >
+                  <option>Weekly</option>
+                  <option>Bi-weekly</option>
+                  <option>Semi-monthly</option>
+                  <option>Monthly</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              <button onClick={() => setEditSchedule(null)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
+              <button 
+                onClick={handleUpdateSchedule}
+                disabled={!editSchedule.name}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Delete Pay Schedule</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Are you sure you want to delete the <span className="font-bold text-slate-900 dark:text-white">"{showDeleteConfirm.name}"</span> pay schedule? 
+                Employees assigned to this schedule will need to be re-assigned.
+              </p>
+            </div>
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+              <button 
+                onClick={() => handleDeleteSchedule(showDeleteConfirm.id)}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95"
+              >
+                Delete Schedule
               </button>
             </div>
           </div>
