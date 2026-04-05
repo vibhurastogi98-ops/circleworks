@@ -464,6 +464,7 @@ export default function LoginPage() {
               Start free &rarr;
             </Link>
           </p>
+          <div id="clerk-captcha" />
         </div>
       </div>
     </main>
