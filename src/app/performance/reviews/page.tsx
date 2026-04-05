@@ -17,6 +17,7 @@ import {
   Clock,
   ExternalLink
 } from "lucide-react";
+import Link from "next/link";
 import { mockReviewCycles } from "@/data/mockPerformance";
 
 export default function ReviewCyclesPage() {
@@ -93,7 +94,9 @@ export default function ReviewCyclesPage() {
                 <tr key={cycle.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="space-y-1">
-                      <p className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">{cycle.name}</p>
+                      <Link href={`/performance/reviews/${cycle.id}`} className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors uppercase tracking-tight">
+                        {cycle.name}
+                      </Link>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
                         <Calendar size={12} />
                         {cycle.period}
@@ -133,10 +136,10 @@ export default function ReviewCyclesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400 transition-colors" title="View Results">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link href={`/performance/reviews/${cycle.id}`} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400 transition-colors" title="View Results">
                         <Eye size={18} />
-                      </button>
+                      </Link>
                       <button className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400 transition-colors" title="Download Report">
                         <FileDown size={18} />
                       </button>
@@ -172,9 +175,11 @@ export default function ReviewCyclesPage() {
               </div>
               
               <div className="mb-6">
-                <h3 className="font-bold text-lg dark:text-white mb-2 group-hover:text-blue-600 transition-colors underline decoration-transparent group-hover:decoration-blue-600/30 underline-offset-4">
-                  {cycle.name}
-                </h3>
+                <Link href={`/performance/reviews/${cycle.id}`}>
+                  <h3 className="font-bold text-lg dark:text-white mb-2 group-hover:text-blue-600 transition-colors underline decoration-transparent group-hover:decoration-blue-600/30 underline-offset-4 uppercase tracking-tight">
+                    {cycle.name}
+                  </h3>
+                </Link>
                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
                   <Calendar size={14} />
                   {cycle.period}
@@ -194,9 +199,9 @@ export default function ReviewCyclesPage() {
                     <Users size={14} />
                     {cycle.participants} Participants
                   </div>
-                  <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
+                  <Link href={`/performance/reviews/${cycle.id}`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
                     <ExternalLink size={16} />
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>

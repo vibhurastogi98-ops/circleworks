@@ -231,9 +231,9 @@ export default function ReviewCycleDetailPage({ params }: { params: { cycleId: s
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400" title="View Details">
+                        <Link href={`/performance/reviews/${params.cycleId}`} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400" title="View Details">
                           <Eye size={18} />
-                        </button>
+                        </Link>
                         <button className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400">
                           <MoreHorizontal size={18} />
                         </button>

@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Users
 } from "lucide-react";
+import Link from "next/link";
 import { mockFeedbackRequests } from "@/data/mockPerformance";
 
 export default function PerformanceFeedbackPage() {
@@ -37,10 +38,10 @@ export default function PerformanceFeedbackPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">360 Feedback Hub</h1>
           <p className="text-slate-500 dark:text-slate-400">Request and provide anonymous or public feedback to peers across the organization.</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">
+        <Link href="/performance/feedback" className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">
           <UserPlus size={20} />
           Request Peer Feedback
-        </button>
+        </Link>
       </div>
 
       {/* Tabs & Search */}

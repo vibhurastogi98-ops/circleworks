@@ -56,9 +56,12 @@ export default function LearningDashboard() {
                 You’ve completed 12 modules this month. Keep it up to reach your 2024 Engineering Certification goal.
               </p>
               <div className="pt-4 flex items-center gap-4">
-                <button className="px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-bold text-sm shadow-xl hover:bg-indigo-50 transition-all active:scale-95">
+                <Link 
+                  href="/learning/courses" 
+                  className="px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-bold text-sm shadow-xl hover:bg-indigo-50 transition-all active:scale-95 flex items-center gap-2"
+                >
                   Continue Learning
-                </button>
+                </Link>
                 <button className="flex items-center gap-2 text-sm font-bold text-white hover:underline">
                   View Achievements <ChevronRight size={18} />
                 </button>
@@ -118,7 +121,7 @@ export default function LearningDashboard() {
               <PlayCircle className="text-blue-600" />
               Active Assignments
             </h2>
-            <button className="text-xs font-bold text-blue-600 hover:underline">View All My Courses</button>
+            <Link href="/learning/courses" className="text-xs font-bold text-blue-600 hover:underline">View All My Courses</Link>
           </div>
           <div className="grid grid-cols-1 gap-4">
              {mockAssignments.map(assignment => (
@@ -155,9 +158,12 @@ export default function LearningDashboard() {
                            <div className="h-full bg-blue-600 rounded-full transition-all duration-1000" style={{ width: `${assignment.progress}%` }} />
                         </div>
                      </div>
-                     <button className="px-4 py-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl text-xs font-bold transition-all active:scale-95 hover:shadow-lg">
+                     <Link 
+                      href={`/learning/courses/${assignment.courseId}`}
+                      className="px-6 py-2 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl text-xs font-bold transition-all active:scale-95 hover:shadow-lg"
+                     >
                         {assignment.progress > 0 ? 'Resume' : 'Start'}
-                     </button>
+                     </Link>
                   </div>
                </div>
              ))}
@@ -192,7 +198,7 @@ export default function LearningDashboard() {
               </div>
               <div className="flex flex-wrap gap-2">
                  {['React Server Components', 'AI Prompt Engineering', 'Public Speaking', 'UI Motion', 'Next.js 16', 'System Design'].map(skill => (
-                   <span key={skill} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-500/30 transition-all cursor-pointer">
+                   <span key={skill} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-500/30 transition-all cursor-pointer text-center">
                       {skill}
                    </span>
                  ))}
@@ -203,3 +209,4 @@ export default function LearningDashboard() {
     </div>
   );
 }
+

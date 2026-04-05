@@ -20,6 +20,7 @@ import {
   Lock,
   Globe
 } from "lucide-react";
+import Link from "next/link";
 import { mockGoals, Goal } from "@/data/mockPerformance";
 
 // Recursive Goal Node Component
@@ -142,10 +143,10 @@ export default function PerformanceGoalsPage() {
                <LayoutGrid size={16} /> List
              </button>
           </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold shadow-xl transition-all active:scale-95 group">
+          <Link href="/performance/goals" className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold shadow-xl transition-all active:scale-95 group">
             <Plus size={20} className="group-hover:rotate-90 transition-transform" />
             New Goal
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -185,9 +186,9 @@ export default function PerformanceGoalsPage() {
             <p className="text-sm font-bold dark:text-white uppercase tracking-tight">Need to Update Progress?</p>
             <p className="text-xs text-slate-500">Quick check-in on 3 pending goals.</p>
           </div>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:shadow-blue-500/20 transition-all pointer-events-auto">
+          <Link href="/performance/goals" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:shadow-blue-500/20 transition-all pointer-events-auto">
             Review Now
-          </button>
+          </Link>
         </div>
       </div>
     </div>
