@@ -333,7 +333,7 @@ export default function OffCyclePage() {
                <h3 className="font-bold uppercase tracking-widest text-xs text-slate-500 mb-3">Pay Periods Affected</h3>
                
                {retroData && (
-                 <div className="border border-slate-200 rounded-xl overflow-hidden mb-6">
+                 <div className="border border-slate-200 rounded-xl overflow-hidden mb-4">
                  <table className="w-full text-left text-sm">
                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider font-bold">
                      <tr>
@@ -352,12 +352,26 @@ export default function OffCyclePage() {
                          <td className="px-4 py-3 text-right font-bold text-blue-600">+${p.difference.toFixed(2)}</td>
                        </tr>
                      ))}
-                     <tr className="bg-blue-50/50">
-                       <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-700">Total Adjustment:</td>
-                       <td className="px-4 py-4 text-right text-lg font-extrabold text-blue-700">+${retroData.totalDifference.toFixed(2)}</td>
-                     </tr>
                    </tbody>
                  </table>
+                 <div className="bg-slate-50 p-4 border-t border-slate-200 space-y-2 text-xs">
+                    <div className="flex justify-between text-slate-500 italic">
+                      <span>Total Gross Adjustment:</span>
+                      <span>+${retroData.totalDifference.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-500">
+                      <span>Federal Supplemental (22%):</span>
+                      <span>-${retroData.taxes.federal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-500">
+                      <span>FICA (SS + Med):</span>
+                      <span>-${(retroData.taxes.ficaSS + retroData.taxes.ficaMed).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-black text-slate-900 border-t border-slate-200 pt-2 text-sm">
+                      <span>Estimated Net Payment:</span>
+                      <span className="text-emerald-600">${retroData.netRetroPay.toFixed(2)}</span>
+                    </div>
+                 </div>
                </div>
                )}
 

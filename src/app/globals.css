@@ -692,3 +692,29 @@ body {
 .rounded-full {
   border-radius: 9999px !important;
 }
+
+/* Print Utilities - Hides non-essential UI for compliance PDF generation */
+@media print {
+  nav, 
+  aside, 
+  header, 
+  footer,
+  .print\:hidden,
+  [role="navigation"],
+  .AppSidebar,
+  button:not(.print\:show) {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .max-w-7xl, .max-w-6xl, .max-w-4xl {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

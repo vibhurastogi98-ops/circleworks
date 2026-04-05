@@ -10,8 +10,28 @@ export default function TipsPage() {
   const [activeTab, setActiveTab] = useState<"reporting" | "8846" | "8027" | "pools">("reporting");
   const [tips, setTips] = useState<TipRecord[]>(mockTipRecords);
 
+  const calculateTipCompliance = (declared: number, hours: number) => {
+    const ficaRate = 0.0765;
+    const minWageOffset = 5.15;
+    const ficaOnTips = declared * ficaRate;
+    const creditEligibleTips = Math.max(0, declared - (hours * minWageOffset));
+    const netTipCredit = creditEligibleTips * ficaRate;
+    return { ficaOnTips, netTipCredit };
+  };
+
   const handleDeclaredTipChange = (id: string, newAmount: string) => {
-    setTips(tips.map(t => t.id === id ? { ...t, declaredTips: parseFloat(newAmount) || 0, totalTips: (parseFloat(newAmount) || 0) + t.allocatedTips } : t));
+    const val = parseFloat(newAmount) || 0;
+    setTips(tips.map(t => {
+      if (t.id !== id) return t;
+      const { ficaOnTips, netTipCredit } = calculateTipCompliance(val + t.allocatedTips, t.hoursWorked);
+      return { 
+        ...t, 
+        declaredTips: val, 
+        totalTips: val + t.allocatedTips,
+        ficaOnTips,
+        netTipCredit
+      };
+    }));
   };
 
   const totalDeclared = tips.reduce((sum, t) => sum + t.declaredTips, 0);
@@ -37,7 +57,11 @@ export default function TipsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setTips(data.allocatedTips);
+        const enrichedAllocated = data.allocatedTips.map((t: any) => {
+          const { ficaOnTips, netTipCredit } = calculateTipCompliance(t.totalTips, t.hoursWorked);
+          return { ...t, ficaOnTips, netTipCredit };
+        });
+        setTips(enrichedAllocated);
         setAllocStatus(data);
       }
     } catch (e) {
@@ -86,7 +110,7 @@ export default function TipsPage() {
       {/* Tab: Reporting */}
       {activeTab === "reporting" && (
         <div className="animate-in slide-in-from-right-4">
-          <div className="flexjustify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold">Pay Period Tip Declarations</h2>
             <div className="flex gap-3">
               <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-lg text-sm font-medium hover:bg-slate-50 shadow-sm transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">

@@ -161,13 +161,13 @@ export default function GLMappingPage() {
                       {components.map(comp => {
                         const gl = mockGLAccounts.find(g => g.id === comp.assignedGlId);
                         const val = mockTotals[comp.id] || 0;
-                        if (!gl || val === 0) return null;
+                        if (val === 0) return null;
                         
                         return (
-                          <tr key={comp.id} className="hover:bg-slate-50">
-                             <td className="px-4 py-3 font-mono text-xs text-slate-500 border-r border-slate-100">{gl.code}</td>
-                             <td className="px-4 py-3 font-bold text-slate-700">{gl.name}</td>
-                             <td className="px-4 py-3 text-slate-500 border-r border-slate-100">{comp.name}</td>
+                          <tr key={comp.id} className={`hover:bg-slate-50 ${!gl ? 'bg-red-50/10' : ''}`}>
+                             <td className={`px-4 py-3 font-mono text-xs border-r border-slate-100 ${!gl ? 'text-red-400' : 'text-slate-500'}`}>{gl ? gl.code : 'UNMAPPED'}</td>
+                             <td className={`px-4 py-3 font-bold ${!gl ? 'text-red-600' : 'text-slate-700'}`}>{gl ? gl.name : 'Missing Mapping'}</td>
+                             <td className="px-4 py-3 text-slate-500 border-r border-slate-100 italic">{comp.name}</td>
                              <td className="px-4 py-3 text-right font-mono font-medium">{comp.defaultEntryType === 'Debit' ? `$${val.toLocaleString()}` : ''}</td>
                              <td className="px-4 py-3 text-right font-mono font-medium">{comp.defaultEntryType === 'Credit' ? `$${val.toLocaleString()}` : ''}</td>
                           </tr>
@@ -175,10 +175,10 @@ export default function GLMappingPage() {
                       })}
                       
                       {/* Totals Row */}
-                      <tr className="bg-blue-50/50 border-t-2 border-slate-200 text-blue-900 font-black">
+                      <tr className="bg-slate-900 text-white font-black">
                          <td colSpan={3} className="px-4 py-4 text-right">BALANCED TOTAL:</td>
-                         <td className="px-4 py-4 text-right border-x border-slate-200/50">$108,250.00</td>
-                         <td className="px-4 py-4 text-right">$108,250.00</td>
+                         <td className="px-4 py-4 text-right border-x border-slate-700">$108,250.00</td>
+                         <td className="px-4 py-4 text-right border-x border-slate-700">$108,250.00</td>
                       </tr>
                     </tbody>
                  </table>
