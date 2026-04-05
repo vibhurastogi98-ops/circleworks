@@ -148,3 +148,52 @@ ALTER TABLE payroll_items ADD COLUMN type TEXT CHECK(type IN ('regular','bonus',
 ALTER TABLE approvals ADD COLUMN entity_id INTEGER;
 ALTER TABLE approvals ADD COLUMN requested_by_user_id INTEGER;
 ALTER TABLE approvals ADD COLUMN approved_by_user_id INTEGER;
+
+-- =============================================================================
+-- 🎯 ATS & HIRING MODULE
+-- =============================================================================
+
+-- 10. ATS JOBS
+CREATE TABLE IF NOT EXISTS ats_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  title TEXT NOT NULL,
+  department TEXT,
+  location TEXT,
+  employment_type TEXT,
+  status TEXT CHECK(status IN ('Draft','Active','Paused','Closed')) DEFAULT 'Draft',
+  salary_min INTEGER,
+  salary_max INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 11. ATS CANDIDATES (Applicants)
+CREATE TABLE IF NOT EXISTS ats_candidates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id INTEGER NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT,
+  source TEXT, -- e.g., 'LinkedIn', 'Referral'
+  stage TEXT DEFAULT 'New', -- Mapped to kanban columns
+  ai_score INTEGER,
+  rating INTEGER,
+  resume_url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(job_id) REFERENCES ats_jobs(id) ON DELETE CASCADE
+);
+
+-- 12. ATS INTERVIEWS
+CREATE TABLE IF NOT EXISTS ats_interviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  candidate_id INTEGER NOT NULL,
+  scheduled_at DATETIME NOT NULL,
+  status TEXT CHECK(status IN ('Scheduled','Completed','Cancelled')) DEFAULT 'Scheduled',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(candidate_id) REFERENCES ats_candidates(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance optimization
+CREATE INDEX IF NOT EXISTS idx_ats_candidates_job_id ON ats_candidates(job_id);
+CREATE INDEX IF NOT EXISTS idx_ats_interviews_candidate_id ON ats_interviews(candidate_id);
