@@ -92,7 +92,7 @@ export default function AppSidebar() {
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
   const { signOut } = useClerk();
   const { user } = useUser();
-  const { currentUser } = useDashboardData();
+  const { currentUser, isNewUser } = useDashboardData();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     "Payroll": false
   });
@@ -183,9 +183,13 @@ export default function AppSidebar() {
                     const isAccordionOpen = openAccordions[item.label];
 
                     // Inject real-time notification count for specific items
-                    const currentBadgeCount = item.label === "Dashboard" && notificationCount > 0 
+                    // Clean up: Hide badges if user is new
+                    const currentBadgeCount = (isNewUser || item.label === "Dashboard") && notificationCount > 0 
                       ? notificationCount 
-                      : item.badgeCount;
+                      : (isNewUser ? 0 : item.badgeCount);
+                    
+                    const displayBadge = isNewUser ? null : item.badge;
+                    const displayCritical = isNewUser ? 0 : item.badgeCritical;
 
                     // Base item content inside a sub-component to reuse for link/button
                     const ItemContent = () => (
@@ -208,9 +212,9 @@ export default function AppSidebar() {
                            
                            <div className="flex items-center gap-1.5">
                              {/* Badges */}
-                             {item.badge && (
+                             {displayBadge && (
                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase text-amber-700 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 tracking-wider">
-                                 {item.badge}
+                                 {displayBadge}
                                </span>
                              )}
                              {currentBadgeCount ? (
@@ -222,9 +226,9 @@ export default function AppSidebar() {
                                  {currentBadgeCount}
                                </span>
                              ) : null}
-                       {item.badgeCritical ? (
+                       {displayCritical ? (
                          <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold px-1 border border-red-200 dark:border-red-500/30">
-                           {item.badgeCritical}
+                           {displayCritical}
                          </span>
                        ) : null}
 

@@ -21,8 +21,8 @@ export const usePlatformStore = create<PlatformState>()(
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       isAdmin: true, // Default to true so you can see the admin buttons
       isPayrollRunning: false,
-      hasComplianceAlert: true, // Default to true to show the banner
-      notificationCount: 3, // Start with some mock notifications
+      hasComplianceAlert: false, // Start clean
+      notificationCount: 0, // Start clean
       dismissComplianceAlert: () => set({ hasComplianceAlert: false }),
       setPayrollRunning: (val: boolean) => set({ isPayrollRunning: val }),
       incrementNotificationCount: () => set((state) => ({ notificationCount: state.notificationCount + 1 })),
