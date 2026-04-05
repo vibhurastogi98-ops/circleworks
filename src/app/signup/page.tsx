@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Building2, Calendar, DollarSign, Zap, Search } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Building2, Calendar, DollarSign, Zap, Search, Users } from "lucide-react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -108,7 +108,7 @@ export default function SignupPage() {
       const data = getValues();
       const res = step1Schema.safeParse(data);
       if (!res.success) {
-        res.error.errors.forEach(err => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
+        (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
       } else {
         isValid = true;
       }
@@ -116,7 +116,7 @@ export default function SignupPage() {
       const data = getValues();
       const res = step2Schema.safeParse(data);
       if (!res.success) {
-        res.error.errors.forEach(err => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
+        (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
       } else {
         isValid = true;
       }
