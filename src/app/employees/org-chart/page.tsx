@@ -89,9 +89,9 @@ export default function OrgChartPage() {
                 lineColor={'#cbd5e1'} // tailwind slate-300
                 lineBorderRadius={'8px'} 
                 nodePadding={'24px'}
-                label={<EmployeeCard node={treeData} />}
+               label={<EmployeeCard node={treeData as OrgNodeData} />}
              >
-                {renderNodes(treeData.children)}
+                {renderNodes((treeData as OrgNodeData).children)}
              </Tree>
            ) : (
              <div className="text-slate-500">No hierarchy found.</div>
