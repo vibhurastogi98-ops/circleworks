@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Building2, MapPin, Globe, Mail, Phone, FileText, Check, Loader2 } from "lucide-react";
+import { Building2, MapPin, Globe, Mail, Phone, FileText, Check, Loader2, Upload } from "lucide-react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
@@ -11,6 +11,79 @@ export default function CompanySettingsPage() {
   const { currentUser } = useDashboardData();
   const { user } = useUser();
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic validation
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Max 5MB allowed before resizing.");
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      // Resize helper using canvas
+      const resizeImage = (dataUrl: string): Promise<string> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const MAX_WIDTH = 120; // Enough for a small sidebar/settings logo
+            const scale = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scale;
+            
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // JPEG quality 0.7 usually results in < 8KB for a 120px wide logo
+            resolve(canvas.toDataURL("image/jpeg", 0.7));
+          };
+          img.src = dataUrl;
+        });
+      };
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const fullBase64 = reader.result as string;
+        const resizedBase64 = await resizeImage(fullBase64);
+        
+        console.log("Resized Logo Size:", Math.round(resizedBase64.length / 1024), "KB");
+
+        const response = await fetch("/api/users/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            companyLogoUrl: resizedBase64
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Logo upload API error:", errorData);
+          throw new Error(errorData.error || "Failed to upload logo (metadata limit reached)");
+        }
+        
+        if (user) await user.reload();
+        toast.success("Logo updated successfully!");
+        setIsUploadingLogo(false);
+      };
+      reader.onerror = (err) => {
+        console.error("FileReader error:", err);
+        toast.error("Failed to read image file.");
+        setIsUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      console.error("Caught upload error:", error);
+      toast.error(error.message || "Failed to upload logo. Please try again.");
+      setIsUploadingLogo(false);
+    }
+  };
   const [formData, setFormData] = useState({
     companyName: "",
     ein: "XX-XXXXXXX",
@@ -179,12 +252,37 @@ export default function CompanySettingsPage() {
         <div className="lg:col-span-1 space-y-6">
           {/* Logo */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-             <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
-                <Building2 size={40} className="text-blue-600" />
+             <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white dark:border-slate-800 shadow-md overflow-hidden transition-all duration-500 hover:scale-105 group relative cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                {currentUser?.logoUrl ? (
+                  <img src={currentUser.logoUrl} alt="Company Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Building2 size={40} className="text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                )}
+                {isUploadingLogo && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 size={24} className="text-white animate-spin" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <Upload size={20} className="text-white" />
+                </div>
              </div>
              <h4 className="font-bold text-slate-900 dark:text-white mb-1">Company Logo</h4>
-             <p className="text-xs text-slate-500 mb-4 font-medium uppercase tracking-widest">Square PNG/JPG preferred</p>
-             <button className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Change Logo</button>
+             <p className="text-[10px] text-slate-500 mb-4 font-medium uppercase tracking-widest">Square PNG/JPG preferred</p>
+             <input 
+               type="file" 
+               ref={fileInputRef} 
+               onChange={handleLogoUpload} 
+               accept="image/*" 
+               className="hidden" 
+             />
+             <button 
+               onClick={() => fileInputRef.current?.click()}
+               disabled={isUploadingLogo}
+               className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+             >
+               {isUploadingLogo ? "Uploading..." : "Change Logo"}
+             </button>
           </div>
 
           {/* Contact Details */}

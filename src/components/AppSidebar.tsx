@@ -103,9 +103,14 @@ export default function AppSidebar() {
       >
         {/* HEADER */}
         <div className="h-[72px] min-h-[72px] flex items-center px-4 border-b border-slate-200 dark:border-slate-800 relative group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-sm flex items-center justify-center flex-shrink-0">
-             {/* Simple Logo stand-in */}
-             <div className="w-3 h-3 bg-white rounded-full opacity-90" />
+          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 dark:border-slate-700">
+             {currentUser?.logoUrl ? (
+               <img src={currentUser.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+             ) : (
+               <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-sm flex items-center justify-center">
+                 <div className="w-3 h-3 bg-white rounded-full opacity-90" />
+               </div>
+             )}
           </div>
           
           <div className="ml-3 flex-1 flex flex-col justify-center overflow-hidden lg:hidden xl:flex transition-opacity duration-300">

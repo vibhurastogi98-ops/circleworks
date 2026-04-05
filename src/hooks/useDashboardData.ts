@@ -18,13 +18,19 @@ export function useDashboardData() {
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
   const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.data?.companyName : null;
   const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
+  const clerkLogoUrl = user?.publicMetadata?.companyLogoUrl as string | undefined;
   const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
 
   // If still loading Clerk, return a skeleton/loading state but with the derived company name
   if (!isLoaded) {
     return {
       isLoading: true,
-      currentUser: { firstName: "---", lastName: "", companyName: displayCompanyName },
+      currentUser: { 
+        firstName: "---", 
+        lastName: "", 
+        companyName: displayCompanyName,
+        logoUrl: clerkLogoUrl,
+      },
       nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
       kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
       alerts: [],
@@ -46,6 +52,7 @@ export function useDashboardData() {
       firstName: user?.firstName || "Welcome",
       lastName: user?.lastName || "",
       companyName: displayCompanyName,
+      logoUrl: clerkLogoUrl,
     },
     nextPayroll: isNew ? {
       date: "Pending Setup",

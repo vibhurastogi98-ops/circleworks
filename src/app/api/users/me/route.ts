@@ -19,11 +19,22 @@ export async function PATCH(req: Request) {
     if (typeof body.companyName === "string") {
       metadataToUpdate.companyName = body.companyName;
     }
+    if (typeof body.companyLogoUrl === "string") {
+      metadataToUpdate.companyLogoUrl = body.companyLogoUrl;
+    }
 
     if (Object.keys(metadataToUpdate).length > 0) {
-      await client.users.updateUserMetadata(userId, {
-        publicMetadata: metadataToUpdate
-      });
+      try {
+        await client.users.updateUserMetadata(userId, {
+          publicMetadata: metadataToUpdate
+        });
+      } catch (clerkErr: any) {
+        console.error("Clerk metadata update failed:", clerkErr);
+        return NextResponse.json({ 
+          error: clerkErr.message || "Failed to update metadata",
+          details: clerkErr.errors 
+        }, { status: 422 });
+      }
     }
 
     // 2. Sync with Backend Database (Worker API)
@@ -43,8 +54,8 @@ export async function PATCH(req: Request) {
     }
 
     return NextResponse.json({ success: true, updatedFields: Object.keys(body) });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[USERS_ME_PATCH]", error);
-    return new NextResponse("Internal server error", { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
