@@ -197,3 +197,112 @@ CREATE TABLE IF NOT EXISTS ats_interviews (
 -- Indexes for performance optimization
 CREATE INDEX IF NOT EXISTS idx_ats_candidates_job_id ON ats_candidates(job_id);
 CREATE INDEX IF NOT EXISTS idx_ats_interviews_candidate_id ON ats_interviews(candidate_id);
+
+-- =============================================================================
+-- 🚀 ONBOARDING & OFFBOARDING MODULE
+-- =============================================================================
+
+-- 13. ONBOARDING TEMPLATES
+CREATE TABLE IF NOT EXISTS onboarding_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  name TEXT NOT NULL,
+  type TEXT CHECK(type IN ('onboarding','offboarding')) DEFAULT 'onboarding',
+  department TEXT, -- optional department rule
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 14. ONBOARDING TASKS (belongs to template)
+CREATE TABLE IF NOT EXISTS onboarding_tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  template_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  assignee_role TEXT CHECK(assignee_role IN ('HR','Manager','IT','Employee')) DEFAULT 'HR',
+  due_offset_days INTEGER DEFAULT 0, -- e.g. -3 = 3 days before start
+  sort_order INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(template_id) REFERENCES onboarding_templates(id) ON DELETE CASCADE
+);
+
+-- 15. ONBOARDING CASES (instance per employee)
+CREATE TABLE IF NOT EXISTS onboarding_cases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  template_id INTEGER,
+  type TEXT CHECK(type IN ('onboarding','offboarding')) DEFAULT 'onboarding',
+  status TEXT CHECK(status IN ('Active','Completed','Cancelled')) DEFAULT 'Active',
+  start_date DATE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(template_id) REFERENCES onboarding_templates(id) ON DELETE SET NULL
+);
+
+-- 16. ONBOARDING CASE TASKS (instance per task per case)
+CREATE TABLE IF NOT EXISTS onboarding_case_tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id INTEGER NOT NULL,
+  task_id INTEGER,
+  title TEXT NOT NULL,
+  assignee_role TEXT DEFAULT 'HR',
+  status TEXT CHECK(status IN ('Pending','Complete','Skipped')) DEFAULT 'Pending',
+  due_date DATE,
+  completed_at DATETIME,
+  FOREIGN KEY(case_id) REFERENCES onboarding_cases(id) ON DELETE CASCADE,
+  FOREIGN KEY(task_id) REFERENCES onboarding_tasks(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_onboarding_cases_employee ON onboarding_cases(employee_id);
+CREATE INDEX IF NOT EXISTS idx_onboarding_case_tasks_case ON onboarding_case_tasks(case_id);
+
+-- =============================================================================
+-- 📊 BENEFITS MODULE
+-- =============================================================================
+
+-- 17. BENEFIT PLANS
+CREATE TABLE IF NOT EXISTS benefit_plans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  name TEXT NOT NULL,
+  type TEXT CHECK(type IN ('Medical','Dental','Vision','Life','AD&D','STD','LTD','FSA','HSA','401k','WC')) NOT NULL,
+  carrier TEXT,
+  employee_premium INTEGER DEFAULT 0,
+  employer_premium INTEGER DEFAULT 0,
+  effective_start DATE,
+  effective_end DATE,
+  eligibility TEXT DEFAULT 'All',
+  status TEXT CHECK(status IN ('Active','Inactive','Pending')) DEFAULT 'Active',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 18. BENEFIT ENROLLMENTS
+CREATE TABLE IF NOT EXISTS benefit_enrollments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_id INTEGER NOT NULL,
+  employee_id INTEGER NOT NULL,
+  status TEXT CHECK(status IN ('Enrolled','Waived','Pending','Terminated')) DEFAULT 'Pending',
+  enrolled_at DATETIME,
+  coverage_level TEXT, -- e.g. 'Employee Only', 'Employee + Spouse'
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(plan_id) REFERENCES benefit_plans(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- 19. COBRA CASES
+CREATE TABLE IF NOT EXISTS cobra_cases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  status TEXT CHECK(status IN ('Eligible','Notified','Elected','Declined','Active','Terminated')) DEFAULT 'Eligible',
+  qualifying_event TEXT,
+  notice_sent_date DATE,
+  election_deadline DATE,
+  premium_amount INTEGER DEFAULT 0,
+  payment_status TEXT CHECK(payment_status IN ('Current','Past Due','Unpaid')) DEFAULT 'Unpaid',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_benefit_enrollments_plan ON benefit_enrollments(plan_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_enrollments_emp ON benefit_enrollments(employee_id);
+CREATE INDEX IF NOT EXISTS idx_cobra_cases_emp ON cobra_cases(employee_id);

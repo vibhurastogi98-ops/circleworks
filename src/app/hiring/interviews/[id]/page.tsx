@@ -119,19 +119,21 @@ export default function InterviewPrepModule() {
                <div className="text-xs text-slate-500 mt-1">Reference this to align your questions.</div>
             </div>
             <div className="flex-1 overflow-y-auto p-6 prose prose-sm dark:prose-invert prose-blue max-w-none custom-scrollbar">
-               {typeof job.description === 'string' ? (
-                  <div dangerouslySetInnerHTML={{ __html: job.description.replace(/\n/g, '<br/>') || "<p>We are seeking an outstanding individual to join our fast-paced Engineering team. You will lead development of robust, scalable applications.</p><br/><strong>Requirements:</strong><br/>- 5+ years building fullstack software<br/>- Strong communication capabilities<br/>- Ability to lead squads and mentor junior employees.</p>" }} />
-               ) : (
-                  <div>
-                     <p>We are seeking an outstanding individual to join our fast-paced Engineering team. You will lead development of robust, scalable applications.</p>
-                     <p><strong>Requirements:</strong></p>
-                     <ul>
-                        <li>5+ years building fullstack software</li>
-                        <li>Strong communication capabilities</li>
-                        <li>Ability to lead squads and mentor junior employees</li>
-                     </ul>
-                  </div>
-               )}
+               <div>
+                  <p>We are seeking an outstanding individual to join our fast-paced Engineering team. You will lead development of robust, scalable applications.</p>
+                  <p><strong>Responsibilities:</strong></p>
+                  <ul>
+                     <li>Lead development of scalable frontend architecture</li>
+                     <li>Mentor junior developers and conduct code reviews</li>
+                     <li>Collaborate with Product and Design on feature delivery</li>
+                  </ul>
+                  <p><strong>Requirements:</strong></p>
+                  <ul>
+                     <li>5+ years building fullstack software</li>
+                     <li>Strong communication capabilities</li>
+                     <li>Ability to lead squads and mentor junior employees</li>
+                  </ul>
+               </div>
             </div>
          </div>
 
