@@ -478,3 +478,142 @@ CREATE INDEX IF NOT EXISTS idx_expense_reports_emp ON expense_reports(employee_i
 CREATE INDEX IF NOT EXISTS idx_expense_items_report ON expense_items(report_id);
 CREATE INDEX IF NOT EXISTS idx_mileage_logs_emp ON mileage_logs(employee_id);
 CREATE INDEX IF NOT EXISTS idx_expense_policies_company ON expense_policies(company_id);
+
+-- =============================================================================
+-- 📈 PERFORMANCE MODULE
+-- =============================================================================
+
+-- 29. PERFORMANCE REVIEW CYCLES
+CREATE TABLE IF NOT EXISTS perf_review_cycles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT CHECK(type IN ('Annual','Quarterly','Probation','Project')) DEFAULT 'Quarterly',
+  status TEXT CHECK(status IN ('Draft','Active','Completed','Cancelled')) DEFAULT 'Draft',
+  period_start DATE,
+  period_end DATE,
+  deadline DATE,
+  visibility_rules TEXT DEFAULT 'Manager Only', -- e.g. 'Manager + Admin', 'Shared with Employee'
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 30. PERFORMANCE REVIEWS (Instances per cycle per employee)
+CREATE TABLE IF NOT EXISTS perf_reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cycle_id INTEGER NOT NULL,
+  employee_id INTEGER NOT NULL,
+  manager_id INTEGER,
+  status TEXT CHECK(status IN ('Not Started','In Progress','Submitted','Completed')) DEFAULT 'Not Started',
+  overall_rating REAL, -- e.g. 1-5
+  manager_comments TEXT,
+  employee_self_comments TEXT,
+  submitted_at DATETIME,
+  completed_at DATETIME,
+  FOREIGN KEY(cycle_id) REFERENCES perf_review_cycles(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(manager_id) REFERENCES employees(id) ON DELETE SET NULL
+);
+
+-- 31. PERFORMANCE GOALS (OKRs)
+CREATE TABLE IF NOT EXISTS perf_goals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER, -- NULL if Company-wide
+  company_id INTEGER,
+  parent_goal_id INTEGER, -- For OKR tree (Company -> Team -> Individual)
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT CHECK(type IN ('Company','Team','Individual')) DEFAULT 'Individual',
+  status TEXT CHECK(status IN ('On Track','At Risk','Behind','Completed','Cancelled')) DEFAULT 'On Track',
+  progress_percent INTEGER DEFAULT 0,
+  due_date DATE,
+  is_private BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(parent_goal_id) REFERENCES perf_goals(id) ON DELETE SET NULL
+);
+
+-- 32. PERFORMANCE FEEDBACK REQUESTS (360 Feedback)
+CREATE TABLE IF NOT EXISTS perf_feedback_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  requester_id INTEGER NOT NULL,
+  provider_id INTEGER NOT NULL,
+  subject_id INTEGER NOT NULL, -- The employee being reviewed
+  status TEXT CHECK(status IN ('Pending','Declined','Submitted')) DEFAULT 'Pending',
+  is_anonymous BOOLEAN DEFAULT 0,
+  questions TEXT, -- JSON array of questions
+  responses TEXT, -- JSON array of responses
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  submitted_at DATETIME,
+  FOREIGN KEY(requester_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(provider_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(subject_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_perf_reviews_cycle ON perf_reviews(cycle_id);
+CREATE INDEX IF NOT EXISTS idx_perf_goals_parent ON perf_goals(parent_goal_id);
+
+-- =============================================================================
+-- 🎓 LEARNING MODULE (LMS)
+-- =============================================================================
+
+-- 33. LMS COURSES
+CREATE TABLE IF NOT EXISTS lms_courses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  thumbnail_url TEXT,
+  duration_mins INTEGER,
+  is_mandatory BOOLEAN DEFAULT 0,
+  status TEXT CHECK(status IN ('Draft','Published','Archived')) DEFAULT 'Draft',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 34. LMS MODULES
+CREATE TABLE IF NOT EXISTS lms_modules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  course_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  type TEXT CHECK(type IN ('Video','PDF','Quiz','Text')) NOT NULL,
+  content_url TEXT, -- URL to video or PDF
+  body_text TEXT, -- For 'Text' type
+  sort_order INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(course_id) REFERENCES lms_courses(id) ON DELETE CASCADE
+);
+
+-- 35. LMS ENROLLMENTS
+CREATE TABLE IF NOT EXISTS lms_enrollments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  course_id INTEGER NOT NULL,
+  employee_id INTEGER NOT NULL,
+  status TEXT CHECK(status IN ('Not Started','In Progress','Completed')) DEFAULT 'Not Started',
+  progress_percent INTEGER DEFAULT 0,
+  started_at DATETIME,
+  completed_at DATETIME,
+  certificate_url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(course_id) REFERENCES lms_courses(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- 36. LMS ASSIGNMENTS
+CREATE TABLE IF NOT EXISTS lms_assignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  course_id INTEGER NOT NULL,
+  assignee_id INTEGER NOT NULL, -- employee_id
+  assigned_by_id INTEGER, -- HR or Manager user_id
+  due_date DATE,
+  remainder_sent_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(course_id) REFERENCES lms_courses(id) ON DELETE CASCADE,
+  FOREIGN KEY(assignee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(assigned_by_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_lms_modules_course ON lms_modules(course_id);
+CREATE INDEX IF NOT EXISTS idx_lms_enrollments_emp ON lms_enrollments(employee_id);
