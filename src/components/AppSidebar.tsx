@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Compliance", icon: Shield, href: "/compliance", badgeCritical: 1 },
   { label: "Reports", icon: BarChart2, href: "/reports" },
   { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "Settings", icon: Settings, href: "/settings/profile" },
   { label: "Help", icon: HelpCircle, href: "/help" },
 ];
 

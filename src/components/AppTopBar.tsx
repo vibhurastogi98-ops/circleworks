@@ -237,10 +237,16 @@ export default function AppTopBar() {
                        >
                          <User size={16} className="text-slate-400" /> My Profile
                        </button>
-                       <button className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors">
+                       <button 
+                         onClick={() => { setIsAvatarMenuOpen(false); router.push("/settings/company"); }}
+                         className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                       >
                          <Settings size={16} className="text-slate-400" /> Company Settings
                        </button>
-                       <button className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors">
+                       <button 
+                         onClick={() => { setIsAvatarMenuOpen(false); router.push("/settings/billing"); }}
+                         className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                       >
                          <CreditCard size={16} className="text-slate-400" /> Billing
                        </button>
                     </div>
