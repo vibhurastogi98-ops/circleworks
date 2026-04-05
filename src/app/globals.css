@@ -646,13 +646,46 @@ body {
 
 /* Respect user's reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable parallax and mesh animations */
+  .gradient-mesh,
+  .bg-mesh-1,
+  .bg-mesh-2,
+  .bg-mesh-3,
+  .animate-float,
+  .animate-shimmer {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Accessibility: Global Focus Indicators */
+:focus-visible {
+  outline: none !important;
+  box-shadow: var(--shadow-glow) !important;
+  border-color: var(--color-blue-500) !important;
+}
+
+/* Ensure mobile tap targets are accessible */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  .nav-link,
+  .cta-primary,
+  .cta-ghost {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

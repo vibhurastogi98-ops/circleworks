@@ -5,6 +5,8 @@ import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
 import "./globals.css";
 import { Toaster } from "sonner";
+import QueryProvider from "@/components/QueryProvider";
+import SocketProvider from "@/components/SocketProvider";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -99,7 +101,20 @@ export default function RootLayout({
           <Toaster position="top-right" richColors />
           <KeyboardShortcuts />
           <CookieBanner />
-          {children}
+          
+          {/* ✅ WCAG 2.1 AA Skip Navigation */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:shadow-xl focus:font-bold focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 transition-all"
+          >
+            Skip to main content
+          </a>
+
+          <QueryProvider>
+            <SocketProvider>
+              {children}
+            </SocketProvider>
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>

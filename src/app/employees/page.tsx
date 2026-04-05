@@ -2,27 +2,29 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { mockEmployees, Employee, Department, EmploymentStatus } from "@/data/mockEmployees";
+import { useEmployees } from "@/hooks/useEmployees";
+import { Employee, Department, EmploymentStatus } from "@/data/mockEmployees";
 import { 
   Search, Filter, Plus, Upload, Download, Grid, List as ListIcon, 
-  MoreVertical, Network
+  MoreVertical, Network, Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function EmployeesDirectoryPage() {
+  const { data: employees = [], isLoading, error } = useEmployees();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [deptFilter, setDeptFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("Active");
 
   const filteredEmployees = useMemo(() => {
-    return mockEmployees.filter(emp => {
+    return employees.filter(emp => {
       const matchSearch = (emp.firstName + " " + emp.lastName + " " + emp.title).toLowerCase().includes(search.toLowerCase());
       const matchDept = deptFilter === "All" || emp.department === deptFilter;
       const matchStatus = statusFilter === "All" || emp.status === statusFilter;
       return matchSearch && matchDept && matchStatus;
     });
-  }, [search, deptFilter, statusFilter]);
+  }, [employees, search, deptFilter, statusFilter]);
 
   const departments = ["All", "Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Finance", "Executive"];
   const statuses = ["All", "Active", "On Leave", "Terminated", "Onboarding"];
@@ -122,25 +124,30 @@ export default function EmployeesDirectoryPage() {
       </div>
 
       {/* Directory Content */}
-      {viewMode === "list" ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+           <p className="text-slate-500 font-medium">Loading employees...</p>
+        </div>
+      ) : viewMode === "list" ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse" id="employee-table">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-                  <th className="px-6 py-4 whitespace-nowrap">Employee</th>
-                  <th className="px-6 py-4 whitespace-nowrap">Role</th>
-                  <th className="px-6 py-4 whitespace-nowrap">Location</th>
-                  <th className="px-6 py-4 whitespace-nowrap">Start Date</th>
-                  <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                  <th className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap">Employee</th>
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap">Role</th>
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap">Location</th>
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap">Start Date</th>
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap">Status</th>
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {filteredEmployees.map(emp => (
                   <tr key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 focus-within:bg-slate-50/50 dark:focus-within:bg-slate-800/20 transition-colors group">
                     <td className="px-6 py-4">
-                      <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 w-fit focus:outline-none">
+                      <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1 -m-1">
                         <img src={emp.avatar} alt="" className="w-10 h-10 rounded-full bg-slate-200 border border-slate-200 dark:border-slate-700 object-cover" />
                         <div>
                           <div className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
@@ -166,7 +173,10 @@ export default function EmployeesDirectoryPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <button 
+                        className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+                        aria-label={`Actions for ${emp.firstName} ${emp.lastName}`}
+                      >
                         <MoreVertical size={18} />
                       </button>
                     </td>

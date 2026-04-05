@@ -11,6 +11,8 @@ import {
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { useDataSync } from "@/hooks/useDataSync";
+import { toast } from "sonner";
 import Breadcrumb from "./Breadcrumb";
 
 export default function AppTopBar() {
@@ -35,6 +37,7 @@ export default function AppTopBar() {
     dismissComplianceAlert,
     setPayrollRunning
   } = usePlatformStore();
+  const { notifyPayrollComplete } = useDataSync();
 
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
@@ -160,7 +163,14 @@ export default function AppTopBar() {
           {isAdmin && (
              <div className="hidden lg:flex mr-4">
                 {isPayrollRunning ? (
-                  <button onClick={() => setPayrollRunning(false)} className="h-[36px] px-4 flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 cursor-pointer shadow-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
+                  <button 
+                    onClick={() => {
+                      setPayrollRunning(false);
+                      notifyPayrollComplete();
+                      toast.success("Payroll run completed and synced!");
+                    }} 
+                    className="h-[36px] px-4 flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 cursor-pointer shadow-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
                      <Loader2 size={16} className="animate-spin" />
                      <span className="text-[13px] font-bold tracking-wide">Payroll Processing...</span>
                   </button>
@@ -175,8 +185,9 @@ export default function AppTopBar() {
           {/* 1. What's New Bell (Changelog) */}
           <Link 
             href="/changelog"
-            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors group relative"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors group relative focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 outline-none"
             title="What's New"
+            aria-label="View Changelog and New Features"
           >
             <Sparkles size={20} className="group-hover:text-amber-500 transition-colors" />
           </Link>
@@ -184,8 +195,9 @@ export default function AppTopBar() {
           {/* 2. Help Icon */}
           <Link 
             href="/help"
-            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+            className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 outline-none"
             title="Help center"
+            aria-label="Open Help Center"
           >
             <HelpCircle size={20} />
           </Link>
@@ -194,8 +206,9 @@ export default function AppTopBar() {
           <button 
             id="tour-notifications"
             onClick={openNotificationPanel}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors relative"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors relative focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 outline-none"
             title="Notifications"
+            aria-label="View Notifications"
           >
             <Bell size={20} />
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 border border-white dark:border-slate-900 animate-pulse" />
@@ -204,8 +217,9 @@ export default function AppTopBar() {
           {/* 4. Dark Mode Toggle */}
           <button 
             onClick={toggleDarkMode}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 outline-none"
             title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -214,7 +228,10 @@ export default function AppTopBar() {
           <div className="relative ml-2" ref={avatarMenuRef}>
              <button 
                onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
-               className="flex items-center justify-center w-[36px] h-[36px] rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-offset-slate-900 transition-all cursor-pointer"
+               className="flex items-center justify-center w-[36px] h-[36px] rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-offset-slate-900 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 outline-none"
+               aria-label="Open User Menu"
+               aria-expanded={isAvatarMenuOpen}
+               aria-haspopup="true"
              >
                <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" />
              </button>

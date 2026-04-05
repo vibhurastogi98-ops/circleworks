@@ -12,6 +12,9 @@ import {
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { usePlatformStore } from "@/store/usePlatformStore";
+import { useSocket } from "./SocketProvider";
+import { useEffect } from "react";
 
 type SubItem = {
   label: string;
@@ -72,6 +75,20 @@ export default function AppSidebar() {
   const displayName = user?.fullName || user?.firstName || "User";
   const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
   const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
+  
+  const { notificationCount, incrementNotificationCount } = usePlatformStore();
+  const { socket } = useSocket();
+
+  // Rule 6: Sidebar notification badge — subscribed to WS 'notification.new' event
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewNotification = (data: any) => {
+      console.log("🔔 Rule 6: New Notification Received", data);
+      incrementNotificationCount();
+    };
+    socket.on("notification.new", handleNewNotification);
+    return () => { socket.off("notification.new", handleNewNotification); };
+  }, [socket, incrementNotificationCount]);
 
   const toggleAccordion = (label: string) => {
     setOpenAccordions(prev => ({ ...prev, [label]: !prev[label] }));
@@ -135,41 +152,50 @@ export default function AppSidebar() {
                 return <div key={`div-${idx}`} className="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-2 lg:mx-0 xl:mx-2" />;
               }
 
-              const active = isRouteActive(item.href, item.subItems);
-              const hasSubItems = !!item.subItems?.length;
-              const isAccordionOpen = openAccordions[item.label];
+                    const active = isRouteActive(item.href, item.subItems);
+                    const hasSubItems = !!item.subItems?.length;
+                    const isAccordionOpen = openAccordions[item.label];
 
-              // Base item content inside a sub-component to reuse for link/button
-              const ItemContent = () => (
-                <div className="flex items-center w-full relative group/item">
-                  <item.icon 
-                    size={20} 
-                    className={`flex-shrink-0 lg:mx-auto xl:mx-0 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 group-hover/btn:text-slate-700 dark:group-hover/btn:text-slate-200"}`} 
-                    strokeWidth={active ? 2.5 : 2}
-                  />
-                  
-                  {/* Tooltip for 72px state */}
-                  <div className="absolute left-[56px] px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/item:opacity-100 lg:group-hover/item:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
-                    {item.label}
-                  </div>
-                  
-                  <div className="ml-3 flex-1 flex items-center justify-between overflow-hidden lg:hidden xl:flex">
-                     <span className={`text-[14px] font-semibold truncate ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
-                       {item.label}
-                     </span>
-                     
-                     <div className="flex items-center gap-1.5">
-                       {/* Badges */}
-                       {item.badge && (
-                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase text-amber-700 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 tracking-wider">
-                           {item.badge}
-                         </span>
-                       )}
-                       {item.badgeCount ? (
-                         <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-1">
-                           {item.badgeCount}
-                         </span>
-                       ) : null}
+                    // Inject real-time notification count for specific items
+                    const currentBadgeCount = item.label === "Dashboard" && notificationCount > 0 
+                      ? notificationCount 
+                      : item.badgeCount;
+
+                    // Base item content inside a sub-component to reuse for link/button
+                    const ItemContent = () => (
+                      <div className="flex items-center w-full relative group/item">
+                        <item.icon 
+                          size={20} 
+                          className={`flex-shrink-0 lg:mx-auto xl:mx-0 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 group-hover/btn:text-slate-700 dark:group-hover/btn:text-slate-200"}`} 
+                          strokeWidth={active ? 2.5 : 2}
+                        />
+                        
+                        {/* Tooltip for 72px state */}
+                        <div className="absolute left-[56px] px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/item:opacity-100 lg:group-hover/item:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
+                          {item.label}
+                        </div>
+                        
+                        <div className="ml-3 flex-1 flex items-center justify-between overflow-hidden lg:hidden xl:flex">
+                           <span className={`text-[14px] font-semibold truncate ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
+                             {item.label}
+                           </span>
+                           
+                           <div className="flex items-center gap-1.5">
+                             {/* Badges */}
+                             {item.badge && (
+                               <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase text-amber-700 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 tracking-wider">
+                                 {item.badge}
+                               </span>
+                             )}
+                             {currentBadgeCount ? (
+                               <span className={`min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1 ${
+                                 item.label === "Dashboard" && notificationCount > 0
+                                   ? "bg-blue-600 text-white animate-pulse"
+                                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                               }`}>
+                                 {currentBadgeCount}
+                               </span>
+                             ) : null}
                        {item.badgeCritical ? (
                          <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold px-1 border border-red-200 dark:border-red-500/30">
                            {item.badgeCritical}
