@@ -10,6 +10,7 @@ export default function DepartmentsSettingsPage() {
   const { isNewUser } = useDashboardData();
   const [departments, setDepartments] = useState(mockDepartments);
   const [showModal, setShowModal] = useState(false);
+  const [editingDept, setEditingDept] = useState<any>(null);
   
   // New Dept Form State
   const [newName, setNewName] = useState("");
@@ -17,20 +18,42 @@ export default function DepartmentsSettingsPage() {
   const [newParent, setNewParent] = useState("");
   const [newHead, setNewHead] = useState("");
 
+  const handleEdit = (dept: any) => {
+    setEditingDept(dept);
+    setNewName(dept.name);
+    setNewCode(dept.code);
+    setNewParent(dept.parent || "");
+    setNewHead(dept.head);
+    setShowModal(true);
+  };
+
   const handleSave = () => {
     if (!newName || !newCode) return;
-    const newDept = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newName,
-      code: newCode,
-      head: newHead || "Unassigned",
-      employeeCount: 0,
-      parent: newParent || null
-    };
-    setDepartments([...departments, newDept] as any);
+    
+    if (editingDept) {
+       // Update logic
+       setDepartments((prev) => prev.map(d => 
+         d.id === editingDept.id 
+           ? { ...d, name: newName, code: newCode, head: newHead, parent: newParent || null } 
+           : d
+       ));
+       toast.success(`Department "${newName}" updated.`);
+    } else {
+       // Create logic
+       const newDept = {
+         id: Math.random().toString(36).substr(2, 9),
+         name: newName,
+         code: newCode,
+         head: newHead || "Unassigned",
+         employeeCount: 0,
+         parent: newParent || null
+       };
+       setDepartments([...departments, newDept] as any);
+       toast.success(`Department "${newName}" created successfully.`);
+    }
+    
     setShowModal(false);
     resetForm();
-    toast.success(`Department "${newName}" created successfully.`);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -39,6 +62,7 @@ export default function DepartmentsSettingsPage() {
   };
 
   const resetForm = () => {
+    setEditingDept(null);
     setNewName("");
     setNewCode("");
     setNewParent("");
@@ -91,7 +115,10 @@ export default function DepartmentsSettingsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors">
+                    <button 
+                      onClick={() => handleEdit(dept)}
+                      className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors"
+                    >
                       <Edit3 size={16} />
                     </button>
                     <button 
@@ -113,8 +140,10 @@ export default function DepartmentsSettingsPage() {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Department</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                {editingDept ? "Edit Department" : "Add Department"}
+              </h3>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X size={20} />
               </button>
             </div>
@@ -173,7 +202,7 @@ export default function DepartmentsSettingsPage() {
                 disabled={!newName || !newCode}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
               >
-                Create Department
+                {editingDept ? "Update" : "Create Department"}
               </button>
             </div>
           </div>

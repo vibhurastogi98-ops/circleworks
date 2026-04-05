@@ -10,6 +10,7 @@ export default function LocationsSettingsPage() {
   const { isNewUser } = useDashboardData();
   const [locations, setLocations] = useState(mockLocations);
   const [showModal, setShowModal] = useState(false);
+  const [editingLoc, setEditingLoc] = useState<any>(null);
 
   // New Location Form State
   const [newName, setNewName] = useState("");
@@ -18,20 +19,45 @@ export default function LocationsSettingsPage() {
   const [newState, setNewState] = useState("");
   const [newTz, setNewTz] = useState("America/New_York (EST)");
 
+  const handleEdit = (loc: any) => {
+    setEditingLoc(loc);
+    setNewName(loc.name);
+    // Split address back into street and city if possible
+    const [street, city] = loc.address.split(", ");
+    setNewAddress(street || loc.address);
+    setNewCity(city || "");
+    setNewState(loc.state);
+    setNewTz(loc.timezone);
+    setShowModal(true);
+  };
+
   const handleSave = () => {
     if (!newName || !newAddress) return;
-    const newLoc = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newName,
-      address: `${newAddress}, ${newCity}`,
-      state: newState,
-      timezone: newTz,
-      employeeCount: 0
-    };
-    setLocations([...locations, newLoc]);
+
+    if (editingLoc) {
+       // Update logic
+       setLocations((prev) => prev.map(l => 
+         l.id === editingLoc.id 
+           ? { ...l, name: newName, address: `${newAddress}, ${newCity}`, state: newState, timezone: newTz } 
+           : l
+       ));
+       toast.success(`Location "${newName}" updated.`);
+    } else {
+       // Create logic
+       const newLoc = {
+         id: Math.random().toString(36).substr(2, 9),
+         name: newName,
+         address: `${newAddress}, ${newCity}`,
+         state: newState,
+         timezone: newTz,
+         employeeCount: 0
+       };
+       setLocations([...locations, newLoc]);
+       toast.success(`Location "${newName}" added.`);
+    }
+
     setShowModal(false);
     resetForm();
-    toast.success(`Location "${newName}" added.`);
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -40,6 +66,7 @@ export default function LocationsSettingsPage() {
   };
 
   const resetForm = () => {
+    setEditingLoc(null);
     setNewName("");
     setNewAddress("");
     setNewCity("");
@@ -93,7 +120,10 @@ export default function LocationsSettingsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors">
+                    <button 
+                      onClick={() => handleEdit(loc)}
+                      className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors"
+                    >
                       <Edit3 size={16} />
                     </button>
                     <button 
@@ -115,8 +145,10 @@ export default function LocationsSettingsPage() {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Location</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                {editingLoc ? "Edit Location" : "Add Location"}
+              </h3>
+              <button onClick={() => { setShowModal(false); resetForm(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X size={20} />
               </button>
             </div>
@@ -181,7 +213,7 @@ export default function LocationsSettingsPage() {
                 disabled={!newName || !newAddress}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
               >
-                Save Location
+                {editingLoc ? "Update" : "Save Location"}
               </button>
             </div>
           </div>

@@ -46,6 +46,18 @@ export default function CompanySettingsPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleDeleteAccount = () => {
+    if (deleteInput !== profile.dba) return;
+    toast.promise(
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+      {
+        loading: 'Deactivating account and purging data cache...',
+        success: 'Account successfully deactivated. You will be redirected shortly.',
+        error: 'Error deactivating account.',
+      }
+    );
+  };
+
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-500 max-w-4xl">
       <div>
@@ -179,6 +191,7 @@ export default function CompanySettingsPage() {
             />
           </div>
           <button 
+            onClick={handleDeleteAccount}
             disabled={deleteInput !== profile.dba}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-colors whitespace-nowrap"
           >
