@@ -20,19 +20,23 @@ export default {
 		const url = new URL(request.url);
 		const path = url.pathname.replace(/\/+$/, "");
 
-		// ✅ CORS
+		// ✅ STRONG CORS (FINAL)
 		const corsHeaders = {
 			"Access-Control-Allow-Origin": "*",
 			"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-			"Access-Control-Allow-Headers": "Content-Type, Authorization",
+			"Access-Control-Allow-Headers": "*",
 		};
 
+		// ✅ PREFLIGHT FIX (VERY IMPORTANT)
 		if (request.method === "OPTIONS") {
-			return new Response(null, { headers: corsHeaders });
+			return new Response(null, {
+				status: 204,
+				headers: corsHeaders,
+			});
 		}
 
 		try {
-			// 🔐 SIMPLE AUTH (temporary)
+			// 🔐 SIMPLE AUTH
 			const authHeader = request.headers.get("authorization");
 
 			const isProtectedRoute =
@@ -40,12 +44,15 @@ export default {
 
 			if (isProtectedRoute) {
 				if (authHeader !== "Bearer my-secret-key") {
-					return new Response("Unauthorized", { status: 401 });
+					return new Response(JSON.stringify({ error: "Unauthorized" }), {
+						status: 401,
+						headers: { ...corsHeaders, "Content-Type": "application/json" },
+					});
 				}
 			}
 
 			// =========================
-			// ✅ STATS (PROTECTED)
+			// ✅ STATS
 			// =========================
 			if (path === "/stats" && request.method === "GET") {
 				const users = await DB.prepare("SELECT COUNT(*) as count FROM users").first();
@@ -65,7 +72,7 @@ export default {
 			}
 
 			// =========================
-			// ✅ GET USERS (PROTECTED)
+			// ✅ GET USERS
 			// =========================
 			if (path === "/users" && request.method === "GET") {
 				const result = await DB.prepare("SELECT * FROM users").all();
@@ -92,7 +99,7 @@ export default {
 			}
 
 			// =========================
-			// ✅ GET EMPLOYEES (PROTECTED)
+			// ✅ GET EMPLOYEES
 			// =========================
 			if (path === "/employees" && request.method === "GET") {
 				const result = await DB.prepare("SELECT * FROM employees").all();
@@ -102,7 +109,7 @@ export default {
 			}
 
 			// =========================
-			// ✅ CONTACT (PUBLIC)
+			// ✅ CONTACT
 			// =========================
 			if (path === "/contact" && request.method === "POST") {
 				const body = (await request.json()) as ContactBody;
