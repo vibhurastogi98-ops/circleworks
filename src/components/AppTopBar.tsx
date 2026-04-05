@@ -77,13 +77,17 @@ export default function AppTopBar() {
   }, [isAvatarMenuOpen]);
 
   const openCommandPalette = () => {
-    // Placeholder function per Section 31
-    console.log("Opening Command Palette");
+    toast("Command Palette", {
+      description: "Global search (Cmd+K) will be available in the next release.",
+      icon: <Search className="w-4 h-4 text-blue-500" />
+    });
   };
 
   const openNotificationPanel = () => {
-    // Placeholder function per Section 30
-    console.log("Opening Notifications Panel");
+    toast("Notifications", {
+      description: "Notification panel is currently empty.",
+      icon: <Bell className="w-4 h-4 text-slate-500" />
+    });
   };
 
   // Derive Page Title & Breadcrumbs safely

@@ -42,9 +42,12 @@ const NAV_ITEMS: NavItem[] = [
     subItems: [
       { label: "Overview", href: "/payroll" },
       { label: "Run Payroll", href: "/payroll/run" },
+      { label: "Off-Cycle Run", href: "/payroll/off-cycle" },
       { label: "Pay Schedule", href: "/payroll/schedule" },
       { label: "History", href: "/payroll/history" },
       { label: "Contractors", href: "/payroll/contractors" },
+      { label: "Tips & FICA", href: "/payroll/tips" },
+      { label: "GL Mapping", href: "/payroll/gl-mapping" },
     ]
   },
   { label: "Employees", icon: Users, href: "/employees" },

@@ -8,6 +8,38 @@ export default function OffCyclePage() {
   const [showRetroBanner, setShowRetroBanner] = useState(true);
   const [showRetroModal, setShowRetroModal] = useState(false);
   const [retroProcessed, setRetroProcessed] = useState(false);
+  const [loadingRetro, setLoadingRetro] = useState(false);
+  const [retroData, setRetroData] = useState<any>(null);
+
+  const handleCalculateRetro = async () => {
+    setLoadingRetro(true);
+    try {
+      const res = await fetch("/api/payroll/retro-calc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: "emp-alex-clark",
+          oldRate: 85000,
+          newRate: 92000,
+          rateType: "salary",
+          periods: [
+             { name: "Feb 1 – Feb 15", hoursWorked: 86.67 },
+             { name: "Feb 16 – Feb 28", hoursWorked: 86.67 },
+             { name: "Mar 1 – Mar 15", hoursWorked: 86.67 }
+          ]
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRetroData(data);
+        setShowRetroModal(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingRetro(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto pb-24">
@@ -225,10 +257,11 @@ export default function OffCyclePage() {
                 </div>
               </div>
               <button
-                onClick={() => setShowRetroModal(true)}
-                className="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg shadow-md transition-all"
+                onClick={handleCalculateRetro}
+                disabled={loadingRetro}
+                className="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg shadow-md transition-all disabled:opacity-50"
               >
-                Calculate Retro Pay
+                {loadingRetro ? "Calculating..." : "Calculate Retro Pay"}
               </button>
             </div>
           )}
@@ -240,7 +273,7 @@ export default function OffCyclePage() {
               </div>
               <h3 className="text-2xl font-black text-emerald-900">Retro Pay Processed Successfully</h3>
               <p className="text-emerald-700 mt-2 max-w-lg mb-6">
-                The retroactive adjustment of $1,076.92 has been added to off-cycle payroll and paystubs will reflect "Retroactive Pay Adjustment".
+                The retroactive adjustment of ${retroData ? retroData.totalDifference.toFixed(2) : "1,076.92"} has been added to off-cycle payroll and paystubs will reflect "Retroactive Pay Adjustment".
               </p>
               <button 
                 onClick={() => {
@@ -299,7 +332,8 @@ export default function OffCyclePage() {
 
                <h3 className="font-bold uppercase tracking-widest text-xs text-slate-500 mb-3">Pay Periods Affected</h3>
                
-               <div className="border border-slate-200 rounded-xl overflow-hidden mb-6">
+               {retroData && (
+                 <div className="border border-slate-200 rounded-xl overflow-hidden mb-6">
                  <table className="w-full text-left text-sm">
                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] tracking-wider font-bold">
                      <tr>
@@ -310,31 +344,22 @@ export default function OffCyclePage() {
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-100">
-                     <tr>
-                       <td className="px-4 py-3 font-medium">Feb 1 – Feb 15</td>
-                       <td className="px-4 py-3 text-right text-slate-500">$3,541.66</td>
-                       <td className="px-4 py-3 text-right font-medium">$3,833.33</td>
-                       <td className="px-4 py-3 text-right font-bold text-blue-600">+$291.67</td>
-                     </tr>
-                     <tr>
-                       <td className="px-4 py-3 font-medium">Feb 16 – Feb 28</td>
-                       <td className="px-4 py-3 text-right text-slate-500">$3,541.66</td>
-                       <td className="px-4 py-3 text-right font-medium">$3,833.33</td>
-                       <td className="px-4 py-3 text-right font-bold text-blue-600">+$291.67</td>
-                     </tr>
-                     <tr>
-                       <td className="px-4 py-3 font-medium">Mar 1 – Mar 15</td>
-                       <td className="px-4 py-3 text-right text-slate-500">$3,541.66</td>
-                       <td className="px-4 py-3 text-right font-medium">$3,833.33</td>
-                       <td className="px-4 py-3 text-right font-bold text-blue-600">+$291.67</td>
-                     </tr>
+                     {retroData.periods.map((p: any, i: number) => (
+                       <tr key={i}>
+                         <td className="px-4 py-3 font-medium">{p.name}</td>
+                         <td className="px-4 py-3 text-right text-slate-500">${p.oldGross.toFixed(2)}</td>
+                         <td className="px-4 py-3 text-right font-medium">${p.newGross.toFixed(2)}</td>
+                         <td className="px-4 py-3 text-right font-bold text-blue-600">+${p.difference.toFixed(2)}</td>
+                       </tr>
+                     ))}
                      <tr className="bg-blue-50/50">
                        <td colSpan={3} className="px-4 py-4 text-right font-bold text-slate-700">Total Adjustment:</td>
-                       <td className="px-4 py-4 text-right text-lg font-extrabold text-blue-700">+$875.01</td>
+                       <td className="px-4 py-4 text-right text-lg font-extrabold text-blue-700">+${retroData.totalDifference.toFixed(2)}</td>
                      </tr>
                    </tbody>
                  </table>
                </div>
+               )}
 
                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-sm text-amber-800">
                  <AlertCircle className="shrink-0 text-amber-600" size={18} />

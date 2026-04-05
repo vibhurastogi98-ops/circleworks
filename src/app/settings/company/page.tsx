@@ -3,13 +3,20 @@
 import React, { useState } from "react";
 import { Upload, Building2, Save, AlertTriangle } from "lucide-react";
 import { mockCompanyProfile } from "@/data/mockSettings";
+import { toast } from "sonner";
 
 export default function CompanySettingsPage() {
   const [profile, setProfile] = useState(mockCompanyProfile);
   const [deleteInput, setDeleteInput] = useState("");
 
   const handleSave = () => {
-    alert("Company profile saved successfully.");
+    localStorage.setItem(
+      "circleworks_signup_progress",
+      JSON.stringify({ data: { companyName: profile.legalName } })
+    );
+    toast.success("Company profile saved successfully.", {
+       description: "The dashboard and sidebar will reflect these changes."
+    });
   };
 
   return (

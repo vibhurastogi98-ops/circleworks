@@ -43,6 +43,7 @@ export const standardReports: StandardReport[] = [
   { id: "rpt-18", name: "I-9 Audit Report", description: "I-9 compliance status for all employees with expiry tracking.", category: "Tax & Compliance", icon: "ShieldCheck" },
   { id: "rpt-19", name: "EEO-1 Summary", description: "Equal employment opportunity report data by category.", category: "Tax & Compliance", icon: "PieChart" },
   { id: "rpt-20", name: "ACA Eligibility", description: "ACA full-time equivalent tracking and coverage status.", category: "Tax & Compliance", icon: "HeartPulse" },
+  { id: "rpt-20b", name: "Certified Payroll (Davis-Bacon)", description: "WH-347 prevailing wage compliance reporting for government contracts.", category: "Tax & Compliance", icon: "Shield" },
   // Benefits
   { id: "rpt-21", name: "Benefits Enrollment", description: "Employee enrollment status across all benefit plans.", category: "Benefits", icon: "Heart", popular: true },
   { id: "rpt-22", name: "Benefits Cost Analysis", description: "Employer vs employee cost breakdown by plan and period.", category: "Benefits", icon: "DollarSign" },

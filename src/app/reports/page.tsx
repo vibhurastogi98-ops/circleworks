@@ -96,7 +96,7 @@ function ReportCard({ report }: { report: StandardReport }) {
       <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 transition-colors">{report.name}</h4>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed flex-1">{report.description}</p>
       <Link
-        href={`/reports/viewer/${report.id}`}
+        href={report.id === "rpt-20b" ? `/reports/certified-payroll` : `/reports/viewer/${report.id}`}
         className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
       >
         <Play size={10} /> Run

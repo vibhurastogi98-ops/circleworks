@@ -7,6 +7,7 @@ import {
   Search, FileText, ExternalLink
 } from "lucide-react";
 import { taxFilings, type TaxFilingStatus } from "@/data/mockCompliance";
+import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<TaxFilingStatus, { label: string; color: string; icon: React.ElementType }> = {
   filed: { label: "Filed", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800", icon: CheckCircle2 },
@@ -163,15 +164,15 @@ export default function TaxFilingsPage() {
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">{filing.confirmationNumber || "—"}</td>
                     <td className="px-6 py-4 text-right">
                       {filing.status === "upcoming" && filing.supportsFiling ? (
-                        <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+                        <button onClick={() => toast.success(`Initiated filing for ${filing.formNumber}`, { description: "You will be redirected to the filing wizard." })} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
                           File Now
                         </button>
                       ) : filing.status === "overdue" ? (
-                        <button className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+                        <button onClick={() => toast.success(`Initiated late filing for ${filing.formNumber}`, { description: "Please complete this immediately to minimize penalties." })} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
                           File Now
                         </button>
                       ) : filing.status === "filed" ? (
-                        <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
+                        <button onClick={() => toast.info(`Viewing ${filing.formNumber}`, { description: `Confirmation #${filing.confirmationNumber}` })} className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700">
                           View
                         </button>
                       ) : null}
