@@ -1,11 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import { CreditCard, Download, Zap, TrendingUp } from "lucide-react";
+import { CreditCard, Download, Zap, TrendingUp, Calendar } from "lucide-react";
 import { mockBilling } from "@/data/mockSettings";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { toast } from "sonner";
 
 export default function BillingSettingsPage() {
+  const { isNewUser } = useDashboardData();
   const [billing] = useState(mockBilling);
+
+  // Dynamic overrides for new users
+  const activeEmployees = isNewUser ? 0 : billing.activeEmployees;
+  const status = isNewUser ? "Free Trial" : billing.status;
+  const renewalDate = isNewUser ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : billing.renewalDate;
+  const invoices = isNewUser ? [] : billing.invoices;
+  const estimatedTotal = isNewUser ? 0 : billing.estimatedNextInvoice;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl">
@@ -26,17 +36,17 @@ export default function BillingSettingsPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1 block">Current Plan</span>
-                <h2 className="text-3xl font-black">{billing.plan}</h2>
+                <h2 className="text-3xl font-black">{isNewUser ? "Pro Trial" : billing.plan}</h2>
               </div>
               <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-full uppercase tracking-wider border border-green-500/30">
-                {billing.status}
+                {status}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-4 mb-8">
                <div>
                  <span className="text-slate-400 text-xs block mb-1">Active Employees</span>
-                 <span className="text-xl font-bold">{billing.activeEmployees}</span>
+                 <span className="text-xl font-bold">{activeEmployees}</span>
                </div>
                <div>
                  <span className="text-slate-400 text-xs block mb-1">Per User / Mo</span>
@@ -51,11 +61,11 @@ export default function BillingSettingsPage() {
             <div className="flex items-center justify-between border-t border-slate-700 pt-6">
               <div>
                 <span className="text-slate-400 text-xs block mb-1">Next Payment Date</span>
-                <span className="text-sm font-bold">{new Date(billing.renewalDate).toLocaleDateString()}</span>
+                <span className="text-sm font-bold">{new Date(renewalDate).toLocaleDateString()}</span>
               </div>
               <div className="text-right">
                 <span className="text-slate-400 text-xs block mb-1">Estimated Total</span>
-                <span className="text-2xl font-black text-blue-400">${billing.estimatedNextInvoice}</span>
+                <span className="text-2xl font-black text-blue-400">${estimatedTotal}</span>
               </div>
             </div>
           </div>
@@ -97,7 +107,7 @@ export default function BillingSettingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {billing.invoices.map((inv) => (
+              {invoices.length > 0 ? invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-6 py-4 font-mono font-medium text-slate-700 dark:text-slate-300">{inv.id}</td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{new Date(inv.date).toLocaleDateString()}</td>
@@ -113,7 +123,13 @@ export default function BillingSettingsPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                    No invoices found. Your first invoice will be generated at the end of your trial.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

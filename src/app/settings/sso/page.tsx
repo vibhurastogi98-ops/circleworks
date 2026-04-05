@@ -1,10 +1,40 @@
 "use client";
 
 import React, { useState } from "react";
-import { UploadCloud, CheckCircle2, Copy } from "lucide-react";
+import { UploadCloud, CheckCircle2, Copy, RefreshCw, Globe, Loader2 } from "lucide-react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { toast } from "sonner";
 
 export default function SSOSettingsPage() {
+  const { currentUser } = useDashboardData();
   const [ssoEnabled, setSsoEnabled] = useState(true);
+  const [scimToken, setScimToken] = useState("cw_scim_live_1234567890");
+  const [isRotating, setIsRotating] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+
+  const handleRotateToken = () => {
+    setIsRotating(true);
+    setTimeout(() => {
+      const newToken = "cw_scim_live_" + Math.random().toString(36).substr(2, 10);
+      setScimToken(newToken);
+      setIsRotating(false);
+      toast.success("SCIM Bearer Token rotated.", {
+        description: "Please update your Identity Provider with the new token."
+      });
+    }, 1200);
+  };
+
+  const handleTestConnection = () => {
+    setIsTesting(true);
+    setTimeout(() => {
+      setIsTesting(false);
+      toast.success("SSO Connection Successful!", {
+        description: "CircleWorks successfully authenticated with your Identity Provider."
+      });
+    }, 1500);
+  };
+
+  const companySlug = currentUser.companyName?.toLowerCase().replace(/\s+/g, '-') || "circleworks";
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-4xl">
@@ -51,12 +81,17 @@ export default function SSOSettingsPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">IdP SSO URL</label>
-              <input value="https://acme.okta.com/app/circleworks/exk.../sso/saml" readOnly className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-400 font-mono" />
+              <input value={`https://${companySlug}.okta.com/app/circleworks/exk.../sso/saml`} readOnly className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-400 font-mono" />
             </div>
           </div>
 
           <div className="flex justify-end pt-4">
-             <button className="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors shadow-sm text-slate-700 dark:text-slate-300">
+             <button 
+                onClick={handleTestConnection}
+                disabled={isTesting}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors shadow-sm text-slate-700 dark:text-slate-300"
+              >
+                {isTesting ? <Loader2 size={14} className="animate-spin" /> : null}
                 Test Connection
              </button>
           </div>
@@ -81,14 +116,25 @@ export default function SSOSettingsPage() {
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Bearer Token</label>
               <div className="flex bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                <input type="password" value="cw_scim_live_1234567890" readOnly className="w-full px-3 py-2 bg-transparent text-sm text-slate-600 dark:text-slate-400 font-mono focus:outline-none" />
-                <button className="px-3 border-l border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 transition-colors">
+                <input type="password" value={scimToken} readOnly className="w-full px-3 py-2 bg-transparent text-sm text-slate-600 dark:text-slate-400 font-mono focus:outline-none" />
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(scimToken);
+                    toast.success("Token copied to clipboard");
+                  }}
+                  className="px-3 border-l border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 transition-colors"
+                >
                   <Copy size={16} />
                 </button>
               </div>
                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium">Keep this token secure. You can only view it once upon creation.</p>
             </div>
-            <button className="mt-4 px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors w-max">
+            <button 
+              onClick={handleRotateToken}
+              disabled={isRotating}
+              className="mt-4 flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300 transition-colors w-max"
+            >
+               {isRotating ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                Rotate Token
             </button>
         </div>

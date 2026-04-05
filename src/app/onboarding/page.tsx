@@ -4,19 +4,22 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { Users, CheckCircle2, Clock, AlertTriangle, UserMinus, Search, Filter } from "lucide-react";
 import { mockOnboardingCases, OnboardingPhase } from "@/data/mockOnboarding";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function OnboardingDashboard() {
+  const { isNewUser } = useDashboardData();
   const [phaseFilter, setPhaseFilter] = useState<OnboardingPhase | 'All'>('All');
   const [search, setSearch] = useState('');
 
   const cases = useMemo(() => {
+    if (isNewUser) return [];
     let filtered = mockOnboardingCases;
     if (phaseFilter !== 'All') filtered = filtered.filter(c => c.phase === phaseFilter);
     if (search) filtered = filtered.filter(c => c.employeeName.toLowerCase().includes(search.toLowerCase()));
     return filtered;
-  }, [phaseFilter, search]);
+  }, [phaseFilter, search, isNewUser]);
 
-  const tasksDueToday = mockOnboardingCases.flatMap(c => c.tasks).filter(t => t.status === 'Pending' && t.dueDate === '2024-09-30');
+  const tasksDueToday = isNewUser ? [] : mockOnboardingCases.flatMap(c => c.tasks).filter(t => t.status === 'Pending' && t.dueDate === '2024-09-30');
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -37,7 +40,7 @@ export default function OnboardingDashboard() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Active Pre-Hires</h4>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">{mockOnboardingCases.length}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">{isNewUser ? 0 : mockOnboardingCases.length}</div>
           </div>
           <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg"><Users size={20}/></div>
         </div>
@@ -51,14 +54,14 @@ export default function OnboardingDashboard() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Avg. Completion</h4>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">62%</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">{isNewUser ? "0%" : "62%"}</div>
           </div>
           <div className="p-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg"><CheckCircle2 size={20}/></div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Overdue Tasks</h4>
-            <div className="text-2xl font-bold text-red-600">2</div>
+            <div className="text-2xl font-bold text-red-600">{isNewUser ? 0 : 2}</div>
           </div>
           <div className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg"><AlertTriangle size={20}/></div>
         </div>
@@ -91,7 +94,7 @@ export default function OnboardingDashboard() {
 
       {/* Active Pre-Hires List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cases.map(c => {
+        {cases.length > 0 ? cases.map(c => {
           const completed = c.tasks.filter(t => t.status === 'Complete').length;
           const total = c.tasks.length;
           const pct = Math.round((completed / total) * 100);
@@ -138,7 +141,13 @@ export default function OnboardingDashboard() {
               </div>
             </Link>
           );
-        })}
+        }) : (
+          <div className="col-span-full py-12 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+            <Users size={48} className="text-slate-300 mb-4" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No active pre-hires</h3>
+            <p className="text-sm text-slate-500 max-w-xs mx-auto mt-1">Start by adding a candidate to the onboarding pipeline from the Hiring module.</p>
+          </div>
+        )}
       </div>
     </div>
   );

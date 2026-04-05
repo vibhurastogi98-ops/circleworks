@@ -1,19 +1,48 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, MoreVertical, Shield, ShieldAlert, ShieldCheck, Mail } from "lucide-react";
+import { Plus, MoreVertical, Shield, ShieldAlert, ShieldCheck, Mail, Trash2 } from "lucide-react";
 import { mockUsers } from "@/data/mockSettings";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { toast } from "sonner";
 
 export default function UsersSettingsPage() {
-  const [users, setUsers] = useState(mockUsers);
+  const { isNewUser } = useDashboardData();
+  const [users, setUsers] = useState(isNewUser ? mockUsers.slice(0, 1) : mockUsers);
   const [showModal, setShowModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("Super Admin");
+
+  const handleInvite = () => {
+    if (!inviteEmail) return;
+    const newUser = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: inviteEmail.split("@")[0].charAt(0).toUpperCase() + inviteEmail.split("@")[0].slice(1),
+      email: inviteEmail,
+      role: inviteRole,
+      mfaState: "Pending" as const,
+      lastLogin: new Date().toISOString(),
+      status: "Invited" as const
+    };
+    setUsers([...users, newUser]);
+    setShowModal(false);
+    setInviteEmail("");
+    toast.success(`Invite sent to ${inviteEmail}`, {
+      description: "The user will receive an email to set up their account."
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    setUsers(users.filter(u => u.id !== id));
+    toast.info("User access revoked successfully.");
+  };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Users</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Manage administrative access to CircleWorks. 4 of 10 admin seats used.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Manage administrative access. {users.length} of 10 admin seats used.</p>
         </div>
         <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
           <Plus size={16} /> Invite Admin
@@ -72,8 +101,12 @@ export default function UsersSettingsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 transition-colors">
-                      <MoreVertical size={16} />
+                    <button 
+                      onClick={() => handleDelete(user.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 transition-colors"
+                      title="Revoke access"
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
@@ -95,12 +128,22 @@ export default function UsersSettingsPage() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Email Address</label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3 top-2.5 text-slate-400" />
-                  <input placeholder="colleague@company.com" type="email" className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
+                  <input 
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="colleague@company.com" 
+                    type="email" 
+                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" 
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Role</label>
-                <select className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white">
+                <select 
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                >
                   <option>Super Admin</option>
                   <option>HR Manager</option>
                   <option>Payroll Admin</option>
@@ -110,7 +153,13 @@ export default function UsersSettingsPage() {
             </div>
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm">Send Invite</button>
+              <button 
+                onClick={handleInvite}
+                disabled={!inviteEmail}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg shadow-sm"
+              >
+                Send Invite
+              </button>
             </div>
           </div>
         </div>
