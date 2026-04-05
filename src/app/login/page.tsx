@@ -233,10 +233,10 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT: Form */}
-      <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center p-8 sm:p-16 lg:p-24 relative overflow-y-auto">
+      <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center p-6 sm:p-10 lg:px-16 lg:py-8 relative overflow-y-auto">
         <div className="max-w-md w-full mx-auto">
           {/* Mobile Logo */}
-          <Link href="/" className="lg:hidden inline-flex items-center gap-2 mb-10">
+          <Link href="/" className="lg:hidden inline-flex items-center gap-2 mb-6">
             <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
               <circle cx="16" cy="16" r="14" stroke="#0a1128" strokeWidth="3" />
               <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
@@ -244,7 +244,7 @@ export default function LoginPage() {
             <span className="text-xl font-black text-[#0a1128] tracking-tight">CircleWorks</span>
           </Link>
 
-          <header className="mb-8">
+          <header className="mb-6">
             <h2 className="text-3xl font-black text-[#0a1128] tracking-tight mb-2">Welcome back</h2>
             <p className="text-slate-500 font-medium">Sign in to CircleWorks</p>
           </header>
@@ -254,9 +254,9 @@ export default function LoginPage() {
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 rounded-xl bg-red-50 text-red-600 flex items-start gap-3 border border-red-100"
+                className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 flex items-start gap-2 border border-red-100"
               >
-                <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                <AlertCircle size={18} className="shrink-0 mt-0.5" />
                 <span className="text-sm font-semibold">{errorMsg}</span>
               </motion.div>
             )}
@@ -265,13 +265,13 @@ export default function LoginPage() {
           {!mfaNeeded ? (
             <>
               {/* SSO Buttons */}
-              <div className="space-y-3 mb-8">
+              <div className="space-y-3 mb-6">
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100 active:scale-[0.98]"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100 active:scale-[0.98]"
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                     <path d="M5.84 14.11c-.22-.67-.35-1.39-.35-2.11s.13-1.44.35-2.11V7.05H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.95l3.66-2.84z" fill="#FBBC05" />
@@ -282,9 +282,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleMicrosoftLogin}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100 active:scale-[0.98]"
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-4 focus:ring-slate-100 active:scale-[0.98]"
                 >
-                  <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
+                  <svg width="18" height="18" viewBox="0 0 21 21" fill="none">
                     <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
                     <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
                     <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
@@ -294,7 +294,7 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <div className="relative mb-8">
+              <div className="relative mb-5">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200"></div>
                 </div>
@@ -305,7 +305,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
+              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                 <div className="relative group">
                   <input
                     type="email"
@@ -313,14 +313,14 @@ export default function LoginPage() {
                     {...loginForm.register("email")}
                     autoFocus
                     aria-label="Work email address"
-                    className={`peer w-full px-4 pt-6 pb-2 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${
+                    className={`peer w-full px-4 pt-5 pb-1.5 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${
                       loginForm.formState.errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"
                     }`}
                     placeholder="Work email address"
                   />
                   <label 
                     htmlFor="email"
-                    className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
+                    className={`absolute left-4 top-1.5 text-[10px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[10px] peer-focus:top-1.5 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
                       loginForm.formState.errors.email ? "text-red-500 peer-focus:text-red-500" : "text-slate-500 peer-focus:text-blue-500"
                     }`}
                   >
@@ -331,20 +331,20 @@ export default function LoginPage() {
                   )}
                 </div>
 
-                <div className="relative group mt-8">
+                <div className="relative group mt-3">
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
                     {...loginForm.register("password")}
                     aria-label="Password"
-                    className={`peer w-full px-4 pt-6 pb-2 pr-12 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${
+                    className={`peer w-full px-4 pt-5 pb-1.5 pr-12 bg-slate-50 border rounded-xl text-slate-900 placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${
                       loginForm.formState.errors.password ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"
                     }`}
                     placeholder="Password"
                   />
                   <label 
                     htmlFor="password"
-                    className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
+                    className={`absolute left-4 top-1.5 text-[10px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[10px] peer-focus:top-1.5 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
                       loginForm.formState.errors.password ? "text-red-500 peer-focus:text-red-500" : "text-slate-500 peer-focus:text-blue-500"
                     }`}
                   >
@@ -353,30 +353,30 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 focus:outline-none"
+                    className="absolute right-4 top-3 text-slate-400 hover:text-slate-600 focus:outline-none"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                   {loginForm.formState.errors.password && (
                     <p className="text-red-500 text-xs mt-1 absolute -bottom-5 left-1 font-medium z-10">{loginForm.formState.errors.password.message}</p>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between mt-8 pt-2">
+                <div className="flex items-center justify-between pt-1 mt-3">
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <div className="relative flex items-center justify-center w-5 h-5">
+                    <div className="relative flex items-center justify-center w-4 h-4">
                       <input 
                         type="checkbox" 
                         {...loginForm.register("rememberMe")}
-                        className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded focus:ring-2 focus:ring-blue-500/20 focus:outline-none checked:bg-blue-600 checked:border-blue-600 transition-colors" 
+                        className="peer appearance-none w-4 h-4 border-2 border-slate-300 rounded focus:ring-2 focus:ring-blue-500/20 focus:outline-none checked:bg-blue-600 checked:border-blue-600 transition-colors" 
                       />
-                      <Check size={12} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
+                      <Check size={10} className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none" />
                     </div>
-                    <span className="text-sm font-medium text-slate-600 select-none group-hover:text-slate-800">Remember me</span>
+                    <span className="text-xs font-medium text-slate-600 select-none group-hover:text-slate-800">Remember me</span>
                   </label>
 
-                  <Link href="/help" className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/help" className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline">
                     Forgot password?
                   </Link>
                 </div>
@@ -384,11 +384,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-6 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 focus:ring-4 focus:ring-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full mt-4 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 focus:ring-4 focus:ring-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Signing in...
                     </>
                   ) : (
@@ -398,7 +398,7 @@ export default function LoginPage() {
               </form>
             </>
           ) : (
-            <form onSubmit={mfaForm.handleSubmit(onMfaSubmit)} className="space-y-5">
+            <form onSubmit={mfaForm.handleSubmit(onMfaSubmit)} className="space-y-4">
               <div className="mb-4">
                 <p className="text-sm text-slate-600 mb-4 font-medium">Please enter the 6-digit code to complete sign in.</p>
                 <div className="relative group">
@@ -409,14 +409,14 @@ export default function LoginPage() {
                     autoFocus
                     maxLength={6}
                     aria-label="6-digit authentication code"
-                    className={`peer w-full px-4 pt-6 pb-2 bg-slate-50 border rounded-xl text-slate-900 tracking-[0.5em] font-bold text-center placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${
+                    className={`peer w-full px-4 pt-5 pb-1.5 bg-slate-50 border rounded-xl text-slate-900 tracking-[0.5em] font-bold text-center placeholder-transparent focus:bg-white focus:outline-none focus:ring-4 transition-all ${
                       mfaForm.formState.errors.mfaCode ? "border-red-300 focus:border-red-500 focus:ring-red-500/10" : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/10"
                     }`}
                     placeholder="000000"
                   />
                   <label 
                     htmlFor="mfaCode"
-                    className={`absolute left-4 top-2 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-2 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
+                    className={`absolute left-4 top-1.5 text-[10px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[10px] peer-focus:top-1.5 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
                       mfaForm.formState.errors.mfaCode ? "text-red-500 peer-focus:text-red-500" : "text-slate-500 peer-focus:text-blue-500"
                     }`}
                   >
@@ -431,7 +431,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-8 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 focus:ring-4 focus:ring-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full mt-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 focus:ring-4 focus:ring-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -443,7 +443,7 @@ export default function LoginPage() {
                 )}
               </button>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-3">
                 <button 
                   type="button" 
                   onClick={() => {
@@ -458,7 +458,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          <p className="mt-8 text-center text-slate-500 font-medium">
+          <p className="mt-5 text-center text-sm text-slate-500 font-medium">
             Don't have an account?{" "}
             <Link href="/signup" className="text-blue-600 font-bold hover:underline">
               Start free &rarr;

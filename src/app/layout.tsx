@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { ClerkProvider } from "@clerk/nextjs";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
+import CookieBanner from "@/components/legal/CookieBanner";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -95,6 +96,7 @@ export default function RootLayout({
 
         <body className="antialiased">
           <KeyboardShortcuts />
+          <CookieBanner />
           {children}
         </body>
       </html>
