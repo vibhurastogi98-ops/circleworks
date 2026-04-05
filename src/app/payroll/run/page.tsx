@@ -52,6 +52,11 @@ function fmtDate(d: string) {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 function RunHeader() {
   const { setShowApprovalModal, runState } = usePayrollRunStore();
+  const [exporting, setExporting] = useState(false);
+  const handleExport = () => {
+    setExporting(true);
+    setTimeout(() => setExporting(false), 1500);
+  };
   return (
     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
@@ -70,8 +75,8 @@ function RunHeader() {
         </div>
       </div>
       <div className="flex items-center gap-2 ml-[52px] lg:ml-0">
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-          <Eye size={15} /> Preview Report
+        <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
+          {exporting ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />} {exporting ? "Generating..." : "Preview Report"}
         </button>
         <button
           onClick={() => { setShowApprovalModal(true); }}
@@ -280,6 +285,11 @@ function FilterBar() {
   } = usePayrollRunStore();
 
   const departments = useMemo(() => [...new Set(employees.map((e) => e.department))].sort(), [employees]);
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const handleExportCsv = () => {
+    setExportingCsv(true);
+    setTimeout(() => setExportingCsv(false), 1500);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
@@ -319,8 +329,8 @@ function FilterBar() {
         </select>
 
         {/* Export */}
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
-          <Download size={15} /> Export CSV
+        <button onClick={handleExportCsv} disabled={exportingCsv} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed">
+          {exportingCsv ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {exportingCsv ? "Exporting..." : "Export CSV"}
         </button>
       </div>
 
@@ -586,10 +596,16 @@ function StickyBottomBar() {
   const allVerified = employees.every((e) => e.verifyStatus === "verified");
   const hasErrors = employees.some((e) => e.verifyStatus === "error");
   const [saved, setSaved] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
 
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handlePreview = () => {
+    setPreviewing(true);
+    setTimeout(() => setPreviewing(false), 1500);
   };
 
   return (
@@ -613,8 +629,8 @@ function StickyBottomBar() {
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"} border`}>
               {saved ? <><CheckCircle2 size={15} /> Saved!</> : <><Save size={15} /> Save Draft</>}
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-              <Eye size={15} /> Preview Full Report
+            <button onClick={handlePreview} disabled={previewing} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
+              {previewing ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />} {previewing ? "Generating..." : "Preview Full Report"}
             </button>
             <button onClick={() => setShowApprovalModal(true)} disabled={hasErrors || runState !== "draft"}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 disabled:transform-none">
