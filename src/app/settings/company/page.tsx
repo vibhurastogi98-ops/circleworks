@@ -1,22 +1,49 @@
 "use client";
 
-import React, { useState } from "react";
-import { Upload, Building2, Save, AlertTriangle } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Upload, Building2, Save, AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 import { mockCompanyProfile } from "@/data/mockSettings";
 import { toast } from "sonner";
 
 export default function CompanySettingsPage() {
   const [profile, setProfile] = useState(mockCompanyProfile);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
 
   const handleSave = () => {
+    // Persistent Context: Save signup progress/profile for dashboard and sidebar
     localStorage.setItem(
       "circleworks_signup_progress",
-      JSON.stringify({ data: { companyName: profile.legalName } })
+      JSON.stringify({ 
+        companyName: profile.legalName,
+        logoUrl: profile.logoUrl,
+        timestamp: new Date().toISOString()
+      })
     );
     toast.success("Company profile saved successfully.", {
        description: "The dashboard and sidebar will reflect these changes."
     });
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    
+    // Simulate upload delay
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTimeout(() => {
+        setProfile((prev) => ({ ...prev, logoUrl: reader.result as string }));
+        setIsUploading(false);
+        toast.success("Logo uploaded successfully!", {
+          description: "Preview updated. Remember to save changes."
+        });
+      }, 800);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -46,8 +73,23 @@ export default function CompanySettingsPage() {
                 )}
               </div>
               <div className="flex flex-col gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors">
-                  <Upload size={16} /> Upload New Logo
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                />
+                <button 
+                   disabled={isUploading}
+                   onClick={() => fileInputRef.current?.click()}
+                   className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <><Loader2 size={16} className="animate-spin" /> Uploading...</>
+                  ) : (
+                    <><Upload size={16} /> Upload New Logo</>
+                  )}
                 </button>
                 <p className="text-xs text-slate-500">Recommended: 512x512px transparent PNG or SVG.</p>
               </div>

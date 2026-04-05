@@ -35,7 +35,7 @@ export function useDashboardData() {
       kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
       alerts: [],
       payrollTrend: [],
-      quickActions: QUICK_ACTIONS,
+      quickActions: [],
       newHires: [],
       teamCalendar: [],
       activityFeed: [],
@@ -81,7 +81,7 @@ export function useDashboardData() {
       }
     ] as typeof ALERTS : ALERTS,
     payrollTrend: isNew ? PAYROLL_TREND.map(p => ({ ...p, gross: 0, taxes: 0, benefits: 0 })) : PAYROLL_TREND,
-    quickActions: QUICK_ACTIONS,
+    quickActions: isNew ? [] : QUICK_ACTIONS,
     newHires: isNew ? [] : NEW_HIRES,
     teamCalendar: isNew ? [
       { day: "Mon", date: 6, events: [] },

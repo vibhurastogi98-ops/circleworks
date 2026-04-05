@@ -10,7 +10,7 @@ export const mockCompanyProfile = {
   city: "San Francisco",
   state: "CA",
   zip: "94107",
-  logoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png",
+  logoUrl: "https://raw.githubusercontent.com/shadcn-ui/ui/main/apps/www/public/og.png", // Using a cleaner placeholder for now
 };
 
 export const mockLocations = [
