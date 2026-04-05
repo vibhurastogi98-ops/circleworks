@@ -38,20 +38,21 @@ function EmployeeCard({ node }: { node: OrgNodeData }) {
   );
 }
 
-// ✅ FIXED recursive renderer
-function renderNodes(nodes?: OrgNodeData[]): React.ReactNode {
+// ✅ Strong typed recursive renderer
+function renderNodes(nodes: OrgNodeData[] | undefined): React.ReactNode {
   if (!nodes || nodes.length === 0) return null;
 
-  return nodes.map((node) => (
+  return nodes.map((node: OrgNodeData) => (
     <TreeNode key={node.id} label={<EmployeeCard node={node} />}>
-      {node.children ? renderNodes(node.children) : null}
+      {renderNodes(node.children)}
     </TreeNode>
   ));
 }
 
 export default function OrgChartPage() {
-  // ✅ IMPORTANT FIX: explicit return type
-  const treeData = useMemo((): OrgNodeData | null => {
+
+  // ✅ CRITICAL FIX → explicit generic
+  const treeData = useMemo<OrgNodeData | null>(() => {
     const list = JSON.parse(JSON.stringify(mockEmployees)) as OrgNodeData[];
     const map = new Map<string, OrgNodeData>();
     let root: OrgNodeData | null = null;
@@ -101,8 +102,7 @@ export default function OrgChartPage() {
             nodePadding="24px"
             label={<EmployeeCard node={treeData} />}
           >
-            {/* ✅ FINAL FIX */}
-            {treeData.children ? renderNodes(treeData.children) : null}
+            {renderNodes(treeData.children)}
           </Tree>
         ) : (
           <div>No hierarchy found</div>

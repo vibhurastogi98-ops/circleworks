@@ -400,3 +400,81 @@ CREATE INDEX IF NOT EXISTS idx_time_entries_emp ON time_entries(employee_id);
 CREATE INDEX IF NOT EXISTS idx_time_entries_clock_in ON time_entries(clock_in);
 CREATE INDEX IF NOT EXISTS idx_shifts_emp ON shifts(employee_id);
 CREATE INDEX IF NOT EXISTS idx_shifts_date ON shifts(shift_date);
+
+-- =============================================================================
+-- 💸 EXPENSES & MILEAGE MODULE
+-- =============================================================================
+
+-- 25. EXPENSE REPORTS
+CREATE TABLE IF NOT EXISTS expense_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  company_id INTEGER,
+  title TEXT NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  total_amount INTEGER DEFAULT 0,
+  status TEXT CHECK(status IN ('Draft','Submitted','Approved','Rejected','Paid')) DEFAULT 'Draft',
+  sync_status TEXT CHECK(sync_status IN ('Synced','Pending','Error','N/A')) DEFAULT 'N/A',
+  submitted_at DATETIME,
+  approved_at DATETIME,
+  paid_at DATETIME,
+  rejection_note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 26. EXPENSE ITEMS
+CREATE TABLE IF NOT EXISTS expense_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id INTEGER NOT NULL,
+  date DATE NOT NULL,
+  merchant TEXT NOT NULL,
+  category TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  description TEXT,
+  receipt_url TEXT,
+  policy_status TEXT CHECK(policy_status IN ('Pass','Warn','Flag','Block')) DEFAULT 'Pass',
+  policy_note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(report_id) REFERENCES expense_reports(id) ON DELETE CASCADE
+);
+
+-- 27. EXPENSE POLICIES
+CREATE TABLE IF NOT EXISTS expense_policies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  category TEXT NOT NULL,
+  limit_amount INTEGER NOT NULL,
+  period TEXT CHECK(period IN ('Per Day','Per Trip','Per Month','Per Expense')) DEFAULT 'Per Expense',
+  receipt_threshold INTEGER DEFAULT 0,
+  pre_approval_threshold INTEGER,
+  violation_action TEXT CHECK(violation_action IN ('Warn','Block','Flag')) DEFAULT 'Warn',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 28. MILEAGE LOGS
+CREATE TABLE IF NOT EXISTS mileage_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  company_id INTEGER,
+  date DATE NOT NULL,
+  from_location TEXT NOT NULL,
+  to_location TEXT NOT NULL,
+  miles REAL NOT NULL,
+  purpose TEXT,
+  rate_per_mile REAL DEFAULT 0.67,
+  calculated_reimbursement REAL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- Indexes for Expense Module
+CREATE INDEX IF NOT EXISTS idx_expense_reports_emp ON expense_reports(employee_id);
+CREATE INDEX IF NOT EXISTS idx_expense_items_report ON expense_items(report_id);
+CREATE INDEX IF NOT EXISTS idx_mileage_logs_emp ON mileage_logs(employee_id);
+CREATE INDEX IF NOT EXISTS idx_expense_policies_company ON expense_policies(company_id);
