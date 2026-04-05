@@ -14,21 +14,25 @@ export default function CompanySettingsPage() {
   const [formData, setFormData] = useState({
     companyName: "",
     ein: "XX-XXXXXXX",
-    website: "https://circleworks.io",
-    address: "123 Main Street",
-    city: "San Francisco",
-    state: "CA",
-    zip: "94105",
+    website: "https://",
+    email: "admin@company.com",
+    phone: "+1 (555) 000-0000",
+    address: "---",
+    city: "---",
+    state: "--",
+    zip: "-----",
   });
 
   useEffect(() => {
-    if (currentUser?.companyName && currentUser.companyName !== formData.companyName) {
+    if (user) {
+      const emailDomain = user.primaryEmailAddress?.emailAddress.split("@")[1] || "company.com";
       setFormData(prev => ({
         ...prev,
-        companyName: currentUser.companyName
+        companyName: currentUser?.companyName || "Your Company",
+        email: `hr@${emailDomain}`,
       }));
     }
-  }, [currentUser?.companyName]);
+  }, [user, currentUser?.companyName]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -38,13 +42,12 @@ export default function CompanySettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           companyName: formData.companyName,
-          // Other fields could go here too if we update the API to handle them
+          // In a real app we would save all other fields too
         }),
       });
 
       if (!response.ok) throw new Error("Failed to update settings");
       
-      // Update Clerk user's metadata locally if possible or wait for sync
       if (user) {
         await user.reload();
       }
@@ -135,19 +138,39 @@ export default function CompanySettingsPage() {
             <div className="p-6 grid grid-cols-1 md:grid-cols-6 gap-6">
               <div className="space-y-1.5 md:col-span-6">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">Street Address</label>
-                <input type="text" defaultValue="123 Main Street" className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                <input 
+                  type="text" 
+                  value={formData.address} 
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
               </div>
               <div className="space-y-1.5 md:col-span-3">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">City</label>
-                <input type="text" defaultValue="San Francisco" className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                <input 
+                  type="text" 
+                  value={formData.city} 
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
               </div>
               <div className="space-y-1.5 md:col-span-1">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">State</label>
-                <input type="text" defaultValue="CA" className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                <input 
+                  type="text" 
+                  value={formData.state} 
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest pl-1">Zip Code</label>
-                <input type="text" defaultValue="94105" className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" />
+                <input 
+                  type="text" 
+                  value={formData.zip} 
+                  onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 transition-all" 
+                />
               </div>
             </div>
           </div>
@@ -171,13 +194,29 @@ export default function CompanySettingsPage() {
               <h3 className="font-bold text-slate-800 dark:text-slate-200">Contact Details</h3>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Mail size={16} className="text-slate-400" />
-                <span className="text-sm font-bold text-slate-900 dark:text-white">hr@circleworks.inc</span>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Support Email</label>
+                <div className="flex items-center gap-3">
+                  <Mail size={16} className="text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={formData.email} 
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-transparent border-0 p-0 text-sm font-bold text-slate-900 dark:text-white focus:ring-0" 
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Phone size={16} className="text-slate-400" />
-                <span className="text-sm font-bold text-slate-900 dark:text-white">+1 (555) 123-4567</span>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Support Phone</label>
+                <div className="flex items-center gap-3">
+                  <Phone size={16} className="text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={formData.phone} 
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full bg-transparent border-0 p-0 text-sm font-bold text-slate-900 dark:text-white focus:ring-0" 
+                  />
+                </div>
               </div>
             </div>
           </div>
