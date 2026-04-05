@@ -17,9 +17,11 @@ export function useDashboardData() {
   // Retrieve company data from localStorage early to avoid '---' flickering
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
   const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.companyName : null;
+  const localLogoUrl = signupProgress ? JSON.parse(signupProgress)?.logoUrl : null;
   const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
   const clerkLogoUrl = user?.publicMetadata?.companyLogoUrl as string | undefined;
   const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
+  const displayLogoUrl = clerkLogoUrl || localLogoUrl;
 
   // If still loading Clerk, return a skeleton/loading state but with the derived company name
   if (!isLoaded) {
@@ -29,7 +31,7 @@ export function useDashboardData() {
         firstName: "---", 
         lastName: "", 
         companyName: displayCompanyName,
-        logoUrl: clerkLogoUrl,
+        logoUrl: displayLogoUrl,
       },
       nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
       kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
@@ -54,7 +56,7 @@ export function useDashboardData() {
       firstName: user?.firstName || "Welcome",
       lastName: user?.lastName || "",
       companyName: displayCompanyName,
-      logoUrl: clerkLogoUrl,
+      logoUrl: displayLogoUrl,
     },
     nextPayroll: isNew ? {
       date: "Pending Setup",
