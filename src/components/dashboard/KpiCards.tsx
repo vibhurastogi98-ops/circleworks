@@ -10,6 +10,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { KPI_CARDS, KpiCard } from "@/data/dashboard";
+import { useDashboardData } from "@/hooks/useDashboardData";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -149,9 +150,10 @@ function KpiCardComponent({ card, index }: { card: KpiCard; index: number }) {
 }
 
 export default function KpiCards() {
+  const { kpiCards } = useDashboardData();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      {KPI_CARDS.map((card, i) => (
+      {kpiCards.map((card, i) => (
         <KpiCardComponent key={card.id} card={card} index={i} />
       ))}
     </div>

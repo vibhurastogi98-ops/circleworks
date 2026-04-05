@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import { TEAM_CALENDAR } from "@/data/dashboard";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 export default function TeamCalendar() {
+  const { teamCalendar } = useDashboardData();
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -21,7 +23,7 @@ export default function TeamCalendar() {
       </div>
 
       <div className="grid grid-cols-5 gap-2">
-        {TEAM_CALENDAR.map((day, i) => (
+        {teamCalendar.map((day, i) => (
           <motion.div
             key={day.day}
             initial={{ opacity: 0, y: 8 }}

@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { CalendarDays } from "lucide-react";
 import { PAYROLL_TREND } from "@/data/dashboard";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 const DATE_RANGES = ["3 months", "6 months", "12 months"] as const;
 
@@ -59,6 +60,7 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export default function PayrollChart() {
   const [range, setRange] = useState<(typeof DATE_RANGES)[number]>("6 months");
+  const { payrollTrend } = useDashboardData();
 
   return (
     <motion.div
@@ -100,7 +102,7 @@ export default function PayrollChart() {
       {/* Chart */}
       <div className="flex-1 min-h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={PAYROLL_TREND} barGap={2} barCategoryGap="20%">
+          <BarChart data={payrollTrend} barGap={2} barCategoryGap="20%">
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="currentColor"

@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { Calendar, Eye, Play, Loader2 } from "lucide-react";
-import { CURRENT_USER, NEXT_PAYROLL } from "@/data/dashboard";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -14,16 +14,17 @@ function getGreeting(): string {
 
 export default function GreetingRow() {
   const { isPayrollRunning, setPayrollRunning } = usePlatformStore();
+  const { currentUser, nextPayroll } = useDashboardData();
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-start gap-4">
       {/* Greeting */}
       <div className="flex-1">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-          {getGreeting()}, {CURRENT_USER.firstName}.
+          {getGreeting()}, {currentUser.firstName}.
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Here&apos;s what&apos;s happening at Acme Corp today.
+          Here&apos;s what&apos;s happening at {currentUser.companyName || "your workspace"} today.
         </p>
       </div>
 
@@ -45,8 +46,8 @@ export default function GreetingRow() {
                 Payroll Processing
               </p>
               <p className="text-xs text-blue-600/80 dark:text-blue-400/70">
-                {NEXT_PAYROLL.employeeCount} employees &middot; Est.{" "}
-                ${NEXT_PAYROLL.estimatedTotal.toLocaleString()}
+                {nextPayroll.employeeCount} employees &middot; Est.{" "}
+                ${nextPayroll.estimatedTotal.toLocaleString()}
               </p>
             </div>
           </div>
@@ -62,11 +63,11 @@ export default function GreetingRow() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-slate-900 dark:text-white">
-              Next Payroll: {NEXT_PAYROLL.date}
+              Next Payroll: {nextPayroll.date}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {NEXT_PAYROLL.daysAway} days away &middot; Est.{" "}
-              ${NEXT_PAYROLL.estimatedTotal.toLocaleString()}
+              {nextPayroll.daysAway} days away &middot; Est.{" "}
+              ${nextPayroll.estimatedTotal.toLocaleString()}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

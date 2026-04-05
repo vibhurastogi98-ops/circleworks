@@ -10,6 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { ALERTS, AlertItem, AlertSeverity } from "@/data/dashboard";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 const SEVERITY_STYLES: Record<
   AlertSeverity,
@@ -90,8 +91,9 @@ function AlertCard({ alert, onDismiss }: { alert: AlertItem; onDismiss: (id: str
 
 export default function AlertsPanel() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const { alerts } = useDashboardData();
 
-  const visibleAlerts = ALERTS.filter((a) => !dismissedIds.has(a.id));
+  const visibleAlerts = alerts.filter((a) => !dismissedIds.has(a.id));
 
   if (visibleAlerts.length === 0) return null;
 
