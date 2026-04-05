@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getCaseById, OnboardingTask } from "@/data/mockOnboarding";
 import { ChevronLeft, CheckCircle2, Circle, SkipForward, Bell, Eye, User, Briefcase, Monitor, UserCheck } from "lucide-react";
+import { toast } from "sonner";
 
 const ROLE_ICON: Record<string, React.ElementType> = {
   HR: UserCheck,
@@ -63,10 +64,14 @@ export default function IndividualOnboarding() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
+          <button 
+            onClick={() => toast.success("Preview Portal opened in a new tab")}
+            className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
             <Eye size={16} /> Preview Portal
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
+          <button 
+            onClick={() => toast.success("Reminder sent successfully to " + onboardingCase.employeeName)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
             <Bell size={16} /> Send Reminder
           </button>
         </div>
