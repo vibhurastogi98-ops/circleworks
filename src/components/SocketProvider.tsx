@@ -29,10 +29,12 @@ export default function SocketProvider({ children }: { children: React.ReactNode
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
     
     const socketInstance = io(socketUrl, {
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      transports: ["websocket", "polling"], // Try websocket first to avoid XHR polling errors
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
       randomizationFactor: 0.5,
+      autoConnect: true,
       auth: {
         token: "clerk-auth-token-placeholder", // In production, pass Clerk JWT
         userId: user.id,
@@ -55,7 +57,8 @@ export default function SocketProvider({ children }: { children: React.ReactNode
     });
 
     socketInstance.on("connect_error", (err) => {
-      console.error("❌ WebSocket Connection Error:", err.message);
+      // Rule: Downgrade to console.warn to prevent Next.js Red Screen of Death in development
+      console.warn("⚠️ WebSocket Connection Unavailable:", err.message);
       // Don't toast on every retry to avoid spamming
     });
 
