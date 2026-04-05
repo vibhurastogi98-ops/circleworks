@@ -4,7 +4,11 @@ import React, { useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { mockEmployees, Employee } from "@/data/mockEmployees";
-import { Tree, TreeNode } from "react-organizational-chart";
+import dynamic from "next/dynamic";
+
+// ✅ CRITICAL SSR FIX: Import library dynamically with ssr: false
+const Tree = dynamic<any>(() => import("react-organizational-chart").then((mod) => mod.Tree), { ssr: false });
+const TreeNode = dynamic<any>(() => import("react-organizational-chart").then((mod) => mod.TreeNode), { ssr: false });
 
 interface OrgNodeData extends Employee {
   children?: OrgNodeData[];
@@ -50,6 +54,11 @@ function renderNodes(nodes: OrgNodeData[] | undefined): React.ReactNode {
 }
 
 export default function OrgChartPage() {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ✅ CRITICAL FIX → explicit generic
   const treeData = useMemo<OrgNodeData | null>(() => {
@@ -93,8 +102,13 @@ export default function OrgChartPage() {
       </div>
 
       {/* Chart */}
-      <div className="flex-1 flex items-center justify-center bg-white rounded-xl p-8">
-        {treeData ? (
+      <div className="flex-1 flex items-center justify-center bg-white rounded-xl p-8 overflow-auto">
+        {!mounted ? (
+          <div className="flex flex-col items-center gap-3">
+             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+             <p className="text-sm text-slate-500 font-medium tracking-tight">Initializing hierarchy...</p>
+          </div>
+        ) : treeData ? (
           <Tree
             lineWidth="2px"
             lineColor="#cbd5e1"

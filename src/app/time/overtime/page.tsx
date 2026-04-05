@@ -7,6 +7,12 @@ import { mockOvertimeEmployees, mockOtMonthlyTrend } from "@/data/mockTime";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ComposedChart, Legend } from "recharts";
 
 export default function OvertimePage() {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const criticalCount = mockOvertimeEmployees.filter(e => e.riskLevel === "critical").length;
   const warningCount = mockOvertimeEmployees.filter(e => e.riskLevel === "warning").length;
   const totalOtCost = mockOvertimeEmployees.reduce((s, e) => s + e.otCost, 0);
@@ -91,19 +97,23 @@ export default function OvertimePage() {
             <TrendingUp size={18} className="text-violet-500" /> Monthly OT Trend
           </h3>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={mockOtMonthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                <YAxis yAxisId="cost" tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                <YAxis yAxisId="hours" orientation="right" tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `${v}h`} />
-                <Tooltip formatter={(value: any, name: any) => [name === "otCost" || name === "budget" ? `$${Number(value).toLocaleString()}` : `${value}h`, name === "otCost" ? "OT Cost" : name === "budget" ? "Budget" : "OT Hours"]} />
-                <Legend />
-                <Bar yAxisId="hours" dataKey="otHours" name="OT Hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Line yAxisId="cost" type="monotone" dataKey="otCost" name="OT Cost" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
-                <Line yAxisId="cost" type="monotone" dataKey="budget" name="Budget" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={mockOtMonthlyTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                  <YAxis yAxisId="cost" tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis yAxisId="hours" orientation="right" tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `${v}h`} />
+                  <Tooltip formatter={(value: any, name: any) => [name === "otCost" || name === "budget" ? `$${Number(value).toLocaleString()}` : `${value}h`, name === "otCost" ? "OT Cost" : name === "budget" ? "Budget" : "OT Hours"]} />
+                  <Legend />
+                  <Bar yAxisId="hours" dataKey="otHours" name="OT Hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="cost" type="monotone" dataKey="otCost" name="OT Cost" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line yAxisId="cost" type="monotone" dataKey="budget" name="Budget" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-xl" />
+            )}
           </div>
         </div>
       </div>
