@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Download,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 
 import UpcomingRunCard from "@/components/payroll/UpcomingRunCard";
@@ -175,6 +176,12 @@ export default function PayrollPage() {
     router.push("/payroll/run");
   }, [router]);
 
+  const [exporting, setExporting] = useState(false);
+  const handleExport = () => {
+    setExporting(true);
+    setTimeout(() => setExporting(false), 1500);
+  };
+
   const handlePreviewRun = useCallback(() => {
     router.push("/payroll/run");
   }, [router]);
@@ -212,10 +219,10 @@ export default function PayrollPage() {
             Refresh
           </button>
 
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-            <Download size={15} />
-            Export
-            <ChevronDown size={13} />
+          <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
+            {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {exporting ? "Exporting..." : "Export"}
+            {!exporting && <ChevronDown size={13} />}
           </button>
         </div>
       </div>

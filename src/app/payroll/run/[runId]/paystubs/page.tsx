@@ -1,7 +1,28 @@
 "use client";
 import React from "react";
-import { Download, Search, FileText } from "lucide-react";
+import { Download, Search, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+
+function PaystubDownloadButton({ type = "PDF" }: { type?: "PDF" | "ZIP" }) {
+  const [downloading, setDownloading] = useState(false);
+  const isZip = type === "ZIP";
+  
+  return (
+    <button 
+      onClick={() => { setDownloading(true); setTimeout(() => setDownloading(false), 1500); }} 
+      disabled={downloading}
+      className={
+        isZip 
+          ? "px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+          : "w-full py-2 bg-slate-50 text-slate-700 font-semibold text-sm rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+      }
+    >
+      {downloading ? <Loader2 size={isZip ? 16 : 14} className="animate-spin" /> : <Download size={isZip ? 16 : 14} />} 
+      {downloading ? `Generating ${type}...` : `Download ${isZip ? "All (ZIP)" : "PDF"}`}
+    </button>
+  );
+}
 
 export default function PaystubsPage({ params }: { params: { runId: string } }) {
   const stubs = [
@@ -21,9 +42,7 @@ export default function PaystubsPage({ params }: { params: { runId: string } }) 
           </h1>
           <p className="text-sm text-slate-500 mt-1 ml-[52px]">View and download paystubs for this run.</p>
         </div>
-        <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2">
-          <Download size={16} /> Download All (ZIP)
-        </button>
+        <PaystubDownloadButton type="ZIP" />
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 shadow-sm p-6 mt-4">
@@ -45,9 +64,7 @@ export default function PaystubsPage({ params }: { params: { runId: string } }) 
                    <p className="font-extrabold text-slate-900">{s.net}</p>
                  </div>
                </div>
-               <button className="w-full py-2 bg-slate-50 text-slate-700 font-semibold text-sm rounded-lg border border-slate-200 group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-700 transition-colors flex justify-center items-center gap-2">
-                 <Download size={14} /> Download PDF
-               </button>
+               <PaystubDownloadButton type="PDF" />
              </div>
           ))}
         </div>

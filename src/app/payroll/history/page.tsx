@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Search, Calendar, FileText, Filter, CheckCircle2 } from "lucide-react";
+import { Download, Search, Calendar, FileText, Filter, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const HISTORY = [
@@ -15,6 +15,11 @@ function fmt(n: number) { return new Intl.NumberFormat("en-US", { style: "curren
 
 export default function HistoryPage() {
   const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const handleExport = () => {
+    setExporting(true);
+    setTimeout(() => setExporting(false), 1500);
+  };
   return (
     <div className="flex flex-col gap-6 pb-24">
       <div className="flex items-center justify-between">
@@ -25,8 +30,9 @@ export default function HistoryPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1 ml-[52px]">View all past payroll runs, export reports, and access historical data.</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-900 dark:text-white">
-          <Download size={16} /> Export to Excel
+        <button onClick={handleExport} disabled={exporting} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-900 dark:text-white disabled:opacity-70 disabled:cursor-not-allowed">
+          {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} 
+          {exporting ? "Generating Excel..." : "Export to Excel"}
         </button>
       </div>
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Download, FileText, CheckCircle2, Building2 } from "lucide-react";
 import Link from "next/link";
+import RunExportButton from "@/components/payroll/run/RunExportButton";
 
 export default async function RunDetailPage({ params }: { params: { runId: string } }) {
   const { runId } = await params;
@@ -19,9 +20,7 @@ export default async function RunDetailPage({ params }: { params: { runId: strin
           <Link href={`/payroll/run/${runId}/paystubs`} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 dark:text-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm font-bold rounded-xl shadow-sm flex items-center gap-2 hover:bg-slate-50">
             <FileText size={16} /> View Paystubs
           </Link>
-          <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2">
-            <Download size={16} /> Download Journal Entry (CSV)
-          </button>
+          <RunExportButton />
         </div>
       </div>
 
