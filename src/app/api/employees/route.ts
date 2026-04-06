@@ -1,11 +1,38 @@
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { employees } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
+import { desc } from "drizzle-orm";
+
+export async function GET() {
+  try {
+    const allEmployees = await db.query.employees.findMany({
+      orderBy: [desc(employees.createdAt)],
+    });
+    return NextResponse.json(allEmployees);
+  } catch (error: any) {
+    console.error("[Employees GET Error]", error);
+    return NextResponse.json({ error: "Failed to fetch employees" }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { firstName, lastName, email, companyName, startDate } = body;
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      companyName, 
+      startDate, 
+      companyId,
+      jobTitle,
+      department,
+      location,
+      locationType,
+      avatar 
+    } = body;
 
     // 1. INPUT VALIDATION
     if (!email || !firstName) {
@@ -13,23 +40,35 @@ export async function POST(req: Request) {
     }
 
     // -------------------------------------------------------------
-    // 2. DATABASE CREATION LOGIC (Mocked out for this snippet)
+    // 2. DATABASE CREATION LOGIC
     // -------------------------------------------------------------
-    // e.g. const newEmployee = await db.insert(employees).values({ ... })
-    const employeeId = `emp_${Math.random().toString(36).substr(2, 9)}`; 
+    const [newEmployee] = await db.insert(employees).values({
+      firstName,
+      lastName: lastName || null,
+      email,
+      companyId: companyId || null,
+      jobTitle: jobTitle || null,
+      department: department || null,
+      location: location || null,
+      locationType: locationType || "On-Site",
+      avatar: avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${firstName}&backgroundColor=transparent`,
+      startDate: startDate || null,
+      status: "onboarding",
+    }).returning();
+
+    const employeeId = newEmployee.id.toString();
     
     console.log(`[Database] Created employee record for: ${email} with ID: ${employeeId}`);
 
     // -------------------------------------------------------------
     // 3. GENERATE ONBOARDING SECURE TOKEN
     // -------------------------------------------------------------
-    // Token embeds the employee ID directly, rendering DB Lookups unnecessary later.
     const token = await generateInviteToken({ employeeId, email });
     const appUrl = process.env.APP_URL || "http://localhost:3000";
     const onboardLink = `${appUrl}/welcome/${token}`;
 
     // -------------------------------------------------------------
-    // 4. CONSTRUCT EMAIL TEMPLATE (CLEAN HTML)
+    // 4. CONSTRUCT EMAIL TEMPLATE
     // -------------------------------------------------------------
     const htmlTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -51,16 +90,12 @@ export async function POST(req: Request) {
           If the button doesn't work, copy and paste this link into your browser:<br>
           <a href="${onboardLink}" style="color: #2563eb;">${onboardLink}</a>
         </p>
-        <p style="color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 20px;">
-          This link is secure and will safely expire in 72 hours.
-        </p>
       </div>
     `;
 
     // -------------------------------------------------------------
     // 5. ASYNC POSTMARK DISPATCH
     // -------------------------------------------------------------
-    // Does NOT block the promise flow - will gracefully log errors via try/catch inside lib wrapper.
     await sendEmail({
       to: email,
       subject: `You're invited to join ${companyName || 'the team'}`,
