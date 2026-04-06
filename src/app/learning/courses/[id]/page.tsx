@@ -22,13 +22,16 @@ import {
   Zap
 } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { mockCourses } from "@/data/mockLearning";
 
-export default function CourseDetailPage({ params }: { params: { id: string } }) {
+export default function CourseDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const course = mockCourses.find(c => c.id === params.id) || mockCourses[0];
+  const course = mockCourses.find(c => c.id === id) || mockCourses[0];
   const completedCount = course.modules.filter(m => m.completed).length;
   const progressPercent = Math.round((completedCount / course.modules.length) * 100);
 
