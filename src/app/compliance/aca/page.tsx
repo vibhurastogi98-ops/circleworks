@@ -12,6 +12,12 @@ import {
 import { acaEmployees, fteMonthlyData } from "@/data/mockCompliance";
 
 export default function ACAPage() {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const ftCount = acaEmployees.filter((e) => e.status === "full-time").length;
   const ptCount = acaEmployees.filter((e) => e.status === "part-time").length;
   const varCount = acaEmployees.filter((e) => e.status === "variable").length;
@@ -133,25 +139,29 @@ export default function ACAPage() {
           <span className="text-xs text-slate-500 font-medium">2026 Calendar Year</span>
         </div>
         <div className="p-6 h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={fteMonthlyData} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#0f172a",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  color: "#fff",
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Bar dataKey="ftCount" name="Full-Time" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="ptCount" name="Part-Time" fill="#a78bfa" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {mounted ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={fteMonthlyData} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "#fff",
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+                <Bar dataKey="ftCount" name="Full-Time" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="ptCount" name="Part-Time" fill="#a78bfa" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-xl" />
+          )}
         </div>
       </div>
 

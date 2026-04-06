@@ -60,8 +60,13 @@ function CustomTooltip({ active, payload, label }: any) {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export default function PayrollChart() {
+  const [mounted, setMounted] = useState(false);
   const [range, setRange] = useState<(typeof DATE_RANGES)[number]>("6 months");
   const { payrollTrend } = useDashboardData();
+
+  useState(() => {
+    setMounted(true);
+  });
 
   return (
     <motion.div
@@ -101,41 +106,45 @@ export default function PayrollChart() {
       </div>
 
       {/* Chart */}
-      <div className="flex-1 min-h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={payrollTrend} barGap={2} barCategoryGap="20%">
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="currentColor"
-              className="text-slate-100 dark:text-slate-700/50"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="month"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fontWeight: 600, fill: "#94A3B8" }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: "#94A3B8" }}
-              tickFormatter={formatCurrency}
-              width={50}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-            <Legend
-              verticalAlign="top"
-              align="right"
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{ paddingBottom: 8, fontSize: 12, fontWeight: 600 }}
-            />
-            <Bar dataKey="gross" name="Gross" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="taxes" name="Taxes" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="benefits" name="Benefits" fill="#10B981" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="flex-1 min-h-[260px] relative">
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={payrollTrend} barGap={2} barCategoryGap="20%">
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="currentColor"
+                className="text-slate-100 dark:text-slate-700/50"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fontWeight: 600, fill: "#94A3B8" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#94A3B8" }}
+                tickFormatter={formatCurrency}
+                width={50}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ paddingBottom: 8, fontSize: 12, fontWeight: 600 }}
+              />
+              <Bar dataKey="gross" name="Gross" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="taxes" name="Taxes" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="benefits" name="Benefits" fill="#10B981" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full bg-slate-50/50 dark:bg-slate-900/50 animate-pulse rounded-lg" />
+        )}
       </div>
     </motion.div>
   );
