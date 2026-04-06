@@ -13,6 +13,8 @@ import { useSidebarStore } from "@/store/useSidebarStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { toast } from "sonner";
 import Breadcrumb from "./Breadcrumb";
+import NotificationPanel from "@/components/notifications/NotificationPanel";
+import { useNotificationStore } from "@/store/useNotificationStore";
 
 export default function EmployeeTopBar() {
   const pathname = usePathname() || "/me";
@@ -26,8 +28,10 @@ export default function EmployeeTopBar() {
   const { toggleSidebar } = useSidebarStore();
 
   const { isDarkMode, toggleDarkMode } = usePlatformStore();
+  const { unreadCount } = useNotificationStore();
 
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,10 +93,16 @@ export default function EmployeeTopBar() {
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {/* Notifications */}
           <button
-            onClick={() => toast("Notifications", { description: "No new notifications.", icon: <Bell className="w-4 h-4 text-slate-500" /> })}
+            onClick={() => setIsNotificationsOpen(true)}
             className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors relative"
           >
             <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 flex w-2.5 h-2.5 justify-center items-center">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+            )}
           </button>
 
           {/* Dark Mode */}
@@ -144,6 +154,9 @@ export default function EmployeeTopBar() {
           </div>
         </div>
       </header>
+
+      {/* Slide-in Notification Panel */}
+      <NotificationPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
     </div>
   );
 }

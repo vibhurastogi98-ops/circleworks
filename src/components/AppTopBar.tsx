@@ -14,6 +14,8 @@ import { usePlatformStore } from "@/store/usePlatformStore";
 import { useDataSync } from "@/hooks/useDataSync";
 import { toast } from "sonner";
 import Breadcrumb from "./Breadcrumb";
+import NotificationPanel from "@/components/notifications/NotificationPanel";
+import { useNotificationStore } from "@/store/useNotificationStore";
 
 export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
@@ -38,8 +40,10 @@ export default function AppTopBar() {
     setPayrollRunning
   } = usePlatformStore();
   const { notifyPayrollComplete } = useDataSync();
+  const { unreadCount } = useNotificationStore();
 
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
 
   // Sync dark mode class with DOM (safely on client only)
@@ -84,10 +88,7 @@ export default function AppTopBar() {
   };
 
   const openNotificationPanel = () => {
-    toast("Notifications", {
-      description: "Notification panel is currently empty.",
-      icon: <Bell className="w-4 h-4 text-slate-500" />
-    });
+    setIsNotificationsOpen(true);
   };
 
   // Derive Page Title & Breadcrumbs safely
@@ -215,7 +216,12 @@ export default function AppTopBar() {
             aria-label="View Notifications"
           >
             <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 border border-white dark:border-slate-900 animate-pulse" />
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 flex w-2.5 h-2.5 justify-center items-center">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+            )}
           </button>
 
           {/* 4. Dark Mode Toggle */}
@@ -317,6 +323,9 @@ export default function AppTopBar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Slide-in Notification Panel */}
+      <NotificationPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
     </div>
   );
 }
