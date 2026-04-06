@@ -96,6 +96,11 @@ export default function AppSidebar() {
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     "Payroll": false
   });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Derive display info from Clerk user
   const displayName = user?.fullName || user?.firstName || "User";
@@ -147,7 +152,7 @@ export default function AppSidebar() {
         {/* HEADER */}
         <div className="h-[72px] min-h-[72px] flex items-center px-4 border-b border-slate-200 dark:border-slate-800 relative group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 dark:border-slate-700">
-             {currentUser?.logoUrl ? (
+             {mounted && currentUser?.logoUrl ? (
                <img src={currentUser.logoUrl} alt="Logo" className="w-full h-full object-contain" />
              ) : (
                <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-sm flex items-center justify-center">
@@ -157,7 +162,9 @@ export default function AppSidebar() {
           </div>
           
           <div className="ml-3 flex-1 flex flex-col justify-center overflow-hidden lg:hidden xl:flex transition-opacity duration-300">
-             <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{currentUser.companyName || "Your Company"}</span>
+             <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">
+                {mounted ? (currentUser.companyName || "Your Company") : "CircleWorks"}
+             </span>
              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                Switch company
                <ChevronDown size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -166,7 +173,7 @@ export default function AppSidebar() {
 
           {/* Tooltip for 72px state */}
           <div className="absolute left-[78px] px-2 py-1 bg-slate-800 text-white text-[12px] font-medium rounded opacity-0 invisible lg:group-hover:opacity-100 lg:group-hover:visible xl:hidden z-50 whitespace-nowrap shadow-lg whitespace-nowrap">
-             {currentUser.companyName || "Your Company"}
+             {mounted ? (currentUser.companyName || "Your Company") : "CircleWorks"}
           </div>
         </div>
 
