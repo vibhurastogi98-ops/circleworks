@@ -38,7 +38,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Payroll", 
     icon: DollarSign, 
     href: "/payroll",
-    badge: "DRAFT",
     subItems: [
       { label: "Overview", href: "/payroll" },
       { label: "Run Payroll", href: "/payroll/run" },
@@ -51,17 +50,16 @@ const NAV_ITEMS: NavItem[] = [
     ]
   },
   { label: "Employees", icon: Users, href: "/employees" },
-  { label: "Hiring", icon: Briefcase, href: "/hiring", badgeCount: 3 },
-  { label: "Onboarding", icon: UserPlus, href: "/onboarding", badgeCount: 5 },
+  { label: "Hiring", icon: Briefcase, href: "/hiring" },
+  { label: "Onboarding", icon: UserPlus, href: "/onboarding" },
   { label: "Benefits", icon: Heart, href: "/benefits" },
-  { label: "Time", icon: Clock, href: "/time", badgeCount: 2 },
-  { label: "Expenses", icon: Receipt, href: "/expenses", badgeCount: 1 },
+  { label: "Time", icon: Clock, href: "/time" },
+  { label: "Expenses", icon: Receipt, href: "/expenses" },
   { label: "Performance", icon: Target, href: "/performance" },
   { 
     label: "Compliance", 
     icon: Shield, 
     href: "/compliance/dashboard",
-    badgeCritical: 1,
     subItems: [
       { label: "Dashboard", href: "/compliance/dashboard" },
       { label: "Tax Filings", href: "/compliance/tax-filings" },

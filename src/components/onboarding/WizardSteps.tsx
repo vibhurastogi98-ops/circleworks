@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Check, User, MapPin, Briefcase, DollarSign, FileText, CheckCircle, ArrowRight, ArrowLeft, Building, CreditCard, ShieldCheck, PenTool } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import NewHirePacket from "@/lib/newHirePacket";
+import NewHirePacket from "@/components/onboarding/NewHirePacket";
 
 interface StepProps {
   onNext: (data: any) => void;

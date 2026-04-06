@@ -2,9 +2,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// Register a cleaner font if needed, otherwise use defaults
-// Font.register({ family: 'Inter', src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2' });
-
 const styles = StyleSheet.create({
   page: {
     padding: 60,
@@ -141,7 +138,7 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
         <Text style={styles.text}>
           Your primary workstations and accounts have been provisioned. Please follow these steps to activate your access:
         </Text>
-        <View style={styles.list}>
+        <div style={styles.list}>
           <View style={styles.listItem}>
             <Text style={styles.bullet}>1.</Text>
             <Text style={styles.text}>Connect to the "CW-Internal" Wi-Fi network.</Text>
@@ -154,7 +151,7 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
             <Text style={styles.bullet}>3.</Text>
             <Text style={styles.text}>Set up Multi-Factor Authentication (MFA) via the Okta dashboard.</Text>
           </View>
-        </View>
+        </div>
       </View>
 
       {/* HR Contact */}

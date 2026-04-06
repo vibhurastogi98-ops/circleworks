@@ -44,27 +44,30 @@ export function useDashboardData() {
     };
   }
 
-  // Consider user "new" if created within the last 48 hours OR if we have signup progress in localStorage
-  const isNew = user 
-    ? (Date.now() - new Date(user.createdAt!).getTime() < 48 * 60 * 60 * 1000) || !!signupProgress
-    : !!signupProgress;
+  // IMPROVED LOGIC: Strictly show empty states for new users unless they have explicit data
+  // or we want to force mocks for demo purposes.
+  const clerkHasData = !!user?.publicMetadata?.hasData;
+  const showMocks = clerkHasData || (typeof window !== 'undefined' && window.location.search.includes("mock=true"));
+  
+  // Is it a new environment? No data in Clerk yet.
+  const isEmpty = !showMocks;
 
   return {
     isLoading: false,
-    isNewUser: isNew,
+    isNewUser: isEmpty,
     currentUser: {
       firstName: user?.firstName || "Welcome",
       lastName: user?.lastName || "",
       companyName: displayCompanyName,
       logoUrl: displayLogoUrl,
     },
-    nextPayroll: isNew ? {
+    nextPayroll: isEmpty ? {
       date: "Pending Setup",
       daysAway: 0,
       estimatedTotal: 0,
       employeeCount: 0,
     } : NEXT_PAYROLL,
-    kpiCards: isNew ? KPI_CARDS.map(card => ({
+    kpiCards: isEmpty ? KPI_CARDS.map(card => ({
       ...card,
       value: card.format === "score" ? "100" : (card.format === "currency" ? "$0" : "0"),
       trend: 0,
@@ -72,7 +75,7 @@ export function useDashboardData() {
       sparklineData: [0, 0, 0, 0, 0, 0, 0],
       scoreColor: "green" as const,
     })) : KPI_CARDS,
-    alerts: isNew ? [
+    alerts: isEmpty ? [
       {
         id: "alert-new-1",
         severity: "info",
@@ -82,16 +85,16 @@ export function useDashboardData() {
         actionLabel: "Add Employee",
       }
     ] as typeof ALERTS : ALERTS,
-    payrollTrend: isNew ? PAYROLL_TREND.map(p => ({ ...p, gross: 0, taxes: 0, benefits: 0 })) : PAYROLL_TREND,
-    quickActions: isNew ? [] : QUICK_ACTIONS,
-    newHires: isNew ? [] : NEW_HIRES,
-    teamCalendar: isNew ? [
+    payrollTrend: isEmpty ? PAYROLL_TREND.map(p => ({ ...p, gross: 0, taxes: 0, benefits: 0 })) : PAYROLL_TREND,
+    quickActions: isEmpty ? [] : QUICK_ACTIONS,
+    newHires: isEmpty ? [] : NEW_HIRES,
+    teamCalendar: isEmpty ? [
       { day: "Mon", date: 6, events: [] },
       { day: "Tue", date: 7, isToday: true, events: [] },
       { day: "Wed", date: 8, events: [] },
       { day: "Thu", date: 9, events: [] },
       { day: "Fri", date: 10, events: [] },
     ] : TEAM_CALENDAR,
-    activityFeed: isNew ? [] : ACTIVITY_FEED,
+    activityFeed: isEmpty ? [] : ACTIVITY_FEED,
   };
 }
