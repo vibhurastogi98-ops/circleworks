@@ -14,7 +14,19 @@ export async function GET() {
     return NextResponse.json(allEmployees);
   } catch (error: any) {
     console.error("[Employees GET Error]", error);
-    return NextResponse.json({ error: "Failed to fetch employees" }, { status: 500 });
+    
+    // Check for specific database connection errors
+    if (error.code === 'ECONNREFUSED' || error.message?.includes('DATABASE_URL')) {
+      return NextResponse.json({ 
+        error: "Database Connection Error", 
+        message: "The application could not connect to the database. Please ensure DATABASE_URL is set in .env.local and the database is running."
+      }, { status: 503 }); // Service Unavailable
+    }
+
+    return NextResponse.json({ 
+      error: "Internal Server Error", 
+      message: "Failed to fetch employees. Check server logs."
+    }, { status: 500 });
   }
 }
 
