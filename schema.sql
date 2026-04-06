@@ -787,3 +787,26 @@ CREATE INDEX IF NOT EXISTS idx_company_announcements_company ON company_announce
 CREATE INDEX IF NOT EXISTS idx_employee_documents_emp ON employee_documents(employee_id);
 CREATE INDEX IF NOT EXISTS idx_employee_bank_accounts_emp ON employee_bank_accounts(employee_id);
 CREATE INDEX IF NOT EXISTS idx_pto_balances_emp ON pto_balances(employee_id);
+
+-- =============================================================================
+-- 🔔 IN-APP NOTIFICATIONS MODULE
+-- =============================================================================
+
+-- 47. NOTIFICATIONS
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  type TEXT CHECK(type IN ('ALL','PAYROLL','HR','APPROVALS','ATS','ONBOARDING','BENEFITS','COMPLIANCE','SYSTEM','INFO')) NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  link TEXT,
+  status TEXT, -- Optional, used for approval states ('pending','approved','rejected')
+  is_read BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_emp ON notifications(employee_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);

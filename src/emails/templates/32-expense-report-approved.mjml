@@ -1,0 +1,56 @@
+<mjml>
+  <mj-head>
+    <mj-title>Expense Report Approved</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Inter, Helvetica, Arial, sans-serif" />
+      <mj-text font-size="15px" color="#334155" line-height="24px" />
+    </mj-attributes>
+    <mj-style>
+      .body-section { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border-radius: 8px; overflow: hidden; }
+      .footer-text { font-size: 13px !important; color: #94a3b8 !important; }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#f8fafc">
+    <!-- Header -->
+    <mj-section padding-bottom="0px" padding-top="40px">
+      <mj-column width="100%">
+        <mj-image src="{{company_logo_url}}" alt="{{company_name}}" align="center" width="120px" padding-bottom="20px" />
+      </mj-column>
+    </mj-section>
+    
+    <!-- Main Content Envelope -->
+    <mj-wrapper padding-top="0px" padding-bottom="40px">
+      <mj-section background-color="#ffffff" padding="30px" css-class="body-section">
+        <mj-column width="100%">
+          <mj-text font-size="20px" font-weight="bold" color="#0f172a" padding-bottom="16px">
+            Expense Report Approved
+          </mj-text>
+          
+          <mj-text>
+            Your expense report '{{report_name}}' for {{report_amount}} has been approved by finance! It will appear on your next scheduled paycheck.
+          </mj-text>
+
+          
+
+          <mj-text padding-top="32px" color="#64748b" font-size="14px">
+            Best,<br/>
+            The {{company_name}} Team
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      
+      <!-- Footer -->
+      <mj-section padding-top="20px">
+        <mj-column width="100%">
+          <mj-text align="center" css-class="footer-text">
+            © {{current_year}} {{company_name}}. All rights reserved.
+          </mj-text>
+          <mj-text align="center" css-class="footer-text" padding-top="0px">
+            You are receiving this email because you are a registered user of {{company_name}}. 
+            <a href="{{unsubscribe_url}}" style="color: #64748b; text-decoration: underline;">Manage {{company_name}} account settings</a>.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>
