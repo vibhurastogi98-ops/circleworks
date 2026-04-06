@@ -1,15 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 
-// Context interface standard for App Router dynamic routes
-interface RouteContext {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: employeeId } = await context.params;
     const body = await req.json();

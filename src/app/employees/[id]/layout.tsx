@@ -1,23 +1,38 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { getEmployeeById } from "@/data/mockEmployees";
-import { ChevronLeft, Mail, Phone, Edit, MoreHorizontal, UserCheck, Calendar, MapPin } from "lucide-react";
+import { useEmployee } from "@/hooks/useEmployees";
+import { ChevronLeft, Mail, Phone, Edit, MoreHorizontal, UserCheck, Calendar, MapPin, Loader2 } from "lucide-react";
 
 export default function EmployeeProfileLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const employeeId = params.id as string;
   
-  const emp = useMemo(() => getEmployeeById(employeeId), [employeeId]);
+  const { data: emp, isLoading } = useEmployee(employeeId);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <p className="text-slate-500 font-medium">Fetching employee profile...</p>
+      </div>
+    );
+  }
 
   if (!emp) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Employee Not Found</h2>
-        <Link href="/employees" className="text-blue-600 hover:underline mt-4">Return to Directory</Link>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-4">
+          <UserCheck size={32} />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Employee Not Found</h2>
+        <p className="text-slate-500 mt-1">The profile you are looking for does not exist or has been removed.</p>
+        <Link href="/employees" className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+          Return to Directory
+        </Link>
       </div>
     );
   }
@@ -42,14 +57,16 @@ export default function EmployeeProfileLayout({ children }: { children: React.Re
 
       {/* Profile Header */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-         {/* Cover Area (optional styling) */}
-         <div className="h-24 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-800/50 w-full"></div>
+         {/* Cover Area */}
+         <div className="h-24 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 dark:from-blue-900/20 dark:to-indigo-900/20 w-full border-b border-white/10"></div>
          
          <div className="px-6 sm:px-8 pb-6 flex flex-col sm:flex-row gap-6 relative">
             {/* Avatar */}
             <div className="-mt-12 shrink-0 relative">
-               <img src={emp.avatar} alt="Avatar" className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-white dark:border-slate-900 object-cover bg-slate-200 shadow-sm" />
-               <div className={`absolute bottom-0 right-0 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 ${emp.status === 'Active' ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-white dark:border-slate-900 overflow-hidden bg-slate-100 shadow-xl">
+                  <img src={emp.avatar} alt="Avatar" className="w-full h-full object-cover" />
+               </div>
+               <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 ${emp.status === 'active' ? 'bg-green-500' : 'bg-amber-500 shadow-sm'}`}></div>
             </div>
 
             {/* Info */}
@@ -60,42 +77,42 @@ export default function EmployeeProfileLayout({ children }: { children: React.Re
                         {emp.firstName} {emp.lastName}
                      </h1>
                      <p className="text-[15px] font-medium text-slate-600 dark:text-slate-300 mt-1">
-                        {emp.title} • {emp.department}
+                        {emp.jobTitle} • {emp.department}
                      </p>
                   </div>
                   <div className="flex items-center gap-2">
-                     <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
-                        <Edit size={14} /> Edit
+                     <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+                        <Edit size={14} /> Edit Profile
                      </button>
-                     <button className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2">
+                     <button className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm active:scale-95">
                         <MoreHorizontal size={14} />
                      </button>
                   </div>
                </div>
 
                {/* Meta attributes */}
-               <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2">
-                     <Mail size={14} /> {emp.email}
+               <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-sm text-slate-600 dark:text-slate-400 font-medium">
+                  <div className="flex items-center gap-2 hover:text-blue-600 transition-colors cursor-default">
+                     <Mail size={14} className="text-slate-400" /> {emp.email || "No email"}
                   </div>
                   <div className="flex items-center gap-2">
-                     <Phone size={14} /> +1 (555) 123-4567
+                     <Phone size={14} className="text-slate-400" /> +1 (555) 000-0000
                   </div>
                   <div className="flex items-center gap-2">
-                     <MapPin size={14} /> {emp.location} ({emp.locationType})
+                     <MapPin size={14} className="text-slate-400" /> {emp.location || "Remote"}
                   </div>
                   <div className="flex items-center gap-2">
-                     <Calendar size={14} /> Started {new Date(emp.startDate).getFullYear()}
+                     <Calendar size={14} className="text-slate-400" /> Member since {emp.startDate ? new Date(emp.startDate).getFullYear() : "2024"}
                   </div>
                   <div className="flex items-center gap-2">
-                     <UserCheck size={14} /> {emp.type}
+                     <UserCheck size={14} className="text-slate-400" /> <span className="capitalize">{emp.employmentType}</span>
                   </div>
                </div>
             </div>
          </div>
 
          {/* Navigation Tabs */}
-         <div className="px-4 sm:px-8 border-t border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-none">
+         <div className="px-4 sm:px-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 overflow-x-auto scrollbar-none">
             <div className="flex items-center gap-6">
                {tabs.map((tab) => {
                   const isActive = pathname === tab.href;
@@ -103,10 +120,10 @@ export default function EmployeeProfileLayout({ children }: { children: React.Re
                      <Link
                         key={tab.name}
                         href={tab.href}
-                        className={`py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors focus:outline-none ${
+                        className={`py-4 text-[13px] font-bold border-b-2 whitespace-nowrap transition-all focus:outline-none ${
                           isActive 
                            ? "border-blue-600 text-blue-600 dark:text-blue-400" 
-                           : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
+                           : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700"
                         }`}
                      >
                         {tab.name}

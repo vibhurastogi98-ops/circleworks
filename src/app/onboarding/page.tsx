@@ -2,24 +2,38 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { Users, CheckCircle2, Clock, AlertTriangle, UserMinus, Search, Filter } from "lucide-react";
-import { mockOnboardingCases, OnboardingPhase } from "@/data/mockOnboarding";
+import { Users, CheckCircle2, Clock, AlertTriangle, UserMinus, Search, Filter, Loader2 } from "lucide-react";
+import { OnboardingPhase } from "@/data/mockOnboarding";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useOnboarding } from "@/hooks/useOnboarding";
 
 export default function OnboardingDashboard() {
   const { isNewUser } = useDashboardData();
+  const { data: realCases, isLoading } = useOnboarding();
   const [phaseFilter, setPhaseFilter] = useState<OnboardingPhase | 'All'>('All');
   const [search, setSearch] = useState('');
 
   const cases = useMemo(() => {
-    if (isNewUser) return [];
-    let filtered = mockOnboardingCases;
+    if (isNewUser || !realCases) return [];
+    let filtered = realCases;
     if (phaseFilter !== 'All') filtered = filtered.filter(c => c.phase === phaseFilter);
     if (search) filtered = filtered.filter(c => c.employeeName.toLowerCase().includes(search.toLowerCase()));
     return filtered;
-  }, [phaseFilter, search, isNewUser]);
+  }, [phaseFilter, search, isNewUser, realCases]);
 
-  const tasksDueToday = isNewUser ? [] : mockOnboardingCases.flatMap(c => c.tasks).filter(t => t.status === 'Pending' && t.dueDate === '2024-09-30');
+  const tasksDueToday = useMemo(() => {
+    if (isNewUser || !realCases) return [];
+    return realCases.flatMap(c => c.tasks || []).filter(t => t.status === 'Pending');
+  }, [realCases, isNewUser]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <p className="text-slate-500 font-medium">Loading onboarding pipeline...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -40,28 +54,28 @@ export default function OnboardingDashboard() {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Active Pre-Hires</h4>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">{isNewUser ? 0 : mockOnboardingCases.length}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">{isNewUser ? 0 : cases.length}</div>
           </div>
           <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg"><Users size={20}/></div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Tasks Due Today</h4>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">{tasksDueToday.length || 3}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">{tasksDueToday.length}</div>
           </div>
           <div className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg"><Clock size={20}/></div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Avg. Completion</h4>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">{isNewUser ? "0%" : "62%"}</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">{isNewUser ? "0%" : "0%"}</div>
           </div>
           <div className="p-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg"><CheckCircle2 size={20}/></div>
         </div>
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex items-start justify-between">
           <div>
             <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Overdue Tasks</h4>
-            <div className="text-2xl font-bold text-red-600">{isNewUser ? 0 : 2}</div>
+            <div className="text-2xl font-bold text-red-600">{0}</div>
           </div>
           <div className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg"><AlertTriangle size={20}/></div>
         </div>
@@ -95,9 +109,9 @@ export default function OnboardingDashboard() {
       {/* Active Pre-Hires List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {cases.length > 0 ? cases.map(c => {
-          const completed = c.tasks.filter(t => t.status === 'Complete').length;
-          const total = c.tasks.length;
-          const pct = Math.round((completed / total) * 100);
+          const completed = (c.tasks || []).filter((t: any) => t.status === 'Complete').length;
+          const total = (c.tasks || []).length || 1;
+          const pct = c.onboardingPercent || Math.round((completed / total) * 100);
 
           return (
             <Link key={c.id} href={`/onboarding/${c.id}`} className="block group focus:outline-none">
@@ -135,8 +149,8 @@ export default function OnboardingDashboard() {
                 </div>
 
                 <div className="text-xs text-slate-500 flex justify-between">
-                  <span>{completed} of {total} tasks complete</span>
-                  <span className="text-red-500 font-medium">{c.tasks.filter(t => t.status === 'Pending' && new Date(t.dueDate) < new Date('2024-09-30')).length} overdue</span>
+                  <span>{completed} of {(c.tasks || []).length} tasks complete</span>
+                  <span className="text-red-500 font-medium">{(c.tasks || []).filter((t: any) => t.status === 'Pending').length} pending</span>
                 </div>
               </div>
             </Link>

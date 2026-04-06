@@ -428,7 +428,7 @@ export default function FeatureVisual({ headline, accent, accentBg }: FeatureVis
                </div>
                <div className="grid grid-cols-2 gap-3 mb-4">
                   {[
-                    { name: "Acme Corp", loc: "NY, US", status: "Active" },
+                    { name: "CircleWorks", loc: "NY, US", status: "Active" },
                     { name: "Flux AI", loc: "SF, US", status: "Active" },
                     { name: "Zenith Hub", loc: "London, UK", status: "Active" },
                     { name: "Peak Agency", loc: "Berlin, DE", status: "Active" }

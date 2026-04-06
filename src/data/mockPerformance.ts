@@ -45,83 +45,17 @@ export interface Recognition {
   category: string;
 }
 
+
 export const mockReviewCycles: ReviewCycle[] = [
-  {
-    id: "cycle-1",
-    name: "2024 Q1 Performance Review",
-    type: "Quarterly",
-    status: "Active",
-    period: "Jan 1 - Mar 31, 2024",
-    deadline: "2024-04-15",
-    completion: 65,
-    participants: 120
-  },
-  {
-    id: "cycle-2",
-    name: "Annual 2023 Calibration",
-    type: "Annual",
-    status: "Completed",
-    period: "Jan 1 - Dec 31, 2023",
-    deadline: "2024-01-20",
-    completion: 100,
-    participants: 115
-  },
-  {
-    id: "cycle-3",
-    name: "Engineering Lead Probation",
-    type: "Probation",
-    status: "Active",
-    period: "Feb 1 - May 1, 2024",
-    deadline: "2024-05-10",
-    completion: 20,
-    participants: 2
-  }
+  { id: "c1", name: "Annual Performance Review 2024", type: "Annual", status: "Active", period: "Jan 1, 2024 - Dec 31, 2024", deadline: "2024-12-15", completion: 65, participants: 142 },
+  { id: "c2", name: "Q1 Team Sync Checkpiont", type: "Quarterly", status: "Completed", period: "Jan 1, 2024 - Mar 31, 2024", deadline: "2024-03-31", completion: 100, participants: 128 },
+  { id: "c3", name: "Probationary Review: Sarah Chen", type: "Probation", status: "Completed", period: "Feb 1, 2024 - Apr 30, 2024", deadline: "2024-04-30", completion: 100, participants: 1 }
 ];
 
 export const mockGoals: Goal[] = [
-  {
-    id: "g1",
-    title: "Scale CircleWorks to $10M ARR",
-    type: "Company",
-    status: "On Track",
-    progress: 45,
-    dueDate: "2024-12-31",
-    owner: "Vibhu Rastogi",
-    children: [
-      {
-        id: "g1-1",
-        title: "Launch Enterprise Tier",
-        type: "Team",
-        status: "At Risk",
-        progress: 30,
-        dueDate: "2024-06-30",
-        owner: "Product Team",
-        parentId: "g1",
-        children: [
-          {
-            id: "g1-1-1",
-            title: "OAuth2 & SSO Implementation",
-            type: "Individual",
-            status: "On Track",
-            progress: 80,
-            dueDate: "2024-05-15",
-            owner: "Alex Rivera",
-            parentId: "g1-1"
-          }
-        ]
-      },
-      {
-        id: "g1-2",
-        title: "Reduce Churn to < 2%",
-        type: "Team",
-        status: "On Track",
-        progress: 60,
-        dueDate: "2024-12-31",
-        owner: "Customer Success",
-        parentId: "g1"
-      }
-    ]
-  }
+  { id: "g1", title: "Increase Platform Revenue by 25%", type: "Company", status: "On Track", progress: 45, dueDate: "2024-12-31", owner: "Vibhu Rastogi" },
+  { id: "g2", title: "Scale Engineering Team", type: "Team", status: "At Risk", progress: 20, dueDate: "2024-06-30", owner: "Marcus Thorne" },
+  { id: "g3", title: "Launch Benefits Module", type: "Individual", status: "On Track", progress: 85, dueDate: "2024-04-15", owner: "Sarah Chen" }
 ];
 
 export const mockFeedbackRequests: FeedbackRequest[] = [

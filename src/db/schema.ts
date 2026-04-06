@@ -41,6 +41,7 @@ export const employees = pgTable('employees', {
   locationType: text('location_type').default('On-Site'), // Remote, Hybrid, On-Site
   startDate: date('start_date'),
   status: text('status').default('active'),
+  managerId: integer('manager_id'), // Self-reference for Org Chart
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -271,6 +272,9 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   ptoRequests: many(ptoRequests),
   documents: many(employeeDocuments),
   bankAccounts: many(employeeBankAccounts),
+  payrollItems: many(payrollItems),
+  manager: one(employees, { fields: [employees.managerId], references: [employees.id], relationName: 'subordinates' }),
+  subordinates: many(employees, { relationName: 'subordinates' }),
 }));
 
 export const onboardingCasesRelations = relations(onboardingCases, ({ one }) => ({

@@ -3,9 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronLeft, Check, UploadCloud } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, UploadCloud, Landmark, ShieldCheck } from "lucide-react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useEmployees } from "@/hooks/useEmployees";
+import { usePlaidLink } from "react-plaid-link";
 
 import { toast } from "sonner";
 
@@ -31,7 +32,49 @@ export default function AddEmployeeWizard() {
     payFrequency: "Bi-Weekly",
     bankName: "",
     accountNumber: "",
-    routingNumber: ""
+    routingNumber: "",
+    plaidAccessToken: "",
+  });
+
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const createLinkToken = async () => {
+      try {
+        const response = await fetch("/api/plaid/create-link-token", { method: "POST" });
+        const data = await response.json();
+        setLinkToken(data.link_token);
+      } catch (err) {
+        console.error("Link Token Error:", err);
+      }
+    };
+    createLinkToken();
+  }, []);
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: async (public_token, metadata) => {
+      try {
+        const response = await fetch("/api/plaid/exchange-public-token", {
+          method: "POST",
+          body: JSON.stringify({ public_token }),
+        });
+        const data = await response.json();
+        if (data.account) {
+          setFormData(f => ({
+            ...f,
+            bankName: data.account.name || metadata.institution?.name || "Connected Bank",
+            routingNumber: data.account.routing || "********",
+            accountNumber: data.account.account || "********",
+            plaidAccessToken: data.access_token
+          }));
+          toast.success(`Connected to ${metadata.institution?.name || "your bank"}!`);
+        }
+      } catch (err) {
+        console.error("Exchange Error:", err);
+        toast.error("Failed to link bank account.");
+      }
+    },
   });
   
   // Basic validation per step
@@ -60,7 +103,6 @@ export default function AddEmployeeWizard() {
           const domain = currentUser?.companyName?.toLowerCase().replace(/[^a-z0-9]/g, "") || "company";
           setFormData(f => ({ ...f, workEmail: `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${domain}.com` }));
         }
-      } else {
         // Complete wizard - REAL API CALL
         try {
           await addEmployeeAsync({
@@ -74,6 +116,17 @@ export default function AddEmployeeWizard() {
             salary: parseInt(formData.salary),
             locationType: formData.locationType,
             companyName: currentUser?.companyName || "CircleWorks",
+            // New fields
+            bankInfo: {
+              bankName: formData.bankName,
+              routingNumber: formData.routingNumber,
+              accountNumberMasked: formData.accountNumber,
+              plaidAccessToken: formData.plaidAccessToken,
+            },
+            compensation: {
+              salary: parseInt(formData.salary),
+              payFrequency: formData.payFrequency,
+            }
           });
           router.push("/employees");
         } catch (error) {
@@ -212,7 +265,29 @@ export default function AddEmployeeWizard() {
 
             {currentStep === 3 && (
               <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-4 duration-500">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">Tax & Banking Information</h3>
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Tax & Banking Information</h3>
+                  <button 
+                    onClick={() => open()} 
+                    disabled={!ready}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    <Landmark size={16} /> Link Bank with Plaid
+                  </button>
+                </div>
+                
+                {formData.plaidAccessToken && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center text-emerald-600">
+                       <ShieldCheck size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Bank Linked Successfully</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Payroll will be deposited to {formData.bankName}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Bank Name <span className="text-red-500">*</span></label>

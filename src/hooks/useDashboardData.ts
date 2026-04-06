@@ -8,7 +8,8 @@ import {
   NEW_HIRES, 
   TEAM_CALENDAR, 
   ACTIVITY_FEED,
-  NEXT_PAYROLL 
+  NEXT_PAYROLL,
+  NewHire
 } from "@/data/dashboard";
 
 export function useDashboardData() {
@@ -52,6 +53,13 @@ export function useDashboardData() {
     if (card.id === "total-employees" && liveStats?.totalEmployees !== undefined) {
       return { ...card, value: liveStats.totalEmployees.toString() };
     }
+    if (card.id === "monthly-payroll" && liveStats?.monthlyPayroll !== undefined) {
+      const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(liveStats.monthlyPayroll);
+      return { ...card, value: formatted };
+    }
+    if (card.id === "pending-approvals" && liveStats?.pendingApprovals !== undefined) {
+      return { ...card, value: liveStats.pendingApprovals.toString() };
+    }
     return card;
   });
 
@@ -75,13 +83,13 @@ export function useDashboardData() {
       scoreColor: "green" as const,
     })) : liveKpiCards,
     alerts: isEmpty ? [{
-      id: "alert-new-1", severity: "info", title: "Complete your company setup",
+      id: "alert-new-1", severity: "info" as const, title: "Complete your company setup",
       description: "Add your first employee to run your first payroll.",
       action: "/employees/new", actionLabel: "Add Employee",
     }] : ALERTS,
     payrollTrend: isEmpty ? PAYROLL_TREND.map(p => ({ ...p, gross: 0, taxes: 0, benefits: 0 })) : PAYROLL_TREND,
     quickActions: isEmpty ? [] : QUICK_ACTIONS,
-    newHires: liveNewHires,
+    newHires: liveNewHires as NewHire[],
     teamCalendar: isEmpty ? [
       { day: "Mon", date: 6, events: [] },
       { day: "Tue", date: 7, isToday: true, events: [] },

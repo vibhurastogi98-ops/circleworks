@@ -50,3 +50,16 @@ export function useEmployees() {
     addEmployeeAsync: addEmployeeMutation.mutateAsync,
   };
 }
+
+export function useEmployee(id: string | number) {
+  return useQuery({
+    queryKey: ["employees", id],
+    queryFn: async () => {
+      const response = await fetch(`/api/employees/${id}`);
+      if (!response.ok) throw new Error("Failed to fetch employee");
+      return response.json();
+    },
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+}

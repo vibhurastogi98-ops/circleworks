@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees } from "@/db/schema";
+import { employees, employeeBankAccounts, onboardingCases } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { clerkClient, auth } from "@clerk/nextjs/server";
 
 export async function GET() {
@@ -32,7 +32,9 @@ export async function POST(req: Request) {
       department,
       location,
       locationType,
-      avatar 
+      avatar,
+      bankInfo,
+      compensation
     } = body;
 
     // 1. INPUT VALIDATION
@@ -55,11 +57,30 @@ export async function POST(req: Request) {
       avatar: avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${firstName}&backgroundColor=transparent`,
       startDate: startDate || null,
       status: "onboarding",
+      salary: compensation?.salary || null,
     }).returning();
 
-    const employeeId = newEmployee.id.toString();
+    const employeeId = newEmployee.id;
+
+    // 2.2. SAVE BANKING INFO
+    if (bankInfo && bankInfo.bankName) {
+      await db.insert(employeeBankAccounts).values({
+        employeeId: employeeId,
+        bankName: bankInfo.bankName,
+        routingNumber: bankInfo.routingNumber,
+        accountNumberMasked: bankInfo.accountNumberMasked,
+        isPrimary: true,
+      });
+    }
     
-    console.log(`[Database] Created employee record for: ${email} with ID: ${employeeId}`);
+    // 2.3. CREATE ONBOARDING CASE
+    await db.insert(onboardingCases).values({
+      employeeId: employeeId,
+      status: "Active",
+      startDate: startDate || null,
+    });
+
+    console.log(`[Database] Created onboarding case for employee ID: ${employeeId}`);
 
     // -------------------------------------------------------------
     // 3. GENERATE ONBOARDING SECURE TOKEN

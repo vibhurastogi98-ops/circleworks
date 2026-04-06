@@ -20,6 +20,7 @@ import {
   Settings
 } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { mockReviewCycles } from "@/data/mockPerformance";
 
 // Internal types for the detail view
@@ -42,11 +43,13 @@ const mockParticipants: Participant[] = [
   { id: "p4", name: "Emma Wilson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma", title: "Product Manager", department: "Product", manager: "Vibhu Rastogi", status: "Not Started", lastUpdated: "N/A" },
 ];
 
-export default function ReviewCycleDetailPage({ params }: { params: { cycleId: string } }) {
+export default function ReviewCycleDetailPage() {
+  const params = useParams();
+  const cycleId = params.cycleId as string;
   const [activeTab, setActiveTab] = useState<'participants' | 'calibration' | 'analytics'>('participants');
   const [searchQuery, setSearchQuery] = useState("");
   
-  const cycle = mockReviewCycles.find(c => c.id === params.cycleId) || mockReviewCycles[0];
+  const cycle = mockReviewCycles.find(c => c.id === cycleId) || mockReviewCycles[0];
 
   const filteredParticipants = mockParticipants.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -231,7 +234,7 @@ export default function ReviewCycleDetailPage({ params }: { params: { cycleId: s
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/performance/reviews/${params.cycleId}`} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400" title="View Details">
+                        <Link href={`/performance/reviews/${cycleId}`} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400" title="View Details">
                           <Eye size={18} />
                         </Link>
                         <button className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400">

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Play, Check, ChevronRight, LayoutDashboard, Users, CreditCard, Heart, ShieldCheck } from "lucide-react";
 
 const logos = [
-  "Acme Corp",
+  "CircleWorks",
   "Globex",
   "Soylent",
   "Initech",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees } from "@/db/schema";
-import { desc, count } from "drizzle-orm";
+import { employees, payrolls, ptoRequests, timesheets } from "@/db/schema";
+import { desc, count, sum, sql, and, gte, or } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -15,9 +15,42 @@ export async function GET() {
       limit: 4,
     });
 
-    // 3. Construct Live Data
+    // 3. Monthly Payroll Aggregation (Last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+    const [payrollStats] = await db
+      .select({ total: sum(payrolls.totalNet) })
+      .from(payrolls)
+      .where(and(
+        gte(payrolls.checkDate, thirtyDaysAgoStr),
+        sql`${payrolls.status} = 'paid' OR ${payrolls.status} = 'processed'`
+      ));
+    
+    const monthlyPayroll = Number(payrollStats?.total || 0);
+
+    // 4. Pending Approvals (PTO + Timesheets)
+    const [ptoPending] = await db
+      .select({ value: count() })
+      .from(ptoRequests)
+      .where(sql`${ptoRequests.status} = 'Pending'`);
+
+    const [timesheetPending] = await db
+      .select({ value: count() })
+      .from(timesheets)
+      .where(or(
+        sql`${timesheets.status} = 'Pending'`,
+        sql`${timesheets.status} = 'Draft'`
+      ));
+
+    const pendingApprovals = (ptoPending?.value || 0) + (timesheetPending?.value || 0);
+
+    // 5. Construct Live Data
     return NextResponse.json({
       totalEmployees,
+      monthlyPayroll,
+      pendingApprovals,
       recentHires: recentHires.map((emp: typeof employees.$inferSelect) => ({
         id: emp.id.toString(),
         name: `${emp.firstName} ${emp.lastName || ""}`.trim(),
@@ -26,9 +59,6 @@ export async function GET() {
         onboardingPercent: emp.status === 'active' ? 100 : 25, // Default for new hires
         avatarSeed: emp.firstName,
       })),
-      // Placeholder for financial stats (could be extended later)
-      monthlyPayroll: 0,
-      pendingApprovals: 0,
     });
   } catch (error: any) {
     console.error("[Dashboard Stats GET Error]", error);

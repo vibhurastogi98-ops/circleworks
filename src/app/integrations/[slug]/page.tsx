@@ -17,7 +17,7 @@ import {
   FileCheck, FileText, Heart, Activity, CreditCard, Zap, ShoppingBag, Terminal
 } from "lucide-react";
 
-export default async function IntegrationDetailPage({ params }: { params: { slug: string } }) {
+export default async function IntegrationDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   
   // Find integration, supporting aliases for common shorthand slugs

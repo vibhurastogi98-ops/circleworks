@@ -18,7 +18,7 @@ export async function generateStaticParams() {
   }));
 }
 
-export async function generateMetadata({ params }: { params: { segment: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ segment: string }> }): Promise<Metadata> {
   const { segment } = await params;
   const data = segments[segment];
   
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: { params: { segment: string }
   };
 }
 
-export default async function SegmentPage({ params }: { params: { segment: string } }) {
+export default async function SegmentPage({ params }: { params: Promise<{ segment: string }> }) {
   const { segment } = await params;
   const data = segments[segment];
 

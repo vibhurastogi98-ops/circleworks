@@ -3,7 +3,7 @@ import { Download, FileText, CheckCircle2, Building2 } from "lucide-react";
 import Link from "next/link";
 import RunExportButton from "@/components/payroll/run/RunExportButton";
 
-export default async function RunDetailPage({ params }: { params: { runId: string } }) {
+export default async function RunDetailPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
   return (
     <div className="flex flex-col gap-6 pb-24">
