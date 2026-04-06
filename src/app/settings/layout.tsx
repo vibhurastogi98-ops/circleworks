@@ -44,6 +44,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
                     <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">System</h2>
                     <Link href="/settings/integrations" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Integrations</Link>
+                    <Link href="/settings/workflows" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Workflows</Link>
                     <Link href="/settings/notifications" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Notifications</Link>
                     <Link href="/settings/api" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">API & Webhooks</Link>
                     
