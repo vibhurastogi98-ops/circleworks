@@ -4,6 +4,7 @@ import { employees } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 import { desc } from "drizzle-orm";
+import { clerkClient, auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
@@ -102,7 +103,18 @@ export async function POST(req: Request) {
       html: htmlTemplate
     });
 
-    // 6. RETURN SUCCESS RESPONSE
+    // 6. UPDATE CLERK METADATA (Flag that we have real data now)
+    const { userId } = await auth();
+    if (userId) {
+      const client = await clerkClient();
+      await client.users.updateUserMetadata(userId, {
+        publicMetadata: {
+          hasData: true
+        }
+      });
+    }
+
+    // 7. RETURN SUCCESS RESPONSE
     return NextResponse.json({ 
       success: true, 
       message: "Employee successfully created and email dispatched", 

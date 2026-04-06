@@ -1,20 +1,30 @@
 import { useUser } from "@clerk/nextjs";
+import { useQuery } from "@tanstack/react-query";
 import { 
-  CURRENT_USER, 
-  NEXT_PAYROLL, 
   KPI_CARDS, 
   ALERTS, 
   PAYROLL_TREND, 
   QUICK_ACTIONS, 
   NEW_HIRES, 
   TEAM_CALENDAR, 
-  ACTIVITY_FEED 
+  ACTIVITY_FEED,
+  NEXT_PAYROLL 
 } from "@/data/dashboard";
 
 export function useDashboardData() {
   const { user, isLoaded } = useUser();
 
-  // Retrieve company data from localStorage early to avoid '---' flickering
+  // 1. Fetch Real Dashboard Stats
+  const { data: liveStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/stats");
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    },
+    enabled: isLoaded && !!user?.publicMetadata?.hasData,
+  });
+
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
   const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.companyName : null;
   const localLogoUrl = signupProgress ? JSON.parse(signupProgress)?.logoUrl : null;
@@ -23,34 +33,29 @@ export function useDashboardData() {
   const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
   const displayLogoUrl = clerkLogoUrl || localLogoUrl;
 
-  // If still loading Clerk, return a skeleton/loading state but with the derived company name
-  if (!isLoaded) {
+  if (!isLoaded || (user?.publicMetadata?.hasData && statsLoading)) {
     return {
       isLoading: true,
-      currentUser: { 
-        firstName: "---", 
-        lastName: "", 
-        companyName: displayCompanyName,
-        logoUrl: displayLogoUrl,
-      },
+      currentUser: { firstName: "---", lastName: "", companyName: displayCompanyName, logoUrl: displayLogoUrl },
       nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
       kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
-      alerts: [],
-      payrollTrend: [],
-      quickActions: [],
-      newHires: [],
-      teamCalendar: [],
-      activityFeed: [],
+      alerts: [], payrollTrend: [], quickActions: [], newHires: [], teamCalendar: [], activityFeed: [],
     };
   }
 
-  // IMPROVED LOGIC: Strictly show empty states for new users unless they have explicit data
-  // or we want to force mocks for demo purposes.
   const clerkHasData = !!user?.publicMetadata?.hasData;
   const showMocks = clerkHasData || (typeof window !== 'undefined' && window.location.search.includes("mock=true"));
-  
-  // Is it a new environment? No data in Clerk yet.
   const isEmpty = !showMocks;
+
+  // 2. DYNAMIC OVERRIDES
+  const liveKpiCards = KPI_CARDS.map(card => {
+    if (card.id === "total-employees" && liveStats?.totalEmployees !== undefined) {
+      return { ...card, value: liveStats.totalEmployees.toString() };
+    }
+    return card;
+  });
+
+  const liveNewHires = (clerkHasData && liveStats?.recentHires) ? liveStats.recentHires : (isEmpty ? [] : NEW_HIRES);
 
   return {
     isLoading: false,
@@ -61,33 +66,22 @@ export function useDashboardData() {
       companyName: displayCompanyName,
       logoUrl: displayLogoUrl,
     },
-    nextPayroll: isEmpty ? {
-      date: "Pending Setup",
-      daysAway: 0,
-      estimatedTotal: 0,
-      employeeCount: 0,
-    } : NEXT_PAYROLL,
+    nextPayroll: isEmpty ? { date: "Pending Setup", daysAway: 0, estimatedTotal: 0, employeeCount: 0 } : NEXT_PAYROLL,
     kpiCards: isEmpty ? KPI_CARDS.map(card => ({
       ...card,
       value: card.format === "score" ? "100" : (card.format === "currency" ? "$0" : "0"),
-      trend: 0,
-      trendLabel: "No historical data",
+      trend: 0, trendLabel: "No historical data",
       sparklineData: [0, 0, 0, 0, 0, 0, 0],
       scoreColor: "green" as const,
-    })) : KPI_CARDS,
-    alerts: isEmpty ? [
-      {
-        id: "alert-new-1",
-        severity: "info",
-        title: "Complete your company setup",
-        description: "Add your first employee to run your first payroll.",
-        action: "/employees/new",
-        actionLabel: "Add Employee",
-      }
-    ] as typeof ALERTS : ALERTS,
+    })) : liveKpiCards,
+    alerts: isEmpty ? [{
+      id: "alert-new-1", severity: "info", title: "Complete your company setup",
+      description: "Add your first employee to run your first payroll.",
+      action: "/employees/new", actionLabel: "Add Employee",
+    }] : ALERTS,
     payrollTrend: isEmpty ? PAYROLL_TREND.map(p => ({ ...p, gross: 0, taxes: 0, benefits: 0 })) : PAYROLL_TREND,
     quickActions: isEmpty ? [] : QUICK_ACTIONS,
-    newHires: isEmpty ? [] : NEW_HIRES,
+    newHires: liveNewHires,
     teamCalendar: isEmpty ? [
       { day: "Mon", date: 6, events: [] },
       { day: "Tue", date: 7, isToday: true, events: [] },

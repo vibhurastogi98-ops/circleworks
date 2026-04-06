@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Check, UploadCloud } from "lucide-react";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useEmployees } from "@/hooks/useEmployees";
+
+import { toast } from "sonner";
 
 const STEPS = ["Personal Info", "Employment", "Compensation", "Tax & Banking"];
 
 export default function AddEmployeeWizard() {
   const router = useRouter();
   const { currentUser } = useDashboardData();
+  const { addEmployeeAsync, isAdding } = useEmployees();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -46,7 +50,7 @@ export default function AddEmployeeWizard() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateStep(currentStep)) {
       if (currentStep < STEPS.length - 1) {
         setCurrentStep(s => s + 1);
@@ -57,12 +61,28 @@ export default function AddEmployeeWizard() {
           setFormData(f => ({ ...f, workEmail: `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${domain}.com` }));
         }
       } else {
-        // Complete wizard
-        // In real app, this sends an invite email
-        router.push("/employees");
+        // Complete wizard - REAL API CALL
+        try {
+          await addEmployeeAsync({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.workEmail || formData.personalEmail,
+            jobTitle: formData.jobTitle,
+            department: formData.department,
+            employmentType: formData.type,
+            startDate: formData.startDate,
+            salary: parseInt(formData.salary),
+            locationType: formData.locationType,
+            companyName: currentUser?.companyName || "CircleWorks",
+          });
+          router.push("/employees");
+        } catch (error) {
+          console.error("Save error:", error);
+          toast.error("Failed to save employee. Please check your connection.");
+        }
       }
     } else {
-      alert("Please fill in the required fields to proceed.");
+      toast.error("Please fill in the required fields to proceed.");
     }
   };
 

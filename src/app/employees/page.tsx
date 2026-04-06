@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useEmployees } from "@/hooks/useEmployees";
-import { Employee, Department, EmploymentStatus } from "@/data/mockEmployees";
 import { 
   Search, Filter, Plus, Upload, Download, Grid, List as ListIcon, 
   MoreVertical, Network, Loader2
@@ -18,8 +17,8 @@ export default function EmployeesDirectoryPage() {
   const [statusFilter, setStatusFilter] = useState<string>("Active");
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter(emp => {
-      const matchSearch = (emp.firstName + " " + emp.lastName + " " + emp.title).toLowerCase().includes(search.toLowerCase());
+    return (employees as any[]).filter(emp => {
+      const matchSearch = (`${emp.firstName} ${emp.lastName || ""} ${emp.jobTitle || ""}`).toLowerCase().includes(search.toLowerCase());
       const matchDept = deptFilter === "All" || emp.department === deptFilter;
       const matchStatus = statusFilter === "All" || emp.status === statusFilter;
       return matchSearch && matchDept && matchStatus;
@@ -29,12 +28,13 @@ export default function EmployeesDirectoryPage() {
   const departments = ["All", "Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Finance", "Executive"];
   const statuses = ["All", "Active", "On Leave", "Terminated", "Onboarding"];
 
-  const getStatusColor = (status: EmploymentStatus) => {
-    switch (status) {
-      case 'Active': return "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-200 dark:border-green-500/30";
-      case 'On Leave': return "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30";
-      case 'Onboarding': return "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30";
-      case 'Terminated': return "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30";
+  const getStatusColor = (status: string) => {
+    const s = status?.toLowerCase();
+    switch (s) {
+      case 'active': return "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border-green-200 dark:border-green-500/30";
+      case 'on leave': return "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200 dark:border-amber-500/30";
+      case 'onboarding': return "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-500/30";
+      case 'terminated': return "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-500/30";
       default: return "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400";
     }
   };
@@ -158,8 +158,8 @@ export default function EmployeesDirectoryPage() {
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
-                      <div className="font-medium">{emp.title}</div>
-                      <div className="text-[13px] text-slate-500 dark:text-slate-400">{emp.department} • {emp.type}</div>
+                      <div className="font-medium">{emp.jobTitle}</div>
+                      <div className="text-[13px] text-slate-500 dark:text-slate-400">{emp.department} • {emp.employmentType}</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
                       {emp.location}
@@ -207,7 +207,7 @@ export default function EmployeesDirectoryPage() {
                 <Link href={`/employees/${emp.id}`} className="font-bold text-base text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors focus:outline-none line-clamp-1">
                   {emp.firstName} {emp.lastName}
                 </Link>
-                <div className="font-medium text-sm text-slate-700 dark:text-slate-300 mt-0.5 line-clamp-1">{emp.title}</div>
+                <div className="font-medium text-sm text-slate-700 dark:text-slate-300 mt-0.5 line-clamp-1">{emp.jobTitle}</div>
                 <div className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">{emp.department}</div>
               </div>
               <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">

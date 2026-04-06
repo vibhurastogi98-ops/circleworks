@@ -50,10 +50,3 @@ export function useEmployees() {
     addEmployeeAsync: addEmployeeMutation.mutateAsync,
   };
 }
-
-  return {
-    ...query,
-    addEmployee: addEmployeeMutation.mutate,
-    isAdding: addEmployeeMutation.isPending,
-  };
-}
