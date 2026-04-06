@@ -9,9 +9,9 @@ interface RouteContext {
   };
 }
 
-export async function POST(req: Request, context: RouteContext) {
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const employeeId = context.params.id;
+    const { id: employeeId } = await context.params;
     const body = await req.json();
     const { email, firstName, companyName } = body;
 
