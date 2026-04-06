@@ -617,3 +617,173 @@ CREATE TABLE IF NOT EXISTS lms_assignments (
 
 CREATE INDEX IF NOT EXISTS idx_lms_modules_course ON lms_modules(course_id);
 CREATE INDEX IF NOT EXISTS idx_lms_enrollments_emp ON lms_enrollments(employee_id);
+
+-- =============================================================================
+-- 🧑‍💼 EMPLOYEE SELF-SERVICE PORTAL
+-- =============================================================================
+
+-- 37. PTO REQUESTS
+CREATE TABLE IF NOT EXISTS pto_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  company_id INTEGER,
+  type TEXT CHECK(type IN ('Vacation','Sick','Personal','Bereavement','Jury Duty')) NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  working_days INTEGER DEFAULT 1,
+  note TEXT,
+  status TEXT CHECK(status IN ('Pending','Approved','Denied','Cancelled')) DEFAULT 'Pending',
+  approver_id INTEGER,
+  approver_note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(approver_id) REFERENCES employees(id) ON DELETE SET NULL
+);
+
+-- 38. EMPLOYEE EXPENSE REPORTS (Self-Service)
+CREATE TABLE IF NOT EXISTS employee_expense_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  company_id INTEGER,
+  title TEXT NOT NULL,
+  total_amount INTEGER DEFAULT 0,
+  status TEXT CHECK(status IN ('Draft','Submitted','Approved','Processing','Paid','Rejected')) DEFAULT 'Draft',
+  submitted_at DATETIME,
+  approved_at DATETIME,
+  paid_at DATETIME,
+  rejection_note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 39. EMPLOYEE EXPENSES (Line Items)
+CREATE TABLE IF NOT EXISTS employee_expenses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  report_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  date DATE NOT NULL,
+  merchant TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  category TEXT NOT NULL,
+  purpose TEXT NOT NULL,
+  receipt_url TEXT,
+  status TEXT CHECK(status IN ('Draft','Submitted','Approved','Rejected','Paid')) DEFAULT 'Draft',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(report_id) REFERENCES employee_expense_reports(id) ON DELETE SET NULL,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- 40. EWA REQUESTS (Earned Wage Access)
+CREATE TABLE IF NOT EXISTS ewa_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  fee INTEGER DEFAULT 0,
+  status TEXT CHECK(status IN ('Processing','Completed','Failed','Cancelled')) DEFAULT 'Processing',
+  repayment_date DATE,
+  repayment_payroll_id INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(repayment_payroll_id) REFERENCES payrolls(id) ON DELETE SET NULL
+);
+
+-- 41. EMPLOYEE REFERRALS
+CREATE TABLE IF NOT EXISTS employee_referrals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  referrer_id INTEGER NOT NULL,
+  company_id INTEGER,
+  candidate_name TEXT NOT NULL,
+  candidate_email TEXT,
+  position TEXT NOT NULL,
+  status TEXT CHECK(status IN ('Applied','Interviewing','Hired','Rejected')) DEFAULT 'Applied',
+  bonus_amount INTEGER DEFAULT 0,
+  bonus_status TEXT CHECK(bonus_status IN ('Pending','Paid','N/A')) DEFAULT 'N/A',
+  referred_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(referrer_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 42. KUDOS / RECOGNITION
+CREATE TABLE IF NOT EXISTS kudos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_employee_id INTEGER NOT NULL,
+  to_employee_id INTEGER NOT NULL,
+  message TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(from_employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(to_employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- 43. COMPANY ANNOUNCEMENTS
+CREATE TABLE IF NOT EXISTS company_announcements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  published_by_id INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(published_by_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 44. EMPLOYEE DOCUMENTS (Self-Service)
+CREATE TABLE IF NOT EXISTS employee_documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  company_id INTEGER,
+  name TEXT NOT NULL,
+  type TEXT CHECK(type IN ('Company Policy','Personal','Pay Stub','Tax Form','Signed Document')) NOT NULL,
+  category TEXT,
+  file_url TEXT,
+  file_size TEXT,
+  uploaded_by TEXT DEFAULT 'HR',
+  status TEXT CHECK(status IN ('Signed','Pending Signature','Read','Unread')) DEFAULT 'Unread',
+  signed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+-- 45. EMPLOYEE BANK ACCOUNTS
+CREATE TABLE IF NOT EXISTS employee_bank_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  bank_name TEXT NOT NULL,
+  routing_number TEXT NOT NULL,
+  account_number_masked TEXT NOT NULL,
+  account_type TEXT CHECK(account_type IN ('Checking','Savings')) DEFAULT 'Checking',
+  is_primary BOOLEAN DEFAULT 1,
+  verified BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- 46. PTO BALANCES
+CREATE TABLE IF NOT EXISTS pto_balances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  type TEXT CHECK(type IN ('Vacation','Sick','Personal','Bereavement')) NOT NULL,
+  total_days REAL DEFAULT 0,
+  used_days REAL DEFAULT 0,
+  accrual_rate TEXT,
+  year INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- Indexes for Employee Portal
+CREATE INDEX IF NOT EXISTS idx_pto_requests_emp ON pto_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_pto_requests_status ON pto_requests(status);
+CREATE INDEX IF NOT EXISTS idx_employee_expenses_emp ON employee_expenses(employee_id);
+CREATE INDEX IF NOT EXISTS idx_employee_expense_reports_emp ON employee_expense_reports(employee_id);
+CREATE INDEX IF NOT EXISTS idx_ewa_requests_emp ON ewa_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_employee_referrals_referrer ON employee_referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_kudos_to ON kudos(to_employee_id);
+CREATE INDEX IF NOT EXISTS idx_company_announcements_company ON company_announcements(company_id);
+CREATE INDEX IF NOT EXISTS idx_employee_documents_emp ON employee_documents(employee_id);
+CREATE INDEX IF NOT EXISTS idx_employee_bank_accounts_emp ON employee_bank_accounts(employee_id);
+CREATE INDEX IF NOT EXISTS idx_pto_balances_emp ON pto_balances(employee_id);
