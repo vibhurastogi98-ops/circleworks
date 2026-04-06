@@ -30,7 +30,7 @@ export default function ActivityTab() {
   }
 
   // Use empty array since we don't have a DB table for audit logs yet
-  const logs = [];
+  const logs: any[] = [];
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
