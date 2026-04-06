@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import Breadcrumb from "./Breadcrumb";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import CommandPalette from "@/components/CommandPalette";
 
 export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
@@ -37,7 +38,8 @@ export default function AppTopBar() {
     isPayrollRunning, 
     hasComplianceAlert, 
     dismissComplianceAlert,
-    setPayrollRunning
+    setPayrollRunning,
+    setCommandPaletteOpen
   } = usePlatformStore();
   const { notifyPayrollComplete } = useDataSync();
   const { unreadCount } = useNotificationStore();
@@ -81,10 +83,7 @@ export default function AppTopBar() {
   }, [isAvatarMenuOpen]);
 
   const openCommandPalette = () => {
-    toast("Command Palette", {
-      description: "Global search (Cmd+K) will be available in the next release.",
-      icon: <Search className="w-4 h-4 text-blue-500" />
-    });
+    setCommandPaletteOpen(true);
   };
 
   const openNotificationPanel = () => {
@@ -326,6 +325,9 @@ export default function AppTopBar() {
 
       {/* Slide-in Notification Panel */}
       <NotificationPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
+      
+      {/* Global Command Palette */}
+      <CommandPalette />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import Breadcrumb from "./Breadcrumb";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import { useNotificationStore } from "@/store/useNotificationStore";
+import CommandPalette from "@/components/CommandPalette";
 
 export default function EmployeeTopBar() {
   const pathname = usePathname() || "/me";
@@ -157,6 +158,9 @@ export default function EmployeeTopBar() {
 
       {/* Slide-in Notification Panel */}
       <NotificationPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
+      
+      {/* Global Command Palette */}
+      <CommandPalette />
     </div>
   );
 }

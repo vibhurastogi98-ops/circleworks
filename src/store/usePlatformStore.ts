@@ -8,10 +8,12 @@ interface PlatformState {
   isPayrollRunning: boolean;
   hasComplianceAlert: boolean;
   notificationCount: number;
+  isCommandPaletteOpen: boolean;
   dismissComplianceAlert: () => void;
   setPayrollRunning: (val: boolean) => void;
   incrementNotificationCount: () => void;
   clearNotifications: () => void;
+  setCommandPaletteOpen: (val: boolean) => void;
 }
 
 export const usePlatformStore = create<PlatformState>()(
@@ -23,10 +25,12 @@ export const usePlatformStore = create<PlatformState>()(
       isPayrollRunning: false,
       hasComplianceAlert: false, // Start clean
       notificationCount: 0, // Start clean
+      isCommandPaletteOpen: false,
       dismissComplianceAlert: () => set({ hasComplianceAlert: false }),
       setPayrollRunning: (val: boolean) => set({ isPayrollRunning: val }),
       incrementNotificationCount: () => set((state) => ({ notificationCount: state.notificationCount + 1 })),
       clearNotifications: () => set({ notificationCount: 0 }),
+      setCommandPaletteOpen: (val: boolean) => set({ isCommandPaletteOpen: val }),
     }),
     {
       name: 'platform-storage',
