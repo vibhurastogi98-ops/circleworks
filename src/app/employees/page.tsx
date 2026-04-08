@@ -3,8 +3,8 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useEmployees } from "@/hooks/useEmployees";
-import { 
-  Search, Filter, Plus, Upload, Download, Grid, List as ListIcon, 
+import {
+  Search, Filter, Plus, Upload, Download, Grid, List as ListIcon,
   MoreVertical, Network, Loader2
 } from "lucide-react";
 import { format } from "date-fns";
@@ -14,13 +14,17 @@ export default function EmployeesDirectoryPage() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [deptFilter, setDeptFilter] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<string>("Active");
+  const [statusFilter, setStatusFilter] = useState<string>("All");
 
   const filteredEmployees = useMemo(() => {
     return (employees as any[]).filter(emp => {
       const matchSearch = (`${emp.firstName} ${emp.lastName || ""} ${emp.jobTitle || ""}`).toLowerCase().includes(search.toLowerCase());
       const matchDept = deptFilter === "All" || emp.department === deptFilter;
-      const matchStatus = statusFilter === "All" || emp.status === statusFilter;
+
+      // Case-insensitive status matching to handle "onboarding" vs "Onboarding"
+      const matchStatus = statusFilter === "All" ||
+        emp.status?.toLowerCase() === statusFilter.toLowerCase();
+
       return matchSearch && matchDept && matchStatus;
     });
   }, [employees, search, deptFilter, statusFilter]);
@@ -65,19 +69,19 @@ export default function EmployeesDirectoryPage() {
           {/* Search */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Search people..." 
+            <input
+              type="text"
+              placeholder="Search people..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"
             />
           </div>
-          
+
           {/* Filters */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Filter className="text-slate-400 ml-1 hidden sm:block" size={18} />
-            <select 
+            <select
               value={deptFilter}
               onChange={(e) => setDeptFilter(e.target.value)}
               className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white flex-1 sm:flex-none cursor-pointer"
@@ -87,7 +91,7 @@ export default function EmployeesDirectoryPage() {
               </optgroup>
             </select>
 
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white flex-1 sm:flex-none cursor-pointer"
@@ -101,13 +105,13 @@ export default function EmployeesDirectoryPage() {
 
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center shadow-inner">
-            <button 
+            <button
               onClick={() => setViewMode("list")}
               className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
             >
               <ListIcon size={18} />
             </button>
-            <button 
+            <button
               onClick={() => setViewMode("grid")}
               className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
             >
@@ -126,8 +130,8 @@ export default function EmployeesDirectoryPage() {
       {/* Directory Content */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-           <p className="text-slate-500 font-medium">Loading employees...</p>
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+          <p className="text-slate-500 font-medium">Loading employees...</p>
         </div>
       ) : viewMode === "list" ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
@@ -173,7 +177,7 @@ export default function EmployeesDirectoryPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
                         aria-label={`Actions for ${emp.firstName} ${emp.lastName}`}
                       >

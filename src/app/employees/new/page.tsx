@@ -8,12 +8,14 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePlaidLink } from "react-plaid-link";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const STEPS = ["Personal Info", "Employment", "Compensation", "Tax & Banking"];
 
 export default function AddEmployeeWizard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { currentUser } = useDashboardData();
   const { addEmployeeAsync, isAdding } = useEmployees();
   const [currentStep, setCurrentStep] = useState(0);
@@ -96,38 +98,60 @@ export default function AddEmployeeWizard() {
   const handleNext = async () => {
     if (validateStep(currentStep)) {
       if (currentStep < STEPS.length - 1) {
-        setCurrentStep(s => s + 1);
+        // Move to next step
+        const nextStep = currentStep + 1;
+        setCurrentStep(nextStep);
         
-        // Auto-fill work email based on company domain if on employment step
+        // Auto-fill work email based on company domain if moving from personal info step
         if (currentStep === 0 && !formData.workEmail) {
           const domain = currentUser?.companyName?.toLowerCase().replace(/[^a-z0-9]/g, "") || "company";
           setFormData(f => ({ ...f, workEmail: `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${domain}.com` }));
         }
-        // Complete wizard - REAL API CALL
-        try {
-          await addEmployeeAsync({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.workEmail || formData.personalEmail,
-            jobTitle: formData.jobTitle,
-            department: formData.department,
-            employmentType: formData.type,
-            startDate: formData.startDate,
+      } else {
+        // Complete wizard - FINAL STEP - REAL API CALL
+        const payload = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.workEmail || formData.personalEmail,
+          jobTitle: formData.jobTitle,
+          department: formData.department,
+          employmentType: formData.type,
+          startDate: formData.startDate,
+          salary: parseInt(formData.salary),
+          locationType: formData.locationType,
+          companyName: currentUser?.companyName || "CircleWorks",
+          bankInfo: {
+            bankName: formData.bankName,
+            routingNumber: formData.routingNumber,
+            accountNumberMasked: formData.accountNumber,
+            plaidAccessToken: formData.plaidAccessToken,
+          },
+          compensation: {
             salary: parseInt(formData.salary),
-            locationType: formData.locationType,
-            companyName: currentUser?.companyName || "CircleWorks",
-            // New fields
-            bankInfo: {
-              bankName: formData.bankName,
-              routingNumber: formData.routingNumber,
-              accountNumberMasked: formData.accountNumber,
-              plaidAccessToken: formData.plaidAccessToken,
-            },
-            compensation: {
-              salary: parseInt(formData.salary),
-              payFrequency: formData.payFrequency,
-            }
+            payFrequency: formData.payFrequency,
+          }
+        };
+
+        console.log("FORM DATA", payload);
+
+        try {
+          const res = await fetch("/api/employees", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
           });
+
+          const result = await res.json();
+          console.log("API RESPONSE", result);
+
+          if (!res.ok) {
+            console.error("API ERROR:", result);
+            toast.error(result.error || "Failed to add employee");
+            return;
+          }
+
+          toast.success("Employee added successfully");
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
           router.push("/employees");
         } catch (error) {
           console.error("Save error:", error);
