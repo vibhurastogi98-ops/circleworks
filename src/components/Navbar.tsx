@@ -210,6 +210,13 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
   const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
   const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${displayName}&backgroundColor=transparent`;
 
+  // Close profile menu when user logs out
+  useEffect(() => {
+    if (!isSignedIn) {
+      setIsProfileMenuOpen(false);
+    }
+  }, [isSignedIn]);
+
   // Scroll handler
   useEffect(() => {
     const onScroll = () => {
@@ -434,19 +441,34 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                         
                         <div className="p-2 flex flex-col gap-1">
                           <button
-                            onClick={() => { setIsProfileMenuOpen(false); router.push("/dashboard"); }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/dashboard");
+                            }}
                             className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
                           >
                             <Target size={16} className="text-slate-400" /> Go to Dashboard
                           </button>
                           <button
-                            onClick={() => { setIsProfileMenuOpen(false); router.push("/settings/profile"); }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/settings/profile");
+                            }}
                             className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
                           >
                             <User size={16} className="text-slate-400" /> My Profile
                           </button>
                           <button 
-                            onClick={() => { setIsProfileMenuOpen(false); router.push("/settings"); }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/settings");
+                            }}
                             className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
                           >
                             <Settings size={16} className="text-slate-400" /> Other Settings
