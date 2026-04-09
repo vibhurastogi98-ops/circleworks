@@ -173,8 +173,19 @@ export default function EmployeeTopBar() {
                   transition={{ duration: 0.15 }}
                   className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden"
                 >
-                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 select-none">
-                    <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
+                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 select-none relative">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsAvatarMenuOpen(false);
+                      }}
+                      className="absolute top-3 right-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      title="Close"
+                    >
+                      <X size={16} />
+                    </button>
+                    <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate pr-8" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
                     <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5" onContextMenu={(e) => e.preventDefault()}>{displayEmail}</p>
                     <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">CircleWorks</p>
                   </div>
