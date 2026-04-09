@@ -77,8 +77,12 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Note: Removed automatic redirect to dashboard after login
-  // Users will now stay on the page and can navigate via the navbar profile menu
+  // Redirect already signed-in users to homepage
+  useEffect(() => {
+    if (isSignedIn && isLoaded) {
+      router.push("/");
+    }
+  }, [isSignedIn, isLoaded, router]);
 
   const onLoginSubmit = async (data: LoginFormValues) => {
     if (!isLoaded || isSignedIn) return;
@@ -145,11 +149,16 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (!isLoaded) return;
+    // Check if user is already signed in
+    if (isSignedIn) {
+      router.push("/");
+      return;
+    }
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: "/",
       });
     } catch (err) {
       console.error("Google login error", err);
@@ -158,11 +167,16 @@ export default function LoginPage() {
 
   const handleMicrosoftLogin = async () => {
     if (!isLoaded) return;
+    // Check if user is already signed in
+    if (isSignedIn) {
+      router.push("/");
+      return;
+    }
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_microsoft",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: "/",
       });
     } catch (err) {
       console.error("Microsoft login error", err);
