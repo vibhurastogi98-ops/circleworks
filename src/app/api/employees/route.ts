@@ -24,11 +24,8 @@ export async function GET() {
     let allEmployees;
 
     if (!userEmployee || !userEmployee.companyId) {
-      // If no company association, return all employees (for demo/testing)
-      console.log("[Employees GET] No company association found, returning all employees");
-      allEmployees = await db.query.employees.findMany({
-        orderBy: [desc(employees.createdAt)],
-      });
+      // Return empty array if user is not associated with a company
+      return NextResponse.json([]);
     } else {
       // Get employees filtered by company
       allEmployees = await db.query.employees.findMany({

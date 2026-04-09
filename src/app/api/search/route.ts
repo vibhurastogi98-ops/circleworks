@@ -1,77 +1,73 @@
 import { NextResponse } from 'next/server';
+import { db } from '@/db';
+import { employees, users } from '@/db/schema';
+import { eq, or, ilike, and } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q')?.toLowerCase() || '';
+  try {
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || '';
+    
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  // Artificial delay to simulate Elasticsearch network time (< 100ms)
-  await new Promise(resolve => setTimeout(resolve, 80));
+    // Find the user's company
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.clerkUserId, userId));
 
-  // --- MOCKED DATABASE REGISTRY ---
-  const allResults = [
-    // EMPLOYEES
-    { type: 'EMPLOYEES', id: 'emp_1', title: 'Sarah Chen', subtitle: 'Senior Engineer · Engineering', icon: 'User', url: '/employees/sarah-chen' },
-    { type: 'EMPLOYEES', id: 'emp_2', title: 'John Doe', subtitle: 'Account Executive · Sales', icon: 'User', url: '/employees/john-doe' },
-    { type: 'EMPLOYEES', id: 'emp_3', title: 'Mike Torres', subtitle: 'Product Manager · Product', icon: 'User', url: '/employees/mike-torres' },
-    { type: 'EMPLOYEES', id: 'emp_4', title: 'Alice Kim', subtitle: 'HR Director · Human Resources', icon: 'User', url: '/employees/alice-kim' },
-    { type: 'EMPLOYEES', id: 'emp_5', title: 'Tom Lee', subtitle: 'Data Scientist · Engineering', icon: 'User', url: '/employees/tom-lee' },
+    if (!userEmployee || !userEmployee.companyId) {
+      return NextResponse.json({ results: [] });
+    }
 
-    // RECENT PAYROLL RUNS
-    { type: 'RECENT PAYROLL RUNS', id: 'pr_1', title: 'Regular Payroll - Apr 1-15', subtitle: 'Processed · Apr 16, 2026', icon: 'DollarSign', url: '/payroll/run/pr_1' },
-    { type: 'RECENT PAYROLL RUNS', id: 'pr_2', title: 'Off-cycle Bonus Run', subtitle: 'Paid · Mar 20, 2026', icon: 'DollarSign', url: '/payroll/run/pr_2' },
-    { type: 'RECENT PAYROLL RUNS', id: 'pr_3', title: 'Regular Payroll - Mar 16-31', subtitle: 'Paid · Apr 2, 2026', icon: 'DollarSign', url: '/payroll/run/pr_3' },
+    if (!query) {
+      return NextResponse.json({ results: [] });
+    }
 
-    // REPORTS
-    { type: 'REPORTS', id: 'rep_1', title: 'Headcount Summary', subtitle: 'Analytics & Reporting', icon: 'FileText', url: '/reports/headcount' },
-    { type: 'REPORTS', id: 'rep_2', title: 'Payroll Journal', subtitle: 'Finance & Payroll', icon: 'FileText', url: '/reports/payroll' },
-    { type: 'REPORTS', id: 'rep_3', title: 'Time Off Balances', subtitle: 'Time & Attendance', icon: 'FileText', url: '/reports/timeoff' },
+    // Search live employees in the same company
+    const results = await db
+      .select({
+        id: employees.id,
+        firstName: employees.firstName,
+        lastName: employees.lastName,
+        jobTitle: employees.jobTitle,
+        department: employees.department,
+      })
+      .from(employees)
+      .where(and(
+        eq(employees.companyId, userEmployee.companyId),
+        or(
+          ilike(employees.firstName, `%${query}%`),
+          ilike(employees.lastName || '', `%${query}%`),
+          ilike(employees.jobTitle || '', `%${query}%`)
+        )
+      ))
+      .limit(10);
 
-    // PAGES
-    { type: 'PAGES', id: 'page_1', title: 'Company Settings', subtitle: 'Admin Configuration', icon: 'Settings', url: '/settings/company' },
-    { type: 'PAGES', id: 'page_2', title: 'Billing & Plan', subtitle: 'Admin Configuration', icon: 'CreditCard', url: '/settings/billing' },
-    { type: 'PAGES', id: 'page_3', title: 'Benefits Dashboard', subtitle: 'Benefits Administration', icon: 'HeartPulse', url: '/benefits' },
-    { type: 'PAGES', id: 'page_4', title: 'Compliance Hub', subtitle: 'Tax & Compliance', icon: 'ShieldAlert', url: '/compliance' },
+    const formattedResults = results.map(emp => ({
+      type: 'EMPLOYEES',
+      id: `emp_${emp.id}`,
+      title: `${emp.firstName} ${emp.lastName || ''}`.trim(),
+      subtitle: `${emp.jobTitle || 'Team Member'} · ${emp.department || 'General'}`,
+      icon: 'User',
+      url: `/employees/${emp.id}`
+    }));
 
-    // ACTIONS
-    { type: 'ACTIONS', id: 'act_1', title: 'Run Payroll Now', subtitle: 'Execute regular or off-cycle payroll', icon: 'PlayCircle', url: '/payroll/run' },
-    { type: 'ACTIONS', id: 'act_2', title: 'Add New Employee', subtitle: 'Start onboarding workflow', icon: 'UserPlus', url: '/employees/new' },
-    { type: 'ACTIONS', id: 'act_3', title: 'Open Compliance Dashboard', subtitle: 'View upcoming deadlines', icon: 'ExternalLink', url: '/compliance' },
+    // Add some static pages for navigation (safely)
+    const staticPages = [
+      { type: 'PAGES', id: 'page_1', title: 'Dashboard', subtitle: 'Main Overview', icon: 'LayoutDashboard', url: '/dashboard' },
+      { type: 'PAGES', id: 'page_2', title: 'People Directory', subtitle: 'Manage Employees', icon: 'Users', url: '/employees' },
+      { type: 'PAGES', id: 'page_3', title: 'Payroll Run', subtitle: 'Execute Payments', icon: 'DollarSign', url: '/payroll' },
+    ].filter(p => p.title.toLowerCase().includes(query.toLowerCase()));
 
-    // DOCUMENTS
-    { type: 'DOCUMENTS', id: 'doc_1', title: 'Employee Handbook 2026.pdf', subtitle: 'Company Policies', icon: 'File', url: '/documents/handbook' },
-    { type: 'DOCUMENTS', id: 'doc_2', title: 'W-4 Tax Form Fillable.pdf', subtitle: 'Onboarding Resources', icon: 'File', url: '/documents/w4' },
-    { type: 'DOCUMENTS', id: 'doc_3', title: 'Q1 All-Hands Deck.pptx', subtitle: 'Company Resources', icon: 'File', url: '/documents/q1-deck' },
-  ];
-
-  // Map keywords to specific quick actions/pages to provide smart results
-  const intentMapping: Record<string, string[]> = {
-    'run payroll': ['act_1', 'page_1'],
-    'add employee': ['act_2', 'page_1'],
-    'compliance': ['act_3', 'page_4'],
-    'settings': ['page_1', 'page_2'],
-    'report': ['rep_1', 'rep_2', 'rep_3']
-  };
-
-  if (!query) {
-    // Return empty state or let frontend handle it
+    return NextResponse.json({ results: [...formattedResults, ...staticPages] });
+  } catch (error) {
+    console.error("Search Error:", error);
     return NextResponse.json({ results: [] });
   }
-
-  // 1. Check for specific exact intents 
-  let mappedIds = new Set<string>();
-  Object.keys(intentMapping).forEach(keyword => {
-    if (keyword.includes(query) || query.includes(keyword)) {
-      intentMapping[keyword].forEach(id => mappedIds.add(id));
-    }
-  });
-
-  // 2. Fuzzy search across title, subtitle, type
-  const fuzzyResults = allResults.filter(item => {
-    if (mappedIds.has(item.id)) return true;
-    return item.title.toLowerCase().includes(query) || 
-           item.subtitle.toLowerCase().includes(query) || 
-           item.type.toLowerCase().includes(query);
-  });
-
-  return NextResponse.json({ results: fuzzyResults });
 }

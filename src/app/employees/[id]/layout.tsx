@@ -81,9 +81,12 @@ export default function EmployeeProfileLayout({ children }: { children: React.Re
                      </p>
                   </div>
                   <div className="flex items-center gap-2">
-                     <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+                     <Link 
+                        href={`/employees/${emp.id}/edit`}
+                        className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm active:scale-95"
+                     >
                         <Edit size={14} /> Edit Profile
-                     </button>
+                     </Link>
                      <button className="px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm active:scale-95">
                         <MoreHorizontal size={14} />
                      </button>

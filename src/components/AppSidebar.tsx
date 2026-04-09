@@ -15,6 +15,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { useSocket } from "./SocketProvider";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 type SubItem = {
   label: string;
@@ -107,6 +108,18 @@ export default function AppSidebar() {
   
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
   const { socket } = useSocket();
+
+  // Check if current user is also an employee
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-me"],
+    queryFn: async () => {
+      const res = await fetch("/api/users/me");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    retry: false
+  });
+  const isAssignedEmployee = !!userProfile?.profile?.id;
 
   // Rule 6: Sidebar notification badge — subscribed to WS 'notification.new' event
   useEffect(() => {
@@ -350,6 +363,25 @@ export default function AppSidebar() {
               );
             })}
           </nav>
+
+          {/* New Rule: Conditional Employee Panel Access */}
+          {isAssignedEmployee && (
+            <div className="px-3 mt-4 lg:hidden xl:block">
+              <Link 
+                 href="/me"
+                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/50 hover:bg-violet-100 dark:hover:bg-violet-900/40 text-violet-700 dark:text-violet-400 transition-all font-bold group"
+              >
+                 <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <UserPlus size={16} className="text-violet-600" />
+                 </div>
+                 <div className="flex-1">
+                    <p className="text-[13px] leading-tight">My Employee Portal</p>
+                    <p className="text-[10px] text-violet-500/80 font-medium">Self-service & Pay</p>
+                 </div>
+                 <ChevronRight size={14} className="opacity-40 group-hover:translate-x-0.5 transition-all" />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* BOTTOM USER PROFILE */}

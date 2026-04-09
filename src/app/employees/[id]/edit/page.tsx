@@ -31,6 +31,7 @@ export default function EditEmployeePage() {
     type: "Full-Time",
     locationType: "Remote",
     startDate: "",
+    status: "active",
     salary: "",
     payFrequency: "Bi-Weekly",
     bankName: "",
@@ -54,6 +55,7 @@ export default function EditEmployeePage() {
               employee.employmentType === "part-time" ? "Part-Time" : "Contractor",
         locationType: employee.locationType || "Remote",
         startDate: employee.startDate ? new Date(employee.startDate).toISOString().split('T')[0] : "",
+        status: employee.status || "active",
         salary: employee.salary?.toString() || "",
         payFrequency: employee.payFrequency || "Bi-Weekly",
         bankName: employee.bankAccounts?.[0]?.bankName || employee.bankName || "",
@@ -131,6 +133,7 @@ export default function EditEmployeePage() {
         managerId: formData.managerId ? parseInt(formData.managerId) : null,
         employmentType: formData.type.toLowerCase(),
         startDate: formData.startDate,
+        status: formData.status,
         salary: formData.salary ? parseInt(formData.salary) : null,
         locationType: formData.locationType,
         bankInfo: {
@@ -263,6 +266,18 @@ export default function EditEmployeePage() {
                   .map((emp: any) => (
                     <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.jobTitle})</option>
                   ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="active">Active</option>
+                <option value="onboarding">Onboarding</option>
+                <option value="terminated">Terminated</option>
               </select>
             </div>
             <div>

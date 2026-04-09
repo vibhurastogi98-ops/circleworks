@@ -1,16 +1,39 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { onboardingCases, employees } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { onboardingCases, employees, users } from "@/db/schema";
+import { desc, eq, and } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    const cases = await db.query.onboardingCases.findMany({
-      with: {
-        employee: true,
-      },
-      orderBy: [desc(onboardingCases.createdAt)],
-    });
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find the user's company
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.clerkUserId, userId));
+
+    if (!userEmployee || !userEmployee.companyId) {
+      return NextResponse.json([]);
+    }
+
+    const cases = await db
+      .select({
+        id: onboardingCases.id,
+        employeeId: onboardingCases.employeeId,
+        startDate: onboardingCases.startDate,
+        createdAt: onboardingCases.createdAt,
+        employee: employees
+      })
+      .from(onboardingCases)
+      .innerJoin(employees, eq(onboardingCases.employeeId, employees.id))
+      .where(eq(employees.companyId, userEmployee.companyId))
+      .orderBy(desc(onboardingCases.createdAt));
 
     // Format for the dashboard UI
     return NextResponse.json(cases.map((c: any) => ({

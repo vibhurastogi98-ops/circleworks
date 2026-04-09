@@ -226,12 +226,18 @@ export default function SignupPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             companyName: formData.companyName,
+            hasData: true,
+            role: "admin"
           }),
         }).catch(err => console.error("Failed to persist company name on signup", err));
 
         // Activate session
-        if (isLoaded) {
+        if (isLoaded && signUp.createdSessionId) {
           await setActive({ session: signUp.createdSessionId });
+          // Force navigation to dashboard after activation
+          setTimeout(() => {
+             router.push("/dashboard");
+          }, 1500);
         }
 
         localStorage.removeItem("circleworks_signup_progress");
