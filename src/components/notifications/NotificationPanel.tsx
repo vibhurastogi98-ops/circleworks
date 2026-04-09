@@ -166,19 +166,27 @@ export default function NotificationPanel({ isOpen, onClose }: { isOpen: boolean
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
                   <button 
-                    onClick={() => markAllAsRead()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      markAllAsRead();
+                    }}
                     className="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                     title="Mark all as read"
                   >
                     <Check size={18} />
                   </button>
                 )}
-                <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
+                <Link href="/settings/notifications" className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
                   <Settings size={18} />
-                </button>
+                </Link>
                 <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
                 <button 
-                  onClick={onClose}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
                   className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
                 >
                   <X size={18} />
