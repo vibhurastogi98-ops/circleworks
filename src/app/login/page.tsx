@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "sonner";
 
 const QUOTES = [
   {
@@ -76,12 +77,8 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect if signed in
-  useEffect(() => {
-    if (isSignedIn) {
-      router.replace("/dashboard");
-    }
-  }, [isSignedIn, router]);
+  // Note: Removed automatic redirect to dashboard after login
+  // Users will now stay on the page and can navigate via the navbar profile menu
 
   const onLoginSubmit = async (data: LoginFormValues) => {
     if (!isLoaded || isSignedIn) return;
@@ -97,7 +94,9 @@ export default function LoginPage() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
+                toast.success("Login successful! Welcome back.");
+        // Redirect to home page instead of dashboard
+        router.push("/");
       } else if (result.status === "needs_second_factor") {
         setMfaNeeded(true);
       } else {
@@ -130,7 +129,9 @@ export default function LoginPage() {
       });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
+        toast.success("Login successful! Welcome back.");
+        // Redirect to home page instead of dashboard
+        router.push("/");
       } else {
         setErrorMsg("Invalid code or incomplete status.");
       }

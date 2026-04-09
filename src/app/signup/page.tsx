@@ -100,12 +100,8 @@ export default function SignupPage() {
     }
   }, [setValue]);
 
-  // Redirect if signed in
-  useEffect(() => {
-    if (isSignedIn) {
-      router.replace("/dashboard");
-    }
-  }, [isSignedIn, router]);
+  // Note: Removed automatic redirect to dashboard after signup
+  // Users will now stay on the page and can navigate via the navbar profile menu
 
   // Save to local storage on change
   useEffect(() => {
@@ -122,7 +118,7 @@ export default function SignupPage() {
       await signUp.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: "/",
       });
     } catch (err) {
       console.error("Google signup error", err);
@@ -135,7 +131,7 @@ export default function SignupPage() {
       await signUp.authenticateWithRedirect({
         strategy: "oauth_microsoft",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: "/",
       });
     } catch (err) {
       console.error("Microsoft signup error", err);
@@ -690,17 +686,17 @@ export default function SignupPage() {
                     </div>
 
                     <div className="space-y-3">
-                       <Link href="/dashboard" className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all group">
+                       <Link href="/" className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all group">
                           <div className="flex items-center gap-4">
                              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><Zap size={20} /></div>
                              <div className="text-left">
-                                <p className="font-bold text-slate-800">Go to Dashboard</p>
-                                <p className="text-xs font-medium text-slate-500">Run your first payroll or setup benefits.</p>
+                                <p className="font-bold text-slate-800">Go to Homepage</p>
+                                <p className="text-xs font-medium text-slate-500">Access your dashboard from the profile menu.</p>
                              </div>
                           </div>
                           <ArrowRight className="text-slate-300 group-hover:text-blue-500 transition-colors" />
                        </Link>
-                       <Link href="/dashboard/employees" className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all group">
+                       <Link href="/employees" className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all group">
                           <div className="flex items-center gap-4">
                              <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center"><Users size={20} /></div>
                              <div className="text-left">

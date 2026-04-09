@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calculator,
@@ -32,8 +32,13 @@ import {
   Wallet,
   PieChart,
   MonitorPlay,
-  GraduationCap
+  GraduationCap,
+  User,
+  Settings,
+  LogOut,
+  ChevronDown
 } from "lucide-react";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 
 // --- Data Definitions ---
 
@@ -187,10 +192,26 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileActiveAccordion, setMobileActiveAccordion] = useState<string | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  
+  // Clerk authentication hooks - simplified approach
+  const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  
+  // Simple auth ready check
+  const authReady = isLoaded;
+  
+  // Derive display info from Clerk user
+  const displayName = user?.fullName || user?.firstName || "User";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
+  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${displayName}&backgroundColor=transparent`;
 
   // Scroll handler
   useEffect(() => {
@@ -237,6 +258,9 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
       if (navRef.current && !navRef.current.contains(e.target as Node)) {
         setActiveMenu(null);
       }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
@@ -270,6 +294,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
   const closeMenus = () => {
     setActiveMenu(null);
     setMobileOpen(false);
+    setIsProfileMenuOpen(false);
   };
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -369,21 +394,94 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
               })}
             </div>
 
-            {/* RIGHT: CTAs */}
+            {/* RIGHT: CTAs or Profile Menu */}
             <div className="hidden lg:flex items-center gap-4 z-50" onMouseEnter={handleMouseLeave}>
-              <Link
-                href="/login"
-                className={`font-semibold text-[15px] transition-colors ${isNavWhite ? "text-[#0A1628] hover:text-blue-600" : "text-white hover:text-blue-400"
-                  }`}
-              >
-                Log In
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-full px-6 py-2.5 transition-all shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5"
-              >
-                Start Free — No Credit Card
-              </Link>
+              {authReady && isSignedIn ? (
+                /* Authenticated User - Profile Menu */
+                <div className="relative" ref={profileMenuRef}>
+                  <button
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className={`flex items-center gap-2 font-semibold text-[15px] transition-colors ${isNavWhite ? "text-[#0A1628] hover:text-blue-600" : "text-white hover:text-blue-400"
+                      }`}
+                    aria-label="Open Profile Menu"
+                    aria-expanded={isProfileMenuOpen}
+                    aria-haspopup="true"
+                  >
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-current">
+                      <img 
+                        src={avatarUrl} 
+                        alt="User Avatar" 
+                        className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" 
+                      />
+                    </div>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {isProfileMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                          <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{displayName}</p>
+                          <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{displayEmail}</p>
+                        </div>
+                        
+                        <div className="p-2 flex flex-col gap-1">
+                          <button
+                            onClick={() => { setIsProfileMenuOpen(false); router.push("/dashboard"); }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <Target size={16} className="text-slate-400" /> Go to Dashboard
+                          </button>
+                          <button
+                            onClick={() => { setIsProfileMenuOpen(false); router.push("/settings/profile"); }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <User size={16} className="text-slate-400" /> My Profile
+                          </button>
+                          <button 
+                            onClick={() => { setIsProfileMenuOpen(false); router.push("/settings"); }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <Settings size={16} className="text-slate-400" /> Other Settings
+                          </button>
+                        </div>
+
+                        <div className="p-2 border-t border-slate-100 dark:border-slate-700">
+                          <button
+                            onClick={() => signOut({ redirectUrl: "/login" })}
+                            className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <LogOut size={16} /> Log Out
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                /* Non-authenticated User - Login/Signup Buttons */
+                <>
+                  <Link
+                    href="/login"
+                    className={`font-semibold text-[15px] transition-colors ${isNavWhite ? "text-[#0A1628] hover:text-blue-600" : "text-white hover:text-blue-400"
+                      }`}
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-full px-6 py-2.5 transition-all shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5"
+                  >
+                    Start Free - No Credit Card
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Hamburger */}
@@ -594,22 +692,81 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
             </div>
 
             <div className="mt-8 flex flex-col gap-3">
-              <Link
-                href="/login"
-                onClick={closeMenus}
-                className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                tabIndex={0}
-              >
-                Log In
-              </Link>
-              <Link
-                href="/signup"
-                onClick={closeMenus}
-                className="w-full text-center py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30"
-                tabIndex={0}
-              >
-                Start Free — No Credit Card
-              </Link>
+              {authReady && isSignedIn ? (
+                /* Authenticated User - Mobile Profile Options */
+                <>
+                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-600">
+                        <img 
+                          src={avatarUrl} 
+                          alt="User Avatar" 
+                          className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" 
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{displayName}</p>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{displayEmail}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Link
+                    href="/dashboard"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <Target size={16} /> Go to Dashboard
+                  </Link>
+                  
+                  <Link
+                    href="/settings/profile"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <User size={16} /> My Profile
+                  </Link>
+                  
+                  <Link
+                    href="/settings"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <Settings size={16} /> Other Settings
+                  </Link>
+                  
+                  <button
+                    onClick={() => signOut({ redirectUrl: "/login" })}
+                    className="w-full text-center py-4 rounded-xl border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <LogOut size={16} /> Log Out
+                  </button>
+                </>
+              ) : (
+                /* Non-authenticated User - Login/Signup Buttons */
+                <>
+                  <Link
+                    href="/login"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    tabIndex={0}
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30"
+                    tabIndex={0}
+                  >
+                    Start Free - No Credit Card
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}
