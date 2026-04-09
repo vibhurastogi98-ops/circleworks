@@ -127,7 +127,15 @@ export default function OnboardingTour() {
     const hasCompletedTour = user.publicMetadata?.hasCompletedTour === true;
     if (!hasCompletedTour && !hasStarted.current) {
       hasStarted.current = true;
-      setTimeout(() => { tourDriver.drive(); }, 500);
+      // Increased delay to ensure DOM is fully ready
+      setTimeout(() => { 
+        if (document.querySelector("#tour-dashboard")) {
+          tourDriver.drive(); 
+        } else {
+          console.warn("Tour container not found, skipping auto-start");
+          hasStarted.current = false; // Allow retry if DOM wasn't ready
+        }
+      }, 1500);
     }
 
     // Allow manual trigger

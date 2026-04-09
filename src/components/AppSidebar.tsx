@@ -253,7 +253,15 @@ export default function AppSidebar() {
                 <div key={item.label} className="flex flex-col">
                   {hasSubItems ? (
                     <button
-                      id={item.label === "Payroll" ? "tour-payroll" : item.label === "Employees" ? "tour-employees" : undefined}
+                      id={
+                        item.label === "Payroll" 
+                          ? "tour-payroll" 
+                          : item.label === "Employees" 
+                            ? "tour-employees" 
+                            : item.label === "Compliance"
+                              ? "tour-compliance"
+                              : undefined
+                      }
                       onClick={() => toggleAccordion(item.label)}
                       className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
                         ${active 
@@ -281,7 +289,15 @@ export default function AppSidebar() {
                     </button>
                   ) : (
                     <Link
-                      id={item.label === "Payroll" ? "tour-payroll" : item.label === "Employees" ? "tour-employees" : undefined}
+                      id={
+                        item.label === "Payroll" 
+                          ? "tour-payroll" 
+                          : item.label === "Employees" 
+                            ? "tour-employees" 
+                            : item.label === "Compliance"
+                              ? "tour-compliance"
+                              : undefined
+                      }
                       href={item.href || "#"}
                       className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
                         ${active 

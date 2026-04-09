@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OnboardingTour from "@/components/OnboardingTour";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import CirceWidget from "@/components/CirceWidget";
 
 // Recharts client-only
 const PayrollChart = dynamic(
@@ -79,7 +80,7 @@ export default function DashboardPage() {
               </div>
 
               <ActivityFeed />
-
+              <CirceWidget />
             </div>
           </main>
         </div>
