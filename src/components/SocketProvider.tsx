@@ -26,7 +26,7 @@ export default function SocketProvider({ children }: { children: React.ReactNode
     if (!isLoaded || !user) return;
 
     // Configuration
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
     
     const socketInstance = io(socketUrl, {
       transports: ["websocket", "polling"], // Try websocket first to avoid XHR polling errors

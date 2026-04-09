@@ -1,23 +1,46 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
-  Search, Filter, Plus, Upload, Download, Grid, List as ListIcon,
-  MoreVertical, Network, Loader2
+  Search, Filter, Plus, Upload, Download, Grid, List,
+  MoreVertical, Network, Loader2, Edit, Trash2, Mail, Phone, UserX
 } from "lucide-react";
 import { format } from "date-fns";
 
 export default function EmployeesDirectoryPage() {
   const { data: employees = [], isLoading, error } = useEmployees();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [deptFilter, setDeptFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
+  // Debug: Log employee data
+  console.log("Employee data from API:", employees);
+  console.log("Number of employees:", employees?.length || 0);
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="flex flex-col gap-6 w-full">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <h3 className="text-red-800 dark:text-red-200 font-semibold">Error loading employees</h3>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-1">{error.message || "Unknown error occurred"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter employees based on search and filters
   const filteredEmployees = useMemo(() => {
-    return (employees as any[]).filter(emp => {
+    if (!employees || employees.length === 0) return [];
+    
+    const filtered = employees.filter(emp => {
       const matchSearch = (`${emp.firstName} ${emp.lastName || ""} ${emp.jobTitle || ""}`).toLowerCase().includes(search.toLowerCase());
       const matchDept = deptFilter === "All" || emp.department === deptFilter;
 
@@ -27,7 +50,181 @@ export default function EmployeesDirectoryPage() {
 
       return matchSearch && matchDept && matchStatus;
     });
+    
+    console.log("Filtered employees:", filtered);
+    console.log("Search term:", search);
+    console.log("Department filter:", deptFilter);
+    console.log("Status filter:", statusFilter);
+    
+    return filtered;
   }, [employees, search, deptFilter, statusFilter]);
+
+  const handleActionClick = async (employeeId: string, action: string) => {
+    console.log(`Action: ${action} for employee: ${employeeId}`);
+    setActiveDropdown(null);
+    
+    // Add a small delay to ensure the dropdown closes before executing the action
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Handle different actions
+    switch (action) {
+      case 'edit':
+        // Navigate to edit page
+        window.location.href = `/employees/${employeeId}/edit`;
+        break;
+      case 'delete':
+        try {
+          const response = await fetch(`/api/employees/${employeeId}`, {
+            method: 'DELETE',
+          });
+          
+          if (response.ok) {
+            toast.success('Employee deleted successfully');
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+          } else {
+            toast.error('Failed to delete employee');
+          }
+        } catch (error) {
+          console.error('Delete error:', error);
+          toast.error('Error deleting employee');
+        }
+        break;
+      case 'email':
+        // Send email
+        window.location.href = `mailto:${employees.find((emp: any) => emp.id === employeeId)?.email}`;
+        break;
+      case 'call':
+        // Make call
+        const phone = employees.find((emp: any) => emp.id === employeeId)?.phone;
+        if (phone) {
+          window.location.href = `tel:${phone}`;
+        } else {
+          toast.error('Phone number not available');
+        }
+        break;
+      case 'terminate':
+        toast.info('Termination feature coming soon');
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeDropdown) {
+        const target = event.target as Element;
+        // Check if click is outside any dropdown menu
+        const isInsideDropdown = target.closest('[data-dropdown-menu]');
+        if (!isInsideDropdown) {
+          setActiveDropdown(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeDropdown]);
+
+  const handleDownloadCSV = () => {
+    console.log("CSV download button clicked!");
+    
+    // Create CSV headers
+    const headers = [
+      'First Name',
+      'Last Name', 
+      'Email',
+      'Job Title',
+      'Department',
+      'Employment Type',
+      'Start Date',
+      'Salary',
+      'Location Type',
+      'Status'
+    ];
+    
+    let csvContent;
+    let filename;
+    
+    if (filteredEmployees.length === 0) {
+      // Create template with sample data
+      const sampleData = [
+        'John',
+        'Doe',
+        'john.doe@company.com',
+        'Software Engineer',
+        'Engineering',
+        'Full-Time',
+        '2024-01-15',
+        '85000',
+        'Remote',
+        'Active'
+      ];
+      
+      csvContent = [
+        headers.join(','),
+        sampleData.join(',')
+      ].join('\n');
+      filename = 'employee_template.csv';
+      toast.success('CSV template downloaded successfully');
+    } else {
+      // Export current employee data
+      const employeeRows = filteredEmployees.map(emp => [
+        emp.firstName || '',
+        emp.lastName || '',
+        emp.email || '',
+        emp.jobTitle || '',
+        emp.department || '',
+        emp.employmentType || '',
+        emp.startDate ? format(new Date(emp.startDate), 'yyyy-MM-dd') : '',
+        emp.salary || '',
+        emp.locationType || '',
+        emp.status || ''
+      ]);
+      
+      csvContent = [
+        headers.join(','),
+        ...employeeRows.map(row => row.join(','))
+      ].join('\n');
+      filename = `employees_export_${new Date().toISOString().split('T')[0]}.csv`;
+      toast.success(`Exported ${filteredEmployees.length} employees to CSV`);
+    }
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Add programmatic event listener as backup
+  useEffect(() => {
+    const button = document.getElementById('csv-download-btn');
+    if (button) {
+      const handleClick = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("CSV download button clicked via programmatic listener!");
+        handleDownloadCSV();
+      };
+      
+      button.addEventListener('click', handleClick, true);
+      
+      return () => {
+        button.removeEventListener('click', handleClick, true);
+      };
+    }
+  }, [handleDownloadCSV]);
 
   const departments = ["All", "Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Finance", "Executive"];
   const statuses = ["All", "Active", "On Leave", "Terminated", "Onboarding"];
@@ -106,24 +303,47 @@ export default function EmployeesDirectoryPage() {
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
           <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg flex items-center shadow-inner">
             <button
-              onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+              onClick={() => {
+                console.log("List view clicked");
+                setViewMode("list");
+              }}
+              className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === "list" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+              title="List View"
             >
-              <ListIcon size={18} />
+              <List size={18} />
+              <span className="sr-only">List</span>
             </button>
             <button
-              onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-md transition-all ${viewMode === "grid" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+              onClick={() => {
+                console.log("Grid view clicked");
+                setViewMode("grid");
+              }}
+              className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === "grid" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+              title="Grid View"
             >
               <Grid size={18} />
+              <span className="sr-only">Grid</span>
             </button>
           </div>
           <Link href="/employees/org-chart" className="p-2 ml-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50" title="View Org Chart">
             <Network size={20} />
           </Link>
-          <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title="Export CSV">
-            <Download size={20} />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("CSV download button clicked!");
+                handleDownloadCSV();
+              }}
+              className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50" 
+              title="Export CSV"
+              type="button"
+              id="csv-download-btn"
+            >
+              <Download size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -169,24 +389,67 @@ export default function EmployeesDirectoryPage() {
                       {emp.location}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">
-                      {format(new Date(emp.startDate), "MMM d, yyyy")}
+                      {emp.startDate ? format(new Date(emp.startDate), "MMM d, yyyy") : "Not set"}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(emp.status)}`}>
                         {emp.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right relative">
                       <button
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          setActiveDropdown(activeDropdown === emp.id ? null : emp.id);
                         }}
                         className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
                         aria-label={`Actions for ${emp.firstName} ${emp.lastName}`}
                       >
                         <MoreVertical size={18} />
                       </button>
+                      
+                      {/* Dropdown Menu */}
+                      {activeDropdown === emp.id && (
+                        <div data-dropdown-menu className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                          <button
+                            onClick={() => handleActionClick(emp.id, 'edit')}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                          >
+                            <Edit size={14} />
+                            Edit Employee
+                          </button>
+                          <button
+                            onClick={() => handleActionClick(emp.id, 'email')}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                          >
+                            <Mail size={14} />
+                            Send Email
+                          </button>
+                          <button
+                            onClick={() => handleActionClick(emp.id, 'call')}
+                            className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                          >
+                            <Phone size={14} />
+                            Call Employee
+                          </button>
+                          <div className="border-t border-slate-200 dark:border-slate-700"></div>
+                          <button
+                            onClick={() => handleActionClick(emp.id, 'terminate')}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                          >
+                            <UserX size={14} />
+                            Terminate
+                          </button>
+                          <button
+                            onClick={() => handleActionClick(emp.id, 'delete')}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -218,17 +481,60 @@ export default function EmployeesDirectoryPage() {
                 <div className="font-medium text-sm text-slate-700 dark:text-slate-300 mt-0.5 line-clamp-1">{emp.jobTitle}</div>
                 <div className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">{emp.department}</div>
               </div>
-              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center relative">
                 <div className="text-xs text-slate-500 dark:text-slate-400">{emp.locationType}</div>
                 <button 
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    setActiveDropdown(activeDropdown === emp.id ? null : emp.id);
                   }}
                   className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <MoreVertical size={16} />
                 </button>
+                
+                {/* Dropdown Menu */}
+                {activeDropdown === emp.id && (
+                  <div data-dropdown-menu className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                    <button
+                      onClick={() => handleActionClick(emp.id, 'edit')}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Edit size={14} />
+                      Edit Employee
+                    </button>
+                    <button
+                      onClick={() => handleActionClick(emp.id, 'email')}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Mail size={14} />
+                      Send Email
+                    </button>
+                    <button
+                      onClick={() => handleActionClick(emp.id, 'call')}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                    >
+                      <Phone size={14} />
+                      Call Employee
+                    </button>
+                    <div className="border-t border-slate-200 dark:border-slate-700"></div>
+                    <button
+                      onClick={() => handleActionClick(emp.id, 'terminate')}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                    >
+                      <UserX size={14} />
+                      Terminate
+                    </button>
+                    <button
+                      onClick={() => handleActionClick(emp.id, 'delete')}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

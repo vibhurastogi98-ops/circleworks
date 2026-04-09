@@ -6,9 +6,13 @@ import { toast } from "sonner";
 
 // Real API fetch
 const fetchEmployees = async () => {
+  console.log("[useEmployees] Fetching employees from API...");
   const response = await fetch("/api/employees");
   if (!response.ok) throw new Error("Failed to fetch employees");
-  return response.json();
+  const data = await response.json();
+  console.log("[useEmployees] Fetched employees:", data);
+  console.log("[useEmployees] Number of employees:", data?.length || 0);
+  return data;
 };
 
 export function useEmployees() {
@@ -18,7 +22,9 @@ export function useEmployees() {
   const query = useQuery({
     queryKey: ["employees"],
     queryFn: fetchEmployees,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Force refetch every time
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Real Add Employee Mutation
@@ -33,7 +39,9 @@ export function useEmployees() {
       return response.json();
     },
     onSuccess: () => {
+      console.log("[useEmployees] Invalidating queries and refetching...");
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.refetchQueries({ queryKey: ["employees"] });
       notifyEmployeeChange();
       toast.success("Employee added successfully!");
     },
