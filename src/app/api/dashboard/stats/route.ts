@@ -1,21 +1,51 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees, payrolls, ptoRequests, timesheets } from "@/db/schema";
-import { desc, count, sum, sql, and, gte, or } from "drizzle-orm";
+import { employees, payrolls, ptoRequests, timesheets, users, companies } from "@/db/schema";
+import { desc, count, sum, sql, and, gte, or, eq } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    // 1. Total Employee Count
-    const [employeeStats] = await db.select({ value: count() }).from(employees);
+    // Get current authenticated user
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find the user's employee record to get their company
+    const [userEmployee] = await db
+      .select({ 
+        companyId: employees.companyId,
+        role: users.role 
+      })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.clerkUserId, userId));
+
+    if (!userEmployee || !userEmployee.companyId) {
+      return NextResponse.json({ 
+        totalEmployees: 0,
+        monthlyPayroll: 0,
+        pendingApprovals: 0,
+        recentHires: []
+      });
+    }
+
+    // 1. Total Employee Count (filtered by company)
+    const [employeeStats] = await db
+      .select({ value: count() })
+      .from(employees)
+      .where(eq(employees.companyId, userEmployee.companyId));
     const totalEmployees = employeeStats?.value || 0;
 
-    // 2. Recent Hires (Top 4)
+    // 2. Recent Hires (Top 4, filtered by company)
     const recentHires = await db.query.employees.findMany({
+      where: eq(employees.companyId, userEmployee.companyId),
       orderBy: [desc(employees.createdAt)],
       limit: 4,
     });
 
-    // 3. Monthly Payroll Aggregation (Last 30 days)
+    // 3. Monthly Payroll Aggregation (Last 30 days, filtered by company)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
@@ -24,24 +54,31 @@ export async function GET() {
       .select({ total: sum(payrolls.totalNet) })
       .from(payrolls)
       .where(and(
+        eq(payrolls.companyId, userEmployee.companyId),
         gte(payrolls.checkDate, thirtyDaysAgoStr),
         sql`${payrolls.status} = 'paid' OR ${payrolls.status} = 'processed'`
       ));
     
     const monthlyPayroll = Number(payrollStats?.total || 0);
 
-    // 4. Pending Approvals (PTO + Timesheets)
+    // 4. Pending Approvals (PTO + Timesheets, filtered by company)
     const [ptoPending] = await db
       .select({ value: count() })
       .from(ptoRequests)
-      .where(sql`${ptoRequests.status} = 'Pending'`);
+      .where(and(
+        eq(ptoRequests.companyId, userEmployee.companyId),
+        sql`${ptoRequests.status} = 'Pending'`
+      ));
 
     const [timesheetPending] = await db
       .select({ value: count() })
       .from(timesheets)
-      .where(or(
-        sql`${timesheets.status} = 'Pending'`,
-        sql`${timesheets.status} = 'Draft'`
+      .where(and(
+        eq(timesheets.companyId, userEmployee.companyId),
+        or(
+          sql`${timesheets.status} = 'Pending'`,
+          sql`${timesheets.status} = 'Draft'`
+        )
       ));
 
     const pendingApprovals = (ptoPending?.value || 0) + (timesheetPending?.value || 0);

@@ -1,17 +1,37 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees, employeeBankAccounts, onboardingCases } from "@/db/schema";
+import { employees, employeeBankAccounts, onboardingCases, users } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
-import { desc, sql } from "drizzle-orm";
+import { desc, sql, eq } from "drizzle-orm";
 import { clerkClient, auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    const allEmployees = await db.query.employees.findMany({
+    // Get current authenticated user
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find the user's employee record to get their company
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.clerkUserId, userId));
+
+    if (!userEmployee || !userEmployee.companyId) {
+      return NextResponse.json([]);
+    }
+
+    // Get employees filtered by company
+    const companyEmployees = await db.query.employees.findMany({
+      where: eq(employees.companyId, userEmployee.companyId),
       orderBy: [desc(employees.createdAt)],
     });
-    return NextResponse.json(allEmployees);
+    
+    return NextResponse.json(companyEmployees);
   } catch (error: any) {
     console.error("[Employees GET Error]", error);
     

@@ -397,7 +397,11 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                 /* Authenticated User - Profile Menu */
                 <div className="relative" ref={profileMenuRef}>
                   <button
-                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsProfileMenuOpen(!isProfileMenuOpen);
+                    }}
                     className={`flex items-center gap-2 font-semibold text-[15px] transition-colors ${isNavWhite ? "text-[#0A1628] hover:text-blue-600" : "text-white hover:text-blue-400"
                       }`}
                     aria-label="Open Profile Menu"
@@ -451,7 +455,12 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
 
                         <div className="p-2 border-t border-slate-100 dark:border-slate-700">
                           <button
-                            onClick={() => signOut({ redirectUrl: "/" })}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              signOut({ redirectUrl: "/" });
+                            }}
                             className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors"
                           >
                             <LogOut size={16} /> Log Out
@@ -736,7 +745,12 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                   </Link>
                   
                   <button
-                    onClick={() => signOut({ redirectUrl: "/" })}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      closeMenus();
+                      signOut({ redirectUrl: "/" });
+                    }}
                     className="w-full text-center py-4 rounded-xl border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
                     tabIndex={0}
                   >
