@@ -354,7 +354,7 @@ export default function AppSidebar() {
              </div>
 
              <button
-                onClick={() => signOut({ redirectUrl: "/login" })}
+                onClick={() => signOut({ redirectUrl: "/" })}
                 className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity lg:hidden xl:block text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer"
                 title="Log Out"
              >
