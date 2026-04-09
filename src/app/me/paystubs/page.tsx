@@ -4,17 +4,20 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Eye, X, DollarSign, TrendingUp, ChevronDown } from "lucide-react";
 import { mockPayStubs, type PayStub } from "@/data/mockEmployeePortal";
+import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 export default function PayStubsPage() {
-  const years = [...new Set(mockPayStubs.map(s => s.year))].sort((a, b) => b - a);
+  const { data } = useEmployeePortal();
+  const payStubs = data?.payStubs?.length ? data.payStubs : mockPayStubs;
+  const years = [...new Set(payStubs.map(s => s.year))].sort((a, b) => b - a);
   const [selectedYear, setSelectedYear] = useState<number>(years[0]);
   const [selectedStub, setSelectedStub] = useState<PayStub | null>(null);
 
-  const filtered = mockPayStubs.filter(s => s.year === selectedYear);
+  const filtered = payStubs.filter(s => s.year === selectedYear);
 
   // YTD summary
-  const ytdStubs = mockPayStubs.filter(s => s.year === new Date().getFullYear());
+  const ytdStubs = payStubs.filter(s => s.year === new Date().getFullYear());
   const ytdGross = ytdStubs.reduce((sum, s) => sum + s.grossPay, 0);
   const ytdTaxes = ytdStubs.reduce((sum, s) => sum + s.federalTax + s.stateTax + s.socialSecurity + s.medicare, 0);
   const ytdNet = ytdStubs.reduce((sum, s) => sum + s.netPay, 0);

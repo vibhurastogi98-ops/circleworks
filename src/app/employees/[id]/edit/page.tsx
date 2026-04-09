@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useEmployee } from "@/hooks/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDataSync } from "@/hooks/useDataSync";
 import { toast } from "sonner";
 import { ArrowLeft, Save, X, Check, UploadCloud, Landmark, ShieldCheck } from "lucide-react";
 
@@ -13,6 +14,7 @@ export default function EditEmployeePage() {
   const { id } = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { notifyEmployeeChange } = useDataSync();
   const { data: employee, isLoading, error } = useEmployee(id as string);
   
   const [currentStep, setCurrentStep] = useState(0);
@@ -154,6 +156,8 @@ export default function EditEmployeePage() {
       toast.success("Employee updated successfully");
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      notifyEmployeeChange();
       router.push("/employees");
     } catch (error) {
       console.error("Update error:", error);

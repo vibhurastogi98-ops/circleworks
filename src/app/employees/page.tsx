@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDataSync } from "@/hooks/useDataSync";
 import { toast } from "sonner";
 import {
   Search, Filter, Plus, Upload, Download, Grid, List,
@@ -14,6 +15,7 @@ import { format } from "date-fns";
 export default function EmployeesDirectoryPage() {
   const { data: employees = [], isLoading, error } = useEmployees();
   const queryClient = useQueryClient();
+  const { notifyEmployeeChange } = useDataSync();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [deptFilter, setDeptFilter] = useState<string>("All");
@@ -81,6 +83,8 @@ export default function EmployeesDirectoryPage() {
           if (response.ok) {
             toast.success('Employee deleted successfully');
             queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+            notifyEmployeeChange();
           } else {
             toast.error('Failed to delete employee');
           }

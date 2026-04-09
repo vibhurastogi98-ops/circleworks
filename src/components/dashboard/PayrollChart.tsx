@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -64,9 +64,9 @@ export default function PayrollChart() {
   const [range, setRange] = useState<(typeof DATE_RANGES)[number]>("6 months");
   const { payrollTrend } = useDashboardData();
 
-  useState(() => {
+  useEffect(() => {
     setMounted(true);
-  });
+  }, []);
 
   return (
     <motion.div

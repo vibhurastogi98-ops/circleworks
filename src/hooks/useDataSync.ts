@@ -7,22 +7,22 @@ import { toast } from "sonner";
 export function useDataSync() {
   const queryClient = useQueryClient();
 
-  // Rule 1: After any payroll run completes, invalidate queries: ['payroll', 'employees', 'dashboard', 'reports']
+  // Rule 1: After any payroll run completes, invalidate queries: ['payroll', 'employees', 'dashboard-stats', 'reports']
   const notifyPayrollComplete = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["payroll"] });
     await queryClient.invalidateQueries({ queryKey: ["employees"] });
-    await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     await queryClient.invalidateQueries({ queryKey: ["reports"] });
     console.log("🔄 Rule 1: Payroll Sync Complete");
   }, [queryClient]);
 
-  // Rule 2: After employee hire/term, invalidate: ['employees', 'headcount', 'ats', 'onboarding', 'dashboard']
+  // Rule 2: After employee hire/term, invalidate: ['employees', 'headcount', 'ats', 'onboarding', 'dashboard-stats']
   const notifyEmployeeChange = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["employees"] });
     await queryClient.invalidateQueries({ queryKey: ["headcount"] });
     await queryClient.invalidateQueries({ queryKey: ["ats"] });
     await queryClient.invalidateQueries({ queryKey: ["onboarding"] });
-    await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     console.log("🔄 Rule 2: Employee Sync Complete");
   }, [queryClient]);
 

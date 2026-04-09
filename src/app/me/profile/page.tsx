@@ -4,10 +4,22 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { User, MapPin, Phone, Shield, CreditCard, FileText, Lock, Smartphone, Monitor, Save, Edit2, Eye, EyeOff } from "lucide-react";
 import { mockEmployeeProfile } from "@/data/mockEmployeePortal";
+import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
-  const p = mockEmployeeProfile;
+  const { data } = useEmployeePortal();
+  const portalProfile = data?.profile;
+  const p = {
+    ...mockEmployeeProfile,
+    ...portalProfile,
+    fullName: portalProfile ? `${portalProfile.firstName} ${portalProfile.lastName || ""}`.trim() : mockEmployeeProfile.fullName,
+    bankAccount: portalProfile?.bankAccount
+      ? { ...mockEmployeeProfile.bankAccount, ...portalProfile.bankAccount }
+      : mockEmployeeProfile.bankAccount,
+    startDate: portalProfile?.startDate || mockEmployeeProfile.startDate,
+  };
+
   const [editing, setEditing] = useState<string | null>(null);
   const [showBankDetails, setShowBankDetails] = useState(false);
 

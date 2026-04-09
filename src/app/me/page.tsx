@@ -9,6 +9,7 @@ import {
   Plane, Thermometer, User as UserIcon
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import {
   mockPtoBalances, mockPendingTasks, mockAnnouncements, mockKudos, mockPayStubs,
 } from "@/data/mockEmployeePortal";
@@ -35,8 +36,12 @@ const ptoIcons: Record<string, React.ElementType> = {
 
 export default function EmployeeHomePage() {
   const { user } = useUser();
-  const firstName = user?.firstName || "there";
-  const latestStub = mockPayStubs[0];
+  const { data, isLoading, error } = useEmployeePortal();
+
+  const profile = data?.profile;
+  const payStubs = data?.payStubs?.length ? data.payStubs : mockPayStubs;
+  const firstName = profile?.firstName || user?.firstName || "there";
+  const latestStub = payStubs[0] || mockPayStubs[0];
   const nextPayDate = new Date(latestStub.payDate);
   nextPayDate.setDate(nextPayDate.getDate() + 14);
 
