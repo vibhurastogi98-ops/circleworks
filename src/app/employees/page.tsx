@@ -415,7 +415,7 @@ export default function EmployeesDirectoryPage() {
                       {emp.startDate ? format(new Date(emp.startDate), "MMM d, yyyy") : "Not set"}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(emp.status)}`}>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getStatusColor(emp.status || "")}`}>
                         {emp.status}
                       </span>
                     </td>
@@ -497,7 +497,7 @@ export default function EmployeesDirectoryPage() {
                 <Link href={`/employees/${emp.id}`} className="focus:outline-none">
                   <img src={emp.avatar} alt="" className="w-14 h-14 rounded-full bg-slate-200 border-2 border-white dark:border-slate-800 shadow-sm object-cover" />
                 </Link>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(emp.status)}`}>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(emp.status || "")}`}>
                   {emp.status}
                 </span>
               </div>
