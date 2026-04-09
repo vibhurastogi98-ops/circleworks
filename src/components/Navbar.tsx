@@ -200,22 +200,42 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
   const pathname = usePathname();
   const router = useRouter();
   
-  // Clerk authentication hooks - simplified approach
+  // Clerk authentication hooks - optimized for fast response
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
   const { signOut } = useClerk();
   
-  // Derive display info from Clerk user
-  const displayName = user?.fullName || user?.firstName || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${displayName}&backgroundColor=transparent`;
+  // Local state for immediate UI updates
+  const [localAuthState, setLocalAuthState] = useState({
+    isSignedIn: false,
+    displayName: "User",
+    displayEmail: "user@company.com",
+    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+  });
 
-  // Close profile menu when user logs out
+  // Update local state immediately when auth state changes
   useEffect(() => {
-    if (!isSignedIn) {
+    if (isLoaded && isSignedIn && user) {
+      setLocalAuthState({
+        isSignedIn: true,
+        displayName: user?.fullName || user?.firstName || "User",
+        displayEmail: user?.primaryEmailAddress?.emailAddress || "user@company.com",
+        avatarUrl: user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.firstName || 'User'}&backgroundColor=transparent`
+      });
+    } else if (isLoaded && !isSignedIn) {
+      setLocalAuthState({
+        isSignedIn: false,
+        displayName: "User",
+        displayEmail: "user@company.com",
+        avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+      });
+      // Close profile menu immediately on logout
       setIsProfileMenuOpen(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, isLoaded, user]);
+
+  // Use local state for immediate UI updates
+  const { displayName, displayEmail, avatarUrl } = localAuthState;
 
   // Scroll handler
   useEffect(() => {
