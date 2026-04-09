@@ -7,7 +7,6 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import QueryProvider from "@/components/QueryProvider";
 import SocketProvider from "@/components/SocketProvider";
-import AuthDebug from "@/components/AuthDebug";
 
 export const viewport: Viewport = {
   width: "device-width",
