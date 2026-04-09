@@ -294,6 +294,7 @@ export default function NotificationPanel({ isOpen, onClose }: { isOpen: boolean
                               <div className="absolute right-3 top-3" onClick={(e) => e.stopPropagation()}>
                                 <button 
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     setMenuOpenId(menuOpenId === notif.id ? null : notif.id);
                                   }}
@@ -312,15 +313,30 @@ export default function NotificationPanel({ isOpen, onClose }: { isOpen: boolean
                                     >
                                       <div className="p-1 flex flex-col">
                                         {!notif.isRead && (
-                                          <button onClick={() => { markAsRead(notif.id); setMenuOpenId(null); }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-2">
+                                          <button onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            markAsRead(notif.id); 
+                                            setMenuOpenId(null);
+                                          }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-2">
                                             <CircleDot size={14} className="text-slate-400" /> Mark as read
                                           </button>
                                         )}
-                                        <button onClick={() => { muteType(notif.type); setMenuOpenId(null); }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-2">
+                                        <button onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          muteType(notif.type); 
+                                          setMenuOpenId(null);
+                                        }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-2">
                                           <BellOff size={14} className="text-slate-400" /> Mute this type
                                         </button>
                                         <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
-                                        <button onClick={() => { deleteNotification(notif.id); setMenuOpenId(null); }} className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded flex items-center gap-2">
+                                        <button onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          deleteNotification(notif.id); 
+                                          setMenuOpenId(null);
+                                        }} className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded flex items-center gap-2">
                                           <Trash2 size={14}/> Delete
                                         </button>
                                       </div>

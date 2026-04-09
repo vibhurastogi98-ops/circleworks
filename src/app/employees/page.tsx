@@ -178,6 +178,10 @@ export default function EmployeesDirectoryPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
                         className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
                         aria-label={`Actions for ${emp.firstName} ${emp.lastName}`}
                       >
@@ -216,7 +220,13 @@ export default function EmployeesDirectoryPage() {
               </div>
               <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div className="text-xs text-slate-500 dark:text-slate-400">{emp.locationType}</div>
-                <button className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
                   <MoreVertical size={16} />
                 </button>
               </div>

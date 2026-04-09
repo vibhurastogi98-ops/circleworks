@@ -21,7 +21,7 @@ export default function EmployeeTopBar() {
   const pathname = usePathname() || "/me";
   const router = useRouter();
   const { signOut } = useClerk();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
 
   const displayName = user?.fullName || user?.firstName || "User";
   const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
@@ -52,6 +52,13 @@ export default function EmployeeTopBar() {
     if (isAvatarMenuOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isAvatarMenuOpen]);
+
+  // Close avatar menu when user logs out
+  useEffect(() => {
+    if (!isSignedIn) {
+      setIsAvatarMenuOpen(false);
+    }
+  }, [isSignedIn]);
 
   const pathParts = pathname.split("/").filter(Boolean);
   const mainTitle = pathParts.length > 1
@@ -94,7 +101,11 @@ export default function EmployeeTopBar() {
         <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {/* Notifications */}
           <button
-            onClick={() => setIsNotificationsOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsNotificationsOpen(true);
+            }}
             className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors relative"
           >
             <Bell size={20} />
@@ -108,7 +119,11 @@ export default function EmployeeTopBar() {
 
           {/* Dark Mode */}
           <button
-            onClick={toggleDarkMode}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleDarkMode();
+            }}
             className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -117,7 +132,11 @@ export default function EmployeeTopBar() {
           {/* User Avatar */}
           <div className="relative ml-2" ref={avatarMenuRef}>
             <button
-              onClick={() => setIsAvatarMenuOpen(!isAvatarMenuOpen)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsAvatarMenuOpen(!isAvatarMenuOpen);
+              }}
               className="flex items-center justify-center w-[36px] h-[36px] rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-violet-500 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-offset-slate-900 transition-all cursor-pointer"
             >
               <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" />
@@ -137,15 +156,30 @@ export default function EmployeeTopBar() {
                     <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{displayEmail}</p>
                   </div>
                   <div className="p-2 flex flex-col gap-1">
-                    <button onClick={() => { setIsAvatarMenuOpen(false); router.push("/me/profile"); }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2 transition-colors">
+                    <button onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsAvatarMenuOpen(false);
+                      router.push("/me/profile");
+                    }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2 transition-colors">
                       <User size={16} className="text-slate-400" /> My Profile
                     </button>
-                    <button onClick={() => { setIsAvatarMenuOpen(false); router.push("/dashboard"); }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2 transition-colors">
+                    <button onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsAvatarMenuOpen(false);
+                      router.push("/dashboard");
+                    }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2 transition-colors">
                       <Settings size={16} className="text-slate-400" /> Admin Portal
                     </button>
                   </div>
                   <div className="p-2 border-t border-slate-100 dark:border-slate-700">
-                    <button onClick={() => signOut({ redirectUrl: "/" })} className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors">
+                    <button onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsAvatarMenuOpen(false);
+                      signOut({ redirectUrl: "/" });
+                    }} className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors">
                       <LogOut size={16} /> Log Out
                     </button>
                   </div>
