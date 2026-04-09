@@ -101,6 +101,7 @@ export async function POST(req: Request) {
       status: "onboarding",
       salary: body.compensation?.salary || body.salary || null,
       employmentType: body.employmentType || "full-time",
+      managerId: body.managerId || null,
     };
 
     console.log("[Employees POST] Inserting employee data:", employeeData);

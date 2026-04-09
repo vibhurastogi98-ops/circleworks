@@ -113,7 +113,7 @@ export async function PUT(
     }
 
     // Update employee data
-    const updateData = {
+    const updateData: any = {
       firstName: body.firstName,
       lastName: body.lastName || null,
       email: body.email,
@@ -122,6 +122,9 @@ export async function PUT(
       employmentType: body.employmentType || "full-time",
       locationType: body.locationType || "On-Site",
       salary: body.compensation?.salary || body.salary || null,
+      managerId: body.managerId || null,
+      status: body.status || employee.status,
+      avatar: body.avatar || employee.avatar,
       updatedAt: new Date(),
     };
 
@@ -133,7 +136,34 @@ export async function PUT(
       .where(eq(employees.id, employeeId))
       .returning();
 
-    console.log("[Employee PUT] Successfully updated employee:", updatedEmployee);
+    // Update bank info if provided
+    if (body.bankInfo && body.bankInfo.bankName) {
+      // Check if bank account exists
+      const existingBank = await db.query.employeeBankAccounts.findFirst({
+        where: eq(employeeBankAccounts.employeeId, employeeId),
+      });
+
+      if (existingBank) {
+        await db
+          .update(employeeBankAccounts)
+          .set({
+            bankName: body.bankInfo.bankName,
+            routingNumber: body.bankInfo.routingNumber,
+            accountNumberMasked: body.bankInfo.accountNumberMasked,
+          })
+          .where(eq(employeeBankAccounts.employeeId, employeeId));
+      } else {
+        await db.insert(employeeBankAccounts).values({
+          employeeId: employeeId,
+          bankName: body.bankInfo.bankName,
+          routingNumber: body.bankInfo.routingNumber,
+          accountNumberMasked: body.bankInfo.accountNumberMasked,
+          isPrimary: true,
+        });
+      }
+    }
+
+    console.log("[Employee PUT] Successfully updated employee and related data:", updatedEmployee);
 
     return NextResponse.json(updatedEmployee);
 

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize, Minimize, Loader2, Users } from "lucide-react";
+import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize, Minimize, Loader2, Users, Search, Edit } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import dynamic from "next/dynamic";
 
@@ -34,18 +34,35 @@ function EmployeeCard({ node }: { node: OrgNodeData }) {
           />
         </div>
         <div className="text-center w-full">
-          <Link
-            href={`/employees/${node.id}`}
-            className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 block truncate"
-          >
-            {node.firstName} {node.lastName}
-          </Link>
+          {node.id !== -1 ? (
+            <Link
+              href={`/employees/${node.id}`}
+              className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 block truncate"
+            >
+              {node.firstName} {node.lastName}
+            </Link>
+          ) : (
+            <span className="font-bold text-sm text-slate-900 dark:text-white block truncate">
+              {node.firstName}
+            </span>
+          )}
           <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {node.jobTitle}
           </div>
           <div className="text-[10px] uppercase font-bold text-slate-400 mt-1 truncate">
             {node.department}
           </div>
+          {node.id !== -1 && (
+            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-center">
+              <Link 
+                href={`/employees/${node.id}/edit`}
+                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all"
+                title="Edit Employee"
+              >
+                <Edit size={14} />
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -68,6 +85,8 @@ export default function OrgChartPage() {
   const [mounted, setMounted] = React.useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [rootId, setRootId] = useState<number | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -153,9 +172,28 @@ export default function OrgChartPage() {
       }
     });
 
-    // 4. Return the first root found (CEO or top-most manager)
+    // 4. Handle root selection
+    if (rootId && map.has(rootId)) {
+       return map.get(rootId)!;
+    }
+
+    // 5. Handle multiple roots by creating a virtual parent if necessary
+    if (hierarchy.length > 1) {
+      return {
+        id: -1,
+        firstName: "Your Organization",
+        lastName: "",
+        avatar: "https://api.dicebear.com/7.x/shapes/svg?seed=company",
+        jobTitle: "Top Level",
+        department: "Company",
+        status: "active",
+        managerId: null,
+        children: hierarchy
+      };
+    }
+    
     return hierarchy[0] || null;
-  }, [employees]);
+  }, [employees, rootId]);
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-[calc(100vh-140px)]">
@@ -169,42 +207,61 @@ export default function OrgChartPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">Organization Chart</h1>
         </div>
 
-        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-          <button 
-            onClick={handleZoomIn}
-            className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            title="Zoom In"
-          >
-            <ZoomIn size={20} />
-          </button>
-          <button 
-            onClick={handleZoomOut}
-            className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            title="Zoom Out"
-          >
-            <ZoomOut size={20} />
-          </button>
-          <button 
-            onClick={handleResetZoom}
-            className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            title="Reset Zoom"
-          >
-            <span className="text-xs font-medium">{Math.round(zoomLevel * 100)}%</span>
-          </button>
-          <button 
-            onClick={handleFullscreen}
-            className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            title="Toggle Fullscreen"
-          >
-            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-          </button>
-          <button 
-            onClick={handleDownload}
-            className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-            title="Download Org Chart"
-          >
-            <Download size={20} />
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Search/Filter */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <select 
+              value={rootId || ""} 
+              onChange={(e) => setRootId(e.target.value ? parseInt(e.target.value) : null)}
+              className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
+            >
+              <option value="">Full Organization</option>
+              {employees?.map((emp: any) => (
+                <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+
+          <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
+            <button 
+              onClick={handleZoomIn}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Zoom In"
+            >
+              <ZoomIn size={20} />
+            </button>
+            <button 
+              onClick={handleZoomOut}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Zoom Out"
+            >
+              <ZoomOut size={20} />
+            </button>
+            <button 
+              onClick={handleResetZoom}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Reset Zoom"
+            >
+              <span className="text-xs font-medium">{Math.round(zoomLevel * 100)}%</span>
+            </button>
+            <button 
+              onClick={handleFullscreen}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </button>
+            <button 
+              onClick={handleDownload}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Download Org Chart"
+            >
+              <Download size={20} />
+            </button>
+          </div>
         </div>
       </div>
 

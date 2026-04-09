@@ -17,7 +17,7 @@ export default function AddEmployeeWizard() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { currentUser } = useDashboardData();
-  const { addEmployeeAsync, isAdding } = useEmployees();
+  const { data: employees = [], addEmployeeAsync, isAdding } = useEmployees();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -26,7 +26,7 @@ export default function AddEmployeeWizard() {
     workEmail: "",
     jobTitle: "",
     department: "",
-    manager: "",
+    managerId: "",
     startDate: "",
     type: "Full-Time",
     locationType: "Remote",
@@ -120,9 +120,10 @@ export default function AddEmployeeWizard() {
           email: formData.workEmail || formData.personalEmail,
           jobTitle: formData.jobTitle,
           department: formData.department,
+          managerId: formData.managerId ? parseInt(formData.managerId) : null,
           employmentType: formData.type.toLowerCase(), // Convert "Full-Time" to "full-time", "Part-Time" to "part-time", etc.
           startDate: formData.startDate,
-          salary: parseInt(formData.salary),
+          salary: formData.salary ? parseInt(formData.salary) : null,
           locationType: formData.locationType,
           bankInfo: {
             bankName: formData.bankName,
@@ -131,7 +132,7 @@ export default function AddEmployeeWizard() {
             plaidAccessToken: formData.plaidAccessToken,
           },
           compensation: {
-            salary: parseInt(formData.salary),
+            salary: formData.salary ? parseInt(formData.salary) : null,
             payFrequency: formData.payFrequency,
           }
         };
@@ -232,6 +233,19 @@ export default function AddEmployeeWizard() {
                       <option value="Engineering">Engineering</option>
                       <option value="Design">Design</option>
                       <option value="Sales">Sales</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Reports To (Manager)</label>
+                    <select 
+                      value={formData.managerId} 
+                      onChange={e => setFormData({...formData, managerId: e.target.value})} 
+                      className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">No Manager (Root)</option>
+                      {employees.map((emp: any) => (
+                        <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.jobTitle})</option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">

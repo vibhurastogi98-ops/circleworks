@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDataSync } from "@/hooks/useDataSync";
@@ -12,7 +13,25 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+interface Employee {
+  id: string | number;
+  firstName: string;
+  lastName?: string;
+  email?: string;
+  jobTitle?: string;
+  department?: string;
+  employmentType?: string;
+  status?: string;
+  avatar?: string;
+  location?: string;
+  locationType?: string;
+  startDate?: string | Date;
+  salary?: string | number;
+  phone?: string;
+}
+
 export default function EmployeesDirectoryPage() {
+  const router = useRouter();
   const { data: employees = [], isLoading, error } = useEmployees();
   const queryClient = useQueryClient();
   const { notifyEmployeeChange } = useDataSync();
@@ -42,7 +61,7 @@ export default function EmployeesDirectoryPage() {
   const filteredEmployees = useMemo(() => {
     if (!employees || employees.length === 0) return [];
     
-    const filtered = employees.filter(emp => {
+    const filtered = (employees as Employee[]).filter((emp: Employee) => {
       const matchSearch = (`${emp.firstName} ${emp.lastName || ""} ${emp.jobTitle || ""}`).toLowerCase().includes(search.toLowerCase());
       const matchDept = deptFilter === "All" || emp.department === deptFilter;
 
@@ -72,7 +91,7 @@ export default function EmployeesDirectoryPage() {
     switch (action) {
       case 'edit':
         // Navigate to edit page
-        window.location.href = `/employees/${employeeId}/edit`;
+        router.push(`/employees/${employeeId}/edit`);
         break;
       case 'delete':
         try {
@@ -176,7 +195,7 @@ export default function EmployeesDirectoryPage() {
       toast.success('CSV template downloaded successfully');
     } else {
       // Export current employee data
-      const employeeRows = filteredEmployees.map(emp => [
+      const employeeRows = (filteredEmployees as Employee[]).map((emp: Employee) => [
         emp.firstName || '',
         emp.lastName || '',
         emp.email || '',
@@ -191,7 +210,7 @@ export default function EmployeesDirectoryPage() {
       
       csvContent = [
         headers.join(','),
-        ...employeeRows.map(row => row.join(','))
+        ...employeeRows.map((row: any[]) => row.join(','))
       ].join('\n');
       filename = `employees_export_${new Date().toISOString().split('T')[0]}.csv`;
       toast.success(`Exported ${filteredEmployees.length} employees to CSV`);
@@ -358,8 +377,8 @@ export default function EmployeesDirectoryPage() {
           <p className="text-slate-500 font-medium">Loading employees...</p>
         </div>
       ) : viewMode === "list" ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <div className="overflow-x-visible">
             <table className="w-full text-left border-collapse" id="employee-table">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
@@ -372,7 +391,7 @@ export default function EmployeesDirectoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {filteredEmployees.map(emp => (
+                {(filteredEmployees as Employee[]).map((emp: Employee) => (
                   <tr key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 focus-within:bg-slate-50/50 dark:focus-within:bg-slate-800/20 transition-colors group">
                     <td className="px-6 py-4">
                       <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1 -m-1">
@@ -415,7 +434,11 @@ export default function EmployeesDirectoryPage() {
                       
                       {/* Dropdown Menu */}
                       {activeDropdown === emp.id && (
-                        <div data-dropdown-menu className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                        <div 
+                          data-dropdown-menu 
+                          className="absolute right-4 top-12 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-[100] overflow-hidden"
+                          style={{ minWidth: '180px' }}
+                        >
                           <button
                             onClick={() => handleActionClick(emp.id, 'edit')}
                             className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
@@ -468,7 +491,7 @@ export default function EmployeesDirectoryPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredEmployees.map(emp => (
+          {(filteredEmployees as Employee[]).map((emp: Employee) => (
             <div key={emp.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
               <div className="flex justify-between items-start">
                 <Link href={`/employees/${emp.id}`} className="focus:outline-none">

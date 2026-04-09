@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useEmployee } from "@/hooks/useEmployees";
+import { useEmployee, useEmployees } from "@/hooks/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDataSync } from "@/hooks/useDataSync";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ export default function EditEmployeePage() {
   const queryClient = useQueryClient();
   const { notifyEmployeeChange } = useDataSync();
   const { data: employee, isLoading, error } = useEmployee(id as string);
+  const { data: allEmployees = [] } = useEmployees();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,8 +27,10 @@ export default function EditEmployeePage() {
     workEmail: "",
     jobTitle: "",
     department: "",
+    managerId: "",
     type: "Full-Time",
     locationType: "Remote",
+    startDate: "",
     salary: "",
     payFrequency: "Bi-Weekly",
     bankName: "",
@@ -46,14 +49,16 @@ export default function EditEmployeePage() {
         workEmail: employee.email || "",
         jobTitle: employee.jobTitle || "",
         department: employee.department || "",
+        managerId: employee.managerId?.toString() || "",
         type: employee.employmentType === "full-time" ? "Full-Time" : 
               employee.employmentType === "part-time" ? "Part-Time" : "Contractor",
         locationType: employee.locationType || "Remote",
+        startDate: employee.startDate ? new Date(employee.startDate).toISOString().split('T')[0] : "",
         salary: employee.salary?.toString() || "",
         payFrequency: employee.payFrequency || "Bi-Weekly",
-        bankName: employee.bankName || "",
-        accountNumber: employee.accountNumber || "",
-        routingNumber: employee.routingNumber || "",
+        bankName: employee.bankAccounts?.[0]?.bankName || employee.bankName || "",
+        accountNumber: employee.bankAccounts?.[0]?.accountNumberMasked || employee.accountNumber || "",
+        routingNumber: employee.bankAccounts?.[0]?.routingNumber || employee.routingNumber || "",
         plaidAccessToken: employee.plaidAccessToken || "",
       });
     }
@@ -123,9 +128,10 @@ export default function EditEmployeePage() {
         email: formData.workEmail,
         jobTitle: formData.jobTitle,
         department: formData.department,
+        managerId: formData.managerId ? parseInt(formData.managerId) : null,
         employmentType: formData.type.toLowerCase(),
-        startDate: employee.startDate, // Keep original start date
-        salary: parseInt(formData.salary),
+        startDate: formData.startDate,
+        salary: formData.salary ? parseInt(formData.salary) : null,
         locationType: formData.locationType,
         bankInfo: {
           bankName: formData.bankName,
@@ -134,7 +140,7 @@ export default function EditEmployeePage() {
           plaidAccessToken: formData.plaidAccessToken,
         },
         compensation: {
-          salary: parseInt(formData.salary),
+          salary: formData.salary ? parseInt(formData.salary) : null,
           payFrequency: formData.payFrequency,
         }
       };
@@ -242,6 +248,21 @@ export default function EditEmployeePage() {
                 <option value="HR">HR</option>
                 <option value="Finance">Finance</option>
                 <option value="Executive">Executive</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Reports To (Manager)</label>
+              <select
+                value={formData.managerId}
+                onChange={(e) => setFormData({...formData, managerId: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">No Manager (Root)</option>
+                {allEmployees
+                  .filter((emp: any) => emp.id.toString() !== id) // Can't report to self
+                  .map((emp: any) => (
+                    <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.jobTitle})</option>
+                  ))}
               </select>
             </div>
             <div>

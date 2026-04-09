@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
 import { Briefcase, Calendar, User, Loader2, AlertCircle } from "lucide-react";
 
@@ -43,7 +44,7 @@ export default function EmployeeOverviewTab() {
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                  <User size={18} className="text-blue-500" /> Personal Information
               </h3>
-              <button className="text-sm font-medium text-blue-600 hover:text-blue-700">Edit</button>
+              <Link href={`/employees/${id}/edit`} className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">Edit</Link>
            </div>
            
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">

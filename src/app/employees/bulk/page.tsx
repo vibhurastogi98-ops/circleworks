@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Check, UploadCloud, FileText, AlertCircle, Download } from "lucide-react";
+import { toast } from "sonner";
+import { ChevronLeft, ChevronRight, Check, UploadCloud, FileText, AlertCircle, Download, Loader2 } from "lucide-react";
 
 const STEPS = ["Upload File", "Map Fields", "Review & Import"];
 
@@ -11,6 +12,9 @@ export default function BulkImportPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [file, setFile] = useState<File | null>(null);
+  const [parsedData, setParsedData] = useState<any[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Mock field mapping
   const [mapping, setMapping] = useState({
@@ -21,21 +25,91 @@ export default function BulkImportPage() {
     department: "Dept"
   });
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 0 && !file) {
-      alert("Please upload a CSV file to continue.");
+      toast.error("Please upload a CSV file to continue.");
       return;
     }
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(s => s + 1);
     } else {
-      router.push("/employees");
+      // FINAL STEP - PERFORM IMPORT
+      if (isImporting) return;
+      setIsImporting(true);
+      
+      try {
+        // Prepare data based on mapping
+        const employeesToImport = parsedData.map(row => {
+          return {
+            firstName: row[mapping.firstName] || '',
+            lastName: row[mapping.firstName === mapping.lastName ? 'IGNORE' : mapping.lastName] || '', // Handle if user mapped same col
+            email: row[mapping.email] || '',
+            jobTitle: row[mapping.jobTitle] || '',
+            department: row[mapping.department] || '',
+            employmentType: 'full-time', // Default
+            locationType: 'Remote',     // Default
+          };
+        }).filter(emp => emp.firstName && emp.email); // Basic validation
+
+        const response = await fetch('/api/employees/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employees: employeesToImport }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          toast.success(`Success! ${result.count} employees imported.`);
+          router.push("/employees");
+        } else {
+          toast.error("Failed to import employees. Please try again.");
+        }
+      } catch (err) {
+        console.error("Import error:", err);
+        toast.error("An error occurred during import.");
+      } finally {
+        setIsImporting(false);
+      }
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        if (lines.length > 0) {
+          const headers = lines[0].split(',').map(h => h.trim());
+          setCsvHeaders(headers);
+          
+          const data = lines.slice(1).map(line => {
+            const values = line.split(',').map(v => v.trim());
+            const obj: any = {};
+            headers.forEach((header, i) => {
+              obj[header] = values[i] || '';
+            });
+            return obj;
+          });
+          setParsedData(data);
+          
+          // Auto-map if possible
+          const newMapping = { ...mapping };
+          headers.forEach(header => {
+            const h = header.toLowerCase().replace(/[\s_-]/g, '');
+            if (h === 'firstname') newMapping.firstName = header;
+            if (h === 'lastname') newMapping.lastName = header;
+            if (h === 'email' || h === 'emailaddress') newMapping.email = header;
+            if (h === 'jobtitle' || h === 'role') newMapping.jobTitle = header;
+            if (h === 'department' || h === 'dept') newMapping.department = header;
+          });
+          setMapping(newMapping);
+        }
+      };
+      reader.readAsText(selectedFile);
     }
   };
 
@@ -132,9 +206,9 @@ export default function BulkImportPage() {
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bulk Import Employees</h1>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6 sm:p-8 flex flex-col min-h-[500px]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-4 flex flex-col">
         {/* Step Indicator */}
-        <div className="flex items-center justify-between mb-8 pb-8 border-b border-slate-200 dark:border-slate-800 relative">
+        <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200 dark:border-slate-800 relative">
           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-800 -translate-y-1/2 -z-10" />
           {STEPS.map((step, idx) => {
              const isActive = currentStep === idx;
@@ -159,33 +233,33 @@ export default function BulkImportPage() {
         {/* Content */}
         <div className="flex-1">
           {currentStep === 0 && (
-            <div className="flex flex-col items-center justify-center h-full gap-4 pt-10 animate-in fade-in duration-500">
+            <div className="flex flex-col items-center justify-center gap-3 pt-4 animate-in fade-in duration-500">
               <label 
-                className={`border-2 border-dashed rounded-xl w-full max-w-lg p-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-colors
+                className={`border-2 border-dashed rounded-xl w-full max-w-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors
                   ${file ? "border-blue-500 bg-blue-50 dark:bg-blue-900/10" : "border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"}
                 `}
               >
                 <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 {file ? (
                    <>
-                     <FileText size={48} className="text-blue-500" />
+                     <FileText size={40} className="text-blue-500" />
                      <div className="text-center">
-                       <p className="font-semibold text-slate-900 dark:text-white">{file.name}</p>
-                       <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{(file.size / 1024).toFixed(2)} KB</p>
+                       <p className="font-semibold text-sm text-slate-900 dark:text-white">{file.name}</p>
+                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{(file.size / 1024).toFixed(2)} KB</p>
                      </div>
                    </>
                 ) : (
                    <>
-                     <UploadCloud size={48} className="text-slate-400" />
+                     <UploadCloud size={40} className="text-slate-400" />
                      <div className="text-center">
-                       <p className="font-semibold text-slate-900 dark:text-white">Click to upload or drag and drop</p>
-                       <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">CSV file only (max 10MB)</p>
+                       <p className="font-semibold text-sm text-slate-900 dark:text-white">Click to upload or drag and drop</p>
+                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">CSV file only (max 10MB)</p>
                      </div>
                    </>
                 )}
               </label>
               
-              <div className="mt-4">
+              <div className="mt-2">
                  <button 
                    onClick={handleDownloadCSV}
                    className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 transition-colors"
@@ -220,9 +294,13 @@ export default function BulkImportPage() {
                       <tr key={sysField}>
                         <td className="px-4 py-3 font-medium text-slate-900 dark:text-white capitalize">{sysField.replace(/([A-Z])/g, ' $1').trim()}</td>
                         <td className="px-4 py-3">
-                           <select className="w-full max-w-xs px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-sm focus:ring-2 focus:ring-blue-500">
-                              <option>{csvCol}</option>
-                              <option>Ignore</option>
+                           <select 
+                             value={csvCol}
+                             onChange={(e) => setMapping({...mapping, [sysField]: e.target.value})}
+                             className="w-full max-w-xs px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-sm focus:ring-2 focus:ring-blue-500"
+                           >
+                              <option value="Ignore">Ignore</option>
+                              {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                            </select>
                         </td>
                       </tr>
@@ -234,20 +312,20 @@ export default function BulkImportPage() {
           )}
 
           {currentStep === 2 && (
-             <div className="flex flex-col items-center justify-center pt-10 gap-6 animate-in fade-in duration-500">
+             <div className="flex flex-col items-center justify-center pt-4 gap-6 animate-in fade-in duration-500">
                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
                    <UsersIcon size={32} className="text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="text-center max-w-md">
-                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">Ready to Import 24 Employees</h3>
-                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">All fields are mapped successfully. Clicking finish will import the records and send email invites if configured.</p>
+                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">Ready to Import {parsedData.length} Employees</h3>
+                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">All fields are mapped successfully. Clicking finish will import the records and take you back to the directory.</p>
                 </div>
              </div>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="mt-8 flex justify-between items-center pt-6 border-t border-slate-200 dark:border-slate-800">
+        <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-800">
           <button 
             onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
             disabled={currentStep === 0}
@@ -257,9 +335,15 @@ export default function BulkImportPage() {
           </button>
           <button 
             onClick={handleNext}
+            disabled={isImporting}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
           >
-            {currentStep === STEPS.length - 1 ? (
+            {isImporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Importing...
+              </>
+            ) : currentStep === STEPS.length - 1 ? (
               <>Finish Import <Check size={16} /></>
             ) : (
               <>Next <ChevronRight size={16} /></>
