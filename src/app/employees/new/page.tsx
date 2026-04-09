@@ -90,7 +90,8 @@ export default function AddEmployeeWizard() {
       case 2:
         return formData.salary.length > 0;
       case 3:
-        return formData.bankName.length > 0 && formData.accountNumber.length > 0;
+        // Banking info is optional — employee can fill it in later
+        return true;
       default:
         return true;
     }
@@ -142,7 +143,10 @@ export default function AddEmployeeWizard() {
         try {
           console.log("Submitting employee data:", payload);
           await addEmployeeAsync(payload);
-          console.log("Employee added successfully");
+          // Invalidate both employees and dashboard so counts update immediately
+          queryClient.invalidateQueries({ queryKey: ['employees'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          toast.success(`${formData.firstName} ${formData.lastName} has been added!`);
           router.push("/employees");
         } catch (error) {
           console.error("Save error:", error);

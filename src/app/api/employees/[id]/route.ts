@@ -119,13 +119,13 @@ export async function PUT(
       email: body.email,
       jobTitle: body.jobTitle || null,
       department: body.department || null,
+      location: body.location || null,
       employmentType: body.employmentType || "full-time",
       locationType: body.locationType || "On-Site",
       salary: body.compensation?.salary || body.salary || null,
       managerId: body.managerId || null,
       status: body.status || employee.status,
       avatar: body.avatar || employee.avatar,
-      updatedAt: new Date(),
     };
 
     console.log("[Employee PUT] Updating employee data:", updateData);

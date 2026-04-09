@@ -220,27 +220,35 @@ export default function SignupPage() {
       setStep(prev => Math.floor(prev) + 1);
       if (Math.floor(step) + 1 === 5) {
         const formData = getValues();
-        // Persist companyName to Clerk Metadata
-        fetch("/api/users/me", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            companyName: formData.companyName,
-            hasData: true,
-            role: "admin"
-          }),
-        }).catch(err => console.error("Failed to persist company name on signup", err));
 
-        // Activate session
+        // 1. Activate session first so we have an auth token for the API call
         if (isLoaded && signUp.createdSessionId) {
           await setActive({ session: signUp.createdSessionId });
-          // Force navigation to dashboard after activation
-          setTimeout(() => {
-             router.push("/dashboard");
-          }, 1500);
+        }
+
+        // 2. AWAIT the DB sync — ensures company/user/employee records exist before dashboard loads
+        try {
+          const res = await fetch("/api/users/me", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              companyName: formData.companyName,
+              hasData: true,
+              role: "admin"
+            }),
+          });
+          if (!res.ok) {
+            console.error("DB sync failed with status:", res.status);
+          } else {
+            console.log("[Signup] Company, user, and employee records created successfully.");
+          }
+        } catch (err) {
+          console.error("Failed to persist company data on signup:", err);
         }
 
         localStorage.removeItem("circleworks_signup_progress");
+
+        // 3. Confetti celebration
         setTimeout(() => {
           confetti({
             particleCount: 150,
@@ -249,6 +257,11 @@ export default function SignupPage() {
             colors: ['#3b82f6', '#10b981', '#f59e0b', '#6366f1']
           });
         }, 300);
+
+        // 4. Navigate to dashboard after everything is set up
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1200);
       }
     }
   };

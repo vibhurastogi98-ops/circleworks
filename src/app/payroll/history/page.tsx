@@ -16,6 +16,19 @@ function fmt(n: number) { return new Intl.NumberFormat("en-US", { style: "curren
 export default function HistoryPage() {
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
+
+  // Filter history by search query
+  const filtered = HISTORY.filter((h) =>
+    h.id.toLowerCase().includes(search.toLowerCase()) ||
+    h.period.toLowerCase().includes(search.toLowerCase()) ||
+    h.date.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Compute YTD totals dynamically from full history
+  const ytdGross = HISTORY.reduce((s, h) => s + h.gross, 0);
+  const ytdTaxes = HISTORY.reduce((s, h) => s + h.taxes, 0);
+  const ytdNet = HISTORY.reduce((s, h) => s + h.net, 0);
+
   const handleExport = () => {
     setExporting(true);
     setTimeout(() => setExporting(false), 1500);
@@ -39,15 +52,15 @@ export default function HistoryPage() {
       <div className="grid grid-cols-3 gap-4 mb-2">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <p className="text-xs font-bold uppercase text-slate-400">Total Gross (YTD)</p>
-          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(940400)}</p>
+          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(ytdGross)}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <p className="text-xs font-bold uppercase text-slate-400">Total Taxes (YTD)</p>
-          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(283925)}</p>
+          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(ytdTaxes)}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <p className="text-xs font-bold uppercase text-slate-400">Total Net (YTD)</p>
-          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(656475)}</p>
+          <p className="text-2xl font-extrabold mt-1 text-slate-900 dark:text-white">{fmt(ytdNet)}</p>
         </div>
       </div>
 
@@ -55,7 +68,12 @@ export default function HistoryPage() {
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex gap-4">
           <div className="relative w-72">
              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-             <input type="text" placeholder="Search by ID or description..." className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800" />
+             <input
+               type="text"
+               placeholder="Search by ID or description..."
+               value={search}
+               onChange={(e) => setSearch(e.target.value)}
+               className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"><Filter size={14}/> Filters</button>
         </div>
@@ -73,7 +91,7 @@ export default function HistoryPage() {
             </tr>
           </thead>
           <tbody className="text-sm border-t border-slate-200 dark:border-slate-800">
-            {HISTORY.map((h) => (
+            {filtered.map((h) => (
               <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
                 <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{h.id}</td>
                 <td className="px-5 py-4">

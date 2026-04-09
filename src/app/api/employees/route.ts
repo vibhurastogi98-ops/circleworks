@@ -58,9 +58,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { userId } = await auth();
 
-    console.log("[Employees POST] Request body:", body);
-    console.log("[Employees POST] User ID:", userId);
-
     // 1. VALIDATION
     if (!body.firstName || !body.email) {
       return Response.json({ error: "First Name and Email are required" }, { status: 400 });
@@ -69,7 +66,6 @@ export async function POST(req: Request) {
     // 2. GET COMPANY ID FOR THE CURRENT USER
     let companyId = body.companyId;
     if (!companyId && userId) {
-      // Get the company ID from the current user's employee record
       const [userEmployee] = await db
         .select({ companyId: employees.companyId })
         .from(employees)
@@ -77,13 +73,17 @@ export async function POST(req: Request) {
         .where(eq(users.clerkUserId, userId));
       
       companyId = userEmployee?.companyId || null;
-      console.log("[Employees POST] Company ID lookup result:", userEmployee);
     }
 
-    console.log("[Employees POST] Using company ID:", companyId);
+    // 2.1 GUARD: Reject if company cannot be resolved
+    if (!companyId) {
+      console.error("[Employees POST] Could not resolve companyId for user:", userId);
+      return Response.json({ 
+        error: "Your account is not linked to a company. Please complete company setup first." 
+      }, { status: 400 });
+    }
 
     // 3. DATABASE INSERTION
-    // Map the incoming body to the database schema
     const employeeData = {
       firstName: body.firstName,
       lastName: body.lastName || null,
@@ -101,11 +101,9 @@ export async function POST(req: Request) {
       managerId: body.managerId || null,
     };
 
-    console.log("[Employees POST] Inserting employee data:", employeeData);
-
     const [newEmployee] = await db.insert(employees).values(employeeData).returning();
 
-    // 2.2. SAVE BANKING INFO (If provided)
+    // 3.1. SAVE BANKING INFO (If provided)
     if (body.bankInfo && body.bankInfo.bankName) {
       await db.insert(employeeBankAccounts).values({
         employeeId: newEmployee.id,
@@ -116,21 +114,18 @@ export async function POST(req: Request) {
       });
     }
     
-    // 2.3. CREATE ONBOARDING CASE
+    // 3.2. CREATE ONBOARDING CASE
     await db.insert(onboardingCases).values({
       employeeId: newEmployee.id,
       status: "Active",
       startDate: body.startDate || null,
     });
 
-    console.log(`[Employees POST] Successfully created employee with ID: ${newEmployee.id}`);
-    console.log("[Employees POST] Created employee:", newEmployee);
-
-    // Return the inserted record as requested
+    console.log(`[Employees POST] Created employee ID=${newEmployee.id} for company ID=${companyId}`);
     return Response.json(newEmployee);
 
   } catch (error: any) {
-    console.error("EMPLOYEE CREATE ERROR:", error);
+    console.error("[Employees POST] Error:", error.message);
     return Response.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

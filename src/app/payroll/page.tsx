@@ -90,11 +90,22 @@ const MOCK_RUNS: PayrollRun[] = [
 /* ──────────────────────────────────── Fetcher ─────────────────────────────── */
 async function fetchPayrollData(): Promise<{
   hasPayroll: boolean;
-  upcoming: typeof MOCK_UPCOMING;
+  upcoming: typeof MOCK_UPCOMING | null;
   runs: PayrollRun[];
 }> {
-  // Simulated network delay
-  await new Promise((r) => setTimeout(r, 600));
+  try {
+    const res = await fetch("/api/payroll");
+    if (res.ok) {
+      const data = await res.json();
+      // If the API returns real data, use it
+      if (data && (data.runs?.length > 0 || data.upcoming)) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn("Payroll API unavailable, using demo data", err);
+  }
+  // Fall back to demo data so UI is never empty
   return {
     hasPayroll: true,
     upcoming: MOCK_UPCOMING,
@@ -187,8 +198,8 @@ export default function PayrollPage() {
   }, [router]);
 
   const handleViewRun = useCallback((runId: string) => {
-    console.log("View run:", runId);
-  }, []);
+    router.push(`/payroll/run/${runId}`);
+  }, [router]);
 
   return (
     <>
@@ -256,16 +267,18 @@ export default function PayrollPage() {
             className="flex flex-col gap-6"
           >
             {/* Section 1: Upcoming Run Card */}
-            <UpcomingRunCard
-              payPeriodStart={data.upcoming.payPeriodStart}
-              payPeriodEnd={data.upcoming.payPeriodEnd}
-              checkDate={data.upcoming.checkDate}
-              estimatedTotal={data.upcoming.estimatedTotal}
-              employeeCount={data.upcoming.employeeCount}
-              status={runStatus}
-              onPreviewRun={handlePreviewRun}
-              onRunPayroll={handleRunPayroll}
-            />
+            {data.upcoming && (
+              <UpcomingRunCard
+                payPeriodStart={data.upcoming.payPeriodStart}
+                payPeriodEnd={data.upcoming.payPeriodEnd}
+                checkDate={data.upcoming.checkDate}
+                estimatedTotal={data.upcoming.estimatedTotal}
+                employeeCount={data.upcoming.employeeCount}
+                status={runStatus}
+                onPreviewRun={handlePreviewRun}
+                onRunPayroll={handleRunPayroll}
+              />
+            )}
 
             {/* Section 2: Recent Runs Table */}
             <RecentRunsTable runs={data.runs} onViewRun={handleViewRun} />

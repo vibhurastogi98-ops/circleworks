@@ -41,9 +41,6 @@ export default function EmployeesDirectoryPage() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [activeDropdown, setActiveDropdown] = useState<string | number | null>(null);
 
-  // Debug: Log employee data
-  console.log("Employee data from API:", employees);
-  console.log("Number of employees:", employees?.length || 0);
 
   // Show error state if there's an error
   if (error) {
@@ -71,11 +68,6 @@ export default function EmployeesDirectoryPage() {
 
       return matchSearch && matchDept && matchStatus;
     });
-    
-    console.log("Filtered employees:", filtered);
-    console.log("Search term:", search);
-    console.log("Department filter:", deptFilter);
-    console.log("Status filter:", statusFilter);
     
     return filtered;
   }, [employees, search, deptFilter, statusFilter]);
@@ -230,24 +222,6 @@ export default function EmployeesDirectoryPage() {
     document.body.removeChild(link);
   };
 
-  // Add programmatic event listener as backup
-  useEffect(() => {
-    const button = document.getElementById('csv-download-btn');
-    if (button) {
-      const handleClick = (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("CSV download button clicked via programmatic listener!");
-        handleDownloadCSV();
-      };
-      
-      button.addEventListener('click', handleClick, true);
-      
-      return () => {
-        button.removeEventListener('click', handleClick, true);
-      };
-    }
-  }, [handleDownloadCSV]);
 
   const departments = ["All", "Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Finance", "Executive"];
   const statuses = ["All", "Active", "On Leave", "Terminated", "Onboarding"];
@@ -434,7 +408,7 @@ export default function EmployeesDirectoryPage() {
                       </button>
                       
                       {/* Dropdown Menu */}
-                      {activeDropdown === emp.id && (
+                      {activeDropdown === emp.id.toString() && (
                         <div 
                           data-dropdown-menu 
                           className="absolute right-4 top-12 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-[100] overflow-hidden"
@@ -524,7 +498,7 @@ export default function EmployeesDirectoryPage() {
                 </button>
                 
                 {/* Dropdown Menu */}
-                {activeDropdown === emp.id && (
+                {activeDropdown === emp.id.toString() && (
                   <div data-dropdown-menu className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
                     <button
                       onClick={() => handleActionClick(emp.id.toString(), 'edit')}
