@@ -212,15 +212,15 @@ export default function AddEmployeeWizard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">First Name <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Jane" />
+                    <input type="text" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Jane" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Last Name <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Doe" />
+                    <input type="text" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="Doe" />
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Personal Email <span className="text-red-500">*</span></label>
-                    <input type="email" value={formData.personalEmail} onChange={e => setFormData({...formData, personalEmail: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="jane.doe@gmail.com" />
+                    <input type="email" value={formData.personalEmail} onChange={e => setFormData({...formData, personalEmail: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="jane.doe@gmail.com" />
                   </div>
                 </div>
               </div>
@@ -232,11 +232,11 @@ export default function AddEmployeeWizard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Job Title <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.jobTitle} onChange={e => setFormData({...formData, jobTitle: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. Senior Designer" />
+                    <input type="text" value={formData.jobTitle} onChange={e => setFormData({...formData, jobTitle: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="e.g. Senior Designer" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Department</label>
-                    <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    <select value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500">
                       <option value="">Select Dept</option>
                       <option value="Engineering">Engineering</option>
                       <option value="Design">Design</option>
@@ -245,7 +245,7 @@ export default function AddEmployeeWizard() {
                   </div>
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Work Email (Auto-generated)</label>
-                    <input type="email" value={formData.workEmail} onChange={e => setFormData({...formData, workEmail: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                    <input type="email" value={formData.workEmail} onChange={e => setFormData({...formData, workEmail: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Start Date <span className="text-red-500">*</span></label>
@@ -253,7 +253,7 @@ export default function AddEmployeeWizard() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
-                    <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500">
                       <option value="Full-Time">Full-Time</option>
                       <option value="Part-Time">Part-Time</option>
                       <option value="Contractor">Contractor</option>
@@ -271,12 +271,12 @@ export default function AddEmployeeWizard() {
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Base Salary / Rate <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                      <input type="number" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} className="w-full pl-8 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="80000" />
+                      <input type="number" value={formData.salary} onChange={e => setFormData({...formData, salary: e.target.value})} className="w-full pl-8 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="80000" />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Pay Frequency</label>
-                    <select value={formData.payFrequency} onChange={e => setFormData({...formData, payFrequency: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                    <select value={formData.payFrequency} onChange={e => setFormData({...formData, payFrequency: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500">
                       <option value="Weekly">Weekly</option>
                       <option value="Bi-Weekly">Bi-Weekly</option>
                       <option value="Semi-Monthly">Semi-Monthly</option>
@@ -315,15 +315,15 @@ export default function AddEmployeeWizard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Bank Name <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.bankName} onChange={e => setFormData({...formData, bankName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g. Chase" />
+                    <input type="text" value={formData.bankName} onChange={e => setFormData({...formData, bankName: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="e.g. Chase" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Routing Number <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.routingNumber} onChange={e => setFormData({...formData, routingNumber: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="xxxxxxxxx" />
+                    <input type="text" value={formData.routingNumber} onChange={e => setFormData({...formData, routingNumber: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="xxxxxxxxx" />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Account Number <span className="text-red-500">*</span></label>
-                    <input type="password" value={formData.accountNumber} onChange={e => setFormData({...formData, accountNumber: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="•••••••••" />
+                    <input type="password" value={formData.accountNumber} onChange={e => setFormData({...formData, accountNumber: e.target.value})} className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500" placeholder="•••••••••" />
                   </div>
 
                   <div className="sm:col-span-2 mt-4 p-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
