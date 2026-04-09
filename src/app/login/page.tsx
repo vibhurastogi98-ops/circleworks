@@ -77,10 +77,10 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect already signed-in users to homepage
+  // Redirect already signed-in users to dashboard
   useEffect(() => {
     if (isSignedIn && isLoaded) {
-      router.push("/");
+      router.push("/dashboard");
     }
   }, [isSignedIn, isLoaded, router]);
 
@@ -98,9 +98,8 @@ export default function LoginPage() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-                toast.success("Login successful! Welcome back.");
-        // Redirect to home page instead of dashboard
-        router.push("/");
+        toast.success("Login successful! Welcome back.");
+        router.push("/dashboard");
       } else if (result.status === "needs_second_factor") {
         setMfaNeeded(true);
       } else {
@@ -134,8 +133,7 @@ export default function LoginPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         toast.success("Login successful! Welcome back.");
-        // Redirect to home page instead of dashboard
-        router.push("/");
+        router.push("/dashboard");
       } else {
         setErrorMsg("Invalid code or incomplete status.");
       }
@@ -149,16 +147,15 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (!isLoaded) return;
-    // Check if user is already signed in
     if (isSignedIn) {
-      router.push("/");
+      router.push("/dashboard");
       return;
     }
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/",
+        redirectUrlComplete: "/dashboard",
       });
     } catch (err) {
       console.error("Google login error", err);
@@ -167,16 +164,15 @@ export default function LoginPage() {
 
   const handleMicrosoftLogin = async () => {
     if (!isLoaded) return;
-    // Check if user is already signed in
     if (isSignedIn) {
-      router.push("/");
+      router.push("/dashboard");
       return;
     }
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_microsoft",
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/",
+        redirectUrlComplete: "/dashboard",
       });
     } catch (err) {
       console.error("Microsoft login error", err);
