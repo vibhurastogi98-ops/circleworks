@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, users, employeeBankAccounts, payrollItems, payrolls } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export async function GET() {
@@ -52,10 +52,10 @@ export async function GET() {
         medicare: payrollItems.ficaMed,
         healthInsurance: payrollItems.benefits,
         dentalInsurance: payrollItems.benefits,
-        visionInsurance: 0,
-        retirement401k: 0,
-        fsaContribution: 0,
-        otherDeductions: 0,
+        visionInsurance: sql<number>`0`,
+        retirement401k: sql<number>`0`,
+        fsaContribution: sql<number>`0`,
+        otherDeductions: sql<number>`0`,
         netPay: payrollItems.net,
       })
       .from(payrollItems)
@@ -101,10 +101,10 @@ export async function GET() {
         medicare: stub.medicare,
         healthInsurance: stub.healthInsurance,
         dentalInsurance: stub.dentalInsurance,
-        visionInsurance: 0,
-        retirement401k: 0,
-        fsaContribution: 0,
-        otherDeductions: 0,
+        visionInsurance: stub.visionInsurance,
+        retirement401k: stub.retirement401k,
+        fsaContribution: stub.fsaContribution,
+        otherDeductions: stub.otherDeductions,
         netPay: stub.netPay,
         hoursWorked: 80,
         overtimeHours: 0,
