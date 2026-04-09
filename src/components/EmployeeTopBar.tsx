@@ -21,11 +21,39 @@ export default function EmployeeTopBar() {
   const pathname = usePathname() || "/me";
   const router = useRouter();
   const { signOut } = useClerk();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn, isLoaded } = useUser();
 
-  const displayName = user?.fullName || user?.firstName || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
-  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
+  // Local state for immediate UI updates
+  const [localAuthState, setLocalAuthState] = useState({
+    isSignedIn: false,
+    displayName: "User",
+    displayEmail: "user@company.com",
+    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+  });
+
+  // Update local state immediately when auth state changes
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      setLocalAuthState({
+        isSignedIn: true,
+        displayName: user?.fullName || user?.firstName || "User",
+        displayEmail: user?.primaryEmailAddress?.emailAddress || "user@company.com",
+        avatarUrl: user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.firstName || 'User'}&backgroundColor=transparent`
+      });
+    } else if (isLoaded && !isSignedIn) {
+      setLocalAuthState({
+        isSignedIn: false,
+        displayName: "User",
+        displayEmail: "user@company.com",
+        avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+      });
+      // Close avatar menu immediately on logout
+      setIsAvatarMenuOpen(false);
+    }
+  }, [isSignedIn, isLoaded, user]);
+
+  // Use local state for immediate UI updates
+  const { displayName, displayEmail, avatarUrl } = localAuthState;
   const { toggleSidebar } = useSidebarStore();
 
   const { isDarkMode, toggleDarkMode } = usePlatformStore();
@@ -53,13 +81,7 @@ export default function EmployeeTopBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isAvatarMenuOpen]);
 
-  // Close avatar menu when user logs out
-  useEffect(() => {
-    if (!isSignedIn) {
-      setIsAvatarMenuOpen(false);
-    }
-  }, [isSignedIn]);
-
+  
   const pathParts = pathname.split("/").filter(Boolean);
   const mainTitle = pathParts.length > 1
     ? pathParts[pathParts.length - 1].charAt(0).toUpperCase() + pathParts[pathParts.length - 1].slice(1).replace(/-/g, " ")
@@ -178,6 +200,14 @@ export default function EmployeeTopBar() {
                       e.preventDefault();
                       e.stopPropagation();
                       setIsAvatarMenuOpen(false);
+                      // Immediate UI feedback - reset local state instantly
+                      setLocalAuthState({
+                        isSignedIn: false,
+                        displayName: "User",
+                        displayEmail: "user@company.com",
+                        avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+                      });
+                      // Then perform actual signOut
                       signOut({ redirectUrl: "/" });
                     }} className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors">
                       <LogOut size={16} /> Log Out

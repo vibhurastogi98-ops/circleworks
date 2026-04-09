@@ -454,9 +454,10 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                         transition={{ duration: 0.15 }}
                         className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden"
                       >
-                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                          <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{displayName}</p>
-                          <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{displayEmail}</p>
+                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 select-none">
+                          <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
+                          <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5" onContextMenu={(e) => e.preventDefault()}>{displayEmail}</p>
+                          <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">CircleWorks</p>
                         </div>
                         
                         <div className="p-2 flex flex-col gap-1">
@@ -501,6 +502,14 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                               e.preventDefault();
                               e.stopPropagation();
                               setIsProfileMenuOpen(false);
+                              // Immediate UI feedback - reset local state instantly
+                              setLocalAuthState({
+                                isSignedIn: false,
+                                displayName: "User",
+                                displayEmail: "user@company.com",
+                                avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+                              });
+                              // Then perform actual signOut
                               signOut({ redirectUrl: "/" });
                             }}
                             className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors"
@@ -743,7 +752,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
               {isSignedIn ? (
                 /* Authenticated User - Mobile Profile Options */
                 <>
-                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 select-none">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-600">
                         <img 
@@ -753,8 +762,9 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate">{displayName}</p>
-                        <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{displayEmail}</p>
+                        <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate" onContextMenu={(e) => e.preventDefault()}>{displayEmail}</p>
+                        <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">CircleWorks</p>
                       </div>
                     </div>
                   </div>
@@ -791,6 +801,14 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                       e.preventDefault();
                       e.stopPropagation();
                       closeMenus();
+                      // Immediate UI feedback - reset local state instantly
+                      setLocalAuthState({
+                        isSignedIn: false,
+                        displayName: "User",
+                        displayEmail: "user@company.com",
+                        avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+                      });
+                      // Then perform actual signOut
                       signOut({ redirectUrl: "/" });
                     }}
                     className="w-full text-center py-4 rounded-xl border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
