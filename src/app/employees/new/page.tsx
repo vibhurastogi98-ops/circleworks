@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, ChevronLeft, Check, UploadCloud, Landmark, ShieldCheck, Loader2, ArrowRight } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, UploadCloud, Landmark, ShieldCheck } from "lucide-react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useEmployees } from "@/hooks/useEmployees";
 import { usePlaidLink } from "react-plaid-link";
@@ -39,7 +39,6 @@ export default function AddEmployeeWizard() {
   });
 
   const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
     const createLinkToken = async () => {
@@ -110,20 +109,17 @@ export default function AddEmployeeWizard() {
         }
       } else {
         // Complete wizard - FINAL STEP - REAL API CALL
-        if (isSubmitting) return; // Prevent duplicate submissions
-        
-        setIsSubmitting(true);
-        
         const payload = {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.workEmail || formData.personalEmail,
           jobTitle: formData.jobTitle,
           department: formData.department,
-          employmentType: formData.type.toLowerCase(), // Convert "Full-Time" to "full-time", "Part-Time" to "part-time", etc.
+          employmentType: formData.type,
           startDate: formData.startDate,
           salary: parseInt(formData.salary),
           locationType: formData.locationType,
+          companyName: currentUser?.companyName || "CircleWorks",
           bankInfo: {
             bankName: formData.bankName,
             routingNumber: formData.routingNumber,
@@ -139,14 +135,27 @@ export default function AddEmployeeWizard() {
         console.log("FORM DATA", payload);
 
         try {
-          console.log("Submitting employee data:", payload);
-          await addEmployeeAsync(payload);
-          console.log("Employee added successfully");
+          const res = await fetch("/api/employees", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await res.json();
+          console.log("API RESPONSE", result);
+
+          if (!res.ok) {
+            console.error("API ERROR:", result);
+            toast.error(result.error || "Failed to add employee");
+            return;
+          }
+
+          toast.success("Employee added successfully");
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
           router.push("/employees");
         } catch (error) {
           console.error("Save error:", error);
           toast.error("Failed to save employee. Please check your connection.");
-          setIsSubmitting(false);
         }
       }
     } else {
@@ -337,18 +346,12 @@ export default function AddEmployeeWizard() {
             </button>
             <button 
               onClick={handleNext}
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating...
-                </>
-              ) : currentStep === STEPS.length - 1 ? (
+              {currentStep === STEPS.length - 1 ? (
                 <>Complete & Invite <Check size={16} /></>
               ) : (
-                <>Next <ArrowRight size={16} /></>
+                <>Next Step <ChevronRight size={16} /></>
               )}
             </button>
           </div>

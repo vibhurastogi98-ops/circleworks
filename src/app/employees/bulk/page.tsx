@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Check, UploadCloud, FileText, AlertCircle, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, UploadCloud, FileText, AlertCircle } from "lucide-react";
 
 const STEPS = ["Upload File", "Map Fields", "Review & Import"];
 
@@ -37,89 +37,6 @@ export default function BulkImportPage() {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
-  };
-
-  const handleDownloadCSV = () => {
-    // Create CSV template with headers for bulk import
-    const headers = [
-      'First Name',
-      'Last Name', 
-      'Email',
-      'Job Title',
-      'Department',
-      'Employment Type',
-      'Start Date',
-      'Salary',
-      'Location Type',
-      'Bank Name',
-      'Routing Number',
-      'Account Number'
-    ];
-    
-    // Create sample data rows for bulk import
-    const sampleData = [
-      [
-        'John',
-        'Doe',
-        'john.doe@company.com',
-        'Software Engineer',
-        'Engineering',
-        'Full-Time',
-        '2024-01-15',
-        '85000',
-        'Remote',
-        'Chase Bank',
-        '123456789',
-        '********1234'
-      ],
-      [
-        'Jane',
-        'Smith',
-        'jane.smith@company.com',
-        'Product Manager',
-        'Product',
-        'Full-Time',
-        '2024-02-01',
-        '95000',
-        'Hybrid',
-        'Bank of America',
-        '987654321',
-        '********5678'
-      ],
-      [
-        'Mike',
-        'Johnson',
-        'mike.johnson@company.com',
-        'UX Designer',
-        'Design',
-        'Part-Time',
-        '2024-03-01',
-        '65000',
-        'On-Site',
-        'Wells Fargo',
-        '456789123',
-        '********9012'
-      ]
-    ];
-    
-    // Convert to CSV string
-    const csvContent = [
-      headers.join(','),
-      ...sampleData.map(row => row.join(','))
-    ].join('\n');
-    
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'bulk_employee_template.csv');
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -186,13 +103,7 @@ export default function BulkImportPage() {
               </label>
               
               <div className="mt-4">
-                 <button 
-                   onClick={handleDownloadCSV}
-                   className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 transition-colors"
-                 >
-                   <Download size={16} />
-                   Download CSV Template
-                 </button>
+                 <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Download CSV Template</button>
               </div>
             </div>
           )}

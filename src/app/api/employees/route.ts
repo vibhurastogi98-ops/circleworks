@@ -21,23 +21,17 @@ export async function GET() {
       .leftJoin(users, eq(employees.userId, users.id))
       .where(eq(users.clerkUserId, userId));
 
-    let allEmployees;
-
     if (!userEmployee || !userEmployee.companyId) {
-      // If no company association, return all employees (for demo/testing)
-      console.log("[Employees GET] No company association found, returning all employees");
-      allEmployees = await db.query.employees.findMany({
-        orderBy: [desc(employees.createdAt)],
-      });
-    } else {
-      // Get employees filtered by company
-      allEmployees = await db.query.employees.findMany({
-        where: eq(employees.companyId, userEmployee.companyId),
-        orderBy: [desc(employees.createdAt)],
-      });
+      return NextResponse.json([]);
     }
+
+    // Get employees filtered by company
+    const companyEmployees = await db.query.employees.findMany({
+      where: eq(employees.companyId, userEmployee.companyId),
+      orderBy: [desc(employees.createdAt)],
+    });
     
-    return NextResponse.json(allEmployees);
+    return NextResponse.json(companyEmployees);
   } catch (error: any) {
     console.error("[Employees GET Error]", error);
     
@@ -59,39 +53,19 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId } = await auth();
-
-    console.log("[Employees POST] Request body:", body);
-    console.log("[Employees POST] User ID:", userId);
 
     // 1. VALIDATION
     if (!body.firstName || !body.email) {
       return Response.json({ error: "First Name and Email are required" }, { status: 400 });
     }
 
-    // 2. GET COMPANY ID FOR THE CURRENT USER
-    let companyId = body.companyId;
-    if (!companyId && userId) {
-      // Get the company ID from the current user's employee record
-      const [userEmployee] = await db
-        .select({ companyId: employees.companyId })
-        .from(employees)
-        .leftJoin(users, eq(employees.userId, users.id))
-        .where(eq(users.clerkUserId, userId));
-      
-      companyId = userEmployee?.companyId || null;
-      console.log("[Employees POST] Company ID lookup result:", userEmployee);
-    }
-
-    console.log("[Employees POST] Using company ID:", companyId);
-
-    // 3. DATABASE INSERTION
-    // Map the incoming body to the database schema
-    const employeeData = {
+    // 2. DATABASE INSERTION
+    // We'll map the incoming body to the database schema
+    const [newEmployee] = await db.insert(employees).values({
       firstName: body.firstName,
       lastName: body.lastName || null,
       email: body.email,
-      companyId: companyId,
+      companyId: body.companyId || null,
       jobTitle: body.jobTitle || null,
       department: body.department || null,
       location: body.location || null,
@@ -100,12 +74,7 @@ export async function POST(req: Request) {
       startDate: body.startDate || null,
       status: "onboarding",
       salary: body.compensation?.salary || body.salary || null,
-      employmentType: body.employmentType || "full-time",
-    };
-
-    console.log("[Employees POST] Inserting employee data:", employeeData);
-
-    const [newEmployee] = await db.insert(employees).values(employeeData).returning();
+    }).returning();
 
     // 2.2. SAVE BANKING INFO (If provided)
     if (body.bankInfo && body.bankInfo.bankName) {
@@ -125,8 +94,7 @@ export async function POST(req: Request) {
       startDate: body.startDate || null,
     });
 
-    console.log(`[Employees POST] Successfully created employee with ID: ${newEmployee.id}`);
-    console.log("[Employees POST] Created employee:", newEmployee);
+    console.log(`[Database] Created employee and onboarding case for ID: ${newEmployee.id}`);
 
     // Return the inserted record as requested
     return Response.json(newEmployee);
