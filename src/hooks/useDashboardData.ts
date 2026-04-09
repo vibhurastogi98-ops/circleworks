@@ -31,7 +31,7 @@ export function useDashboardData() {
   const localLogoUrl = signupProgress ? JSON.parse(signupProgress)?.logoUrl : null;
   const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
   const clerkLogoUrl = user?.publicMetadata?.companyLogoUrl as string | undefined;
-  const displayCompanyName = clerkCompanyName || localCompanyName || "CircleWorks";
+  const displayCompanyName = clerkCompanyName || localCompanyName || "Your Company";
   const displayLogoUrl = clerkLogoUrl || localLogoUrl;
 
   if (!isLoaded || (user?.publicMetadata?.hasData && statsLoading)) {

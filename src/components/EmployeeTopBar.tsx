@@ -187,7 +187,7 @@ export default function EmployeeTopBar() {
                     </button>
                     <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate pr-8" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
                     <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5" onContextMenu={(e) => e.preventDefault()}>{displayEmail}</p>
-                    <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">CircleWorks</p>
+                    <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">{(user?.publicMetadata?.companyName as string) || "Your Company"}</p>
                   </div>
                   <div className="p-2 flex flex-col gap-1">
                     <button onClick={(e) => {
