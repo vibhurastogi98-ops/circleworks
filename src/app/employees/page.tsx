@@ -424,7 +424,8 @@ export default function EmployeesDirectoryPage() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setActiveDropdown(activeDropdown === emp.id ? null : emp.id);
+                          const id = emp.id.toString();
+                          setActiveDropdown(activeDropdown === id ? null : id);
                         }}
                         className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
                         aria-label={`Actions for ${emp.firstName} ${emp.lastName}`}
@@ -440,21 +441,21 @@ export default function EmployeesDirectoryPage() {
                           style={{ minWidth: '180px' }}
                         >
                           <button
-                            onClick={() => handleActionClick(emp.id, 'edit')}
+                            onClick={() => handleActionClick(emp.id.toString(), 'edit')}
                             className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <Edit size={14} />
                             Edit Employee
                           </button>
                           <button
-                            onClick={() => handleActionClick(emp.id, 'email')}
+                            onClick={() => handleActionClick(emp.id.toString(), 'email')}
                             className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <Mail size={14} />
                             Send Email
                           </button>
                           <button
-                            onClick={() => handleActionClick(emp.id, 'call')}
+                            onClick={() => handleActionClick(emp.id.toString(), 'call')}
                             className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                           >
                             <Phone size={14} />
@@ -462,14 +463,14 @@ export default function EmployeesDirectoryPage() {
                           </button>
                           <div className="border-t border-slate-200 dark:border-slate-700"></div>
                           <button
-                            onClick={() => handleActionClick(emp.id, 'terminate')}
+                            onClick={() => handleActionClick(emp.id.toString(), 'terminate')}
                             className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                           >
                             <UserX size={14} />
                             Terminate
                           </button>
                           <button
-                            onClick={() => handleActionClick(emp.id, 'delete')}
+                            onClick={() => handleActionClick(emp.id.toString(), 'delete')}
                             className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                           >
                             <Trash2 size={14} />
@@ -514,7 +515,8 @@ export default function EmployeesDirectoryPage() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setActiveDropdown(activeDropdown === emp.id ? null : emp.id);
+                    const id = emp.id.toString();
+                    setActiveDropdown(activeDropdown === id ? null : id);
                   }}
                   className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
@@ -525,21 +527,21 @@ export default function EmployeesDirectoryPage() {
                 {activeDropdown === emp.id && (
                   <div data-dropdown-menu className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
                     <button
-                      onClick={() => handleActionClick(emp.id, 'edit')}
+                      onClick={() => handleActionClick(emp.id.toString(), 'edit')}
                       className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                     >
                       <Edit size={14} />
                       Edit Employee
                     </button>
                     <button
-                      onClick={() => handleActionClick(emp.id, 'email')}
+                      onClick={() => handleActionClick(emp.id.toString(), 'email')}
                       className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                     >
                       <Mail size={14} />
                       Send Email
                     </button>
                     <button
-                      onClick={() => handleActionClick(emp.id, 'call')}
+                      onClick={() => handleActionClick(emp.id.toString(), 'call')}
                       className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                     >
                       <Phone size={14} />
@@ -547,14 +549,14 @@ export default function EmployeesDirectoryPage() {
                     </button>
                     <div className="border-t border-slate-200 dark:border-slate-700"></div>
                     <button
-                      onClick={() => handleActionClick(emp.id, 'terminate')}
+                      onClick={() => handleActionClick(emp.id.toString(), 'terminate')}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                     >
                       <UserX size={14} />
                       Terminate
                     </button>
                     <button
-                      onClick={() => handleActionClick(emp.id, 'delete')}
+                      onClick={() => handleActionClick(emp.id.toString(), 'delete')}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                     >
                       <Trash2 size={14} />
