@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Shield, Cookie, Settings } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
 
 interface CookiePreferences {
   necessary: boolean;
@@ -12,14 +11,9 @@ interface CookiePreferences {
   personalization: boolean;
 }
 
-type InteractedValue = "all" | "rejected" | "custom" | null;
-
-export default function CookieBanner() {
-  const [hasInteracted, setHasInteracted] = useState<InteractedValue>(null);
+const CookieConsent = () => {
+  const [isVisible, setIsVisible] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
-  const { getToken } = useAuth();
-  
-  // Custom toggles
   const [preferences, setPreferences] = useState<CookiePreferences>({
     necessary: true, // Always required
     analytics: false,
@@ -28,59 +22,44 @@ export default function CookieBanner() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem("circleworks_consent");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setHasInteracted(parsed.mode);
-        if (parsed.mode === "custom") {
-          setPreferences(parsed.preferences || { necessary: true, analytics: false, marketing: false, personalization: false });
-        }
-      } catch (e) {
-        setHasInteracted(null);
-      }
+    // Check if user has already made a choice
+    const consent = localStorage.getItem('cookie-consent');
+    if (!consent) {
+      setIsVisible(true);
     }
   }, []);
 
-  const saveConsent = async (mode: InteractedValue, prefs = { analytics: false, marketing: false, personalization: false }) => {
-    const payload = {
-      mode,
-      preferences: mode === "all" ? { necessary: true, analytics: true, marketing: true, personalization: true } : { necessary: true, ...prefs }
-    };
-    
-    // Save locally
-    localStorage.setItem("circleworks_consent", JSON.stringify(payload));
-    setHasInteracted(mode);
-    setShowPreferences(false);
-
-    // Patch to tracking/user API
-    try {
-      const token = await getToken();
-      if (token) {
-        await fetch("https://circleworks-worker.vibhurastogi98.workers.dev/users/me", {
-          method: "PATCH",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-          },
-          body: JSON.stringify({ cookiePreferences: payload })
-        });
-      }
-    } catch (e) {
-      console.warn("Could not sync consent to backend API");
-    }
-  };
-
   const handleAcceptAll = () => {
-    saveConsent("all");
+    const allPreferences = {
+      necessary: true,
+      analytics: true,
+      marketing: true,
+      personalization: true,
+    };
+    setPreferences(allPreferences);
+    localStorage.setItem('cookie-consent', JSON.stringify(allPreferences));
+    localStorage.setItem('cookie-consent-version', '1');
+    setIsVisible(false);
   };
 
   const handleRejectAll = () => {
-    saveConsent("rejected");
+    const minimalPreferences = {
+      necessary: true,
+      analytics: false,
+      marketing: false,
+      personalization: false,
+    };
+    setPreferences(minimalPreferences);
+    localStorage.setItem('cookie-consent', JSON.stringify(minimalPreferences));
+    localStorage.setItem('cookie-consent-version', '1');
+    setIsVisible(false);
   };
 
   const handleSavePreferences = () => {
-    saveConsent("custom", preferences);
+    localStorage.setItem('cookie-consent', JSON.stringify(preferences));
+    localStorage.setItem('cookie-consent-version', '1');
+    setIsVisible(false);
+    setShowPreferences(false);
   };
 
   const handlePreferenceChange = (category: keyof CookiePreferences, value: boolean) => {
@@ -91,7 +70,7 @@ export default function CookieBanner() {
     }));
   };
 
-  if (hasInteracted) return null;
+  if (!isVisible) return null;
 
   return (
     <AnimatePresence>
@@ -287,4 +266,6 @@ export default function CookieBanner() {
       </motion.div>
     </AnimatePresence>
   );
-}
+};
+
+export default CookieConsent;
