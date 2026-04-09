@@ -39,7 +39,7 @@ export default function EmployeesDirectoryPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [deptFilter, setDeptFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | number | null>(null);
 
   // Debug: Log employee data
   console.log("Employee data from API:", employees);
@@ -80,7 +80,7 @@ export default function EmployeesDirectoryPage() {
     return filtered;
   }, [employees, search, deptFilter, statusFilter]);
 
-  const handleActionClick = async (employeeId: string, action: string) => {
+  const handleActionClick = async (employeeId: string | number, action: string) => {
     console.log(`Action: ${action} for employee: ${employeeId}`);
     setActiveDropdown(null);
     
