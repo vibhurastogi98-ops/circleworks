@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ChevronRight, ChevronLeft, Check, Sparkles, GripVertical, Plus, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { createJob } from "@/data/mockAts";
+import { toast } from "sonner";
 
 const STEPS = ["Job Details", "Description", "Application Form", "Posting Settings", "Publish"];
 
@@ -28,8 +30,23 @@ export default function CreateJobWizard() {
 
   const handleFinish = () => {
     setIsSubmitting(true);
+    
+    // Simulate API call and persist to mock data
     setTimeout(() => {
-      // Mock API routing
+      createJob({
+        title: formData.title || "New Job Posting",
+        department: formData.department || "General",
+        location: formData.location || "Remote",
+        type: formData.type,
+        status: "Active",
+        salaryMin: parseInt(formData.salaryMin) || 0,
+        salaryMax: parseInt(formData.salaryMax) || 0,
+      });
+
+      toast.success("Job Published!", {
+        description: `"${formData.title}" is now live on your careers page.`
+      });
+      
       router.push("/hiring/jobs");
     }, 1500);
   };

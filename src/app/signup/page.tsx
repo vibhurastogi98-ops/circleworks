@@ -148,7 +148,7 @@ export default function SignupPage() {
       methods.clearErrors(); // Clear before re-validating
       const res = step1Schema.safeParse(data);
       if (!res.success) {
-        (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
+        res.error.issues.forEach((err) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
       } else {
         // Real Clerk SignUp 
         if (!isLoaded) return;
@@ -189,7 +189,7 @@ export default function SignupPage() {
       methods.clearErrors();
       const res = step2Schema.safeParse(data);
       if (!res.success) {
-        (res.error as any).errors.forEach((err: any) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
+        res.error.issues.forEach((err) => methods.setError(err.path[0] as keyof FormData, { message: err.message }));
       } else {
         isValid = true;
       }

@@ -1,18 +1,70 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Search, Filter, MoreHorizontal, Link as LinkIcon, Archive } from "lucide-react";
-import { mockAtsJobs, JobStatus } from "@/data/mockAts";
+import { Plus, Search, Filter, MoreHorizontal, Link as LinkIcon, Archive, Edit, Pause, Play, Trash2, X } from "lucide-react";
+import { mockAtsJobs, AtsJob, JobStatus, deleteJob, updateJobStatus } from "@/data/mockAts";
 import { formatDate } from "@/utils/formatDate";
+import { toast } from "sonner";
 
 export default function JobsDirectory() {
   const [filter, setFilter] = useState<"Active" | "Archived">("Active");
+  const [jobs, setJobs] = useState<AtsJob[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({ department: "", location: "" });
 
-  // In real app, we filter by Active/Paused vs Closed
-  const displayedJobs = mockAtsJobs.filter(j => 
-    filter === "Active" ? (j.status === "Active" || j.status === "Draft" || j.status === "Paused") : j.status === "Closed"
-  );
+  // Sync with global mock data on mount to catch newly created jobs
+  useEffect(() => {
+    setIsMounted(true);
+    setJobs([...mockAtsJobs]);
+  }, []);
+
+  // Filter and Search logic
+  const displayedJobs = useMemo(() => {
+    return jobs.filter(j => {
+      const matchFilter = filter === "Active" 
+        ? (j.status === "Active" || j.status === "Draft" || j.status === "Paused") 
+        : j.status === "Closed";
+      
+      const matchSearch = j.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         j.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         j.location.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchDept = !activeFilters.department || j.department === activeFilters.department;
+      const matchLoc = !activeFilters.location || j.location.includes(activeFilters.location);
+
+      return matchFilter && matchSearch && matchDept && matchLoc;
+    });
+  }, [jobs, filter, searchQuery, activeFilters]);
+
+  const handleCopyLink = (job: AtsJob) => {
+    const url = `${window.location.origin}/careers/${job.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copied!", { description: `Public link for "${job.title}" copied to clipboard.` });
+  };
+
+  const handleArchive = (job: AtsJob) => {
+    updateJobStatus(job.id, "Closed");
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Closed" as JobStatus } : j));
+    toast.success("Job archived", { description: `"${job.title}" has been moved to Archived.` });
+    setOpenMenuId(null);
+  };
+
+  const handleTogglePause = (job: AtsJob) => {
+    const newStatus: JobStatus = job.status === "Paused" ? "Active" : "Paused";
+    updateJobStatus(job.id, newStatus);
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: newStatus } : j));
+    toast.success(newStatus === "Paused" ? "Job paused" : "Job reactivated", {
+      description: `"${job.title}" is now ${newStatus.toLowerCase()}.`,
+    });
+    setOpenMenuId(null);
+  };
+
+  if (!isMounted) return null;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -52,13 +104,76 @@ export default function JobsDirectory() {
                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search jobs..." 
                   className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
                />
             </div>
-            <button className="p-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-               <Filter size={18} />
-            </button>
+            <div className="relative">
+               <button 
+                 onClick={() => setShowFilters(!showFilters)}
+                 className={`p-2 border rounded-lg transition-colors ${showFilters || activeFilters.department || activeFilters.location ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+               >
+                  <Filter size={18} />
+               </button>
+
+               {showFilters && (
+                 <>
+                   <div className="fixed inset-0 z-30" onClick={() => setShowFilters(false)} />
+                   <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-40 p-4 animate-in fade-in zoom-in duration-200">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Advanced Filters</h4>
+                      
+                      <div className="flex flex-col gap-4">
+                         <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">Department</label>
+                            <select 
+                               value={activeFilters.department}
+                               onChange={(e) => setActiveFilters({...activeFilters, department: e.target.value})}
+                               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none"
+                            >
+                               <option value="">All Departments</option>
+                               <option value="Engineering">Engineering</option>
+                               <option value="Product">Product</option>
+                               <option value="Marketing">Marketing</option>
+                               <option value="Sales">Sales</option>
+                            </select>
+                         </div>
+
+                         <div>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">Location Type</label>
+                            <div className="flex gap-2">
+                               {["Remote", "San Francisco", "New York"].map(loc => (
+                                  <button 
+                                     key={loc}
+                                     onClick={() => setActiveFilters({...activeFilters, location: activeFilters.location === loc ? "" : loc})}
+                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activeFilters.location === loc ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-slate-50'}`}
+                                  >
+                                     {loc}
+                                  </button>
+                               ))}
+                            </div>
+                         </div>
+
+                         <div className="pt-2 border-t border-slate-100 dark:border-slate-700 mt-2 flex justify-between">
+                            <button 
+                               onClick={() => setActiveFilters({ department: "", location: "" })}
+                               className="text-xs font-bold text-slate-400 hover:text-slate-600"
+                            >
+                               Reset All
+                            </button>
+                            <button 
+                               onClick={() => setShowFilters(false)}
+                               className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                            >
+                               Apply Filters
+                            </button>
+                         </div>
+                      </div>
+                   </div>
+                 </>
+               )}
+            </div>
          </div>
       </div>
 
@@ -77,7 +192,7 @@ export default function JobsDirectory() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {displayedJobs.map(job => (
+                  {displayedJobs.map((job: AtsJob) => (
                      <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 group">
                         <td className="px-6 py-4">
                            <Link href={`/hiring/jobs/${job.id}`} className="block focus:outline-none">
@@ -113,17 +228,73 @@ export default function JobsDirectory() {
                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                            {formatDate(job.postedDate)}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Copy Public Link">
+                        <td className="px-6 py-4 text-right overflow-visible">
+                           <div className="flex items-center justify-end gap-2 relative">
+                              <button 
+                                onClick={() => handleCopyLink(job)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors" 
+                                title="Copy Public Link"
+                              >
                                  <LinkIcon size={16} />
                               </button>
-                              <button className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded" title="Archive Post">
+                              <button 
+                                onClick={() => handleArchive(job)}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded transition-colors" 
+                                title="Archive Post"
+                              >
                                  <Archive size={16} />
                               </button>
-                              <button className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded" title="More Options">
-                                 <MoreHorizontal size={16} />
-                              </button>
+                              <div className="relative group/menu">
+                                 <button 
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                     setMenuPosition({ top: rect.bottom + 8, left: rect.right - 192 }); // 192 is w-48
+                                     setOpenMenuId(openMenuId === job.id ? null : job.id);
+                                   }}
+                                   className={`p-1.5 rounded transition-colors ${openMenuId === job.id ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'}`} 
+                                   title="More Options"
+                                 >
+                                    <MoreHorizontal size={16} />
+                                 </button>
+                                 {openMenuId === job.id && (
+                                   <>
+                                     <div className="fixed inset-0 z-[100]" onClick={() => setOpenMenuId(null)} />
+                                     <div 
+                                       className="fixed w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-[101] py-1 overflow-hidden animate-in fade-in zoom-in duration-200"
+                                       style={{ top: menuPosition.top, left: menuPosition.left }}
+                                     >
+                                      <button 
+                                        onClick={() => handleTogglePause(job)}
+                                        className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 text-slate-700 dark:text-slate-300 transition-colors"
+                                      >
+                                        {job.status === 'Paused' ? <Play size={16} className="text-emerald-500" /> : <Pause size={16} className="text-amber-500" />}
+                                        {job.status === 'Paused' ? 'Resume Posting' : 'Pause Posting'}
+                                      </button>
+                                      <Link 
+                                        href={`/hiring/jobs/${job.id}/edit`}
+                                        className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-3 text-slate-700 dark:text-slate-300 transition-colors"
+                                      >
+                                        <Edit size={16} className="text-indigo-500" />
+                                        Edit Details
+                                      </Link>
+                                      <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                                      <button 
+                                        onClick={() => {
+                                          deleteJob(job.id);
+                                          setJobs(prev => prev.filter(j => j.id !== job.id));
+                                          toast.error("Job deleted", { description: `"${job.title}" has been permanently removed.` });
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400 transition-colors"
+                                      >
+                                        <Trash2 size={16} />
+                                        Delete Permanently
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                            </div>
                         </td>
                      </tr>

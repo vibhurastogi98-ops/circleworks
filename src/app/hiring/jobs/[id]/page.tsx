@@ -1,15 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate } from "@/data/mockAts";
-import { MoreHorizontal, Link as LinkIcon, Plus, Edit, Pause, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
+import { MoreHorizontal, Link as LinkIcon, Plus, Edit, Pause, Play, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle, Briefcase } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBanTheBoxJurisdiction } from "@/utils/compliance";
 import { formatDate } from "@/utils/formatDate";
+import { toast } from "sonner";
 
 // --- DND KIT COMPONENTS ---
 
@@ -93,11 +95,17 @@ const GripIcon = () => (
 
 export default function KanbanBoard() {
   const { id } = useParams();
-  const job = useMemo(() => getJobById(id as string), [id]);
+  const initialJob = useMemo(() => getJobById(id as string), [id]);
   const initialCandidates = useMemo(() => getCandidatesByJob(id as string), [id]);
 
+  const [job, setJob] = useState(initialJob);
   const [candidates, setCandidates] = useState(initialCandidates);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   // Drawer State
   const [selectedCandidate, setSelectedCandidate] = useState<AtsCandidate | null>(null);
@@ -121,24 +129,56 @@ export default function KanbanBoard() {
     const candidateId = active.id;
     const overId = over.id;
 
-    // Detect if dropped on a column container or another card
+    const candidate = candidates.find(c => c.id === candidateId);
     const targetStage = STAGES.find(s => s.id === overId)?.id || candidates.find(c => c.id === overId)?.stage;
 
-    if (targetStage && targetStage !== candidates.find(c=>c.id===candidateId)?.stage) {
-       // Optimistic update
+    if (candidate && targetStage && targetStage !== candidate.stage) {
        setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, stage: targetStage as CandidateStage } : c));
        
+       toast.success("Stage updated", {
+         description: `${candidate.firstName} moved to ${STAGES.find(s => s.id === targetStage)?.title}.`
+       });
+
        if (targetStage === 'Withdrawn') {
           // In real app: open DQ modal
        } else if (targetStage === 'Hired') {
           // In real app: open onboard modal
        }
-       // POST /api/ats/candidates/{id}/stage -> body: {newStage: targetStage}
     }
     setActiveId(null);
   };
 
+  const handleCopyJobLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    toast.success("Internal link copied!");
+  };
+
+  const handleTogglePause = () => {
+    if (!job) return;
+    const newStatus = job.status === 'Paused' ? 'Active' : 'Paused';
+    setJob({ ...job, status: newStatus as any });
+    toast.success(newStatus === 'Paused' ? "Job paused" : "Job reactivated");
+  };
+
+  if (!job) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[400px] text-center">
+        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+          <Briefcase className="text-slate-400" size={32} />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Job Post Not Found</h2>
+        <p className="text-slate-500 max-w-xs mb-6">The job posting you are looking for might have been deleted or the link is incorrect.</p>
+        <Link href="/hiring/jobs" className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors">
+          Back to Jobs
+        </Link>
+      </div>
+    );
+  }
+
   const currentActiveCandidate = useMemo(() => candidates.find(c => c.id === activeId), [activeId, candidates]);
+
+  if (!isMounted) return null;
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] relative overflow-hidden -mx-4 sm:-mx-6 -my-6 px-4 sm:px-6 py-6 animate-in fade-in duration-500">
@@ -165,10 +205,21 @@ export default function KanbanBoard() {
          </div>
 
          <div className="flex items-center gap-2">
-            <button className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700" title="Edit Job"><Edit size={16} /></button>
-            <button className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700" title="Pause Post"><Pause size={16} /></button>
-            <button className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700" title="Copy Link"><LinkIcon size={16} /></button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm ml-2">
+            <Link href={`/hiring/jobs/${job?.id}/edit`} className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="Edit Job">
+               <Edit size={16} />
+            </Link>
+            <button 
+              onClick={handleTogglePause}
+              className={`p-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-colors ${job?.status === 'Paused' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`} 
+              title={job?.status === 'Paused' ? "Resume Post" : "Pause Post"}
+            >
+              {job?.status === 'Paused' ? <Play size={16} /> : <Pause size={16} />}
+            </button>
+            <button onClick={handleCopyJobLink} className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="Copy Link"><LinkIcon size={16} /></button>
+            <button 
+              onClick={() => toast.info("Add Candidate modal coming soon")}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm ml-2"
+            >
                <Plus size={16} /> Add Candidate
             </button>
          </div>
