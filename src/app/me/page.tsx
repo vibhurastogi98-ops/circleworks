@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,8 +11,10 @@ import {
 import { useUser } from "@clerk/nextjs";
 import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import {
-  mockPtoBalances, mockPendingTasks, mockAnnouncements, mockKudos, mockPayStubs,
+  mockPtoBalances, mockPendingTasks, mockKudos, mockPayStubs,
 } from "@/data/mockEmployeePortal";
+import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -33,6 +35,97 @@ const ptoIcons: Record<string, React.ElementType> = {
   Sick: Thermometer,
   Personal: UserIcon,
 };
+
+function AnnouncementsWidget() {
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [selectedAnn, setSelectedAnn] = useState<any>(null);
+  const [readIds, setReadIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    fetch('/api/announcements?filter=Active')
+      .then(res => res.json())
+      .then(data => {
+        // Sort: pinned first, then by date desc. Get last 5.
+        if (Array.isArray(data)) {
+            const sorted = data.sort((a, b) => {
+              if (a.isPinned === b.isPinned) {
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+              }
+              return a.isPinned ? -1 : 1;
+            });
+            setAnnouncements(sorted.slice(0, 5));
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const handleOpen = (ann: any) => {
+    setSelectedAnn(ann);
+    if (!readIds.has(ann.id)) {
+      setTimeout(() => {
+         setReadIds(prev => new Set(prev).add(ann.id));
+         fetch(`/api/announcements/${ann.id}/read`, { method: 'POST' }).catch(console.error);
+      }, 3000);
+    }
+  };
+
+  return (
+    <>
+      <div>
+        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+          <Megaphone size={16} className="text-blue-500" /> Recent Announcements
+        </h2>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
+          {announcements.length === 0 ? (
+            <div className="px-4 py-6 text-center text-slate-500 text-sm">No announcements at this time.</div>
+          ) : announcements.map(ann => (
+            <button 
+              key={ann.id} 
+              onClick={() => handleOpen(ann)}
+              className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group relative"
+            >
+              {!readIds.has(ann.id) && (
+                 <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500" title="Unread" />
+              )}
+              <div className="flex items-center gap-2 pr-4">
+                {ann.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
+                <h3 className={`text-[13px] font-bold ${readIds.has(ann.id) ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white'} truncate`}>{ann.title}</h3>
+                <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">{format(new Date(ann.createdAt), 'MMM d')}</span>
+              </div>
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 pr-4">{ann.body}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Dialog open={!!selectedAnn} onOpenChange={(open) => !open && setSelectedAnn(null)}>
+        {selectedAnn && (
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedAnn.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
+                {selectedAnn.title}
+              </DialogTitle>
+              <DialogDescription>
+                {format(new Date(selectedAnn.createdAt), 'MMMM d, yyyy')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{selectedAnn.body}</p>
+            </div>
+            {selectedAnn.attachments && (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href={selectedAnn.attachments} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                  <FileText size={14} /> View Attachment
+                </a>
+              </div>
+            )}
+          </DialogContent>
+        )}
+      </Dialog>
+    </>
+  );
+}
 
 export default function EmployeeHomePage() {
   const { user } = useUser();
@@ -169,22 +262,7 @@ export default function EmployeeHomePage() {
       </div>
 
       {/* Announcements */}
-      <div>
-        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-          <Megaphone size={16} className="text-blue-500" /> Recent Announcements
-        </h2>
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
-          {mockAnnouncements.map(ann => (
-            <div key={ann.id} className="px-4 py-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-[13px] font-bold text-slate-900 dark:text-white">{ann.title}</h3>
-                <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">{new Date(ann.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-              </div>
-              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{ann.preview}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <AnnouncementsWidget />
     </>
   );
 }

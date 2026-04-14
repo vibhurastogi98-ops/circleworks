@@ -251,6 +251,35 @@ export const employeeBankAccounts = pgTable('employee_bank_accounts', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// --- ANNOUNCEMENTS ---
+
+export const announcements = pgTable('announcements', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  audience: text('audience').default('All Employees'), // All Employees, By Department, By Location, Custom Group
+  department: text('department'), // If audience is By Department
+  location: text('location'), // If audience is By Location
+  priority: text('priority').default('Normal'), // Normal, Important, Urgent
+  status: text('status').default('Draft'), // Draft, Scheduled, Published, Expired
+  publishAt: timestamp('publish_at'),
+  expireAt: timestamp('expire_at'),
+  isPinned: boolean('is_pinned').default(false),
+  attachments: text('attachments'), // JSON array of urls or single url
+  viewsCount: integer('views_count').default(0),
+  uniqueReaders: integer('unique_readers').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const announcementReads = pgTable('announcement_reads', {
+  id: serial('id').primaryKey(),
+  announcementId: integer('announcement_id').references(() => announcements.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  readAt: timestamp('read_at').defaultNow(),
+});
+
 // --- RELATIONS ---
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -275,6 +304,17 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   payrollItems: many(payrollItems),
   manager: one(employees, { fields: [employees.managerId], references: [employees.id], relationName: 'subordinates' }),
   subordinates: many(employees, { relationName: 'subordinates' }),
+  announcementReads: many(announcementReads),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one, many }) => ({
+  company: one(companies, { fields: [announcements.companyId], references: [companies.id] }),
+  reads: many(announcementReads),
+}));
+
+export const announcementReadsRelations = relations(announcementReads, ({ one }) => ({
+  announcement: one(announcements, { fields: [announcementReads.announcementId], references: [announcements.id] }),
+  employee: one(employees, { fields: [announcementReads.employeeId], references: [employees.id] }),
 }));
 
 export const onboardingCasesRelations = relations(onboardingCases, ({ one }) => ({
