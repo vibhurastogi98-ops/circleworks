@@ -69,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "ACA", href: "/compliance/aca" },
       { label: "EEO-1", href: "/compliance/eeo" },
       { label: "Labor Posters", href: "/compliance/posters" },
+      { label: "Paid Leave", href: "/compliance/paid-leave" },
       { label: "Handbook", href: "/compliance/handbook" },
       { label: "WOTC", href: "/compliance/wotc" },
     ]

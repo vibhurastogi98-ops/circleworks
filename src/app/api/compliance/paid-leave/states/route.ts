@@ -1,0 +1,85 @@
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const states = [
+    {
+      id: "ca-sdi",
+      stateCode: "CA",
+      programName: "SDI/PFL",
+      employeeRate: 1.1,
+      employerRate: 0,
+      wageBase: 153164,
+      employeeCount: 42,
+      lastUpdated: "2026-01-01",
+      alert: "New 2026 CA SDI rate published — update required",
+    },
+    {
+      id: "ny-pfl",
+      stateCode: "NY",
+      programName: "DBL/PFL",
+      employeeRate: 0.373,
+      employerRate: 0,
+      wageBase: 89343.80,
+      employeeCount: 18,
+      lastUpdated: "2024-01-01",
+      alert: null,
+    },
+    {
+      id: "wa-pfml",
+      stateCode: "WA",
+      programName: "PFML",
+      employeeRate: 0.528,
+      employerRate: 0.212,
+      wageBase: 168600,
+      employeeCount: 12,
+      lastUpdated: "2024-01-01",
+      alert: null,
+    },
+    {
+      id: "ma-pfml",
+      stateCode: "MA",
+      programName: "PFML",
+      employeeRate: 0.318,
+      employerRate: 0.45,
+      wageBase: 168600,
+      employeeCount: 5,
+      lastUpdated: "2024-01-01",
+      alert: null,
+    },
+    {
+      id: "co-famli",
+      stateCode: "CO",
+      programName: "FAMLI",
+      employeeRate: 0.45,
+      employerRate: 0.45,
+      wageBase: 168600,
+      employeeCount: 8,
+      lastUpdated: "2024-01-01",
+      alert: null,
+    },
+    {
+      id: "or-pfml",
+      stateCode: "OR",
+      programName: "PFML",
+      employeeRate: 0.6,
+      employerRate: 0.4,
+      wageBase: 168600,
+      employeeCount: 3,
+      lastUpdated: "2023-09-03",
+      alert: null,
+    },
+    {
+      id: "nj-fli",
+      stateCode: "NJ",
+      programName: "TDI/FLI",
+      employeeRate: 0.09,
+      employerRate: 0,
+      wageBase: 161400,
+      employeeCount: 2,
+      lastUpdated: "2024-01-01",
+      alert: null,
+    }
+  ];
+
+  return NextResponse.json({ states });
+}
