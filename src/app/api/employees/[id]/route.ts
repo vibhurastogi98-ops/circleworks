@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { employees, employeeBankAccounts, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
+import { users } from "@/db/schema";
 
 export async function GET(
   req: NextRequest,
@@ -33,7 +34,55 @@ export async function GET(
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    return NextResponse.json(employee);
+    // Role-based visibility filtering
+    const { userId: clerkId } = await auth();
+    let requesterRole = 'employee';
+    let requesterEmployeeId = null;
+
+    if (clerkId) {
+      const user = await db.query.users.findFirst({
+        where: eq(users.clerkUserId, clerkId),
+        with: { employees: true }
+      });
+      if (user) {
+        requesterRole = user.role || 'employee';
+        requesterEmployeeId = user.employees?.[0]?.id || null;
+      }
+    }
+
+    const isSelf = requesterEmployeeId === employeeId;
+    const isManager = requesterEmployeeId === employee.managerId;
+    const isHR = requesterRole === 'hr';
+    const isAdmin = requesterRole === 'admin';
+
+    // Apply visibility rules
+    const sanitized: any = { ...employee };
+
+    const canSeeBank = isSelf || isAdmin;
+    const canSeeSalary = isAdmin || isHR || isManager;
+    const canSeePersonal = isSelf || isAdmin || isHR;
+    const canSeePerformance = isSelf || isManager || isHR;
+
+    if (!canSeeBank) {
+      delete sanitized.bankAccounts;
+    }
+
+    if (!canSeeSalary) {
+      delete sanitized.salary;
+      delete sanitized.compensation;
+    }
+
+    if (!canSeePersonal) {
+      delete sanitized.documents;
+      delete sanitized.onboardingCases;
+    }
+
+    if (!isManager && !isHR && !isAdmin && !isSelf) {
+      delete sanitized.ptoRequests;
+      delete sanitized.timesheets;
+    }
+
+    return NextResponse.json(sanitized);
   } catch (error: any) {
     console.error("[Employee GET Error]", error);
     return NextResponse.json({ error: "Failed to fetch employee" }, { status: 500 });

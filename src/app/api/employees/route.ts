@@ -16,7 +16,7 @@ export async function GET() {
 
     // Find the user's employee record to get their company
     const [userEmployee] = await db
-      .select({ companyId: employees.companyId })
+      .select({ companyId: employees.companyId, role: users.role, requesterEmployeeId: employees.id })
       .from(employees)
       .leftJoin(users, eq(employees.userId, users.id))
       .where(eq(users.clerkUserId, userId));
@@ -34,7 +34,35 @@ export async function GET() {
       });
     }
     
-    return NextResponse.json(allEmployees);
+    // Apply role-based field visibility
+    const requesterRole = userEmployee.role || 'employee';
+    const reqEmpId = userEmployee.requesterEmployeeId;
+    const isHR = requesterRole === 'hr';
+    const isAdmin = requesterRole === 'admin';
+
+    const sanitizedEmployees = allEmployees.map(emp => {
+      const isSelf = reqEmpId === emp.id;
+      const isManager = reqEmpId === emp.managerId;
+      
+      const sanitized: any = { ...emp };
+      
+      const canSeeSalary = isAdmin || isHR || isManager;
+      const canSeePersonal = isSelf || isAdmin || isHR;
+      
+      if (!canSeeSalary) {
+        delete sanitized.salary;
+      }
+      
+      // Personal fields are generally not on the base employee list, but if they were
+      if (!isSelf && !isAdmin && !isHR && !isManager) {
+        // Just the basic directory info: name, title, department, location, avatar
+        // Delete things like personal email if we distinguish it, but mostly we delete salary and performance
+      }
+      
+      return sanitized;
+    });
+
+    return NextResponse.json(sanitizedEmployees);
   } catch (error: any) {
     console.error("[Employees GET Error]", error);
     
