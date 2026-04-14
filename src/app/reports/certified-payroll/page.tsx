@@ -318,38 +318,55 @@ export default function CertifiedPayrollPage() {
                   <thead>
                     <tr className="bg-slate-100">
                       <th className="border border-black p-1 w-32">Name & ID Number of Worker</th>
-                      <th className="border border-black p-1 w-8">No. of Exceptions</th>
                       <th className="border border-black p-1 w-24">Work Classification</th>
                       <th className="border border-black p-1">Hours by Day</th>
-                      <th className="border border-black p-1 w-12">Total Hours</th>
-                      <th className="border border-black p-1 w-16">Rate of Pay</th>
-                      <th className="border border-black p-1">Gross Earned</th>
+                      <th className="border border-black p-1 w-10">Total Hours</th>
+                      <th className="border border-black p-1 w-12">Rate of Pay</th>
+                      <th className="border border-black p-1 w-14">Gross Earned</th>
+                      <th className="border border-black p-1 w-20">Deductions (FICA, WHT, etc)</th>
+                      <th className="border border-black p-1 w-14">Net Wages</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {validatedWorkers.map(w => (
-                      <tr key={w.id} className={w.isUnderpaid ? "bg-red-50 text-red-900" : ""}>
-                         <td className="border border-black p-2 font-bold text-left bg-white">
-                           {w.name}<br/>
-                           <span className="text-[9px] font-mono font-medium text-slate-500">xxx-xx-{Math.floor(1000 + Math.random()*9000)}</span>
-                         </td>
-                         <td className="border border-black p-1">0</td>
-                         <td className="border border-black p-1 uppercase">{w.classification}</td>
-                         <td className="border border-black p-0">
-                            <table className="w-full h-full">
-                              <tbody>
-                                <tr className="text-[8px] bg-slate-50 border-b border-black"><td>M</td><td>T</td><td>W</td><td>Th</td><td>F</td><td>S</td><td>Su</td></tr>
-                                <tr>
-                                  {w.hours.map((h:any, i:any) => <td key={i} className="border-r border-black last:border-r-0 py-1">{h || '-'}</td>)}
-                                </tr>
-                              </tbody>
-                            </table>
-                         </td>
-                         <td className="border border-black p-1 font-bold">{calculateTotalHours(w.hours)}</td>
-                         <td className={`border border-black p-1 font-mono ${w.isUnderpaid ? 'text-red-600 font-bold' : ''}`}>${w.rate.toFixed(2)}</td>
-                         <td className="border border-black p-1 font-mono">${(calculateTotalHours(w.hours) * w.rate).toFixed(2)}</td>
-                      </tr>
-                    ))}
+                    {validatedWorkers.map(w => {
+                      const totalHrs = calculateTotalHours(w.hours);
+                      const gross = totalHrs * w.rate;
+                      const fica = gross * 0.0765;
+                      const wht = gross * 0.12;
+                      const deductions = fica + wht;
+                      const net = gross - deductions;
+
+                      return (
+                        <tr key={w.id} className={w.isUnderpaid ? "bg-red-50 text-red-900" : ""}>
+                           <td className="border border-black p-2 font-bold text-left bg-white">
+                             {w.name}<br/>
+                             <span className="text-[9px] font-mono font-medium text-slate-500">xxx-xx-{Math.floor(1000 + Math.random()*9000)}</span>
+                           </td>
+                           <td className="border border-black p-1 uppercase text-[9px]">{w.classification}</td>
+                           <td className="border border-black p-0">
+                              <table className="w-full h-full">
+                                <tbody>
+                                  <tr className="text-[7px] bg-slate-50 border-b border-black"><td>M</td><td>T</td><td>W</td><td>Th</td><td>F</td><td>S</td><td>Su</td></tr>
+                                  <tr>
+                                    {w.hours.map((h:any, i:any) => <td key={i} className="border-r border-black last:border-r-0 py-1 text-[8px]">{h || '-'}</td>)}
+                                  </tr>
+                                </tbody>
+                              </table>
+                           </td>
+                           <td className="border border-black p-1 font-bold">{totalHrs}</td>
+                           <td className={`border border-black p-1 font-mono ${w.isUnderpaid ? 'text-red-600 font-bold' : ''}`}>${w.rate.toFixed(2)}</td>
+                           <td className="border border-black p-1 font-mono">${gross.toFixed(2)}</td>
+                           <td className="border border-black p-0">
+                              <div className="flex flex-col text-[8px] text-left px-1">
+                                <span>FICA: ${fica.toFixed(2)}</span>
+                                <span>WHT: ${wht.toFixed(2)}</span>
+                                <span className="border-t border-slate-300 font-bold">Total: ${deductions.toFixed(2)}</span>
+                              </div>
+                           </td>
+                           <td className="border border-black p-1 font-bold font-mono bg-slate-50">${net.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
 

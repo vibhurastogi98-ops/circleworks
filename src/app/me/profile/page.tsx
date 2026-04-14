@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { User, MapPin, Phone, Shield, CreditCard, FileText, Lock, Smartphone, Monitor, Save, Edit2, Eye, EyeOff } from "lucide-react";
 import { mockEmployeeProfile } from "@/data/mockEmployeePortal";
 import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
+import { PlaidBankSection } from "@/components/PlaidBankSection";
 
 export default function ProfilePage() {
   const { data } = useEmployeePortal();
@@ -140,24 +142,12 @@ export default function ProfilePage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40">
           <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700/40">
             <h3 className="text-[14px] font-bold text-slate-900 dark:text-white flex items-center gap-2"><CreditCard size={16} className="text-emerald-500" /> Bank Account</h3>
-            <button onClick={() => toast("Bank verification flow will open here")} className="text-[12px] font-bold text-violet-600 dark:text-violet-400 flex items-center gap-1 hover:underline">
-              <Edit2 size={13} /> Update
-            </button>
           </div>
-          <div className="p-5 space-y-3">
-            <div className="flex justify-between text-[13px]"><span className="text-slate-500">Bank</span><span className="font-semibold text-slate-900 dark:text-white">{p.bankAccount.bankName}</span></div>
-            <div className="flex justify-between text-[13px]"><span className="text-slate-500">Routing #</span><span className="font-semibold text-slate-900 dark:text-white font-mono">{p.bankAccount.routingNumber}</span></div>
-            <div className="flex justify-between text-[13px] items-center">
-              <span className="text-slate-500">Account #</span>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-900 dark:text-white font-mono">{showBankDetails ? "021000089-8790" : p.bankAccount.accountNumber}</span>
-                <button onClick={() => setShowBankDetails(!showBankDetails)} className="text-slate-400 hover:text-violet-600">
-                  {showBankDetails ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-between text-[13px]"><span className="text-slate-500">Type</span><span className="font-semibold text-slate-900 dark:text-white">{p.bankAccount.accountType}</span></div>
-            <p className="text-[11px] text-slate-400 pt-2">Last updated: {new Date(p.bankAccount.lastUpdated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <div className="p-5">
+             <PlaidBankSection initialData={p.bankAccount} onSave={(data: any) => {
+                 setProfile({ ...profile, ...data });
+                 toast.success('Bank account verified instantly — ready for direct deposit');
+             }} />
           </div>
         </motion.div>
       </div>
@@ -168,7 +158,7 @@ export default function ProfilePage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40">
           <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700/40">
             <h3 className="text-[14px] font-bold text-slate-900 dark:text-white flex items-center gap-2"><FileText size={16} className="text-amber-500" /> W-4 Tax Withholding</h3>
-            <button onClick={() => toast("Guided W-4 completion flow coming soon")} className="text-[12px] font-bold text-violet-600 dark:text-violet-400 hover:underline">Update W-4</button>
+            <Link href="/me/w4" className="text-[12px] font-bold text-violet-600 dark:text-violet-400 hover:underline">Update W-4</Link>
           </div>
           <div className="p-5 space-y-2">
             <div className="flex justify-between text-[13px]"><span className="text-slate-500">Filing Status</span><span className="font-semibold text-slate-900 dark:text-white">{p.w4.filingStatus}</span></div>

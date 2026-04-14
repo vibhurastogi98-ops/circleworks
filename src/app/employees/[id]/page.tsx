@@ -4,7 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
-import { Briefcase, Calendar, User, Loader2, AlertCircle } from "lucide-react";
+import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark } from "lucide-react";
 
 export default function EmployeeOverviewTab() {
   const { id } = useParams();
@@ -157,6 +157,20 @@ export default function EmployeeOverviewTab() {
                   <span className="font-medium text-slate-900 dark:text-white">{emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : "Recent"}</span>
                </div>
             </div>
+         </div>
+
+         {/* Direct Deposit Status */}
+         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+               <Landmark size={18} className="text-blue-500" /> Direct Deposit
+            </h3>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</span>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${emp.bankAccount?.verified ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'}`}>
+                {emp.bankAccount?.verified ? 'Verified' : 'Pending'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">Account details are hidden for security reasons. Only verification status is shown to admins.</p>
          </div>
       </div>
     </div>
