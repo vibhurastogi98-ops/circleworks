@@ -31,6 +31,7 @@ export const standardReports: StandardReport[] = [
   // Employees
   { id: "rpt-8", name: "Employee Directory", description: "Full active employee roster with contact info and department.", category: "Employees", icon: "Users", popular: true },
   { id: "rpt-9", name: "Headcount Report", description: "Total headcount over time — hires, terminations, and net change.", category: "Employees", icon: "TrendingUp" },
+  { id: "rpt-9b", name: "Headcount Forecast", description: "Project planned hires, attrition, and budget impact securely.", category: "Employees", icon: "AreaChart", popular: true },
   { id: "rpt-10", name: "Turnover Analysis", description: "Voluntary vs involuntary turnover rates by department and period.", category: "Employees", icon: "ActivitySquare" },
   { id: "rpt-11", name: "Compensation Summary", description: "Salary bands, averages, and distributions by department/role.", category: "Employees", icon: "DollarSign" },
   { id: "rpt-12", name: "Anniversary & Birthday", description: "Upcoming work anniversaries and employee birthdays.", category: "Employees", icon: "Cake" },
