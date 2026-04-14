@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate } from "@/data/mockAts";
+import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate, addCandidate } from "@/data/mockAts";
 import { MoreHorizontal, Link as LinkIcon, Plus, Edit, Pause, Play, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle, Briefcase } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBanTheBoxJurisdiction } from "@/utils/compliance";
@@ -115,6 +115,10 @@ export default function KanbanBoard() {
   const [bgStatuses, setBgStatuses] = useState<Record<string, 'Not Started' | 'Pending' | 'Clear' | 'Adverse'>>({});
   const [nycChecklists, setNycChecklists] = useState<Record<string, boolean>>({});
 
+  // Add Candidate Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCandidate, setNewCandidate] = useState({ firstName: "", lastName: "", email: "", source: "Manual" });
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
 
   if (!job) return <div>Job not found</div>;
@@ -159,6 +163,27 @@ export default function KanbanBoard() {
     const newStatus = job.status === 'Paused' ? 'Active' : 'Paused';
     setJob({ ...job, status: newStatus as any });
     toast.success(newStatus === 'Paused' ? "Job paused" : "Job reactivated");
+  };
+
+  const handleAddCandidateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!job || !newCandidate.firstName || !newCandidate.lastName || !newCandidate.email) {
+       toast.error("Please fill all required fields");
+       return;
+    }
+    const created = addCandidate({
+       jobId: job.id,
+       firstName: newCandidate.firstName,
+       lastName: newCandidate.lastName,
+       email: newCandidate.email,
+       source: newCandidate.source,
+       stage: "New",
+       reviewers: []
+    });
+    setCandidates([created, ...candidates]);
+    setShowAddModal(false);
+    setNewCandidate({ firstName: "", lastName: "", email: "", source: "Manual" });
+    toast.success("Candidate added successfully!");
   };
 
   if (!job) {
@@ -217,7 +242,7 @@ export default function KanbanBoard() {
             </button>
             <button onClick={handleCopyJobLink} className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="Copy Link"><LinkIcon size={16} /></button>
             <button 
-              onClick={() => toast.info("Add Candidate modal coming soon")}
+              onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm ml-2"
             >
                <Plus size={16} /> Add Candidate
@@ -541,6 +566,92 @@ export default function KanbanBoard() {
                         );
                      })()}
                   </div>
+               </motion.div>
+            </>
+         )}
+      </AnimatePresence>
+
+      {/* Add Candidate Modal */}
+      <AnimatePresence>
+         {showAddModal && (
+            <>
+               <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowAddModal(false)}
+                  className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+               />
+               <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 z-[101] overflow-hidden"
+               >
+                  <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add Manually</h2>
+                     <button onClick={() => setShowAddModal(false)} className="p-2 -mr-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                        <X size={20} />
+                     </button>
+                  </div>
+                  
+                  <form onSubmit={handleAddCandidateSubmit} className="p-6">
+                     <div className="flex flex-col gap-4">
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">First Name *</label>
+                              <input 
+                                 type="text" 
+                                 required
+                                 value={newCandidate.firstName}
+                                 onChange={e=>setNewCandidate({...newCandidate, firstName: e.target.value})}
+                                 className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-blue-500" 
+                              />
+                           </div>
+                           <div>
+                              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Last Name *</label>
+                              <input 
+                                 type="text" 
+                                 required
+                                 value={newCandidate.lastName}
+                                 onChange={e=>setNewCandidate({...newCandidate, lastName: e.target.value})}
+                                 className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-blue-500" 
+                              />
+                           </div>
+                        </div>
+                        <div>
+                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email Address *</label>
+                           <input 
+                              type="email" 
+                              required
+                              value={newCandidate.email}
+                              onChange={e=>setNewCandidate({...newCandidate, email: e.target.value})}
+                              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-blue-500" 
+                           />
+                        </div>
+                        <div>
+                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Source</label>
+                           <select 
+                              value={newCandidate.source}
+                              onChange={e=>setNewCandidate({...newCandidate, source: e.target.value})}
+                              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-blue-500"
+                           >
+                              <option>Manual</option>
+                              <option>Referral</option>
+                              <option>LinkedIn</option>
+                              <option>Agency</option>
+                           </select>
+                        </div>
+                     </div>
+                     <div className="mt-8 flex justify-end gap-3">
+                        <button type="button" onClick={() => setShowAddModal(false)} className="px-5 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                           Cancel
+                        </button>
+                        <button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
+                           Create Candidate
+                        </button>
+                     </div>
+                  </form>
                </motion.div>
             </>
          )}

@@ -78,9 +78,19 @@ const saveJobs = (jobs: AtsJob[]) => {
   if (isClient) localStorage.setItem('circleworks_ats_jobs', JSON.stringify(jobs));
 };
 
+const getStoredCandidates = (): AtsCandidate[] => {
+  if (!isClient) return INITIAL_CANDIDATES;
+  const stored = localStorage.getItem('circleworks_ats_candidates');
+  return stored ? JSON.parse(stored) : INITIAL_CANDIDATES;
+};
+
+const saveCandidates = (candidates: AtsCandidate[]) => {
+  if (isClient) localStorage.setItem('circleworks_ats_candidates', JSON.stringify(candidates));
+};
+
 // --- DATA ACCESS ---
 export let mockAtsJobs: AtsJob[] = getStoredJobs();
-export const mockAtsCandidates: AtsCandidate[] = INITIAL_CANDIDATES;
+export let mockAtsCandidates: AtsCandidate[] = getStoredCandidates();
 
 export const mockAtsInterviews: AtsInterview[] = [
   { id: 'int-1', candidateId: 'cand-3', scheduledAt: '2024-09-15T14:00:00Z', status: 'Scheduled', interviewers: ['Alex Manager'], type: 'Technical Onsite' },
@@ -88,7 +98,7 @@ export const mockAtsInterviews: AtsInterview[] = [
 ];
 
 export const getJobById = (id: string) => getStoredJobs().find(j => j.id === id);
-export const getCandidatesByJob = (jobId: string) => mockAtsCandidates.filter(c => c.jobId === jobId);
+export const getCandidatesByJob = (jobId: string) => getStoredCandidates().filter(c => c.jobId === jobId);
 
 export const createJob = (job: Omit<AtsJob, 'id' | 'applicantsCount' | 'daysOpen' | 'postedDate'>) => {
   const currentJobs = getStoredJobs();
@@ -117,4 +127,19 @@ export const updateJobStatus = (id: string, status: JobStatus) => {
   const updatedJobs = currentJobs.map(j => j.id === id ? { ...j, status } : j);
   saveJobs(updatedJobs);
   mockAtsJobs = updatedJobs; // sync exported variable
+};
+
+export const addCandidate = (candidate: Omit<AtsCandidate, 'id' | 'appliedDate' | 'daysInStage' | 'aiScore'>) => {
+  const currentCandidates = getStoredCandidates();
+  const newCandidate: AtsCandidate = {
+    ...candidate,
+    id: `cand-${Date.now()}`,
+    appliedDate: new Date().toISOString().split('T')[0],
+    daysInStage: 0,
+    aiScore: Math.floor(Math.random() * 40) + 60, // Mock AI score
+  };
+  const updatedCandidates = [...currentCandidates, newCandidate];
+  saveCandidates(updatedCandidates);
+  mockAtsCandidates = updatedCandidates;
+  return newCandidate;
 };
