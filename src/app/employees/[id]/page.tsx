@@ -1,14 +1,77 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
-import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark } from "lucide-react";
+import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus } from "lucide-react";
+import { toast } from "sonner";
+import { mockAssetAssignments, ASSET_TYPE_ICONS, type AssetType, mockAssets, type Asset, type AssetAssignment } from "@/data/mockAssets";
+
+/* ─── Asset Type Icon ─────────────────────────────────────────────── */
+function AssetIcon({ type, size = 14 }: { type: AssetType; size?: number }) {
+  const iconMap: Record<AssetType, React.ReactNode> = {
+    'Laptop': <Laptop size={size} />,
+    'Monitor': <Monitor size={size} />,
+    'Phone': <Smartphone size={size} />,
+    'Keyboard': <Keyboard size={size} />,
+    'Badge': <CreditCard size={size} />,
+    'Parking Pass': <CarFront size={size} />,
+    'Other': <Package size={size} />,
+  };
+  return <>{iconMap[type] || <Package size={size} />}</>;
+}
 
 export default function EmployeeOverviewTab() {
   const { id } = useParams();
   const { data: emp, isLoading, error } = useEmployee(id as string);
+
+  // Asset Assignment States
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+
+  // Mock available inventory (In real app, fetch from /api/assets?status=Available)
+  const [availableInventory, setAvailableInventory] = useState<Asset[]>(
+    mockAssets.filter((a: Asset) => a.status === 'Available')
+  );
+
+  // Local state for assignments (initialized from mock)
+  const [currentAssets, setCurrentAssets] = useState<AssetAssignment[]>(
+    mockAssetAssignments.filter((a: AssetAssignment) => a.employeeId === parseInt(id as string) && a.status === 'Active')
+  );
+
+  const handleAssign = async (asset: Asset) => {
+    try {
+      setAssigningId(asset.id);
+      
+      // Simulate API call
+      // await fetch('/api/assets/assign', { ... });
+
+      const newAssignment: AssetAssignment = {
+        id: `asgn-${Date.now()}`,
+        assetId: asset.id,
+        assetName: asset.name,
+        assetType: asset.type,
+        serialNumber: asset.serialNumber,
+        employeeId: parseInt(id as string),
+        employeeName: `${emp?.firstName} ${emp?.lastName}`,
+        assignedAt: new Date().toISOString(),
+        returnedAt: null,
+        status: 'Active' as const,
+      };
+
+      setCurrentAssets(prev => [...prev, newAssignment]);
+      setAvailableInventory(prev => prev.filter(a => a.id !== asset.id));
+      setShowAssignModal(false);
+      setAssetSearch("");
+      toast.success(`${asset.name} assigned successfully`);
+    } catch (err) {
+      toast.error("Failed to assign asset");
+    } finally {
+      setAssigningId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -136,6 +199,112 @@ export default function EmployeeOverviewTab() {
               <p className="text-sm text-slate-500 dark:text-slate-400 italic">No direct reports.</p>
             )}
          </div>
+
+         {/* ── Assigned Equipment Widget ─────────────────────────── */}
+         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                 <Package size={18} className="text-blue-500" /> Assigned Equipment
+              </h3>
+              <button
+                onClick={() => setShowAssignModal(true)}
+                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 transition-colors"
+              >
+                <Plus size={12} /> Assign
+              </button>
+            </div>
+
+            {currentAssets.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {currentAssets.map(asset => (
+                  <div
+                    key={asset.id}
+                    className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                      ${asset.assetType === 'Laptop' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                        asset.assetType === 'Monitor' ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400' :
+                        asset.assetType === 'Phone' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                        'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}
+                    >
+                      <AssetIcon type={asset.assetType} size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{asset.assetName}</p>
+                      <p className="text-[11px] text-slate-500 font-mono">S/N: {asset.serialNumber}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-400 italic">No equipment assigned.</p>
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                >
+                  Assign first asset →
+                </button>
+              </div>
+            )}
+         </div>
+
+         {/* ── Assign Asset Modal ───────────────────────────────── */}
+         {showAssignModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+               <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
+               <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+                  <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Assign Equipment</h3>
+                     <button onClick={() => setShowAssignModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                        <Plus size={20} className="rotate-45" />
+                     </button>
+                  </div>
+                  
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                     <div className="relative">
+                        <Plus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 rotate-0" />
+                        <input
+                           type="text"
+                           placeholder="Search inventory by name or serial..."
+                           value={assetSearch}
+                           onChange={(e) => setAssetSearch(e.target.value)}
+                           className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-blue-500"
+                           autoFocus
+                        />
+                     </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                     {availableInventory.filter((a: Asset) => 
+                        a.name.toLowerCase().includes(assetSearch.toLowerCase()) || 
+                        a.serialNumber.toLowerCase().includes(assetSearch.toLowerCase())
+                     ).map((asset: Asset) => (
+                        <div key={asset.id} className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-xl text-slate-900 dark:text-white">
+                                 {ASSET_TYPE_ICONS[asset.type]}
+                              </div>
+                              <div>
+                                 <p className="text-sm font-bold text-slate-900 dark:text-white">{asset.name}</p>
+                                 <p className="text-[10px] text-slate-500 font-mono">S/N: {asset.serialNumber}</p>
+                              </div>
+                           </div>
+                           <button 
+                              onClick={() => handleAssign(asset)}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                           >
+                              Assign
+                           </button>
+                        </div>
+                     ))}
+                     {availableInventory.length === 0 && (
+                        <p className="text-center py-10 text-sm text-slate-400 italic">No available assets in inventory.</p>
+                     )}
+                  </div>
+               </div>
+            </div>
+         )}
 
          {/* Key Dates */}
          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">

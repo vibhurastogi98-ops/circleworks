@@ -7,6 +7,8 @@ export const employmentTypeEnum = pgEnum('employment_type', ['full-time', 'part-
 export const statusEnum = pgEnum('status', ['active', 'onboarding', 'terminated']);
 export const payrollStatusEnum = pgEnum('payroll_status', ['draft', 'pending', 'processed', 'paid', 'cancelled']);
 export const payrollTypeEnum = pgEnum('payroll_type', ['regular', 'off-cycle', 'bonus']);
+export const assetTypeEnum = pgEnum('asset_type', ['Laptop', 'Monitor', 'Phone', 'Keyboard', 'Badge', 'Parking Pass', 'Other']);
+export const assetStatusEnum = pgEnum('asset_status', ['Available', 'Assigned', 'In Repair', 'Retired']);
 
 // --- TABLES ---
 
@@ -280,6 +282,34 @@ export const announcementReads = pgTable('announcement_reads', {
   readAt: timestamp('read_at').defaultNow(),
 });
 
+// --- ASSETS & EQUIPMENT ---
+
+export const assets = pgTable('assets', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type').default('Laptop'), // Laptop, Monitor, Phone, Keyboard, Badge, Parking Pass, Other
+  serialNumber: text('serial_number'),
+  status: text('status').default('Available'), // Available, Assigned, In Repair, Retired
+  purchaseDate: date('purchase_date'),
+  value: integer('value'), // in cents
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const assetAssignments = pgTable('asset_assignments', {
+  id: serial('id').primaryKey(),
+  assetId: integer('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  assignedAt: timestamp('assigned_at').defaultNow(),
+  returnedAt: timestamp('returned_at'),
+  assignedBy: text('assigned_by'), // clerk user id who made assignment
+  status: text('status').default('Active'), // Active, Returned, Overdue
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // --- RELATIONS ---
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -305,6 +335,7 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   manager: one(employees, { fields: [employees.managerId], references: [employees.id], relationName: 'subordinates' }),
   subordinates: many(employees, { relationName: 'subordinates' }),
   announcementReads: many(announcementReads),
+  assetAssignments: many(assetAssignments),
 }));
 
 export const announcementsRelations = relations(announcements, ({ one, many }) => ({
@@ -329,6 +360,16 @@ export const expenseReportsRelations = relations(expenseReports, ({ one, many })
 
 export const expenseItemsRelations = relations(expenseItems, ({ one }) => ({
   report: one(expenseReports, { fields: [expenseItems.reportId], references: [expenseReports.id] }),
+}));
+
+export const assetsRelations = relations(assets, ({ one, many }) => ({
+  company: one(companies, { fields: [assets.companyId], references: [companies.id] }),
+  assignments: many(assetAssignments),
+}));
+
+export const assetAssignmentsRelations = relations(assetAssignments, ({ one }) => ({
+  asset: one(assets, { fields: [assetAssignments.assetId], references: [assets.id] }),
+  employee: one(employees, { fields: [assetAssignments.employeeId], references: [employees.id] }),
 }));
 
 

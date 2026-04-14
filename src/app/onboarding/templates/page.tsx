@@ -1,14 +1,61 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Copy, Trash2, GripVertical, ChevronRight, LayoutTemplate, Briefcase, UserMinus } from "lucide-react";
+import { Plus, Copy, Trash2, GripVertical, ChevronRight, LayoutTemplate, Briefcase, UserMinus, Package, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront } from "lucide-react";
 import { mockOnboardingTemplates } from "@/data/mockOnboarding";
+import { ASSET_TYPES, ASSET_TYPE_ICONS, type AssetType } from "@/data/mockAssets";
+
+type TaskType = 'standard' | 'assign_equipment';
+
+interface NewTask {
+  id: string;
+  title: string;
+  assignee: string;
+  dueOffset: number;
+  taskType: TaskType;
+  equipmentTypes?: AssetType[];
+}
 
 export default function TemplateLibrary() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'onboarding' | 'offboarding'>('all');
   const [showCreate, setShowCreate] = useState(false);
+  const [tasks, setTasks] = useState<NewTask[]>([
+    { id: 'new-1', title: 'Send welcome email', assignee: 'HR', dueOffset: -3, taskType: 'standard' },
+  ]);
 
   const filtered = mockOnboardingTemplates.filter(t => typeFilter === 'all' || t.type === typeFilter);
+
+  const addTask = (type: TaskType = 'standard') => {
+    const newTask: NewTask = {
+      id: `new-${Date.now()}`,
+      title: type === 'assign_equipment' ? 'Assign Equipment' : '',
+      assignee: type === 'assign_equipment' ? 'IT' : 'HR',
+      dueOffset: 0,
+      taskType: type,
+      equipmentTypes: type === 'assign_equipment' ? ['Laptop'] : undefined,
+    };
+    setTasks(prev => [...prev, newTask]);
+  };
+
+  const removeTask = (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+  };
+
+  const updateTask = (id: string, field: string, value: any) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const toggleEquipmentType = (taskId: string, type: AssetType) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const current = t.equipmentTypes || [];
+      if (current.includes(type)) {
+        return { ...t, equipmentTypes: current.filter(et => et !== type) };
+      } else {
+        return { ...t, equipmentTypes: [...current, type] };
+      }
+    }));
+  };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -66,20 +113,97 @@ export default function TemplateLibrary() {
           {/* Task Builder */}
           <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Tasks</h4>
           <div className="flex flex-col gap-2 mb-4">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <GripVertical size={16} className="text-slate-400 cursor-move" />
-              <input type="text" defaultValue="Send welcome email" className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900 dark:text-white" />
-              <select className="text-xs border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1 bg-white dark:bg-slate-900">
-                <option>HR</option><option>Manager</option><option>IT</option><option>Employee</option>
-              </select>
-              <input type="number" defaultValue={-3} className="w-20 text-xs border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1 bg-white dark:bg-slate-900 text-center" title="Days offset" />
-              <span className="text-[10px] text-slate-500">days</span>
-              <button className="text-slate-400 hover:text-red-500"><Trash2 size={14} /></button>
-            </div>
+            {tasks.map(task => (
+              <div key={task.id} className="flex flex-col gap-2">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                  <GripVertical size={16} className="text-slate-400 cursor-move" />
+
+                  {task.taskType === 'assign_equipment' ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <Package size={12} className="text-blue-600" />
+                        <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Equipment</span>
+                      </div>
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">Assign Equipment</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={task.title}
+                      onChange={(e) => updateTask(task.id, 'title', e.target.value)}
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-slate-900 dark:text-white"
+                      placeholder="Task title..."
+                    />
+                  )}
+
+                  <select
+                    value={task.assignee}
+                    onChange={(e) => updateTask(task.id, 'assignee', e.target.value)}
+                    className="text-xs border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                  >
+                    <option>HR</option><option>Manager</option><option>IT</option><option>Employee</option>
+                  </select>
+
+                  <input
+                    type="number"
+                    value={task.dueOffset}
+                    onChange={(e) => updateTask(task.id, 'dueOffset', parseInt(e.target.value))}
+                    className="w-20 text-xs border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1 bg-white dark:bg-slate-900 text-center"
+                    title="Days offset"
+                  />
+                  <span className="text-[10px] text-slate-500">days</span>
+
+                  <button onClick={() => removeTask(task.id)} className="text-slate-400 hover:text-red-500">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {/* Equipment Type Selection — only for assign_equipment tasks */}
+                {task.taskType === 'assign_equipment' && (
+                  <div className="ml-8 p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg animate-in slide-in-from-top-1 duration-200">
+                    <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-2">Select equipment to assign on start date:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {ASSET_TYPES.map(type => {
+                        const isSelected = task.equipmentTypes?.includes(type);
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => toggleEquipmentType(task.id, type)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${
+                              isSelected
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-300 ring-2 ring-blue-500/20'
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-200 dark:hover:border-blue-800'
+                            }`}
+                          >
+                            <span>{ASSET_TYPE_ICONS[type]}</span> {type}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60 mt-2">
+                      💡 On the employee's start date, IT will receive assignment tasks for each selected type from the inventory.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          <button className="w-full py-2.5 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors">
-            <Plus size={16} /> Add Task
-          </button>
+
+          {/* Add Task Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => addTask('standard')}
+              className="flex-1 py-2.5 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors"
+            >
+              <Plus size={16} /> Add Task
+            </button>
+            <button
+              onClick={() => addTask('assign_equipment')}
+              className="flex-1 py-2.5 border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-lg text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center justify-center gap-2 transition-colors"
+            >
+              <Package size={16} /> Add Equipment Assignment
+            </button>
+          </div>
 
           <div className="flex justify-end gap-3 mt-6">
             <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Cancel</button>
