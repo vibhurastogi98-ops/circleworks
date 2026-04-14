@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { employeeId: string } }
+  { params }: { params: Promise<{ employeeId: string }> }
 ) {
-  const employeeId = params.employeeId;
+  const { employeeId } = await params;
 
   // Mock employee data based on ID for demonstration
   const isCaliforniaEmployee = employeeId === "EMP-001" || employeeId === "1";
