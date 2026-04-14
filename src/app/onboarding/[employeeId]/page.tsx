@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getCaseById, OnboardingTask } from "@/data/mockOnboarding";
 import { ChevronLeft, CheckCircle2, Circle, SkipForward, Bell, Eye, User, Briefcase, Monitor, UserCheck } from "lucide-react";
 import { toast } from "sonner";
+import { formatDate } from "@/utils/formatDate";
 
 const ROLE_ICON: Record<string, React.ElementType> = {
   HR: UserCheck,
@@ -59,7 +60,7 @@ export default function IndividualOnboarding() {
             <img src={onboardingCase.avatar} className="w-14 h-14 rounded-full border-2 border-white dark:border-slate-800 shadow-sm object-cover" alt="" />
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{onboardingCase.employeeName}</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{onboardingCase.department} • Starts {new Date(onboardingCase.startDate).toLocaleDateString()}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{onboardingCase.department} • Starts {formatDate(onboardingCase.startDate)}</p>
             </div>
           </div>
         </div>
@@ -124,7 +125,7 @@ export default function IndividualOnboarding() {
                       <span className={`font-medium text-sm ${task.status === 'Complete' ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
                         {task.title}
                       </span>
-                      <div className="text-xs text-slate-500 mt-0.5">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Due: {formatDate(task.dueDate)}</div>
                     </div>
 
                     {/* Assignee */}

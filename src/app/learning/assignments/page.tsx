@@ -22,6 +22,7 @@ import {
   UserPlus
 } from "lucide-react";
 import { mockAssignments } from "@/data/mockLearning";
+import { formatDate } from "@/utils/formatDate";
 
 export default function LearningAssignmentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -168,7 +169,7 @@ export default function LearningAssignmentsPage() {
                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
                          <Calendar size={14} className={new Date(assignment.dueDate) < new Date() ? 'text-red-500' : 'text-slate-400'} />
-                         {new Date(assignment.dueDate).toLocaleDateString()}
+                         {formatDate(assignment.dueDate)}
                       </div>
                    </td>
                    <td className="px-6 py-4 text-right">

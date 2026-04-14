@@ -21,7 +21,7 @@ const getRelativeTime = (isoString: string) => {
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  return new Date(isoString).toLocaleDateString();
+  return new Date(isoString).toLocaleDateString("en-US");
 };
 
 const getGroup = (isoString: string): string => {

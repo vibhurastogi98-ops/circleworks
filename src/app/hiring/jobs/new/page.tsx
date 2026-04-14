@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronLeft, Check, Sparkles, GripVertical, Plus } from "lucide-react";
+import { ChevronRight, ChevronLeft, Check, Sparkles, GripVertical, Plus, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getBanTheBoxJurisdiction } from "@/utils/compliance";
 
 const STEPS = ["Job Details", "Description", "Application Form", "Posting Settings", "Publish"];
 
@@ -22,6 +23,8 @@ export default function CreateJobWizard() {
 
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+
+  const banTheBoxJurisdiction = getBanTheBoxJurisdiction(formData.location);
 
   const handleFinish = () => {
     setIsSubmitting(true);
@@ -138,6 +141,16 @@ export default function CreateJobWizard() {
                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Application Form</h2>
                      <p className="text-sm text-slate-500">Configure what candidates provide when they apply. Resume and Name are always required.</p>
                      
+                     {banTheBoxJurisdiction && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex gap-3 text-amber-800 dark:text-amber-400">
+                           <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                           <div className="text-sm">
+                              <span className="font-bold block mb-1">Ban-the-Box Compliance Notice</span>
+                              Criminal history questions are restricted in <b>{banTheBoxJurisdiction}</b>. You cannot add background check or criminal history questions to this application form.
+                           </div>
+                        </div>
+                     )}
+
                      <div className="flex flex-col gap-3">
                         {formData.questions.map((q, i) => (
                            <div key={q.id} className="flex items-start gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-4 rounded-xl group cursor-move">
@@ -164,9 +177,26 @@ export default function CreateJobWizard() {
                            </div>
                         ))}
                      </div>
-                     <button className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors">
-                        <Plus size={18} /> Add Form Question
-                     </button>
+                     <div className="flex flex-col sm:flex-row gap-3">
+                        <button 
+                           onClick={() => {
+                              const newId = formData.questions.length ? Math.max(...formData.questions.map(q=>q.id)) + 1 : 1;
+                              setFormData({...formData, questions: [...formData.questions, {id: newId, text: '', type: 'text', required: false}]});
+                           }}
+                           className="flex-1 py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors">
+                           <Plus size={18} /> Add Custom Question
+                        </button>
+                        <button 
+                           disabled={!!banTheBoxJurisdiction}
+                           title={banTheBoxJurisdiction ? `Criminal history questions are restricted in ${banTheBoxJurisdiction}` : 'Add a standard criminal history question'}
+                           onClick={() => {
+                              const newId = formData.questions.length ? Math.max(...formData.questions.map(q=>q.id)) + 1 : 1;
+                              setFormData({...formData, questions: [...formData.questions, {id: newId, text: 'Have you ever been convicted of a felony?', type: 'Yes/No', required: true}]});
+                           }}
+                           className={`flex-1 py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 font-semibold flex items-center justify-center gap-2 transition-colors rounded-xl ${banTheBoxJurisdiction ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800 text-slate-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                           <Plus size={18} /> Add Criminal History
+                        </button>
+                     </div>
                   </div>
                )}
 

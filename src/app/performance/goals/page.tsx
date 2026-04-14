@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { mockGoals, Goal } from "@/data/mockPerformance";
+import { formatDate } from "@/utils/formatDate";
 
 // Recursive Goal Node Component
 const GoalNode = ({ goal, level = 0 }: { goal: Goal, level?: number }) => {
@@ -67,7 +68,7 @@ const GoalNode = ({ goal, level = 0 }: { goal: Goal, level?: number }) => {
                 </span>
                 <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors uppercase tracking-tight">{goal.title}</h4>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Owner: {goal.owner} • Due {new Date(goal.dueDate).toLocaleDateString()}</p>
+              <p className="text-xs text-slate-500 font-medium">Owner: {goal.owner} • Due {formatDate(goal.dueDate)}</p>
             </div>
             <div className="flex items-center gap-2">
                <div className={`flex items-center gap-1.5 p-1 px-2.5 rounded-full text-[10px] font-bold uppercase bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 ${getStatusColor(goal.status)}`}>

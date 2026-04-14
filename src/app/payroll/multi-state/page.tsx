@@ -24,6 +24,7 @@ import {
   Info
 } from "lucide-react";
 import Link from "next/link";
+import { formatDate } from "@/utils/formatDate";
 
 /* ──────────────────────────────────── MOCK DATA & API ─────────────────────────────── */
 
@@ -512,7 +513,7 @@ export default function MultiStatePage() {
                     <AllocationBar allocations={alloc.allocations} />
                   </td>
                   <td className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
-                    {new Date(alloc.updatedAt).toLocaleDateString()}
+                    {formatDate(alloc.updatedAt)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 text-slate-400">

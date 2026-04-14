@@ -15,6 +15,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { mockExpenseReports, ExpenseStatus } from "@/data/mockExpenses";
+import { formatDate } from "@/utils/formatDate";
 
 const STATUS_STYLING: Record<ExpenseStatus, string> = {
   Draft: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
@@ -115,11 +116,11 @@ export default function ExpenseReportsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-900 dark:text-white">#{report.id}</div>
-                    <div className="text-xs text-slate-500">Submitted {report.submittedAt ? new Date(report.submittedAt).toLocaleDateString() : "—"}</div>
+                    <div className="text-xs text-slate-500">Submitted {report.submittedAt ? formatDate(report.submittedAt) : "—"}</div>
                   </td>
                   <td className="px-6 py-4">
                      <div className="text-sm text-slate-600 dark:text-slate-400">
-                        {new Date(report.startDate).toLocaleDateString()} - {new Date(report.endDate).toLocaleDateString()}
+                        {formatDate(report.startDate)} - {formatDate(report.endDate)}
                      </div>
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-medium text-slate-600 dark:text-slate-400">

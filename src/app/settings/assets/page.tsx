@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { mockAssets, mockAssetAssignments, ASSET_TYPES, ASSET_STATUSES, ASSET_TYPE_ICONS, type Asset, type AssetType, type AssetStatus } from "@/data/mockAssets";
+import { formatDate } from "@/utils/formatDate";
 
 /* ─── Type Icon Component ───────────────────────────────────────────── */
 function AssetTypeIcon({ type, size = 18 }: { type: AssetType; size?: number }) {
@@ -780,7 +781,7 @@ export default function AssetsSettingsPage() {
                 <div className="flex flex-col gap-1">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Purchase Date</span>
                   <span className="text-sm font-medium text-slate-900 dark:text-white">
-                    {detailAsset.purchaseDate ? new Date(detailAsset.purchaseDate).toLocaleDateString() : '—'}
+                    {detailAsset.purchaseDate ? formatDate(detailAsset.purchaseDate) : '—'}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -832,7 +833,7 @@ export default function AssetsSettingsPage() {
                           <span className="text-sm font-medium text-slate-900 dark:text-white">{assignment.employeeName}</span>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-slate-500">{new Date(assignment.assignedAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-slate-500">{formatDate(assignment.assignedAt)}</p>
                           <span className={`text-[10px] font-bold uppercase
                             ${assignment.status === 'Active' ? 'text-green-600' :
                               assignment.status === 'Overdue' ? 'text-red-600' : 'text-slate-400'}`}>

@@ -5,6 +5,7 @@ import { CreditCard, Download, Zap, TrendingUp, Calendar } from "lucide-react";
 import { mockBilling } from "@/data/mockSettings";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { toast } from "sonner";
+import { formatDate } from "@/utils/formatDate";
 
 export default function BillingSettingsPage() {
   const { isNewUser } = useDashboardData();
@@ -61,7 +62,7 @@ export default function BillingSettingsPage() {
             <div className="flex items-center justify-between border-t border-slate-700 pt-6">
               <div>
                 <span className="text-slate-400 text-xs block mb-1">Next Payment Date</span>
-                <span className="text-sm font-bold">{new Date(renewalDate).toLocaleDateString()}</span>
+                <span className="text-sm font-bold">{formatDate(renewalDate)}</span>
               </div>
               <div className="text-right">
                 <span className="text-slate-400 text-xs block mb-1">Estimated Total</span>
@@ -110,7 +111,7 @@ export default function BillingSettingsPage() {
               {invoices.length > 0 ? invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-6 py-4 font-mono font-medium text-slate-700 dark:text-slate-300">{inv.id}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{new Date(inv.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{formatDate(inv.date)}</td>
                   <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">${inv.amount}</td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">

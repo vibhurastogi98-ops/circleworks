@@ -90,7 +90,7 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
           <Text style={styles.title}>New Hire Packet</Text>
           <Text style={styles.subtitle}>Welcome to {companyName}</Text>
         </View>
-        <Text style={{ fontSize: 10, color: '#94a3b8' }}>Issue Date: {new Date().toLocaleDateString()}</Text>
+        <Text style={{ fontSize: 10, color: '#94a3b8' }}>Issue Date: {new Date().toLocaleDateString("en-US")}</Text>
       </View>
 
       {/* Welcome Letter */}

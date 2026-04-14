@@ -3,6 +3,7 @@
 import React from "react";
 import { Shield, Download, FileText, AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { mockWcClaims } from "@/data/mockBenefits";
+import { formatDate } from "@/utils/formatDate";
 
 export default function WorkersCompPage() {
   return (
@@ -136,7 +137,7 @@ export default function WorkersCompPage() {
               {mockWcClaims.map(claim => (
                 <tr key={claim.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{claim.employeeName}</td>
-                  <td className="px-6 py-4 text-slate-500">{new Date(claim.dateOfInjury).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-slate-500">{formatDate(claim.dateOfInjury)}</td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{claim.description}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold

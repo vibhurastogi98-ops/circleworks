@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { mockCourses, mockAssignments } from "@/data/mockLearning";
+import { formatDate } from "@/utils/formatDate";
 
 export default function LearningDashboard() {
   const mandatoryCourses = mockCourses.filter(c => c.isMandatory);
@@ -137,7 +138,7 @@ export default function LearningDashboard() {
                      <div>
                         <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors uppercase tracking-tight">{assignment.courseTitle}</h4>
                         <div className="flex items-center gap-3 mt-1">
-                           <span className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase"><Calendar size={12} /> Due {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                           <span className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase"><Calendar size={12} /> Due {formatDate(assignment.dueDate)}</span>
                            <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${
                              assignment.status === 'In Progress' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30' : 
                              assignment.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' : 

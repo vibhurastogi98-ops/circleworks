@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Shield, ArrowRight, FileText, CheckCircle2, ChevronLeft, Download, AlertTriangle, Play, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { formatDate } from "@/utils/formatDate";
 
 export default function CertifiedPayrollPage() {
   const [step, setStep] = useState(1);
@@ -143,7 +144,7 @@ export default function CertifiedPayrollPage() {
                           {item.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500">Week Ending: <span className="font-medium text-slate-700">{new Date(item.weekEnding).toLocaleDateString()}</span></p>
+                      <p className="text-xs text-slate-500">Week Ending: <span className="font-medium text-slate-700">{formatDate(item.weekEnding)}</span></p>
                       <p className="text-xs text-slate-500">Payroll #{item.payrollNo}</p>
                    </div>
                  ))}
@@ -374,7 +375,7 @@ export default function CertifiedPayrollPage() {
                 <div className="mt-12 break-inside-avoid relative">
                    <h3 className="font-bold uppercase text-base text-center border-b border-black pb-2 mb-4">Statement of Compliance</h3>
                    <p className="text-xs leading-relaxed text-left text-justify indent-8 px-4">
-                     Date: <span className="underline font-bold decoration-dotted">{new Date().toLocaleDateString()}</span>. I, <span className="underline font-bold decoration-dotted">Alex HR Admin</span> do hereby state:
+                     Date: <span className="underline font-bold decoration-dotted">{formatDate(new Date().toISOString())}</span>. I, <span className="underline font-bold decoration-dotted">Alex HR Admin</span> do hereby state:
                    </p>
                    <ol className="list-decimal pl-12 text-[10px] mt-4 space-y-3 pr-4 text-justify leading-relaxed">
                      <li>That I pay or supervise the payment of the persons employed by the contractor or subcontractor on the designated project. That during the payroll period commencing on the highlighted dates, all persons employed on said project have been paid the full weekly wages earned, that no rebates have been or will be made either directly or indirectly.</li>

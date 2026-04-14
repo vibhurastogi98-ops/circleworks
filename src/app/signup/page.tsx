@@ -699,7 +699,7 @@ export default function SignupPage() {
                           </div>
                           <div>
                             <p className="text-xs text-slate-500 font-medium">First Payroll</p>
-                            <p className="font-bold text-slate-800">{watch("firstPayrollDate") ? new Date(watch("firstPayrollDate") as string).toLocaleDateString() : "Pending setup"}</p>
+                            <p className="font-bold text-slate-800">{watch("firstPayrollDate") ? new Date(watch("firstPayrollDate") as string).toLocaleDateString("en-US") : "Pending setup"}</p>
                           </div>
                        </div>
                     </div>

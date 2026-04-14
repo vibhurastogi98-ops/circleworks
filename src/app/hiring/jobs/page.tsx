@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Plus, Search, Filter, MoreHorizontal, Link as LinkIcon, Archive } from "lucide-react";
 import { mockAtsJobs, JobStatus } from "@/data/mockAts";
+import { formatDate } from "@/utils/formatDate";
 
 export default function JobsDirectory() {
   const [filter, setFilter] = useState<"Active" | "Archived">("Active");
@@ -110,7 +111,7 @@ export default function JobsDirectory() {
                            {job.daysOpen} days
                         </td>
                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
-                           {new Date(job.postedDate).toLocaleDateString()}
+                           {formatDate(job.postedDate)}
                         </td>
                         <td className="px-6 py-4 text-right">
                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Plus, Copy, Trash2, GripVertical, ChevronRight, LayoutTemplate, Briefcase, UserMinus, Package, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront } from "lucide-react";
 import { mockOnboardingTemplates } from "@/data/mockOnboarding";
 import { ASSET_TYPES, ASSET_TYPE_ICONS, type AssetType } from "@/data/mockAssets";
+import { formatDate } from "@/utils/formatDate";
 
 type TaskType = 'standard' | 'assign_equipment';
 
@@ -230,7 +231,7 @@ export default function TemplateLibrary() {
 
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span className="font-medium">{tmpl.taskCount} tasks</span>
-              <span>Last used: {new Date(tmpl.lastUsed).toLocaleDateString()}</span>
+              <span>Last used: {formatDate(tmpl.lastUsed)}</span>
             </div>
 
             <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">

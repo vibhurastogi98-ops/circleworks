@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight, ChevronLeft, Check, Sparkles, FileText, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { mockAtsCandidates } from "@/data/mockAts";
+import { formatDate } from "@/utils/formatDate";
 
 const STEPS = ["Select Candidate", "Offer Details", "Template Selection", "Preview & Send"];
 
@@ -145,7 +146,7 @@ export default function CreateOfferWizard() {
                               <li>Base Salary: <strong>${Number(formData.salary).toLocaleString()}/year</strong></li>
                               <li>Signing Bonus: <strong>${Number(formData.signingBonus).toLocaleString()}</strong></li>
                               <li>Equity: <strong>{formData.equity}</strong></li>
-                              <li>Start Date: <strong>{new Date(formData.startDate).toLocaleDateString()}</strong></li>
+                              <li>Start Date: <strong>{formatDate(formData.startDate)}</strong></li>
                            </ul>
                            <p>Please review and sign below to automatically accept and trigger onboarding.</p>
                         </div>

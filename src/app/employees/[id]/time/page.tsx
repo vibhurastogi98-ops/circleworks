@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { useEmployee } from "@/hooks/useEmployees";
 import { Clock, Calendar as CalendarIcon, CheckCircle2, Clock3, Loader2, AlertCircle } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 export default function TimeTab() {
    const { id } = useParams();
@@ -85,7 +86,7 @@ export default function TimeTab() {
                         </div>
 
                         <div className="text-[11px] text-slate-500">
-                           {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                           {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
                         </div>
                      </div>
                   )) : (
@@ -125,7 +126,7 @@ export default function TimeTab() {
                            {timesheets.length > 0 ? timesheets.map((ts: any) => (
                               <tr key={ts.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                                  <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-900 dark:text-white">
-                                    {new Date(ts.periodStart).toLocaleDateString()} - {new Date(ts.periodEnd).toLocaleDateString()}
+                                    {formatDate(ts.periodStart)} - {formatDate(ts.periodEnd)}
                                  </td>
                                  <td className="px-6 py-4 text-center">{ts.totalRegularHours || 0}h</td>
                                  <td className="px-6 py-4 text-center font-medium text-amber-600 dark:text-amber-400">{ts.totalOvertimeHours || 0}h</td>

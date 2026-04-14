@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Plus, Search, Filter, FileText, CheckCircle2, XCircle, Clock, RefreshCw, X } from "lucide-react";
 import { mockAtsCandidates } from "@/data/mockAts";
+import { formatDate } from "@/utils/formatDate";
 
 export default function OffersDirectory() {
   const [filter, setFilter] = useState("All");
@@ -104,8 +105,8 @@ export default function OffersDirectory() {
                            </span>
                         </td>
                         <td className="px-6 py-4 text-slate-500">
-                           {new Date(offer.sentAt).toLocaleDateString()}
-                           <div className="text-xs text-red-500">Exp: {new Date(offer.expiresAt).toLocaleDateString()}</div>
+                           {formatDate(offer.sentAt)}
+                           <div className="text-xs text-red-500">Exp: {formatDate(offer.expiresAt)}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
                            {offer.status === 'Pending' ? (

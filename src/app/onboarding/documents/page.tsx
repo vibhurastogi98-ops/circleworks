@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { FileText, Plus, Search, Upload, CheckCircle2, Clock, XCircle, AlertTriangle, Download, Edit, Trash2, Link as LinkIcon } from "lucide-react";
 import { mockDocumentTemplates } from "@/data/mockOnboarding";
+import { formatDate } from "@/utils/formatDate";
 
 export default function DocumentsPage() {
   const [search, setSearch] = useState('');
@@ -105,7 +106,7 @@ export default function DocumentsPage() {
                         <span className="text-xs text-slate-400 italic">Unassigned</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(doc.lastUpdated).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-slate-500">{formatDate(doc.lastUpdated)}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded" title="Download"><Download size={16} /></button>

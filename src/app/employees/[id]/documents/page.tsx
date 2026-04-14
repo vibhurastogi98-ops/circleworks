@@ -4,6 +4,7 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { useEmployee } from "@/hooks/useEmployees";
 import { FileText, Download, Trash2, UploadCloud, ShieldCheck, Loader2, AlertCircle, FileDigit } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 export default function DocumentsTab() {
   const { id } = useParams();
@@ -121,7 +122,7 @@ export default function DocumentsTab() {
                               </div>
                            </td>
                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">{doc.type}</td>
-                           <td className="px-6 py-4 text-slate-500 dark:text-slate-500">{new Date(doc.createdAt).toLocaleDateString()}</td>
+                           <td className="px-6 py-4 text-slate-500 dark:text-slate-500">{formatDate(doc.createdAt)}</td>
                            <td className="px-6 py-4">
                               <div className="flex justify-center">
                                 <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getDocStatusStyle(doc.status)}`}>

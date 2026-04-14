@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import { useEmployee } from "@/hooks/useEmployees";
 import { DollarSign, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 export default function CompensationTab() {
   const { id } = useParams();
@@ -78,7 +79,7 @@ export default function CompensationTab() {
          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Compensation History</h3>
-              <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Last update: {emp.updatedAt ? new Date(emp.updatedAt).toLocaleDateString() : 'N/A'}</span>
+              <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">Last update: {emp.updatedAt ? formatDate(emp.updatedAt) : 'N/A'}</span>
             </div>
             
             <div className="relative pl-6 border-l-2 border-slate-200 dark:border-slate-700 space-y-8">
@@ -93,7 +94,7 @@ export default function CompensationTab() {
                          <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">Starting Salary</div>
                       </div>
                       <div className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-md">
-                         Effective {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : 'Immediate'}
+                         Effective {emp.startDate ? formatDate(emp.startDate) : 'Immediate'}
                       </div>
                    </div>
                 </div>

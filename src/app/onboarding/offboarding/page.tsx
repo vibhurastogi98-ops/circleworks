@@ -50,6 +50,7 @@ function AssetTypeIcon({ type, size = 14 }: { type: AssetType; size?: number }) 
 }
 
 import { toast } from "sonner";
+import { formatDate } from "@/utils/formatDate";
 
 export default function OffboardingPage() {
   const enrichedCases = getOffboardingWithAssets(mockOffboardingCases);
@@ -143,7 +144,7 @@ export default function OffboardingPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-xs text-slate-500">Termination Date</div>
-                  <div className="font-bold text-sm text-red-600 dark:text-red-400">{new Date(c.terminationDate).toLocaleDateString()}</div>
+                  <div className="font-bold text-sm text-red-600 dark:text-red-400">{formatDate(c.terminationDate)}</div>
                 </div>
               </div>
 

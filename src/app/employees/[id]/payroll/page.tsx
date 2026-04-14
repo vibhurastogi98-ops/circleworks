@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import { useEmployee } from "@/hooks/useEmployees";
 import { DollarSign, Download, Filter, FileText, Loader2, AlertCircle, ChevronRight, History } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 export default function PayrollTab() {
   const { id } = useParams();
@@ -138,12 +139,12 @@ export default function PayrollTab() {
                               <td className="px-6 py-4">
                                  <span className="font-bold text-slate-900 dark:text-white">
                                     {item.payroll?.payPeriodStart ? (
-                                      `${new Date(item.payroll.payPeriodStart).toLocaleDateString()} - ${new Date(item.payroll.payPeriodEnd).toLocaleDateString()}`
+                                       `${formatDate(item.payroll.payPeriodStart)} - ${formatDate(item.payroll.payPeriodEnd)}`
                                     ) : 'Regular Pay Cycle'}
                                  </span>
                               </td>
                               <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">
-                                 {item.payroll?.checkDate ? new Date(item.payroll.checkDate).toLocaleDateString() : 'N/A'}
+                                 {item.payroll?.checkDate ? formatDate(item.payroll.checkDate) : 'N/A'}
                               </td>
                               <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-400">
                                  ${(item.gross / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}

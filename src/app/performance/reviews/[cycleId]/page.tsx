@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { mockReviewCycles } from "@/data/mockPerformance";
+import { formatDate } from "@/utils/formatDate";
 
 // Internal types for the detail view
 interface Participant {
@@ -75,7 +76,7 @@ export default function ReviewCycleDetailPage() {
             </div>
             <div className="flex items-center gap-4 text-xs text-slate-500 font-medium">
               <span className="flex items-center gap-1"><Calendar size={14} /> {cycle.period}</span>
-              <span className="flex items-center gap-1 font-bold text-red-500"><Clock size={14} /> Due {new Date(cycle.deadline).toLocaleDateString()}</span>
+              <span className="flex items-center gap-1 font-bold text-red-500"><Clock size={14} /> Due {formatDate(cycle.deadline)}</span>
             </div>
           </div>
         </div>

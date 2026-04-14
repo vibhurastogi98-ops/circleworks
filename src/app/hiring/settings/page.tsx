@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { GripVertical, Plus, Trash2, Save, Key, Mail, CheckCircle2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, Save, Key, Mail, CheckCircle2, ShieldAlert } from "lucide-react";
 import { STAGES } from "@/data/mockAts";
 
 export default function AtsSettings() {
   const [stages, setStages] = useState(STAGES);
-  const [activeTab, setActiveTab] = useState<'Pipeline'|'Emails'|'Scorecard'|'Integrations'>('Pipeline');
+  const [activeTab, setActiveTab] = useState<'Pipeline'|'Emails'|'Scorecard'|'Integrations'|'Compliance'>('Pipeline');
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl mx-auto w-full">
@@ -33,6 +33,7 @@ export default function AtsSettings() {
                { id: 'Emails', label: 'Email Templates', icon: Mail },
                { id: 'Scorecard', label: 'Global Scorecards', icon: CheckCircle2 },
                { id: 'Integrations', label: 'Job Boards API', icon: Key },
+               { id: 'Compliance', label: 'Compliance Features', icon: ShieldAlert },
             ].map(tab => (
                <button 
                   key={tab.id}
@@ -112,6 +113,38 @@ export default function AtsSettings() {
                   </div>
                </div>
             )}
+
+            {activeTab === 'Compliance' && (
+               <div className="flex flex-col gap-6 animate-in slide-in-from-right-2">
+                  <div>
+                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Hiring Compliance Guardrails</h2>
+                     <p className="text-sm text-slate-500">Review enabled compliance rules, fair-chance settings, and regional restrictions.</p>
+                  </div>
+                  
+                  <div className="flex flex-col gap-4">
+                     <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                           <ShieldAlert className="text-blue-600" size={20} />
+                           <h3 className="font-bold text-slate-900 dark:text-white">Ban-the-Box Jurisdictions</h3>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                           Background checks are delayed until after conditional offers in these locations. Criminal history questions are also blocked from application forms. The list is automatically updated annually.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                           {['California (LA, SF)', 'New York (NYC)', 'Massachusetts', 'Illinois (Chicago)', 'New Jersey', 'Washington (Seattle)', 'Colorado (Denver)'].map(j => (
+                              <span key={j} className="px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg text-xs font-bold uppercase tracking-wide">
+                                 {j}
+                              </span>
+                           ))}
+                           <span className="px-3 py-1.5 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 border-dashed rounded-lg text-xs font-bold uppercase tracking-wide cursor-help" title="Active background check compliance rules update annually">
+                              + 14 More
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            )}
+
 
             {(activeTab === 'Emails' || activeTab === 'Scorecard') && (
                <div className="flex flex-col items-center justify-center h-[400px] text-slate-500 animate-in slide-in-from-right-2 text-center">

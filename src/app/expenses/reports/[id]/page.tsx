@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getExpenseReportById, ExpenseReport, ExpenseItem } from "@/data/mockExpenses";
 import { toast } from "sonner";
+import { formatDate } from "@/utils/formatDate";
 
 export default function ExpenseReportDetailPage() {
   const { id } = useParams();
@@ -149,7 +150,7 @@ export default function ExpenseReportDetailPage() {
                               )}
                            </td>
                            <td className="px-5 py-4">
-                              <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{new Date(item.date).toLocaleDateString()}</div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">{formatDate(item.date)}</div>
                               <div className="text-[10px] text-slate-500">ID: {item.id}</div>
                            </td>
                            <td className="px-5 py-4">
@@ -202,7 +203,7 @@ export default function ExpenseReportDetailPage() {
                    </div>
                    <div>
                       <div className="text-xs font-bold text-slate-900 dark:text-white">Report Created</div>
-                      <div className="text-[10px] text-slate-500">{new Date(report.startDate).toLocaleDateString()}</div>
+                      <div className="text-[10px] text-slate-500">{formatDate(report.startDate)}</div>
                    </div>
                 </div>
                 <div className="flex items-start gap-4 relative">

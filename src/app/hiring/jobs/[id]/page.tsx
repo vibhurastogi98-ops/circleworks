@@ -6,8 +6,10 @@ import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor,
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate } from "@/data/mockAts";
-import { MoreHorizontal, Link as LinkIcon, Plus, Edit, Pause, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare } from "lucide-react";
+import { MoreHorizontal, Link as LinkIcon, Plus, Edit, Pause, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { formatDate } from "@/utils/formatDate";
 
 // --- DND KIT COMPONENTS ---
 
@@ -52,7 +54,7 @@ function CandidateCard({ candidate }: { candidate: AtsCandidate }) {
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
              <span className="truncate">{candidate.source}</span>
              <span>•</span>
-             <span>Applied {new Date(candidate.appliedDate).toLocaleDateString()}</span>
+             <span>Applied {formatDate(candidate.appliedDate)}</span>
           </div>
         </div>
       </div>
@@ -99,7 +101,11 @@ export default function KanbanBoard() {
   
   // Drawer State
   const [selectedCandidate, setSelectedCandidate] = useState<AtsCandidate | null>(null);
-  const [drawerTab, setDrawerTab] = useState<'Overview'|'Scorecard'|'Notes'|'Emails'|'Activity'>('Overview');
+  const [drawerTab, setDrawerTab] = useState<'Overview'|'Scorecard'|'Notes'|'Emails'|'Activity'|'Background'>('Overview');
+  
+  // Background Check State
+  const [bgStatuses, setBgStatuses] = useState<Record<string, 'Not Started' | 'Pending' | 'Clear' | 'Adverse'>>({});
+  const [nycChecklists, setNycChecklists] = useState<Record<string, boolean>>({});
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
 
@@ -247,7 +253,7 @@ export default function KanbanBoard() {
 
                   {/* Drawer Tabs Navigation */}
                   <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-800 shrink-0 px-6 hide-scrollbar">
-                     {['Overview', 'Scorecard', 'Notes', 'Emails', 'Activity'].map(tab => (
+                     {['Overview', 'Scorecard', 'Notes', 'Emails', 'Activity', 'Background'].map(tab => (
                         <button 
                            key={tab}
                            onClick={() => setDrawerTab(tab as any)}
@@ -273,7 +279,7 @@ export default function KanbanBoard() {
                               </div>
                               <div>
                                  <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Applied Date</span>
-                                 <div className="text-sm text-slate-900 dark:text-white font-medium">{new Date(selectedCandidate.appliedDate).toLocaleDateString()}</div>
+                                 <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(selectedCandidate.appliedDate)}</div>
                               </div>
                               <div>
                                  <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">AI Match Score</span>
@@ -359,10 +365,130 @@ export default function KanbanBoard() {
                            <div className="relative pl-6 border-l-2 border-slate-200 dark:border-slate-800">
                               <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 border-2 border-white dark:border-slate-900" />
                               <div className="text-sm font-bold text-slate-900 dark:text-white">Applied via {selectedCandidate.source}</div>
-                              <div className="text-xs text-slate-500 mt-1">on {new Date(selectedCandidate.appliedDate).toLocaleDateString()}</div>
+                              <div className="text-xs text-slate-500 mt-1">on {formatDate(selectedCandidate.appliedDate)}</div>
                            </div>
                         </div>
                      )}
+
+                     {drawerTab === 'Background' && (() => {
+                        const banTheBoxJurisdiction = getBanTheBoxJurisdiction(job.location);
+                        const isEarlyStage = selectedCandidate.stage !== 'Offer' && selectedCandidate.stage !== 'Hired';
+                        const isBanTheBoxRestricted = !!banTheBoxJurisdiction && isEarlyStage;
+                        const status = bgStatuses[selectedCandidate.id] || 'Not Started';
+                        const isNyc = banTheBoxJurisdiction === 'New York';
+
+                        const initiateBgCheck = () => {
+                           setBgStatuses({...bgStatuses, [selectedCandidate.id]: 'Pending'});
+                           setTimeout(() => {
+                              // We simulate an adverse event for NYC to demo Fair Chance Act
+                              setBgStatuses(prev => ({...prev, [selectedCandidate.id]: isNyc ? 'Adverse' : 'Clear'}));
+                           }, 2000);
+                        };
+
+                        return (
+                           <div className="flex flex-col gap-6 animate-in fade-in h-full">
+                              {/* Background check content */}
+                              {status === 'Not Started' && (
+                                 <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center">
+                                    <ShieldAlert size={48} className="text-slate-400 mb-4" />
+                                    <h4 className="font-bold text-slate-900 dark:text-white mb-2">No Background Check on File</h4>
+                                    <p className="text-sm text-slate-500 mb-6">Initiate a standardized criminal and employment history check via Checkr.</p>
+                                    
+                                    <div className="relative group flex flex-col items-center cursor-pointer">
+                                       <button 
+                                          onClick={initiateBgCheck}
+                                          disabled={isBanTheBoxRestricted}
+                                          className={`px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors ${
+                                             isBanTheBoxRestricted 
+                                                ? 'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400' 
+                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                          }`}
+                                       >
+                                          Initiate Background Check
+                                       </button>
+                                       {isBanTheBoxRestricted && (
+                                          <div className="absolute bottom-full mb-2 hidden group-hover:block w-64 p-3 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl text-center z-10 animate-in fade-in">
+                                             Background checks in {banTheBoxJurisdiction} can only be initiated after a conditional offer (Offer Stage or later).
+                                             <div className="absolute top-full left-1/2 -mt-1 -ml-1 border-4 border-transparent border-t-slate-900"></div>
+                                          </div>
+                                       )}
+                                    </div>
+                                 </div>
+                              )}
+
+                              {status === 'Pending' && (
+                                 <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-200 dark:border-blue-800 flex flex-col items-center justify-center text-center">
+                                    <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                                    <h4 className="font-bold text-blue-900 dark:text-blue-400 mb-2">Check in Progress...</h4>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">Awaiting results from Checkr.</p>
+                                 </div>
+                              )}
+
+                              {status === 'Clear' && (
+                                 <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800 flex flex-col items-center text-center">
+                                    <ShieldCheck size={48} className="text-green-500 mb-4" />
+                                    <h4 className="font-bold text-green-900 dark:text-green-400 mb-2">Background Check Cleared</h4>
+                                    <p className="text-sm text-green-700 dark:text-green-300 mb-4">No adverse records found. Candidate is cleared for hire.</p>
+                                    <button className="text-green-700 dark:text-green-400 text-sm font-bold hover:underline">View Full Report</button>
+                                 </div>
+                              )}
+
+                              {status === 'Adverse' && (
+                                 <div className="flex flex-col gap-4">
+                                    <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl border border-red-200 dark:border-red-800 flex flex-col items-center text-center">
+                                       <AlertTriangle size={48} className="text-red-500 mb-4" />
+                                       <h4 className="font-bold text-red-900 dark:text-red-400 mb-2">Adverse Results Found</h4>
+                                       <p className="text-sm text-red-700 dark:text-red-300 mb-4">Records require manual review before proceeding with hire.</p>
+                                       <button className="text-red-700 dark:text-red-400 text-sm font-bold hover:underline">View Full Report</button>
+                                    </div>
+                                    
+                                    {isNyc && !nycChecklists[selectedCandidate.id] && (
+                                       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-5 mt-2 shadow-sm">
+                                          <div className="flex gap-3 mb-4 text-amber-900 dark:text-amber-400">
+                                             <AlertTriangle size={24} className="shrink-0" />
+                                             <div>
+                                                <h4 className="font-bold">NYC Fair Chance Act Compliance</h4>
+                                                <p className="text-sm mt-1 text-amber-800 dark:text-amber-500">Before you can rescind the offer or take adverse action based on these results, you <b>must</b> complete an Individualized Assessment.</p>
+                                             </div>
+                                          </div>
+                                          
+                                          <div className="space-y-3 bg-white dark:bg-slate-900/50 p-4 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                                             <h5 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Assessment Checklist</h5>
+                                             {[
+                                                'Nature and gravity of the offense was evaluated',
+                                                'Time elapsed since the offense was reviewed',
+                                                'Nature of this specific job role was considered',
+                                                'Evidence of rehabilitation / good conduct was requested'
+                                             ].map((item, idx) => (
+                                                <label key={idx} className="flex items-start gap-3 cursor-pointer group">
+                                                   <input type="checkbox" className="mt-1 w-4 h-4 rounded text-amber-600 border-amber-300 focus:ring-amber-500" />
+                                                   <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{item}</span>
+                                                </label>
+                                             ))}
+                                          </div>
+                                          
+                                          <div className="mt-4">
+                                             <button 
+                                                onClick={() => setNycChecklists({...nycChecklists, [selectedCandidate.id]: true})}
+                                                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                                                Mark Assessment Complete
+                                             </button>
+                                          </div>
+                                       </div>
+                                    )}
+
+                                    {isNyc && nycChecklists[selectedCandidate.id] && (
+                                       <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 text-center">
+                                          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3"><ShieldCheck size={24}/></div>
+                                          <h4 className="font-bold text-slate-900 dark:text-white">NYC Assessment Completed</h4>
+                                          <p className="text-sm text-slate-500 mt-1">You may now share the Fair Chance Notice and wait 5 days before rescinding the offer.</p>
+                                       </div>
+                                    )}
+                                 </div>
+                              )}
+                           </div>
+                        );
+                     })()}
                   </div>
                </motion.div>
             </>

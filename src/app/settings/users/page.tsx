@@ -5,6 +5,7 @@ import { Plus, MoreVertical, Shield, ShieldAlert, ShieldCheck, Mail, Trash2 } fr
 import { mockUsers } from "@/data/mockSettings";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { toast } from "sonner";
+import { formatDate } from "@/utils/formatDate";
 
 export default function UsersSettingsPage() {
   const { isNewUser } = useDashboardData();
@@ -101,7 +102,7 @@ export default function UsersSettingsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                    {new Date(user.lastLogin).toLocaleDateString()}
+                    {formatDate(user.lastLogin)}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${user.status === "Active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}>

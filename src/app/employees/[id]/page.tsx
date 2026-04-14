@@ -7,6 +7,7 @@ import { useEmployee } from "@/hooks/useEmployees";
 import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { mockAssetAssignments, ASSET_TYPE_ICONS, type AssetType, mockAssets, type Asset, type AssetAssignment } from "@/data/mockAssets";
+import { formatDate } from "@/utils/formatDate";
 
 /* ─── Asset Type Icon ─────────────────────────────────────────────── */
 function AssetIcon({ type, size = 14 }: { type: AssetType; size?: number }) {
@@ -315,7 +316,7 @@ export default function EmployeeOverviewTab() {
             <div className="flex flex-col gap-4">
                <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
                   <span className="text-slate-600 dark:text-slate-400">Hire Date</span>
-                  <span className="font-medium text-slate-900 dark:text-white">{emp.startDate ? new Date(emp.startDate).toLocaleDateString() : "Pending"}</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{emp.startDate ? formatDate(emp.startDate) : "Pending"}</span>
                </div>
                <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-800 pb-2">
                   <span className="text-slate-600 dark:text-slate-400">Next Review</span>
@@ -323,7 +324,7 @@ export default function EmployeeOverviewTab() {
                </div>
                <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-400">Joined</span>
-                  <span className="font-medium text-slate-900 dark:text-white">{emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : "Recent"}</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{emp.createdAt ? formatDate(emp.createdAt) : "Recent"}</span>
                </div>
             </div>
          </div>

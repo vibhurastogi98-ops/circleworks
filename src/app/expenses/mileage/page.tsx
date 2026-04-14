@@ -14,6 +14,7 @@ import {
   Info
 } from "lucide-react";
 import { mockMileageEntries, IRS_MILEAGE_RATE } from "@/data/mockExpenses";
+import { formatDate } from "@/utils/formatDate";
 
 export default function MileageLogPage() {
   const [search, setSearch] = useState("");
@@ -110,7 +111,7 @@ export default function MileageLogPage() {
                          </div>
                       </td>
                       <td className="px-6 py-5">
-                         <div className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider mb-0.5">{new Date(entry.date).toLocaleDateString()}</div>
+                         <div className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider mb-0.5">{formatDate(entry.date)}</div>
                          <div className="text-xs text-slate-500 font-medium">{entry.purpose}</div>
                       </td>
                       <td className="px-6 py-5">

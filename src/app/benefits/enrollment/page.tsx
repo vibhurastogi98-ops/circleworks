@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Calendar, Mail, CheckCircle2, Clock, Users, Bell, Lock, BarChart3 } from "lucide-react";
+import { formatDate } from "@/utils/formatDate";
 
 export default function EnrollmentPage() {
   const [enrollmentActive, setEnrollmentActive] = useState(false);
@@ -113,7 +114,7 @@ export default function EnrollmentPage() {
                       {emp.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-500">{emp.completedAt ? new Date(emp.completedAt).toLocaleDateString() : '—'}</td>
+                  <td className="px-6 py-4 text-slate-500">{emp.completedAt ? formatDate(emp.completedAt) : '—'}</td>
                   <td className="px-6 py-4 text-right">
                     {emp.status !== 'Completed' && (
                       <button className="text-blue-600 text-sm font-bold hover:underline">Send Reminder</button>

@@ -6,6 +6,7 @@ import { Users, CheckCircle2, Clock, AlertTriangle, UserMinus, Search, Filter, L
 import { OnboardingPhase } from "@/data/mockOnboarding";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { formatDate } from "@/utils/formatDate";
 
 export default function OnboardingDashboard() {
   const { isNewUser } = useDashboardData();
@@ -123,7 +124,7 @@ export default function OnboardingDashboard() {
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                       <span>{c.department}</span>
                       <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                      <span>Starts {new Date(c.startDate).toLocaleDateString()}</span>
+                      <span>Starts {formatDate(c.startDate)}</span>
                     </div>
                   </div>
                 </div>

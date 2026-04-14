@@ -15,6 +15,7 @@ import {
   Heart
 } from "lucide-react";
 import { mockReviewCycles, mockGoals, mockRecognition } from "@/data/mockPerformance";
+import { formatDate } from "@/utils/formatDate";
 
 export default function PerformanceDashboard() {
   const activeCycle = mockReviewCycles.find(c => c.status === 'Active') || mockReviewCycles[0];
@@ -46,7 +47,7 @@ export default function PerformanceDashboard() {
             </div>
             <div>
               <h3 className="text-xl font-bold dark:text-white">{activeCycle.name}</h3>
-              <p className="text-sm text-slate-500">Deadline: {new Date(activeCycle.deadline).toLocaleDateString()}</p>
+              <p className="text-sm text-slate-500">Deadline: {formatDate(activeCycle.deadline)}</p>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm font-medium">
@@ -160,7 +161,7 @@ export default function PerformanceDashboard() {
                       </span>
                       <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">{goal.title}</h4>
                     </div>
-                    <p className="text-xs text-slate-500">Owner: {goal.owner} • Due {new Date(goal.dueDate).toLocaleDateString()}</p>
+                    <p className="text-xs text-slate-500">Owner: {goal.owner} • Due {formatDate(goal.dueDate)}</p>
                   </div>
                   <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1 ${
                     goal.status === 'On Track' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' :

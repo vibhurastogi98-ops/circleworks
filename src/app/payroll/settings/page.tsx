@@ -266,7 +266,7 @@ function FundingReconciliationTab() {
                       return (
                         <tr key={tx.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 ${isUnmatched ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''}`}>
                           <td className="px-4 py-3 whitespace-nowrap text-slate-500 text-xs">
-                             {new Date(tx.date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+                             {new Date(tx.date).toLocaleDateString("en-US", {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
                           </td>
                           <td className={`px-4 py-3 font-medium ${isUnmatched ? 'text-amber-800 dark:text-amber-400' : 'text-slate-900 dark:text-slate-200'}`}>
                              {tx.note} {isUnmatched && <span className="inline-block ml-2 text-[10px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded">Unmatched</span>}

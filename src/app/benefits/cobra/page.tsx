@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Mail, CheckCircle2, Clock, XCircle, Shield, AlertTriangle, Send } from "lucide-react";
 import { mockCobraCases } from "@/data/mockBenefits";
+import { formatDate } from "@/utils/formatDate";
 
 const STATUS_STYLES: Record<string, { class: string; icon: React.ElementType }> = {
   Eligible: { class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: Clock },
@@ -86,10 +87,10 @@ export default function CobraPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{c.qualifyingEvent}</td>
-                    <td className="px-6 py-4 text-slate-500">{c.noticeSentDate ? new Date(c.noticeSentDate).toLocaleDateString() : <span className="text-red-500 font-medium">Not sent</span>}</td>
+                    <td className="px-6 py-4 text-slate-500">{c.noticeSentDate ? formatDate(c.noticeSentDate) : <span className="text-red-500 font-medium">Not sent</span>}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-slate-900 dark:text-white font-medium">{new Date(c.electionDeadline).toLocaleDateString()}</span>
+                        <span className="text-slate-900 dark:text-white font-medium">{formatDate(c.electionDeadline)}</span>
                         {deadlineNear && <AlertTriangle size={14} className="text-amber-500" />}
                       </div>
                     </td>
