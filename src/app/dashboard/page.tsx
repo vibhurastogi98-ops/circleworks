@@ -1,7 +1,9 @@
 "use client";
 
+import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 import QueryProvider from "@/components/QueryProvider";
 import AppSidebar from "@/components/AppSidebar";
@@ -25,7 +27,15 @@ const PayrollChart = dynamic(
 );
 
 export default function DashboardPage() {
-  const { isLoading } = useDashboardData();
+  const { isLoading, currentUser } = useDashboardData();
+  const { user } = useUser();
+  const router = useRouter();
+  
+  useEffect(() => {
+    if (user?.publicMetadata?.role === "accountant") {
+      router.push("/accountant-portal");
+    }
+  }, [user, router]);
 
   if (isLoading) {
     return (

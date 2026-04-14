@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShieldCheck, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useSignIn } from "@clerk/nextjs/legacy";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,6 +43,7 @@ type MfaFormValues = z.infer<typeof mfaSchema>;
 export default function LoginPage() {
   const { isLoaded, signIn, setActive } = useSignIn();
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   const [activeQuote, setActiveQuote] = useState(0);
@@ -77,12 +78,16 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect already signed-in users to dashboard
+  // Redirect already signed-in users
   useEffect(() => {
     if (isSignedIn && isLoaded) {
-      router.push("/dashboard");
+      if (user?.publicMetadata?.role === "accountant") {
+        router.push("/accountant-portal");
+      } else {
+        router.push("/dashboard");
+      }
     }
-  }, [isSignedIn, isLoaded, router]);
+  }, [isSignedIn, isLoaded, user, router]);
 
   const onLoginSubmit = async (data: LoginFormValues) => {
     if (!isLoaded || isSignedIn) return;

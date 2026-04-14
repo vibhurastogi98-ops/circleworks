@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, DollarSign, Users, Briefcase, UserPlus, Heart, 
   Clock, Receipt, Target, Shield, BarChart2, Settings, HelpCircle, 
-  LogOut, ChevronDown, ChevronRight, CheckCircle2
+  LogOut, ChevronDown, ChevronRight, CheckCircle2, Building2
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useSidebarStore } from "@/store/useSidebarStore";
@@ -45,9 +45,21 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Off-Cycle Run", href: "/payroll/off-cycle" },
       { label: "Pay Schedule", href: "/payroll/schedule" },
       { label: "History", href: "/payroll/history" },
-      { label: "Contractors", href: "/payroll/contractors" },
       { label: "Tips & FICA", href: "/payroll/tips" },
       { label: "GL Mapping", href: "/payroll/gl-mapping" },
+    ]
+  },
+  {
+    label: "Contractors",
+    icon: Building2,
+    href: "/contractors",
+    subItems: [
+      { label: "Dashboard", href: "/contractors" },
+      { label: "Onboarding", href: "/contractors/onboarding" },
+      { label: "Contracts", href: "/contractors/contracts" },
+      { label: "Payments", href: "/contractors/payments" },
+      { label: "1099s", href: "/contractors/1099s" },
+      { label: "Contractor Portal", href: "/contractors/portal" },
     ]
   },
   { label: "Employees", icon: Users, href: "/employees" },
