@@ -63,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/compliance/dashboard",
     subItems: [
       { label: "Dashboard", href: "/compliance/dashboard" },
+      { label: "Pay Equity", href: "/compliance/pay-equity" },
       { label: "Tax Filings", href: "/compliance/tax-filings" },
       { label: "I-9 Verification", href: "/compliance/i9" },
       { label: "ACA", href: "/compliance/aca" },
