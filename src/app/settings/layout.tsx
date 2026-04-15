@@ -44,6 +44,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
                     <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Operations</h2>
                     <Link href="/settings/assets" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Equipment & Assets</Link>
+                    <Link href="/settings/time" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Time & Projects</Link>
 
                     <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Communication</h2>
                     <Link href="/settings/announcements" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Announcements</Link>

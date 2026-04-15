@@ -24,7 +24,8 @@ function PaystubDownloadButton({ type = "PDF" }: { type?: "PDF" | "ZIP" }) {
   );
 }
 
-export default function PaystubsPage({ params }: { params: { runId: string } }) {
+export default function PaystubsPage({ params }: { params: Promise<{ runId: string }> }) {
+  const { runId } = React.use(params);
   const stubs = [
     { name: "Jordan Brown", net: "$3,267.50", status: "Available" },
     { name: "Taylor Smith", net: "$4,102.10", status: "Available" },
@@ -35,7 +36,7 @@ export default function PaystubsPage({ params }: { params: { runId: string } }) 
     <div className="flex flex-col gap-6 pb-24">
        <div className="flex items-center justify-between">
         <div>
-          <Link href={`/payroll/run/${params.runId}`} className="text-sm text-blue-600 font-bold mb-2 inline-block hover:underline">← Back to Run Details</Link>
+          <Link href={`/payroll/run/${runId}`} className="text-sm text-blue-600 font-bold mb-2 inline-block hover:underline">← Back to Run Details</Link>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center"><FileText size={20} className="text-indigo-600" /></div>
             Paystubs

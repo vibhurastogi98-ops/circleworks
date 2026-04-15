@@ -131,6 +131,7 @@ export default function TimesheetsPage() {
                   <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded border-slate-300 dark:border-slate-600 text-violet-600 focus:ring-violet-500" />
                 </th>
                 <th className="px-5 py-3">Employee</th>
+                <th className="px-5 py-3">Top Project</th>
                 <th className="px-5 py-3">Period</th>
                 <th className="px-5 py-3 text-right">Regular</th>
                 <th className="px-5 py-3 text-right">OT</th>
@@ -152,6 +153,11 @@ export default function TimesheetsPage() {
                         <div className="font-bold text-slate-900 dark:text-white">{ts.employeeName}</div>
                         <div className="text-xs text-slate-500">{ts.department}</div>
                       </Link>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        {ts.id === '1' ? 'Acme Rebrand' : 'Mobile App V2'}
+                      </span>
                     </td>
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-400 font-medium">
                       {ts.periodStart} – {ts.periodEnd}

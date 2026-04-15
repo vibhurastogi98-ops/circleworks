@@ -93,6 +93,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/reports",
     subItems: [
       { label: "All Reports", href: "/reports" },
+      { label: "Project Profitability", href: "/reports/project-profitability" },
       { label: "Custom Builder", href: "/reports/custom" },
     ]
   },

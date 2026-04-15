@@ -103,6 +103,16 @@ export default function KioskPage() {
             ))}
           </div>
 
+          {/* Project Selection (New) */}
+          <div className="w-[268px]">
+            <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Assign to Project</label>
+            <select className="w-full h-12 rounded-xl bg-white/10 border border-white/20 text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer">
+              <option value="" className="bg-slate-900 text-white">General / Internal</option>
+              <option value="p1" className="bg-slate-900 text-white">Acme Rebrand (ACM-001)</option>
+              <option value="p2" className="bg-slate-900 text-white">Mobile App V2 (GLB-002)</option>
+            </select>
+          </div>
+
           {/* Clock In Button */}
           <button
             onClick={handleSubmit}

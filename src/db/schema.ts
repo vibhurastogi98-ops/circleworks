@@ -114,6 +114,7 @@ export const timeEntries = pgTable('time_entries', {
   id: serial('id').primaryKey(),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
   timesheetId: integer('timesheet_id').references(() => timesheets.id, { onDelete: 'set null' }),
+  projectId: integer('project_id'), // Will define reference below to avoid circular errors if before projects
   clockIn: timestamp('clock_in').notNull(),
   clockOut: timestamp('clock_out'),
   entryType: text('entry_type').default('Regular'),
@@ -121,6 +122,29 @@ export const timeEntries = pgTable('time_entries', {
   status: text('status').default('Approved'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// --- PROJECTS & BILLING ---
+
+export const projects = pgTable('projects', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  clientName: text('client_name'),
+  code: text('code'),
+  billingRate: integer('billing_rate'), // in cents/hr
+  budgetHours: integer('budget_hours'),
+  isBillable: boolean('is_billable').default(true),
+  status: text('status').default('Active'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const projectAssignments = pgTable('project_assignments', {
+  id: serial('id').primaryKey(),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  assignedAt: timestamp('assigned_at').defaultNow(),
 });
 
 // --- ATS & HIRING ---
@@ -339,6 +363,7 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   subordinates: many(employees, { relationName: 'subordinates' }),
   announcementReads: many(announcementReads),
   assetAssignments: many(assetAssignments),
+  projectAssignments: many(projectAssignments),
 }));
 
 export const announcementsRelations = relations(announcements, ({ one, many }) => ({
@@ -373,6 +398,23 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
 export const assetAssignmentsRelations = relations(assetAssignments, ({ one }) => ({
   asset: one(assets, { fields: [assetAssignments.assetId], references: [assets.id] }),
   employee: one(employees, { fields: [assetAssignments.employeeId], references: [employees.id] }),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  company: one(companies, { fields: [projects.companyId], references: [companies.id] }),
+  assignments: many(projectAssignments),
+  timeEntries: many(timeEntries),
+}));
+
+export const projectAssignmentsRelations = relations(projectAssignments, ({ one }) => ({
+  project: one(projects, { fields: [projectAssignments.projectId], references: [projects.id] }),
+  employee: one(employees, { fields: [projectAssignments.employeeId], references: [employees.id] }),
+}));
+
+export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
+  employee: one(employees, { fields: [timeEntries.employeeId], references: [employees.id] }),
+  timesheet: one(timesheets, { fields: [timeEntries.timesheetId], references: [timesheets.id] }),
+  project: one(projects, { fields: [timeEntries.projectId], references: [projects.id] }),
 }));
 
 // --- CONTRACTORS ---

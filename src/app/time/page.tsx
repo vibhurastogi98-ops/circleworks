@@ -20,6 +20,7 @@ export default function TimeOverview() {
   const stats = getTimeOverviewStats();
   const missedPunches = mockEmployeeClock.filter(e => e.missedPunch);
   const overtimeRisk = mockEmployeeClock.filter(e => e.overtimeRisk);
+  const [showManualEntry, setShowManualEntry] = React.useState(false);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -37,6 +38,12 @@ export default function TimeOverview() {
           </p>
         </div>
         <div className="flex items-center gap-2 ml-[52px] sm:ml-0">
+          <button 
+            onClick={() => setShowManualEntry(true)}
+            className="px-4 py-2.5 border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 rounded-xl text-sm font-semibold hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <CalendarClock size={16} /> Manual Entry
+          </button>
           <Link href="/time/kiosk" className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
             Open Kiosk
           </Link>
@@ -213,6 +220,61 @@ export default function TimeOverview() {
           </div>
         </div>
       </div>
+      {/* Manual Entry Modal */}
+      {showManualEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <h3 className="font-bold text-slate-900 dark:text-white">Manual Time Entry</h3>
+              <button onClick={() => setShowManualEntry(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <ShieldAlert size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Employee</label>
+                <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm">
+                  <option>Select employee...</option>
+                  {mockEmployeeClock.map(e => <option key={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project (Required)</label>
+                <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-bold text-indigo-600">
+                  <option>Select project...</option>
+                  <option>Acme Rebrand</option>
+                  <option>Mobile App V2</option>
+                  <option>Internal / Admin</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Start Time</label>
+                  <input type="time" className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">End Time</label>
+                  <input type="time" className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm" />
+                </div>
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+              <button 
+                onClick={() => setShowManualEntry(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => setShowManualEntry(false)}
+                className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors shadow-sm"
+              >
+                Log Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

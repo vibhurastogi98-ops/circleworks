@@ -504,22 +504,54 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
           <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <td colSpan={10} className="bg-slate-50 dark:bg-slate-800/30 px-4 py-0">
               <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                <div className="py-3 pl-16">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Tax Breakdown</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    {[
-                      ["Federal IT", emp.taxes.federalIT],
-                      ["FICA SS", emp.taxes.ficaSS],
-                      ["FICA Med", emp.taxes.ficaMed],
-                      ["State IT", emp.taxes.stateIT],
-                      ["Local IT", emp.taxes.localIT],
-                      ["Net Pay", emp.netPay],
-                    ].map(([label, val]) => (
-                      <div key={label as string} className="text-center p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label as string}</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white tabular-nums mt-1">{fmt(val as number)}</p>
+                <div className="py-4 pl-16 pr-8 space-y-6">
+                  <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Tax Breakdown */}
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-1.5">
+                        <Building2 size={12} /> Tax Breakdown
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {[
+                          ["Federal IT", emp.taxes.federalIT],
+                          ["FICA SS", emp.taxes.ficaSS],
+                          ["FICA Med", emp.taxes.ficaMed],
+                          ["State IT", emp.taxes.stateIT],
+                          ["Local IT", emp.taxes.localIT],
+                          ["Net Pay", emp.netPay],
+                        ].map(([label, val]) => (
+                          <div key={label as string} className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{label as string}</p>
+                            <p className="text-xs font-bold text-slate-900 dark:text-white tabular-nums mt-0.5">{fmt(val as number)}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Project Allocation Breakdown */}
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-1.5">
+                        <DollarSign size={12} /> Project Cost Allocation
+                      </p>
+                      <div className="space-y-2">
+                        {[
+                          { name: "Acme Rebrand", hours: emp.hours ? emp.hours * 0.7 : 28, cost: emp.grossPay * 0.7 },
+                          { name: "Mobile App V2", hours: emp.hours ? emp.hours * 0.2 : 8, cost: emp.grossPay * 0.2 },
+                          { name: "Internal / Admin", hours: emp.hours ? emp.hours * 0.1 : 4, cost: emp.grossPay * 0.1 },
+                        ].map((proj) => (
+                          <div key={proj.name} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <div>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">{proj.name}</p>
+                              <p className="text-[10px] text-slate-500">{proj.hours.toFixed(1)} hours logged</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">{fmt(proj.cost)}</p>
+                              <p className="text-[9px] text-slate-400 font-medium">Allocated Labor</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>

@@ -90,6 +90,7 @@ export default function IndividualTimesheetPage() {
               <tr>
                 <th className="px-5 py-3">Day</th>
                 <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Project</th>
                 <th className="px-5 py-3 text-center">Clock In</th>
                 <th className="px-5 py-3 text-center">Clock Out</th>
                 <th className="px-5 py-3 text-center">Break</th>
@@ -106,6 +107,13 @@ export default function IndividualTimesheetPage() {
                   <tr className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${day.edited ? 'bg-amber-50/50 dark:bg-amber-900/5' : ''}`}>
                     <td className="px-5 py-3 font-bold text-slate-900 dark:text-white">{day.dayLabel}</td>
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-400 font-medium">{day.date}</td>
+                    <td className="px-5 py-3">
+                      <select className="bg-transparent border-none text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 focus:ring-0 cursor-pointer">
+                        <option>Acme Rebrand</option>
+                        <option>Mobile App V2</option>
+                        <option>Internal</option>
+                      </select>
+                    </td>
                     <td className="px-5 py-3 text-center font-medium text-slate-700 dark:text-slate-300">{day.clockIn ?? "—"}</td>
                     <td className="px-5 py-3 text-center font-medium text-slate-700 dark:text-slate-300">{day.clockOut ?? "—"}</td>
                     <td className="px-5 py-3 text-center text-slate-600 dark:text-slate-400">{day.breakMinutes > 0 ? `${day.breakMinutes}m` : "—"}</td>
