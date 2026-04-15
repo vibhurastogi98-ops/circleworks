@@ -3,9 +3,8 @@
 import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 
-import QueryProvider from "@/components/QueryProvider";
 import AppSidebar from "@/components/AppSidebar";
 import AppTopBar from "@/components/AppTopBar";
 import GreetingRow from "@/components/dashboard/GreetingRow";
@@ -27,7 +26,7 @@ const PayrollChart = dynamic(
 );
 
 export default function DashboardPage() {
-  const { isLoading, currentUser } = useDashboardData();
+  const { isLoading } = useDashboardData();
   const { user } = useUser();
   const router = useRouter();
   
@@ -55,46 +54,44 @@ export default function DashboardPage() {
   }
 
   return (
-    <QueryProvider>
-      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
-        {/* Sidebar */}
-        <AppSidebar />
+    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
+      {/* Sidebar */}
+      <AppSidebar />
 
-        {/* Main */}
-        <div className="flex-1 flex flex-col min-w-0 lg:ml-[72px] xl:ml-[240px]">
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-[72px] xl:ml-[240px]">
 
-          {/* Topbar */}
-          <AppTopBar />
+        {/* Topbar */}
+        <AppTopBar />
 
-          {/* Content */}
-          <main className="flex-1 overflow-y-auto">
-            <div id="tour-dashboard" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-              <OnboardingTour />
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto">
+          <div id="tour-dashboard" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+            <OnboardingTour />
 
-              {/* Existing Layout */}
-              <GreetingRow />
-              <KpiCards />
-              <AlertsPanel />
+            {/* Existing Layout */}
+            <GreetingRow />
+            <KpiCards />
+            <AlertsPanel />
 
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                <div className="lg:col-span-3">
-                  <PayrollChart />
-                </div>
-                <div className="lg:col-span-2">
-                  <QuickActions />
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-3">
+                <PayrollChart />
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <NewHires />
-                <TeamCalendar />
+              <div className="lg:col-span-2">
+                <QuickActions />
               </div>
-
-              <ActivityFeed />
-              <CirceWidget />
             </div>
-          </main>
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <NewHires />
+              <TeamCalendar />
+            </div>
+
+            <ActivityFeed />
+            <CirceWidget />
+          </div>
+        </main>
       </div>
-    </QueryProvider>
+    </div>
   );
 }
