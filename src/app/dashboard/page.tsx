@@ -75,7 +75,7 @@ export default function DashboardPage() {
             <AlertsPanel />
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 min-w-0">
                 <PayrollChart />
               </div>
               <div className="lg:col-span-2">

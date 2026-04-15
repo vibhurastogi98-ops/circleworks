@@ -106,7 +106,7 @@ export default function PayrollChart() {
       </div>
 
       {/* Chart */}
-      <div className="flex-1 min-h-[260px] relative">
+      <div className="flex-1 min-h-[300px] w-full relative overflow-hidden" style={{ minWidth: 0 }}>
         {mounted ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={payrollTrend} barGap={2} barCategoryGap="20%">
