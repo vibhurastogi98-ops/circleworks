@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   FileCheck, Search, Filter, CheckCircle2, XCircle, Clock,
@@ -22,20 +22,51 @@ export default function TimesheetsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [actionNote, setActionNote] = useState("");
   const [showNoteFor, setShowNoteFor] = useState<string | null>(null);
+  const [timesheetsData, setTimesheetsData] = useState<any[]>(mockTimesheets);
+  const [loading, setLoading] = useState(true);
 
-  const departments = useMemo(() => {
-    const deps = Array.from(new Set(mockTimesheets.map(ts => ts.department)));
-    return ["All", ...deps];
+  useEffect(() => {
+    async function fetchTimesheets() {
+      try {
+        const res = await fetch("/api/time/timesheets");
+        const data = await res.json();
+        if (data.success && data.timesheets?.length > 0) {
+          // Map DB model to UI model
+          setTimesheetsData(data.timesheets.map((ts: any) => ({
+            id: ts.id.toString(),
+            employeeId: ts.employeeId.toString(),
+            employeeName: `${ts.employee?.firstName} ${ts.employee?.lastName || ""}`,
+            department: ts.employee?.department || "General",
+            periodStart: ts.periodStart,
+            periodEnd: ts.periodEnd,
+            regularHours: ts.totalRegularHours || 40,
+            overtimeHours: ts.totalOvertimeHours || 0,
+            totalHours: (ts.totalRegularHours || 40) + (ts.totalOvertimeHours || 0),
+            status: ts.status || 'Submitted',
+          })));
+        }
+      } catch (error) {
+        console.error("Failed to load timesheets:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTimesheets();
   }, []);
 
+  const departments = useMemo(() => {
+    const deps = Array.from(new Set(timesheetsData.map(ts => ts.department)));
+    return ["All", ...deps];
+  }, [timesheetsData]);
+
   const filtered = useMemo(() => {
-    return mockTimesheets.filter(ts => {
+    return timesheetsData.filter(ts => {
       if (statusFilter !== "All" && ts.status !== statusFilter) return false;
       if (deptFilter !== "All" && ts.department !== deptFilter) return false;
       if (searchQuery && !ts.employeeName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [statusFilter, deptFilter, searchQuery]);
+  }, [statusFilter, deptFilter, searchQuery, timesheetsData]);
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -142,7 +173,7 @@ export default function TimesheetsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((ts) => {
-                const style = STATUS_STYLE[ts.status];
+                const style = STATUS_STYLE[ts.status as TimesheetStatus];
                 return (
                   <tr key={ts.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-5 py-3">

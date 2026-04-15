@@ -116,6 +116,7 @@ export const timesheets = pgTable('timesheets', {
 export const timeEntries = pgTable('time_entries', {
   id: serial('id').primaryKey(),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   timesheetId: integer('timesheet_id').references(() => timesheets.id, { onDelete: 'set null' }),
   projectId: integer('project_id'), // Will define reference below to avoid circular errors if before projects
   clockIn: timestamp('clock_in').notNull(),
@@ -418,6 +419,7 @@ export const projectAssignmentsRelations = relations(projectAssignments, ({ one 
 
 export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
   employee: one(employees, { fields: [timeEntries.employeeId], references: [employees.id] }),
+  company: one(companies, { fields: [timeEntries.companyId], references: [companies.id] }),
   timesheet: one(timesheets, { fields: [timeEntries.timesheetId], references: [timesheets.id] }),
   project: one(projects, { fields: [timeEntries.projectId], references: [projects.id] }),
 }));
@@ -1025,6 +1027,20 @@ export const agencyClients = pgTable('agency_clients', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+export const agencyProjects = pgTable('agency_projects', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  clientId: integer('client_id').references(() => agencyClients.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  budget: integer('budget'), // in cents
+  startDate: date('start_date'),
+  endDate: date('end_date'),
+  status: text('status').default('Active'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export const agencyInvoices = pgTable('agency_invoices', {
   id: serial('id').primaryKey(),
   clientId: integer('client_id').references(() => agencyClients.id, { onDelete: 'cascade' }),
@@ -1059,6 +1075,12 @@ export const agencyInvoiceItems = pgTable('agency_invoice_items', {
 export const agencyClientsRelations = relations(agencyClients, ({ one, many }) => ({
   company: one(companies, { fields: [agencyClients.companyId], references: [companies.id] }),
   invoices: many(agencyInvoices),
+  projects: many(agencyProjects),
+}));
+
+export const agencyProjectsRelations = relations(agencyProjects, ({ one }) => ({
+  client: one(agencyClients, { fields: [agencyProjects.clientId], references: [agencyClients.id] }),
+  company: one(companies, { fields: [agencyProjects.companyId], references: [companies.id] }),
 }));
 
 export const agencyInvoicesRelations = relations(agencyInvoices, ({ one, many }) => ({

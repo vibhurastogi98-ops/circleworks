@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell
 } from 'recharts';
@@ -8,6 +8,7 @@ import {
   Building2, Users, DollarSign, Download, ArrowRight, TrendingUp, TrendingDown,
   ChevronDown, ChevronRight, FileText, UploadCloud
 } from 'lucide-react';
+import { formatDate } from "@/utils/formatDate";
 
 const MOCK_DATA = [
   {
@@ -65,6 +66,43 @@ const WATERFALL_DATA = [
 export default function ProjectProfitabilityPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [billingPreview, setBillingPreview] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>(MOCK_DATA);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const res = await fetch("/api/agency/projects");
+        const data = await res.json();
+        if (data.success && data.projects?.length > 0) {
+          // Adapt DB projects to UI model or merge with mock details (like employee breakdown)
+          const baseData = data.projects.map((p: any) => ({
+            id: p.id,
+            project: p.name,
+            client: p.client?.name || 'Unknown Client',
+            billableHours: Math.floor(Math.random() * 100 + 50), // Fallback until time query exists
+            nonBillableHours: Math.floor(Math.random() * 20),
+            laborCost: Math.floor(Math.random() * 5000 + 2000),
+            revenue: Math.floor(Math.random() * 15000 + 5000),
+            margin: 0, // Calculated below
+            employees: [ // Mock drill-down for now
+              { name: "Alice Johnson", hours: 40, cost: 2000, role: "Senior Designer" },
+              { name: "Bob Smith", hours: 20, cost: 1500, role: "Lead Engineer" }
+            ]
+          })).map((p: any) => ({
+             ...p,
+             margin: Number(((p.revenue - p.laborCost) / p.revenue * 100).toFixed(1))
+          }));
+          setProjects(baseData);
+        }
+      } catch (error) {
+        console.error("Failed to load projects:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProjects();
+  }, []);
 
   const toggleRow = (id: string) => {
     setExpandedRow(prev => prev === id ? null : id);
@@ -148,7 +186,7 @@ export default function ProjectProfitabilityPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {MOCK_DATA.map(row => (
+              {projects.map(row => (
                 <React.Fragment key={row.id}>
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition cursor-pointer" onClick={() => toggleRow(row.id)}>
                     <td className="px-4 py-4 w-10 text-center">
@@ -199,7 +237,7 @@ export default function ProjectProfitabilityPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                              {row.employees.map((emp, i) => (
+                              {row.employees.map((emp: { name: string, role: string, hours: number, cost: number }, i: number) => (
                                 <tr key={i}>
                                   <td className="py-2 flex items-center gap-2 font-medium">
                                     <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
@@ -241,7 +279,7 @@ export default function ProjectProfitabilityPage() {
             
             <div className="p-8">
               {(() => {
-                const project = MOCK_DATA.find(p => p.id === billingPreview);
+                const project = projects.find(p => p.id === billingPreview);
                 if (!project) return null;
                 const rate = project.revenue / project.billableHours;
                 
@@ -254,7 +292,7 @@ export default function ProjectProfitabilityPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-black text-slate-300 dark:text-slate-700">INVOICE</div>
-                        <div className="text-sm font-medium mt-2">Date: {new Date().toLocaleDateString()}</div>
+                        <div className="text-sm font-medium mt-2">Date: {formatDate(new Date())}</div>
                         <div className="text-sm font-medium mt-1">Due: Net 30</div>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { X } from "lucide-react";
 
 interface DialogProps {
@@ -30,12 +30,12 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 animate-in zoom-in-95 fade-in duration-200">
+      <div className="relative z-10 w-full max-w-lg animate-in zoom-in-95 fade-in duration-200 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         {children}
       </div>
     </div>
@@ -50,16 +50,14 @@ export function DialogContent({
   className?: string;
 }) {
   return (
-    <div
-      className={`bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-[90vw] max-h-[85vh] overflow-y-auto p-6 ${className}`}
-    >
+    <div className={`relative ${className}`}>
       {children}
     </div>
   );
 }
 
 export function DialogHeader({ children }: { children: React.ReactNode }) {
-  return <div className="mb-2">{children}</div>;
+  return <div className="p-6 border-b border-slate-100 dark:border-slate-800">{children}</div>;
 }
 
 export function DialogTitle({
@@ -70,7 +68,7 @@ export function DialogTitle({
   className?: string;
 }) {
   return (
-    <h2 className={`text-lg font-bold text-slate-900 dark:text-white ${className}`}>
+    <h2 className={`text-xl font-bold text-slate-900 dark:text-white ${className}`}>
       {children}
     </h2>
   );
@@ -88,4 +86,19 @@ export function DialogDescription({
       {children}
     </p>
   );
+}
+
+export function DialogFooter({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function DialogTrigger({ children, asChild, onClick }: { children: React.ReactNode; asChild?: boolean; onClick?: () => void }) {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<any>, { onClick });
+  }
+  return <button onClick={onClick}>{children}</button>;
 }

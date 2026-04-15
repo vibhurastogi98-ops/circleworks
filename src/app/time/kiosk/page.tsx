@@ -9,9 +9,23 @@ export default function KioskPage() {
   const [time, setTime] = useState(new Date());
   const [mode, setMode] = useState<"pin" | "qr">("pin");
   const [flash, setFlash] = useState<"success" | "error" | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
+    
+    async function fetchProjects() {
+      try {
+        const res = await fetch("/api/agency/projects");
+        const data = await res.json();
+        if (data.success) setProjects(data.projects);
+      } catch (err) { console.error(err); }
+    }
+    fetchProjects();
+
     return () => clearInterval(t);
   }, []);
 
@@ -21,13 +35,40 @@ export default function KioskPage() {
     if (pin.length < 6) setPin(p => p + k);
   };
 
-  const handleSubmit = () => {
-    if (pin.length >= 4) {
-      setFlash("success");
-      setTimeout(() => { setFlash(null); setPin(""); }, 2000);
-    } else {
+  const handleSubmit = async () => {
+    if (pin.length < 4) return;
+    setIsProcessing(true);
+    try {
+      // In a real app, we'd have a specific endpoint to verify PIN and get employeeId
+      // For this migration demo, we use the PIN as a mock employeeId if it's numeric
+      const employeeId = parseInt(pin) || 1; 
+      
+      const res = await fetch("/api/time/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          pin,
+          projectId: selectedProject,
+          companyId: 1 // Default company for demo
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setFlash("success");
+        setMessage(data.action === 'clock-in' ? "✓ Clock-in successful!" : "✓ Clock-out successful!");
+        setTimeout(() => { setFlash(null); setPin(""); setSelectedProject(""); }, 3000);
+      } else {
+        setFlash("error");
+        setMessage("✗ Invalid PIN or identity");
+        setTimeout(() => setFlash(null), 2000);
+      }
+    } catch (err) {
       setFlash("error");
-      setTimeout(() => setFlash(null), 1500);
+      setMessage("✗ Connection error");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -103,23 +144,26 @@ export default function KioskPage() {
             ))}
           </div>
 
-          {/* Project Selection (New) */}
           <div className="w-[268px]">
             <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Assign to Project</label>
-            <select className="w-full h-12 rounded-xl bg-white/10 border border-white/20 text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer">
+            <select 
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+              className="w-full h-12 rounded-xl bg-white/10 border border-white/20 text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer"
+            >
               <option value="" className="bg-slate-900 text-white">General / Internal</option>
-              <option value="p1" className="bg-slate-900 text-white">Acme Rebrand (ACM-001)</option>
-              <option value="p2" className="bg-slate-900 text-white">Mobile App V2 (GLB-002)</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id} className="bg-slate-900 text-white">{p.name}</option>
+              ))}
             </select>
           </div>
 
-          {/* Clock In Button */}
           <button
             onClick={handleSubmit}
-            disabled={pin.length < 4}
+            disabled={pin.length < 4 || isProcessing}
             className="w-[268px] h-16 rounded-2xl text-lg font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/30 active:scale-[0.98]"
           >
-            CLOCK IN / OUT
+            {isProcessing ? "PROCESSING..." : "CLOCK IN / OUT"}
           </button>
         </div>
       ) : (
@@ -142,7 +186,7 @@ export default function KioskPage() {
             ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
             : "bg-red-500 text-white shadow-lg shadow-red-500/30"
         }`}>
-          {flash === "success" ? "✓ Clock-in successful!" : "✗ Invalid PIN"}
+          {message}
         </div>
       )}
     </div>

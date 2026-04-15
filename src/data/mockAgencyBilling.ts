@@ -1,118 +1,144 @@
-export const mockAgencyClients = [
+// --- Mock Data for Agency Client Billing ---
+
+export type BillingRateType = 'cost-plus' | 'fixed' | 'hourly';
+export type BillingCycle = 'weekly' | 'bi-weekly' | 'monthly';
+export type AgencyInvoiceStatus = 'Draft' | 'Approved' | 'Sent' | 'Paid';
+
+export interface AgencyClient {
+  id: number;
+  name: string;
+  email: string;
+  contactName: string;
+  logoUrl?: string;
+  billingRateType: BillingRateType;
+  markupPercentage: number;
+  fixedFee: number;
+  hourlyRate: number;
+  billingCycle: BillingCycle;
+  paymentTerms: string;
+  accountingSync?: string;
+}
+
+export interface AgencyInvoice {
+  id: number;
+  invoiceNumber: string;
+  clientId: number;
+  clientName: string;
+  periodStart: string;
+  periodEnd: string;
+  amount: number;
+  status: AgencyInvoiceStatus;
+  dueDate: string;
+  sentAt?: string;
+  paidAt?: string;
+}
+
+export const mockAgencyClients: AgencyClient[] = [
   {
     id: 1,
-    name: "TechNova Solutions",
-    email: "billing@technova.com",
-    contactName: "Sarah Jenkins",
-    logoUrl: "https://api.dicebear.com/7.x/initials/svg?seed=TN&backgroundColor=003366",
-    billingRateType: "cost-plus",
+    name: "Nebula Tech Solutions",
+    email: "billing@nebulatech.com",
+    contactName: "Sarah Connor",
+    billingRateType: 'cost-plus',
     markupPercentage: 15,
-    billingCycle: "bi-weekly",
-    paymentTerms: "Net 30",
-    accountingSync: "QuickBooks",
+    fixedFee: 0,
+    hourlyRate: 0,
+    billingCycle: 'monthly',
+    paymentTerms: 'Net 30',
+    accountingSync: 'QuickBooks'
   },
   {
     id: 2,
-    name: "Global Creative Agency",
-    email: "finance@globalcreative.com",
-    contactName: "Michael Chen",
-    logoUrl: "https://api.dicebear.com/7.x/initials/svg?seed=GC&backgroundColor=cc0000",
-    billingRateType: "hourly",
-    hourlyRate: 12500, // $125.00/hr
-    billingCycle: "monthly",
-    paymentTerms: "Net 15",
-    accountingSync: "Xero",
+    name: "Apex Creative Agency",
+    email: "accounts@apexcreative.io",
+    contactName: "Don Draper",
+    billingRateType: 'hourly',
+    markupPercentage: 0,
+    fixedFee: 0,
+    hourlyRate: 150,
+    billingCycle: 'bi-weekly',
+    paymentTerms: 'Net 15'
   },
   {
     id: 3,
-    name: "Stellar Logistics",
-    email: "ap@stellar.com",
-    contactName: "Robert Miller",
-    logoUrl: "https://api.dicebear.com/7.x/initials/svg?seed=SL&backgroundColor=006600",
-    billingRateType: "fixed",
-    fixedFee: 500000, // $5,000.00
-    billingCycle: "monthly",
-    paymentTerms: "Net 45",
-    accountingSync: "None",
-  },
+    name: "Starlight Retail",
+    email: "payables@starlight.co",
+    contactName: "Gwen Stacy",
+    billingRateType: 'fixed',
+    markupPercentage: 0,
+    fixedFee: 5000,
+    hourlyRate: 0,
+    billingCycle: 'monthly',
+    paymentTerms: 'Net 30',
+    accountingSync: 'Xero'
+  }
 ];
 
-export const mockAgencyInvoices = [
+export const mockAgencyInvoices: AgencyInvoice[] = [
   {
     id: 1,
+    invoiceNumber: "INV-2025-001",
     clientId: 1,
-    clientName: "TechNova Solutions",
-    invoiceNumber: "INV-2024-001",
-    periodStart: "2024-04-01",
-    periodEnd: "2024-04-15",
-    amount: 1450000, // $14,500.00
-    status: "Sent",
-    dueDate: "2024-05-15",
-    createdAt: "2024-04-16T10:00:00Z",
+    clientName: "Nebula Tech Solutions",
+    periodStart: "2025-03-01",
+    periodEnd: "2025-03-31",
+    amount: 12500,
+    status: 'Paid',
+    dueDate: "2025-04-30",
+    sentAt: "2025-04-01",
+    paidAt: "2025-04-10"
   },
   {
     id: 2,
+    invoiceNumber: "INV-2025-002",
     clientId: 2,
-    clientName: "Global Creative Agency",
-    invoiceNumber: "INV-2024-002",
-    periodStart: "2024-03-01",
-    periodEnd: "2024-03-31",
-    amount: 875000, // $8,750.00
-    status: "Paid",
-    dueDate: "2024-04-15",
-    createdAt: "2024-04-01T09:00:00Z",
-    paidAt: "2024-04-10T14:30:00Z",
+    clientName: "Apex Creative Agency",
+    periodStart: "2025-04-01",
+    periodEnd: "2025-04-15",
+    amount: 8400,
+    status: 'Sent',
+    dueDate: "2025-04-30",
+    sentAt: "2025-04-16"
   },
   {
     id: 3,
-    clientId: 3,
-    clientName: "Stellar Logistics",
-    invoiceNumber: "INV-2024-003",
-    periodStart: "2024-04-01",
-    periodEnd: "2024-04-30",
-    amount: 500000, // $5,000.00
-    status: "Draft",
-    dueDate: "2024-05-30",
-    createdAt: "2024-05-01T08:00:00Z",
-  },
+    invoiceNumber: "INV-2025-003",
+    clientId: 1,
+    clientName: "Nebula Tech Solutions",
+    periodStart: "2025-04-01",
+    periodEnd: "2025-04-30",
+    amount: 13200,
+    status: 'Draft',
+    dueDate: "2025-05-30"
+  }
 ];
 
 export const mockAgencyInvoiceItems = [
   {
     id: 1,
     invoiceId: 1,
-    employeeName: "Alice Walker",
-    description: "Software Engineer - Pay Period April 1-15",
-    cost: 500000,
-    markup: 75000, // 15%
-    total: 575000,
+    description: "Cloud Architecture - March",
+    employeeName: "Alice Chen",
+    cost: 800000, // $8000.00
+    markup: 120000,
+    total: 920000
   },
   {
     id: 2,
     invoiceId: 1,
+    description: "DevOps Support",
     employeeName: "Bob Smith",
-    description: "UI/UX Designer - Pay Period April 1-15",
-    cost: 450000,
-    markup: 67500, // 15%
-    total: 517500,
+    cost: 200000,
+    markup: 30000,
+    total: 230000
   },
   {
     id: 3,
-    invoiceId: 1,
+    invoiceId: 2,
+    description: "Brand Identity Workshop",
     employeeName: "Charlie Brown",
-    description: "Project Manager - Pay Period April 1-15",
-    cost: 300000,
-    markup: 45000, // 15%
-    total: 345000,
-  },
-  {
-    id: 4,
-    invoiceId: 1,
-    employeeName: "Alice Walker",
-    description: "Travel Reimbursement - Client On-site",
-    cost: 15000,
-    markup: 0,
-    total: 15000,
-    itemType: "expense",
-  },
+    cost: 500000,
+    markup: 150000,
+    total: 650000
+  }
 ];

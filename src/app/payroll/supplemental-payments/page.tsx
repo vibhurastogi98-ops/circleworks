@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   DollarSign, Music, Film, TrendingUp, Gift, Clock, CheckCircle2,
   AlertTriangle, Upload, Download, Search, Eye, X, Plus,
@@ -314,19 +314,38 @@ export default function SupplementalPaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<SupplementalPayment | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<RoyaltySchedule | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [payments, setPayments] = useState<SupplementalPayment[]>(mockSupplementalPayments);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPayments() {
+      try {
+        const res = await fetch("/api/payroll/supplemental-payments");
+        const data = await res.json();
+        if (data.success && data.payments?.length > 0) {
+          setPayments(data.payments);
+        }
+      } catch (error) {
+        console.error("Failed to load supplemental payments:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPayments();
+  }, []);
 
   const stats = getSupplementalStats();
   const fmtMoney = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(val);
 
   const filteredPayments = useMemo(() => {
-    return mockSupplementalPayments.filter((p) => {
+    return payments.filter((p) => {
       const matchSearch = p.recipientName.toLowerCase().includes(search.toLowerCase()) ||
         p.description.toLowerCase().includes(search.toLowerCase());
       const matchType = typeFilter === "All" || p.paymentType === typeFilter;
       return matchSearch && matchType;
     });
-  }, [search, typeFilter]);
+  }, [search, typeFilter, payments]);
 
   const handleCSVImport = async () => {
     setIsImporting(true);

@@ -1,58 +1,79 @@
+import { db } from "@/db";
+import { supplementalPayments } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { mockSupplementalPayments } from "@/data/mockSupplementalPayments";
+import { desc } from "drizzle-orm";
 
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    payments: mockSupplementalPayments,
-    total: mockSupplementalPayments.length,
-  });
+  try {
+    const payments = await db.query.supplementalPayments.findMany({
+      orderBy: [desc(supplementalPayments.scheduledDate)],
+    });
+
+    return NextResponse.json({
+      success: true,
+      payments,
+    });
+  } catch (error) {
+    console.error("Error fetching supplemental payments:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch supplemental payments from database" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const {
+    const { 
+      employeeId, 
+      paymentType, 
+      amount, 
+      status, 
+      taxTreatment, 
+      description,
+      scheduledDate,
+      companyId,
       recipientName,
       recipientType,
-      paymentType,
-      description,
-      amount,
-      scheduledDate,
+      projectTitle,
+      notes
     } = body;
 
-    if (!recipientName || !paymentType || !amount) {
+    if (!recipientName || !recipientType || !paymentType || !amount || !companyId) {
       return NextResponse.json(
-        { success: false, error: "Missing required fields: recipientName, paymentType, amount" },
+        { success: false, error: "Recipient Name, Recipient Type, Payment Type, Amount, and Company ID are required" },
         { status: 400 }
       );
     }
 
-    // Tax treatment logic
-    const taxTreatment =
-      paymentType === "Advance"
-        ? "Non-taxable (unrecouped advance)"
-        : recipientType === "1099 Contractor"
-          ? "1099-MISC Box 2"
-          : "Supplemental flat rate (22%)";
+    const [newPayment] = await db
+      .insert(supplementalPayments)
+      .values({
+        employeeId: employeeId ? Number(employeeId) : undefined,
+        companyId: Number(companyId),
+        recipientName,
+        recipientType,
+        paymentType,
+        amount: Number(amount),
+        status,
+        taxTreatment,
+        description,
+        projectTitle,
+        notes,
+        scheduledDate: scheduledDate || undefined,
+      })
+      .returning();
 
-    const newPayment = {
-      id: `sp-${Date.now()}`,
-      recipientName,
-      recipientType: recipientType || "W-2 Employee",
-      paymentType,
-      description: description || "",
-      amount,
-      taxTreatment,
-      status: "Pending" as const,
-      scheduledDate: scheduledDate || new Date().toISOString().split("T")[0],
-    };
-
-    return NextResponse.json({ success: true, payment: newPayment });
-  } catch {
+    return NextResponse.json({
+      success: true,
+      payment: newPayment,
+    });
+  } catch (error) {
+    console.error("Error creating supplemental payment:", error);
     return NextResponse.json(
-      { success: false, error: "Invalid request body" },
-      { status: 400 }
+      { success: false, error: "Failed to create supplemental payment" },
+      { status: 500 }
     );
   }
 }

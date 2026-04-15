@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Users, Shield, DollarSign, FileText, Download, Search, Eye, X,
@@ -301,6 +301,26 @@ export default function UnionPayrollPage() {
   const [selectedContract, setSelectedContract] = useState<UnionContract | null>(null);
   const [selectedMember, setSelectedMember] = useState<EmployeeUnionMembership | null>(null);
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [unions, setUnions] = useState<UnionConfig[]>(mockUnions);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUnions() {
+      try {
+        const res = await fetch("/api/payroll/unions");
+        const data = await res.json();
+        if (data.success && data.unions?.length > 0) {
+          // Adapt DB model to UI model if names differ, though here they look similar
+          setUnions(data.unions);
+        }
+      } catch (error) {
+        console.error("Failed to load unions:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUnions();
+  }, []);
 
   const stats = getUnionPayrollStats();
   const fmtMoney = (val: number) =>
@@ -455,7 +475,7 @@ export default function UnionPayrollPage() {
         <div className="flex flex-col gap-6">
           {/* Union Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {mockUnions.map((union) => {
+            {unions.map((union) => {
               const uc = getUnionColor(union.abbreviation);
               const contracts = mockUnionContracts.filter(c => c.unionName === union.abbreviation);
               const members = mockEmployeeUnionMemberships.filter(m => m.unionAbbreviation === union.abbreviation && m.status !== "Inactive");
@@ -608,7 +628,7 @@ export default function UnionPayrollPage() {
                 className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
               >
                 <option value="All">All Unions</option>
-                {mockUnions.map((u) => (
+                {unions.map((u) => (
                   <option key={u.id} value={u.abbreviation}>{u.abbreviation}</option>
                 ))}
               </select>

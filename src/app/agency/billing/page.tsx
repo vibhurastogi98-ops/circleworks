@@ -1,4 +1,4 @@
-"use client";
+"use client"; 
 
 import React, { useState } from 'react';
 import { 
@@ -27,10 +27,10 @@ import {
   ChevronRight,
   ChevronDown
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Badge } from "../../../components/ui/badge";
 import { 
   Table, 
   TableBody, 
@@ -38,14 +38,14 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from "@/components/ui/table";
+} from "../../../components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
+} from "../../../components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -54,12 +54,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { 
   mockAgencyInvoices, 
   mockAgencyInvoiceItems,
   mockAgencyClients 
 } from '@/data/mockAgencyBilling';
+import { formatDate } from "@/utils/formatDate";
 import { useEffect } from 'react';
 import { 
   LineChart, 
@@ -84,17 +85,49 @@ const billingVolumeData = [
 ];
 
 export default function AgencyBillingDashboard() {
-  const [invoices, setInvoices] = useState(mockAgencyInvoices);
+  const [invoices, setInvoices] = useState<any[]>(mockAgencyInvoices);
+  const [clients, setClients] = useState<any[]>(mockAgencyClients);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Prevent hydration mismatch by generating data on client
-    setRevenueData(mockAgencyClients.map(c => ({ 
-      name: c.name, 
-      revenue: Math.floor(Math.random() * 50000 + 20000) 
-    })));
+    async function fetchData() {
+      try {
+        const [invRes, clientRes] = await Promise.all([
+          fetch("/api/agency/invoices"),
+          fetch("/api/agency/clients")
+        ]);
+        
+        const invData = await invRes.json();
+        const clientData = await clientRes.json();
+
+        if (invData.success && invData.invoices?.length > 0) {
+          setInvoices(invData.invoices);
+        }
+        
+        let currentClients = mockAgencyClients;
+        if (clientData.success && clientData.clients?.length > 0) {
+          setClients(clientData.clients);
+          currentClients = clientData.clients;
+        }
+
+        // Generate chart data based on loaded clients
+        setRevenueData(currentClients.map((c: any) => ({ 
+          name: c.name, 
+          revenue: Math.floor(Math.random() * 50000 + 20000) 
+        })));
+
+      } catch (error) {
+        console.error("Failed to fetch billing data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, []);
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -255,11 +288,11 @@ export default function AgencyBillingDashboard() {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{invoice.invoiceNumber}</TableCell>
                     <TableCell className="text-slate-600 dark:text-slate-400">
-                      {new Date(invoice.periodStart).toLocaleDateString()} - {new Date(invoice.periodEnd).toLocaleDateString()}
+                      {formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)}
                     </TableCell>
                     <TableCell className="font-bold">{formatCurrency(invoice.amount)}</TableCell>
                     <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                    <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -467,7 +500,7 @@ export default function AgencyBillingDashboard() {
                 <div className="text-right space-y-1">
                   <h1 className="text-4xl font-black text-slate-200 uppercase tracking-tighter">Invoice</h1>
                   <p className="font-mono text-sm">#{selectedInvoice.invoiceNumber}</p>
-                  <p className="text-sm text-slate-500">Issued: {new Date(selectedInvoice.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm text-slate-500">Issued: {formatDate(selectedInvoice.createdAt)}</p>
                 </div>
               </div>
 
@@ -480,7 +513,7 @@ export default function AgencyBillingDashboard() {
                 </div>
                 <div className="space-y-2 text-right">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payment Terms:</h4>
-                  <p className="font-medium">Due Date: {new Date(selectedInvoice.dueDate).toLocaleDateString()}</p>
+                  <p className="font-medium">Due Date: {formatDate(selectedInvoice.dueDate)}</p>
                   <p className="text-indigo-600 font-semibold">Status: {selectedInvoice.status}</p>
                 </div>
               </div>
