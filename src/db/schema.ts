@@ -878,3 +878,124 @@ export const royaltySchedulesRelations = relations(royaltySchedules, ({ one, man
   payments: many(supplementalPayments),
 }));
 
+// --- UNION PAYROLL ---
+
+export const unions = pgTable('unions', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), // SAG-AFTRA, IATSE, WGA, DGA, etc.
+  abbreviation: text('abbreviation'),
+  description: text('description'),
+  status: text('status').default('Active'), // Active, Inactive
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const unionContracts = pgTable('union_contracts', {
+  id: serial('id').primaryKey(),
+  unionId: integer('union_id').references(() => unions.id, { onDelete: 'cascade' }),
+  contractName: text('contract_name').notNull(),
+  duesType: text('dues_type').default('percentage'), // percentage, flat
+  duesRate: real('dues_rate').notNull(), // % of earnings or flat amount in cents
+  pensionRate: real('pension_rate').notNull(), // employer pension contribution %
+  healthWelfareRate: real('health_welfare_rate').notNull(), // employer H&W contribution %
+  workDuesRate: real('work_dues_rate').default(0), // employee-side deduction %
+  effectiveDate: date('effective_date').notNull(),
+  expirationDate: date('expiration_date'),
+  status: text('status').default('Active'), // Active, Expired, Upcoming
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const employeeUnionMemberships = pgTable('employee_union_memberships', {
+  id: serial('id').primaryKey(),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  unionId: integer('union_id').references(() => unions.id, { onDelete: 'cascade' }),
+  membershipNumber: text('membership_number'),
+  joinDate: date('join_date'),
+  status: text('status').default('Active'), // Active, Inactive, On Leave
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const unionPayrollCalculations = pgTable('union_payroll_calculations', {
+  id: serial('id').primaryKey(),
+  payrollId: integer('payroll_id').references(() => payrolls.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  unionId: integer('union_id').references(() => unions.id, { onDelete: 'cascade' }),
+  contractId: integer('contract_id').references(() => unionContracts.id, { onDelete: 'set null' }),
+  grossEarnings: integer('gross_earnings').notNull(), // in cents
+  duesDeduction: integer('dues_deduction').default(0), // employee side
+  workDuesDeduction: integer('work_dues_deduction').default(0), // employee side
+  pensionContribution: integer('pension_contribution').default(0), // employer side
+  healthWelfareContribution: integer('health_welfare_contribution').default(0), // employer side
+  fringeContribution: integer('fringe_contribution').default(0), // employer side
+  totalEmployeeDeductions: integer('total_employee_deductions').default(0),
+  totalEmployerContributions: integer('total_employer_contributions').default(0),
+  hoursWorked: real('hours_worked').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const unionContributionReports = pgTable('union_contribution_reports', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  unionId: integer('union_id').references(() => unions.id, { onDelete: 'cascade' }),
+  reportMonth: text('report_month').notNull(), // YYYY-MM
+  totalEarnings: integer('total_earnings').default(0),
+  totalDues: integer('total_dues').default(0),
+  totalPension: integer('total_pension').default(0),
+  totalHealthWelfare: integer('total_health_welfare').default(0),
+  totalFringe: integer('total_fringe').default(0),
+  employeeCount: integer('employee_count').default(0),
+  totalHours: real('total_hours').default(0),
+  status: text('status').default('Draft'), // Draft, Generated, Submitted, Confirmed
+  exportFormat: text('export_format'), // SAG-AFTRA CSV, IATSE CSV, Generic CSV
+  submittedAt: timestamp('submitted_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const unionFringeBenefits = pgTable('union_fringe_benefits', {
+  id: serial('id').primaryKey(),
+  contractId: integer('contract_id').references(() => unionContracts.id, { onDelete: 'cascade' }),
+  benefitName: text('benefit_name').notNull(), // Vacation Accrual, Holiday Pay, etc.
+  rate: real('rate').notNull(), // % of earnings
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// --- UNION RELATIONS ---
+
+export const unionsRelations = relations(unions, ({ one, many }) => ({
+  company: one(companies, { fields: [unions.companyId], references: [companies.id] }),
+  contracts: many(unionContracts),
+  memberships: many(employeeUnionMemberships),
+  reports: many(unionContributionReports),
+}));
+
+export const unionContractsRelations = relations(unionContracts, ({ one, many }) => ({
+  union: one(unions, { fields: [unionContracts.unionId], references: [unions.id] }),
+  fringeBenefits: many(unionFringeBenefits),
+  calculations: many(unionPayrollCalculations),
+}));
+
+export const employeeUnionMembershipsRelations = relations(employeeUnionMemberships, ({ one }) => ({
+  employee: one(employees, { fields: [employeeUnionMemberships.employeeId], references: [employees.id] }),
+  union: one(unions, { fields: [employeeUnionMemberships.unionId], references: [unions.id] }),
+}));
+
+export const unionPayrollCalculationsRelations = relations(unionPayrollCalculations, ({ one }) => ({
+  payroll: one(payrolls, { fields: [unionPayrollCalculations.payrollId], references: [payrolls.id] }),
+  employee: one(employees, { fields: [unionPayrollCalculations.employeeId], references: [employees.id] }),
+  union: one(unions, { fields: [unionPayrollCalculations.unionId], references: [unions.id] }),
+  contract: one(unionContracts, { fields: [unionPayrollCalculations.contractId], references: [unionContracts.id] }),
+}));
+
+export const unionContributionReportsRelations = relations(unionContributionReports, ({ one }) => ({
+  company: one(companies, { fields: [unionContributionReports.companyId], references: [companies.id] }),
+  union: one(unions, { fields: [unionContributionReports.unionId], references: [unions.id] }),
+}));
+
+export const unionFringeBenefitsRelations = relations(unionFringeBenefits, ({ one }) => ({
+  contract: one(unionContracts, { fields: [unionFringeBenefits.contractId], references: [unionContracts.id] }),
+}));
+

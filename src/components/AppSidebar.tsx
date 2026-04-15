@@ -47,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "History", href: "/payroll/history" },
       { label: "Tips & FICA", href: "/payroll/tips" },
       { label: "Supplemental Pay", href: "/payroll/supplemental-payments" },
+      { label: "Union Payroll", href: "/payroll/union" },
       { label: "GL Mapping", href: "/payroll/gl-mapping" },
     ]
   },
