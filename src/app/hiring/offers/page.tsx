@@ -5,9 +5,12 @@ import Link from "next/link";
 import { Plus, Search, Filter, FileText, CheckCircle2, XCircle, Clock, RefreshCw, X } from "lucide-react";
 import { mockAtsCandidates } from "@/data/mockAts";
 import { formatDate } from "@/utils/formatDate";
+import { HireCandidateModal } from "@/components/hiring/HireCandidateModal";
 
 export default function OffersDirectory() {
   const [filter, setFilter] = useState("All");
+  const [hireModalOpen, setHireModalOpen] = useState(false);
+  const [selectedHireData, setSelectedHireData] = useState<any>(null);
 
   // Mock offers by mapping candidates in Offer/Hired stage
   const offers = mockAtsCandidates
@@ -16,12 +19,35 @@ export default function OffersDirectory() {
         id: `off-${c.id}`,
         candidateId: c.id,
         candidateName: `${c.firstName} ${c.lastName}`,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        email: c.email,
+        phone: "+1 (555) 000-0000", // Hardcoded for mock
         jobTitle: c.jobId === 'job-1' ? 'Senior Frontend Engineer' : 'Product Manager',
-        salary: "$145,000",
+        salary: 145000,
         status: c.stage === 'Hired' ? 'Accepted' : c.stage === 'Withdrawn' ? 'Declined' : 'Pending',
         sentAt: c.appliedDate,
         expiresAt: new Date(new Date(c.appliedDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
      }));
+
+  const handleOpenHireModal = (offer: any) => {
+    setSelectedHireData({
+      candidate: {
+        id: offer.candidateId,
+        firstName: offer.firstName,
+        lastName: offer.lastName,
+        email: offer.email,
+        phone: offer.phone,
+      },
+      offer: {
+        id: offer.id.replace('off-', ''), // Assume DB ID is numeric if it existed
+        salary: offer.salary,
+        startDate: new Date().toISOString().split('T')[0], // Mock start date
+        title: offer.jobTitle,
+      }
+    });
+    setHireModalOpen(true);
+  };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -89,7 +115,7 @@ export default function OffersDirectory() {
                            {offer.jobTitle}
                         </td>
                         <td className="px-6 py-4 text-slate-900 dark:text-white font-medium">
-                           {offer.salary}
+                           ${offer.salary.toLocaleString()}
                         </td>
                         <td className="px-6 py-4">
                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
@@ -109,20 +135,31 @@ export default function OffersDirectory() {
                            <div className="text-xs text-red-500">Exp: {formatDate(offer.expiresAt)}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                           {offer.status === 'Pending' ? (
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg font-bold text-xs transition-colors">
-                                    <RefreshCw size={12} /> Resend
+                           <div className="flex items-center justify-end gap-3">
+                              {offer.status === 'Accepted' && (
+                                <button 
+                                  onClick={() => handleOpenHireModal(offer)}
+                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors shadow-sm"
+                                >
+                                  Move to Onboarding
+                                </button>
+                              )}
+                              
+                              {offer.status === 'Pending' ? (
+                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg font-bold text-xs transition-colors">
+                                       <RefreshCw size={12} /> Resend
+                                    </button>
+                                    <button className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-bold text-xs transition-colors">
+                                       <X size={12} /> Withdraw
+                                    </button>
+                                 </div>
+                              ) : (
+                                 <button className="text-blue-600 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity hover:underline">
+                                    View PDF
                                  </button>
-                                 <button className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg font-bold text-xs transition-colors">
-                                    <X size={12} /> Withdraw
-                                 </button>
-                              </div>
-                           ) : (
-                              <button className="text-blue-600 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity hover:underline">
-                                 View PDF
-                              </button>
-                           )}
+                              )}
+                           </div>
                         </td>
                      </tr>
                   ))}
@@ -130,6 +167,15 @@ export default function OffersDirectory() {
             </table>
          </div>
       </div>
+
+      {selectedHireData && (
+        <HireCandidateModal 
+          isOpen={hireModalOpen} 
+          onClose={() => setHireModalOpen(false)}
+          candidate={selectedHireData.candidate}
+          offer={selectedHireData.offer}
+        />
+      )}
     </div>
   );
 }

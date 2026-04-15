@@ -39,16 +39,20 @@ export const employees = pgTable('employees', {
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   firstName: text('first_name').notNull(),
   lastName: text('last_name'),
-  email: text('email'),
+  email: text('email'), // This will store the corporate email after activation
+  personalEmail: text('personal_email'), // candidate.email -> employee.personalEmail
+  personalPhone: text('personal_phone'), // candidate.phone -> employee.personalPhone
   avatar: text('avatar').default('https://api.dicebear.com/7.x/notionists/svg?seed=Employee&backgroundColor=transparent'),
   jobTitle: text('job_title'),
-  department: text('department'),
+  department: text('department'), // Display name
+  departmentId: text('department_id'), // Reference to department system
   salary: integer('salary'),
   employmentType: text('employment_type').default('full-time'),
-  location: text('location'),
+  location: text('location'), // Display name
+  locationId: text('location_id'), // Reference to location system
   locationType: text('location_type').default('On-Site'), // Remote, Hybrid, On-Site
   startDate: date('start_date'),
-  status: text('status').default('active'),
+  status: text('status').default('active'), // active, onboarding, pre_boarding, terminated
   managerId: integer('manager_id'), // Self-reference for Org Chart
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -157,6 +161,10 @@ export const atsJobs = pgTable('ats_jobs', {
   id: serial('id').primaryKey(),
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
+  department: text('department'),
+  location: text('location'),
+  employmentType: text('employment_type').default('Full-Time'),
+  managerId: integer('manager_id'),
   status: text('status').default('Active'),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -167,7 +175,26 @@ export const atsCandidates = pgTable('ats_candidates', {
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
   email: text('email'),
+  phone: text('phone'),
   stage: text('stage').default('New'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const atsOffers = pgTable('ats_offers', {
+  id: serial('id').primaryKey(),
+  candidateId: integer('candidate_id').references(() => atsCandidates.id, { onDelete: 'cascade' }),
+  jobId: integer('job_id').references(() => atsJobs.id, { onDelete: 'cascade' }),
+  salary: integer('salary'), // annual salary in dollars
+  signingBonus: integer('signing_bonus'),
+  equity: text('equity'),
+  startDate: date('start_date'),
+  title: text('title'), // offered job title (may differ from requisition)
+  departmentId: text('department_id'),
+  locationId: text('location_id'),
+  employmentType: text('employment_type').default('full-time'),
+  status: text('status').default('Pending'), // Pending, Accepted, Declined, Withdrawn
+  sentAt: timestamp('sent_at').defaultNow(),
+  respondedAt: timestamp('responded_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -195,6 +222,7 @@ export const onboardingCases = pgTable('onboarding_cases', {
   id: serial('id').primaryKey(),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
   templateId: integer('template_id').references(() => onboardingTemplates.id, { onDelete: 'set null' }),
+  candidateId: integer('candidate_id'), // ATS provenance — links back to the original candidate
   status: text('status').default('Active'),
   startDate: date('start_date'),
   createdAt: timestamp('created_at').defaultNow(),
