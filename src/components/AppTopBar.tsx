@@ -96,11 +96,13 @@ export default function AppTopBar() {
     ? pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1).replace(/-/g, " ") 
     : "Dashboard";
   
-  const breadcrumbItems = pathParts.map((part, index) => {
-    const label = part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, " ");
-    const href = index < pathParts.length - 1 ? "/" + pathParts.slice(0, index + 1).join("/") : undefined;
-    return { label, href };
-  });
+  const breadcrumbItems = pathParts.length > 1
+    ? pathParts.slice(1).map((part, index) => {
+        const label = part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, " ");
+        const href = "/" + pathParts.slice(0, index + 2).join("/");
+        return { label, href: index < pathParts.length - 2 ? href : undefined };
+      })
+    : [];
 
   return (
     <div className="sticky top-0 z-40 flex flex-col w-full shadow-sm">

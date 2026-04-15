@@ -24,17 +24,23 @@ export function TableRow({ children, className = "" }: { children: React.ReactNo
   return <tr className={`transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50 ${className}`}>{children}</tr>;
 }
 
-export function TableHead({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function TableHead({ children, className = "", ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={`h-11 px-4 text-left align-middle font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] ${className}`}>
+    <th 
+      className={`h-11 px-4 text-left align-middle font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] ${className}`}
+      {...props}
+    >
       {children}
     </th>
   );
 }
 
-export function TableCell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function TableCell({ children, className = "", ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={`p-4 align-middle text-slate-700 dark:text-slate-300 ${className}`}>
+    <td 
+      className={`p-4 align-middle text-slate-700 dark:text-slate-300 ${className}`}
+      {...props}
+    >
       {children}
     </td>
   );

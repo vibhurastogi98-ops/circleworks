@@ -105,8 +105,8 @@ const NAV_ITEMS: NavItem[] = [
     href: "/agency/billing",
     subItems: [
       { label: "Client Invoicing", href: "/agency/billing" },
-      { label: "Client Setup", href: "/settings/agency/clients" },
-      { label: "Profitability", href: "/reports/project-profitability" },
+      { label: "Client Setup", href: "/agency/clients" },
+      { label: "Profitability", href: "/agency/profitability" },
     ]
   },
   { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },

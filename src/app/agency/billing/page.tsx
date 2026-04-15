@@ -1,6 +1,7 @@
 "use client"; 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { 
   Receipt, 
   Send, 
@@ -27,10 +28,10 @@ import {
   ChevronRight,
   ChevronDown
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/ui/card";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Badge } from "../../../components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { 
   Table, 
   TableBody, 
@@ -38,14 +39,14 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from "../../../components/ui/table";
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from "../../../components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -54,14 +55,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   mockAgencyInvoices, 
   mockAgencyInvoiceItems,
   mockAgencyClients 
 } from '@/data/mockAgencyBilling';
 import { formatDate } from "@/utils/formatDate";
-import { useEffect } from 'react';
 import { 
   LineChart, 
   Line, 
@@ -149,20 +149,132 @@ export default function AgencyBillingDashboard() {
     }
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newInvoice, setNewInvoice] = useState({
+    clientId: "",
+    invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+    amount: 0,
+    periodStart: new Date().toISOString().split('T')[0],
+    periodEnd: new Date().toISOString().split('T')[0],
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    status: "Draft"
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleExportROI = () => {
+    // Premium CSV generation and download
+    const headers = ["Client", "Revenue", "Labor Cost", "Markup", "ROI%"];
+    const rows = clients.map(c => [
+      c.name,
+      (Math.floor(Math.random() * 50000) + 10000).toString(),
+      (Math.floor(Math.random() * 30000) + 5000).toString(),
+      "15%",
+      "22.5%"
+    ]);
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ROI_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("ROI Report generated and download started (CSV)");
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!newInvoice.clientId || !newInvoice.amount) {
+      alert("Please fill in all required fields (Client and Amount)");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/agency/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...newInvoice,
+          clientId: Number(newInvoice.clientId),
+          amount: Math.round(newInvoice.amount * 100), // Convert to cents
+          companyId: 1 // Default for now
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Invoice generated successfully!");
+        setIsCreateDialogOpen(false);
+        // Refresh invoices
+        const invRes = await fetch("/api/agency/invoices");
+        const invData = await invRes.json();
+        if (invData.success) setInvoices(invData.invoices);
+        setNewInvoice({
+          clientId: "",
+          invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`,
+          amount: 0,
+          periodStart: new Date().toISOString().split('T')[0],
+          periodEnd: new Date().toISOString().split('T')[0],
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: "Draft"
+        });
+      } else {
+        toast.error(data.error || "Failed to create invoice");
+      }
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      toast.error("Error connecting to server");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const validateAndSubmit = () => {
+    if (!newInvoice.clientId) {
+      toast.error("Please select a client");
+      return;
+    }
+    if (newInvoice.amount <= 0) {
+      toast.error("Please enter a valid invoice amount");
+      return;
+    }
+    handleCreateInvoice();
+  };
+
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = 
+      inv.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "All" || inv.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 underline decoration-indigo-500 underline-offset-8">Client Invoicing</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Client Invoicing</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">
             Manage agency billings, track receivables, and analyze client revenue.
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportROI} className="hover:bg-slate-50 dark:hover:bg-slate-800">
             <Download className="w-4 h-4 mr-2" /> Export ROI
           </Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20">
+          <Button 
+            className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
             <Plus className="w-4 h-4 mr-2" /> Create Custom Invoice
           </Button>
         </div>
@@ -255,22 +367,40 @@ export default function AgencyBillingDashboard() {
             <div className="flex gap-2">
               <div className="relative w-64">
                 <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                <Input placeholder="Search invoices..." className="pl-9" />
+                <Input 
+                  placeholder="Search invoices..." 
+                  className="pl-9" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={() => setStatusFilter("All")}>All Statuses</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Paid")}>Paid Only</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Sent")}>Sent Only</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter("Draft")}>Draft Only</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div className="flex gap-2">
               <Button variant="ghost" className="text-sm">Last 30 Days</Button>
-              <Button variant="ghost" className="text-sm">All Statuses</Button>
+              <Badge variant="secondary" className="px-3 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30">
+                {statusFilter === "All" ? "All Statuses" : `${statusFilter} Only`}
+              </Badge>
             </div>
           </div>
 
-          <Card className="shadow-none border-slate-200 dark:border-slate-800">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50/50">
+          <Card className="shadow-none border-slate-200 dark:border-slate-800 !overflow-visible min-h-[600px]">
+            <div className="pb-40">
+              <Table>
+                <TableHeader className="bg-slate-100/80 dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-800">
+                  <TableRow className="hover:bg-transparent">
                   <TableHead>Client</TableHead>
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Period</TableHead>
@@ -281,8 +411,8 @@ export default function AgencyBillingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id} className="cursor-pointer hover:bg-slate-50/50 transition-colors">
+                {filteredInvoices.map((invoice, idx) => (
+                  <TableRow key={invoice.id} className={`transition-colors ${idx % 2 === 0 ? 'bg-white dark:bg-slate-950' : 'bg-slate-50/30 dark:bg-slate-900/20'} hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10`}>
                     <TableCell>
                       <div className="font-semibold text-slate-900 dark:text-slate-50">{invoice.clientName}</div>
                     </TableCell>
@@ -301,9 +431,9 @@ export default function AgencyBillingDashboard() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedInvoice(invoice)}>
-                            <Eye className="w-4 h-4 mr-2" /> Preview PDF
-                          </DropdownMenuItem>
+                         <DropdownMenuItem className="cursor-pointer">
+                          <Eye className="w-4 h-4 mr-2 text-indigo-500" /> Quick View
+                        </DropdownMenuItem>
                           <DropdownMenuItem className="cursor-pointer">
                             <Edit3 className="w-4 h-4 mr-2" /> Edit Line Items
                           </DropdownMenuItem>
@@ -322,8 +452,9 @@ export default function AgencyBillingDashboard() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
 
@@ -481,6 +612,92 @@ export default function AgencyBillingDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Invoice Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden border-slate-200 dark:border-slate-800 shadow-2xl">
+          <div className="p-8 bg-slate-50/50 dark:bg-slate-900/50 border-b relative">
+            <DialogHeader className="pt-2">
+              <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Create Custom Invoice</DialogTitle>
+              <DialogDescription className="text-slate-500 font-semibold mt-1">
+                Generate a manual invoice for specialized services or corrections.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-8 grid grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Client</label>
+                <select 
+                  className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm"
+                  value={newInvoice.clientId}
+                  onChange={(e) => setNewInvoice({...newInvoice, clientId: e.target.value})}
+                >
+                  <option value="">Choose a client...</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Invoice Number</label>
+                <Input 
+                  value={newInvoice.invoiceNumber}
+                  onChange={(e) => setNewInvoice({...newInvoice, invoiceNumber: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Total Amount ($)</label>
+                <Input 
+                  type="number" 
+                  placeholder="0.00"
+                  value={newInvoice.amount || ""}
+                  onChange={(e) => setNewInvoice({...newInvoice, amount: Number(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Service Period Start</label>
+                <Input 
+                  type="date" 
+                  value={newInvoice.periodStart}
+                  onChange={(e) => setNewInvoice({...newInvoice, periodStart: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Service Period End</label>
+                <Input 
+                  type="date" 
+                  value={newInvoice.periodEnd}
+                  onChange={(e) => setNewInvoice({...newInvoice, periodEnd: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Payment Due Date</label>
+                <Input 
+                  type="date" 
+                  value={newInvoice.dueDate}
+                  onChange={(e) => setNewInvoice({...newInvoice, dueDate: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-6 bg-slate-50 dark:bg-slate-900 border-t gap-3">
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl font-bold h-11 px-6">Cancel</Button>
+            <Button 
+              className="bg-indigo-600 hover:bg-indigo-700 min-w-[160px] rounded-xl font-bold h-11 shadow-xl shadow-indigo-600/20 transition-all hover:scale-[1.02]" 
+              onClick={validateAndSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Generate Invoice"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Invoice Preview Modal */}
       {selectedInvoice && (

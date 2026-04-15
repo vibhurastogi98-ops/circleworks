@@ -56,8 +56,8 @@ export function DialogContent({
   );
 }
 
-export function DialogHeader({ children }: { children: React.ReactNode }) {
-  return <div className="p-6 border-b border-slate-100 dark:border-slate-800">{children}</div>;
+export function DialogHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`p-6 border-b border-slate-100 dark:border-slate-800 ${className}`}>{children}</div>;
 }
 
 export function DialogTitle({

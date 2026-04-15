@@ -5,12 +5,27 @@ import { eq, desc } from "drizzle-orm";
 
 export async function GET() {
   try {
-    const projects = await db.query.agencyProjects.findMany({
-      with: {
-        client: true,
-      },
-      orderBy: [desc(agencyProjects.createdAt)],
-    });
+    const projects = await db
+      .select({
+        id: agencyProjects.id,
+        name: agencyProjects.name,
+        description: agencyProjects.description,
+        budget: agencyProjects.budget,
+        startDate: agencyProjects.startDate,
+        endDate: agencyProjects.endDate,
+        status: agencyProjects.status,
+        companyId: agencyProjects.companyId,
+        clientId: agencyProjects.clientId,
+        createdAt: agencyProjects.createdAt,
+        client: {
+          id: agencyClients.id,
+          name: agencyClients.name,
+          logoUrl: agencyClients.logoUrl
+        }
+      })
+      .from(agencyProjects)
+      .leftJoin(agencyClients, eq(agencyProjects.clientId, agencyClients.id))
+      .orderBy(desc(agencyProjects.createdAt));
 
     return NextResponse.json({
       success: true,
