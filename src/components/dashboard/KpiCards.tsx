@@ -35,8 +35,8 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 
   const chartData = data.map((v, i) => ({ v, i }));
   return (
-    <div className="w-[72px] h-[32px]">
-      {mounted ? (
+    <div className="w-[72px] h-[32px] overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
+      {mounted && data?.length > 0 ? (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
             <defs>

@@ -132,7 +132,7 @@ export default function AppSidebar() {
   // Derive display info from Clerk user
   const displayName = user?.fullName || user?.firstName || "User";
   const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${displayName}&backgroundColor=transparent`;
+  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.id || "fallback"}&backgroundColor=transparent`;
   
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
   const { socket } = useSocket();
