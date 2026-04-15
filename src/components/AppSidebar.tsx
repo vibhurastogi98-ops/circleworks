@@ -46,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Pay Schedule", href: "/payroll/schedule" },
       { label: "History", href: "/payroll/history" },
       { label: "Tips & FICA", href: "/payroll/tips" },
+      { label: "Supplemental Pay", href: "/payroll/supplemental-payments" },
       { label: "GL Mapping", href: "/payroll/gl-mapping" },
     ]
   },

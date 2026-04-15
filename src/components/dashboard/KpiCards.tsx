@@ -64,14 +64,15 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 function ComplianceGauge({ score }: { score: number }) {
+  const safeScore = isNaN(score) ? 0 : score;
   const getColor = (s: number) => {
     if (s < 60) return { ring: "#EF4444", bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400" };
     if (s < 80) return { ring: "#F59E0B", bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600 dark:text-amber-400" };
     return { ring: "#10B981", bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-600 dark:text-emerald-400" };
   };
-  const c = getColor(score);
+  const c = getColor(safeScore);
   const circumference = 2 * Math.PI * 18;
-  const offset = circumference - (score / 100) * circumference;
+  const offset = circumference - (safeScore / 100) * circumference;
 
   return (
     <div className="relative w-12 h-12">
@@ -86,12 +87,12 @@ function ComplianceGauge({ score }: { score: number }) {
           strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          strokeDashoffset={isNaN(offset) ? circumference : offset}
           style={{ transition: "stroke-dashoffset 1s ease-out" }}
         />
       </svg>
       <span className={`absolute inset-0 flex items-center justify-center text-[11px] font-bold ${c.text}`}>
-        {score}
+        {safeScore}
       </span>
     </div>
   );

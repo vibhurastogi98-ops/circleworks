@@ -799,3 +799,82 @@ export const journalEntryLines = pgTable('journal_entry_lines', {
   department: text('department'), // for class tracking
 });
 
+// --- SUPPLEMENTAL PAYMENTS & ROYALTIES ---
+
+export const supplementalPaymentTypeEnum = pgEnum('supplemental_payment_type', ['Royalty', 'Residual', 'Advance', 'Commission', 'Signing Bonus']);
+export const supplementalPaymentStatusEnum = pgEnum('supplemental_payment_status', ['Pending', 'Approved', 'Paid', 'Held', 'Recouping']);
+
+export const supplementalPayments = pgTable('supplemental_payments', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+  contractorId: integer('contractor_id').references(() => contractors.id, { onDelete: 'set null' }),
+  recipientName: text('recipient_name').notNull(),
+  recipientType: text('recipient_type').notNull(), // W-2 Employee, 1099 Contractor
+  paymentType: text('payment_type').notNull(), // Royalty, Residual, Advance, Commission, Signing Bonus
+  description: text('description'),
+  amount: integer('amount').notNull(), // in cents
+  taxTreatment: text('tax_treatment'), // Supplemental flat rate (22%), 1099-MISC Box 2, Non-taxable (unrecouped advance)
+  status: text('status').default('Pending'),
+  scheduledDate: date('scheduled_date'),
+  paidDate: date('paid_date'),
+  projectTitle: text('project_title'),
+  notes: text('notes'),
+  royaltyScheduleId: integer('royalty_schedule_id'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const royaltySchedules = pgTable('royalty_schedules', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+  contractorId: integer('contractor_id').references(() => contractors.id, { onDelete: 'set null' }),
+  recipientName: text('recipient_name').notNull(),
+  recipientType: text('recipient_type').notNull(),
+  projectTitle: text('project_title').notNull(),
+  royaltyType: text('royalty_type').notNull(), // Percentage, Flat Per Unit
+  rate: real('rate').notNull(),
+  rateUnit: text('rate_unit'),
+  unitsSold: integer('units_sold').default(0),
+  unitsThreshold: integer('units_threshold').default(0),
+  frequency: text('frequency').default('Quarterly'), // Monthly, Quarterly, Per Event, One-Time
+  advanceBalance: integer('advance_balance').default(0), // in cents
+  totalRecouped: integer('total_recouped').default(0),
+  totalEarned: integer('total_earned').default(0),
+  status: text('status').default('Draft'), // Active, Paused, Completed, Draft
+  nextPaymentDate: date('next_payment_date'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const residualPayments = pgTable('residual_payments', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  talentName: text('talent_name').notNull(),
+  showTitle: text('show_title').notNull(),
+  network: text('network'),
+  reuseType: text('reuse_type'), // Network Rerun, Streaming, Cable Rerun
+  scale: text('scale'), // SAG-AFTRA Scale, SAG-AFTRA Overscale
+  amount: integer('amount').notNull(),
+  category1099: text('category_1099').default('1099-MISC Box 2'),
+  paymentDate: date('payment_date'),
+  status: text('status').default('Imported'), // Imported, Verified, Paid, Disputed
+  batchId: text('batch_id'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const supplementalPaymentsRelations = relations(supplementalPayments, ({ one }) => ({
+  company: one(companies, { fields: [supplementalPayments.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [supplementalPayments.employeeId], references: [employees.id] }),
+  contractor: one(contractors, { fields: [supplementalPayments.contractorId], references: [contractors.id] }),
+}));
+
+export const royaltySchedulesRelations = relations(royaltySchedules, ({ one, many }) => ({
+  company: one(companies, { fields: [royaltySchedules.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [royaltySchedules.employeeId], references: [employees.id] }),
+  contractor: one(contractors, { fields: [royaltySchedules.contractorId], references: [contractors.id] }),
+  payments: many(supplementalPayments),
+}));
+
