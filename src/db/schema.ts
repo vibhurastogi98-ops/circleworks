@@ -12,6 +12,9 @@ export const assetStatusEnum = pgEnum('asset_status', ['Available', 'Assigned', 
 export const contractorStatusEnum = pgEnum('contractor_status', ['Active', 'Onboarding', 'Pending', 'Inactive']);
 export const contractStatusEnum = pgEnum('contract_status', ['Draft', 'Pending Signature', 'Active', 'Expired', 'Terminated']);
 export const invoiceStatusEnum = pgEnum('invoice_status', ['Pending', 'Approved', 'Revision Requested', 'Rejected', 'Paid']);
+export const agencyInvoiceStatusEnum = pgEnum('agency_invoice_status', ['Draft', 'Approved', 'Sent', 'Paid']);
+export const billingRateTypeEnum = pgEnum('billing_rate_type', ['cost-plus', 'fixed', 'hourly']);
+export const billingCycleEnum = pgEnum('billing_cycle', ['weekly', 'bi-weekly', 'monthly']);
 
 // --- TABLES ---
 
@@ -346,6 +349,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const companiesRelations = relations(companies, ({ many }) => ({
   employees: many(employees),
   payrolls: many(payrolls),
+  agencyClients: many(agencyClients),
+  agencyInvoices: many(agencyInvoices),
 }));
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({
@@ -999,3 +1004,70 @@ export const unionFringeBenefitsRelations = relations(unionFringeBenefits, ({ on
   contract: one(unionContracts, { fields: [unionFringeBenefits.contractId], references: [unionContracts.id] }),
 }));
 
+
+// --- AGENCY CLIENT BILLING ---
+
+export const agencyClients = pgTable('agency_clients', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  email: text('email'),
+  contactName: text('contact_name'),
+  logoUrl: text('logo_url'),
+  billingRateType: text('billing_rate_type').default('cost-plus'), // cost-plus, fixed, hourly
+  markupPercentage: real('markup_percentage').default(0),
+  fixedFee: integer('fixed_fee').default(0),
+  hourlyRate: integer('hourly_rate').default(0),
+  billingCycle: text('billing_cycle').default('monthly'), // weekly, bi-weekly, monthly
+  paymentTerms: text('payment_terms').default('Net 30'), // Net 15, Net 30, Net 45
+  accountingSync: text('accounting_sync'), // QuickBooks, Xero
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const agencyInvoices = pgTable('agency_invoices', {
+  id: serial('id').primaryKey(),
+  clientId: integer('client_id').references(() => agencyClients.id, { onDelete: 'cascade' }),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  invoiceNumber: text('invoice_number').notNull(),
+  periodStart: date('period_start').notNull(),
+  periodEnd: date('period_end').notNull(),
+  amount: integer('amount').notNull(),
+  status: text('status').default('Draft'), // Draft, Approved, Sent, Paid
+  dueDate: date('due_date').notNull(),
+  sentAt: timestamp('sent_at'),
+  paidAt: timestamp('paid_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const agencyInvoiceItems = pgTable('agency_invoice_items', {
+  id: serial('id').primaryKey(),
+  invoiceId: integer('invoice_id').references(() => agencyInvoices.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+  description: text('description').notNull(), // e.g., "Software Engineer - Jan 1-15"
+  unitPrice: integer('unit_price').default(0), // hourly rate or salary portion
+  quantity: real('quantity').default(1), // hours or 1 for fixed
+  cost: integer('cost').notNull(), // original cost to agency
+  markup: integer('markup').default(0), // markup amount
+  total: integer('total').notNull(), // cost + markup
+  itemType: text('item_type').default('labor'), // labor, expense, other
+});
+
+// --- AGENCY RELATIONS ---
+
+export const agencyClientsRelations = relations(agencyClients, ({ one, many }) => ({
+  company: one(companies, { fields: [agencyClients.companyId], references: [companies.id] }),
+  invoices: many(agencyInvoices),
+}));
+
+export const agencyInvoicesRelations = relations(agencyInvoices, ({ one, many }) => ({
+  client: one(agencyClients, { fields: [agencyInvoices.clientId], references: [agencyClients.id] }),
+  company: one(companies, { fields: [agencyInvoices.companyId], references: [companies.id] }),
+  items: many(agencyInvoiceItems),
+}));
+
+export const agencyInvoiceItemsRelations = relations(agencyInvoiceItems, ({ one }) => ({
+  invoice: one(agencyInvoices, { fields: [agencyInvoiceItems.invoiceId], references: [agencyInvoices.id] }),
+  employee: one(employees, { fields: [agencyInvoiceItems.employeeId], references: [employees.id] }),
+}));

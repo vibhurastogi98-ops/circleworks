@@ -99,6 +99,16 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Custom Builder", href: "/reports/custom" },
     ]
   },
+  {
+    label: "Agency",
+    icon: Building2,
+    href: "/agency/billing",
+    subItems: [
+      { label: "Client Invoicing", href: "/agency/billing" },
+      { label: "Client Setup", href: "/settings/agency/clients" },
+      { label: "Profitability", href: "/reports/project-profitability" },
+    ]
+  },
   { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
   { label: "Settings", icon: Settings, href: "/settings/company" },
   { label: "Help", icon: HelpCircle, href: "/help" },
