@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import QueryProvider from "@/components/QueryProvider";
+
 
 interface ClientCompany {
   id: string;
@@ -77,7 +77,7 @@ export default function AccountantPortalLayout({
   const isNavActive = (href: string) => pathname === href;
 
   return (
-    <QueryProvider>
+    
       <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
         {/* Mobile Overlay */}
         <AnimatePresence>
@@ -286,6 +286,6 @@ export default function AccountantPortalLayout({
           </main>
         </div>
       </div>
-    </QueryProvider>
+    
   );
 }

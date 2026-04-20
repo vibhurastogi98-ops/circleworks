@@ -41,6 +41,7 @@ export function useDashboardData() {
       currentUser: { firstName: "Guest", lastName: "", companyName: displayCompanyName, logoUrl: displayLogoUrl },
       nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
       kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
+      isNewUser: false,
       alerts: [], payrollTrend: [], quickActions: [], newHires: [], teamCalendar: [], activityFeed: [],
     };
   }

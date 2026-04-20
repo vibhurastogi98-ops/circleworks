@@ -4,11 +4,11 @@ import React from "react";
 import Link from "next/link";
 import AppSidebar from "@/components/AppSidebar";
 import AppTopBar from "@/components/AppTopBar";
-import QueryProvider from "@/components/QueryProvider";
+
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <QueryProvider>
+    
       <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
         
         {/* Sidebar */}
@@ -74,6 +74,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           </main>
         </div>
       </div>
-    </QueryProvider>
+    
   );
 }

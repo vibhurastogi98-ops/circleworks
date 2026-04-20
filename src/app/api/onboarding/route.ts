@@ -7,8 +7,14 @@ import { auth } from "@clerk/nextjs/server";
 export async function GET() {
   try {
     const { userId } = await auth();
+    
+    // IF NOT LOGGED IN, RETURN MOCK ONBOARDING CASES (Remove Login Dependency)
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json([
+        { id: "101", employeeId: 1, employeeName: "Sarah Smith", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", department: "Engineering", startDate: "2024-05-01", phase: "Pre-Hire", tasks: [ { status: "Complete" }, { status: "Pending" } ], onboardingPercent: 50 },
+        { id: "102", employeeId: 2, employeeName: "Michael Chen", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", department: "Design", startDate: "2024-05-15", phase: "Week 1", tasks: [ { status: "Complete" }, { status: "Complete" } ], onboardingPercent: 100 },
+        { id: "103", employeeId: 3, employeeName: "Emma Watson", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", department: "Marketing", startDate: "2024-06-01", phase: "Week 2", tasks: [ { status: "Pending" } ], onboardingPercent: 10 },
+      ]);
     }
 
     // Find the user's company

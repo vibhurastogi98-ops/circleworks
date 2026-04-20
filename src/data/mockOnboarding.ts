@@ -56,7 +56,7 @@ export interface DocumentTemplate {
 
 export const mockOnboardingCases: OnboardingCase[] = [
   {
-    id: 'obc-1', employeeId: 'emp-new-1', employeeName: 'Priya Sharma', avatar: 'https://i.pravatar.cc/150?u=priya', department: 'Engineering', startDate: '2024-10-01', type: 'onboarding', phase: 'Pre-Hire',
+    id: 'obc-1', employeeId: 'emp-new-1', employeeName: 'Priya Sharma', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Priya&backgroundColor=transparent', department: 'Engineering', startDate: '2024-10-01', type: 'onboarding', phase: 'Pre-Hire',
     tasks: [
       { id: 't1', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-09-25', phase: 'Pre-Hire' },
       { id: 't2', title: 'Ship laptop & peripherals', assignee: 'IT', status: 'Complete', dueDate: '2024-09-26', phase: 'Pre-Hire' },
@@ -71,7 +71,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     ],
   },
   {
-    id: 'obc-2', employeeId: 'emp-new-2', employeeName: 'Marcus Chen', avatar: 'https://i.pravatar.cc/150?u=marcus', department: 'Product', startDate: '2024-10-07', type: 'onboarding', phase: 'Pre-Hire',
+    id: 'obc-2', employeeId: 'emp-new-2', employeeName: 'Marcus Chen', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Marcus&backgroundColor=transparent', department: 'Product', startDate: '2024-10-07', type: 'onboarding', phase: 'Pre-Hire',
     tasks: [
       { id: 't11', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-10-01', phase: 'Pre-Hire' },
       { id: 't12', title: 'Ship laptop & peripherals', assignee: 'IT', status: 'Pending', dueDate: '2024-10-03', phase: 'Pre-Hire' },
@@ -81,7 +81,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     ],
   },
   {
-    id: 'obc-3', employeeId: 'emp-new-3', employeeName: 'Keiko Tanaka', avatar: 'https://i.pravatar.cc/150?u=keiko', department: 'Marketing', startDate: '2024-09-15', type: 'onboarding', phase: 'Week 2',
+    id: 'obc-3', employeeId: 'emp-new-3', employeeName: 'Keiko Tanaka', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Keiko&backgroundColor=transparent', department: 'Marketing', startDate: '2024-09-15', type: 'onboarding', phase: 'Week 2',
     tasks: [
       { id: 't16', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-09-10', phase: 'Pre-Hire' },
       { id: 't17', title: 'Ship laptop', assignee: 'IT', status: 'Complete', dueDate: '2024-09-12', phase: 'Pre-Hire' },
