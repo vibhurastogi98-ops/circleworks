@@ -42,17 +42,6 @@ export default function EmployeesDirectoryPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | number | null>(null);
 
 
-  // Show error state if there's an error
-  if (error) {
-    return (
-      <div className="flex flex-col gap-6 w-full">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <h3 className="text-red-800 dark:text-red-200 font-semibold">Error loading employees</h3>
-          <p className="text-red-600 dark:text-red-400 text-sm mt-1">{error.message || "Unknown error occurred"}</p>
-        </div>
-      </div>
-    );
-  }
 
   // Filter employees based on search and filters
   const filteredEmployees = useMemo(() => {
@@ -71,6 +60,37 @@ export default function EmployeesDirectoryPage() {
     
     return filtered;
   }, [employees, search, deptFilter, statusFilter]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeDropdown) {
+        const target = event.target as Element;
+        // Check if click is outside any dropdown menu
+        const isInsideDropdown = target.closest('[data-dropdown-menu]');
+        if (!isInsideDropdown) {
+          setActiveDropdown(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeDropdown]);
+
+  // Show error state if there's an error (Moved after hooks to avoid "fewer hooks" error)
+  if (error) {
+    return (
+      <div className="flex flex-col gap-6 w-full">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <h3 className="text-red-800 dark:text-red-200 font-semibold">Error loading employees</h3>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-1">{error.message || "Unknown error occurred"}</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleActionClick = async (employeeId: string | number, action: string) => {
     console.log(`Action: ${action} for employee: ${employeeId}`);
@@ -124,25 +144,6 @@ export default function EmployeesDirectoryPage() {
         break;
     }
   };
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (activeDropdown) {
-        const target = event.target as Element;
-        // Check if click is outside any dropdown menu
-        const isInsideDropdown = target.closest('[data-dropdown-menu]');
-        if (!isInsideDropdown) {
-          setActiveDropdown(null);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [activeDropdown]);
 
   const handleDownloadCSV = () => {
     console.log("CSV download button clicked!");
