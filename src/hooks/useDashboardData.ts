@@ -15,15 +15,15 @@ import {
 export function useDashboardData() {
   const { user, isLoaded } = useUser();
 
-  // 1. Fetch Real Dashboard Stats
+  // 1. Fetch Dashboard Stats (No longer blocking if not logged in)
   const { data: liveStats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       const res = await fetch("/api/dashboard/stats");
-      if (!res.ok) throw new Error("Failed to fetch stats");
+      if (!res.ok) return null; // Fallback gracefully
       return res.json();
     },
-    enabled: isLoaded && !!user?.publicMetadata?.hasData,
+    enabled: true, // Always fetch, fallback handled below
   });
 
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
@@ -34,10 +34,11 @@ export function useDashboardData() {
   const displayCompanyName = clerkCompanyName || localCompanyName || "Your Company";
   const displayLogoUrl = clerkLogoUrl || localLogoUrl;
 
-  if (!isLoaded || (user?.publicMetadata?.hasData && statsLoading)) {
+  // REMOVE LOGIN DEPENDENCY: Don't block on isLoaded if we want to show guest data instantly
+  if (statsLoading) {
     return {
       isLoading: true,
-      currentUser: { firstName: "---", lastName: "", companyName: displayCompanyName, logoUrl: displayLogoUrl },
+      currentUser: { firstName: "Guest", lastName: "", companyName: displayCompanyName, logoUrl: displayLogoUrl },
       nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
       kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
       alerts: [], payrollTrend: [], quickActions: [], newHires: [], teamCalendar: [], activityFeed: [],

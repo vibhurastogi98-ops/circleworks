@@ -24,10 +24,10 @@ export default function AppTopBar() {
   const { signOut } = useClerk();
   const { user } = useUser();
 
-  // Derive display info from Clerk user (fallback to defaults)
-  const displayName = user?.fullName || user?.firstName || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.id || "fallback"}&backgroundColor=transparent`;
+  // Derive info (Remove login dependency with Guest fallback)
+  const displayName = user?.fullName || user?.firstName || "Guest";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "guest@circleworks.com";
+  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=guest&backgroundColor=transparent`;
   const { toggleSidebar } = useSidebarStore();
   
   // Platform global state
