@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, AlertTriangle, Mail } from "lucide-react";
-import { useSignIn } from "@clerk/nextjs/legacy";
 
 const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -16,7 +15,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
-  const { isLoaded, signIn } = useSignIn();
+  const isLoaded = true;
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -29,8 +28,6 @@ export default function ForgotPasswordPage() {
   });
 
   const onSubmit = async (data: FormData) => {
-    if (!isLoaded) return;
-    
     // Simulate rate limit
     if (requests >= 3) {
       setRateLimited(true);
@@ -41,15 +38,13 @@ export default function ForgotPasswordPage() {
     setRateLimited(false);
     
     try {
-      // In a real app we might call signIn.create({ strategy: "reset_password_email_code", identifier: data.email });
-      // But we are supporting a "token link" flow per requirements, so we'll mock the success UI
+      // Guest Mode: Mocking the success UI
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setRequests(prev => prev + 1);
       setSubmittedEmail(data.email);
     } catch (err: any) {
       console.error(err);
-      // fallback
       setSubmittedEmail(data.email);
     } finally {
       setLoading(false);

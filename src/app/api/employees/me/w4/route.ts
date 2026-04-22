@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { users, employees, employeeDocuments } from "@/db/schema";
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
     
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const data = await req.json();
     
     // Find employee record based on clerk User ID

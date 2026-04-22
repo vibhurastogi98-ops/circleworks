@@ -2,14 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { announcements, users } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const searchParams = req.nextUrl.searchParams;
     const filter = searchParams.get('filter') || 'All'; // All, Active, Scheduled, Expired
@@ -39,10 +36,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     // Usually we check if user is admin, assume yes for settings
     const body = await req.json();

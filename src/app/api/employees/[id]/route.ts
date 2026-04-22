@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, employeeBankAccounts, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
 import { users } from "@/db/schema";
 
 export async function GET(
@@ -31,7 +30,7 @@ export async function GET(
     });
 
     if (!employee) {
-      // IF NOT FOUND AND MOCK ID, RETURN MOCK DATA (Remove Login Dependency)
+      // IF NOT FOUND AND MOCK ID, RETURN MOCK DATA (Safety fallback)
       if (employeeId >= 1 && employeeId <= 4) {
         const mocks = [
           { id: 1, firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15", salary: 145000 },
@@ -44,9 +43,9 @@ export async function GET(
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    // Role-based visibility filtering
-    const { userId: clerkId } = await auth();
-    let requesterRole = 'employee';
+    // Guest Mode: Authentication disabled
+    const clerkId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    let requesterRole = 'admin'; // Always admin in guest mode for full visibility
     let requesterEmployeeId = null;
 
     if (clerkId) {
@@ -55,7 +54,7 @@ export async function GET(
         with: { employees: true }
       });
       if (user) {
-        requesterRole = user.role || 'employee';
+        requesterRole = user.role || 'admin';
         requesterEmployeeId = user.employees?.[0]?.id || null;
       }
     }
@@ -71,7 +70,6 @@ export async function GET(
     const canSeeBank = isSelf || isAdmin;
     const canSeeSalary = isAdmin || isHR || isManager;
     const canSeePersonal = isSelf || isAdmin || isHR;
-    const canSeePerformance = isSelf || isManager || isHR;
 
     if (!canSeeBank) {
       delete sanitized.bankAccounts;
@@ -87,11 +85,6 @@ export async function GET(
       delete sanitized.onboardingCases;
     }
 
-    if (!isManager && !isHR && !isAdmin && !isSelf) {
-      delete sanitized.ptoRequests;
-      delete sanitized.timesheets;
-    }
-
     return NextResponse.json(sanitized);
   } catch (error: any) {
     console.error("[Employee GET Error]", error);
@@ -104,10 +97,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const { id } = await params;
     const employeeId = parseInt(id);
@@ -147,10 +138,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const { id } = await params;
     const employeeId = parseInt(id);

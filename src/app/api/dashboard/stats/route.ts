@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, payrolls, ptoRequests, timesheets, users, companies } from "@/db/schema";
 import { desc, count, sum, sql, and, gte, or, eq } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {

@@ -4,23 +4,12 @@ import { employees, employeeBankAccounts, onboardingCases, users } from "@/db/sc
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 import { desc, sql, eq } from "drizzle-orm";
-import { clerkClient, auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    // Get current authenticated user
-    const { userId } = await auth();
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
     
-    // IF NOT LOGGED IN, RETURN MOCK EMPLOYEES (Remove Login Dependency)
-    if (!userId) {
-      return NextResponse.json([
-        { id: "1", firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15" },
-        { id: "2", firstName: "Michael", lastName: "Chen", email: "m.chen@example.com", jobTitle: "Product Designer", department: "Design", employmentType: "full-time", status: "active", location: "San Francisco, CA", locationType: "Remote", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", startDate: "2023-01-10" },
-        { id: "3", firstName: "Emma", lastName: "Watson", email: "emma.w@example.com", jobTitle: "Marketing Manager", department: "Marketing", employmentType: "full-time", status: "onboarding", location: "London, UK", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", startDate: "2024-04-01" },
-        { id: "4", firstName: "David", lastName: "Lee", email: "d.lee@example.com", jobTitle: "Sales Director", department: "Sales", employmentType: "full-time", status: "active", location: "Austin, TX", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=David&backgroundColor=transparent", startDate: "2021-11-20" },
-      ]);
-    }
-
     // Find the user's employee record to get their company
     const [userEmployee] = await db
       .select({ companyId: employees.companyId, role: users.role, requesterEmployeeId: employees.id })
@@ -31,8 +20,13 @@ export async function GET() {
     let allEmployees;
 
     if (!userEmployee || !userEmployee.companyId) {
-      // Return empty array if user is not associated with a company
-      return NextResponse.json([]);
+      // IF NOT FOUND IN DB, RETURN MOCK EMPLOYEES (Safety fallback)
+      return NextResponse.json([
+        { id: "1", firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15" },
+        { id: "2", firstName: "Michael", lastName: "Chen", email: "m.chen@example.com", jobTitle: "Product Designer", department: "Design", employmentType: "full-time", status: "active", location: "San Francisco, CA", locationType: "Remote", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", startDate: "2023-01-10" },
+        { id: "3", firstName: "Emma", lastName: "Watson", email: "emma.w@example.com", jobTitle: "Marketing Manager", department: "Marketing", employmentType: "full-time", status: "onboarding", location: "London, UK", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", startDate: "2024-04-01" },
+        { id: "4", firstName: "David", lastName: "Lee", email: "d.lee@example.com", jobTitle: "Sales Director", department: "Sales", employmentType: "full-time", status: "active", location: "Austin, TX", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=David&backgroundColor=transparent", startDate: "2021-11-20" },
+      ]);
     } else {
       // Get employees filtered by company
       allEmployees = await db.query.employees.findMany({
@@ -60,30 +54,15 @@ export async function GET() {
         delete sanitized.salary;
       }
       
-      // Personal fields are generally not on the base employee list, but if they were
-      if (!isSelf && !isAdmin && !isHR && !isManager) {
-        // Just the basic directory info: name, title, department, location, avatar
-        // Delete things like personal email if we distinguish it, but mostly we delete salary and performance
-      }
-      
       return sanitized;
     });
 
     return NextResponse.json(sanitizedEmployees);
   } catch (error: any) {
     console.error("[Employees GET Error]", error);
-    
-    // Check for specific database connection errors
-    if (error.code === 'ECONNREFUSED' || error.message?.includes('DATABASE_URL')) {
-      return NextResponse.json({ 
-        error: "Database Connection Error", 
-        message: "The application could not connect to the database. Please ensure DATABASE_URL is set in .env.local and the database is running."
-      }, { status: 503 }); // Service Unavailable
-    }
-
     return NextResponse.json({ 
       error: "Internal Server Error", 
-      message: "Failed to fetch employees. Check server logs."
+      message: "Failed to fetch employees."
     }, { status: 500 });
   }
 }
@@ -91,7 +70,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId } = await auth();
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     // 1. VALIDATION
     if (!body.firstName || !body.email) {
@@ -112,7 +92,7 @@ export async function POST(req: Request) {
 
     // 2.1 GUARD: Reject if company cannot be resolved
     if (!companyId) {
-      console.error("[Employees POST] Could not resolve companyId for user:", userId);
+      console.error("[Employees POST] Could not resolve companyId for guest user");
       return Response.json({ 
         error: "Your account is not linked to a company. Please complete company setup first." 
       }, { status: 400 });
@@ -164,4 +144,3 @@ export async function POST(req: Request) {
     return Response.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
-

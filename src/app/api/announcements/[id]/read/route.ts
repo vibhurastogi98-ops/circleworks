@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { announcements, announcementReads, users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const { id } = await params;
     const annId = parseInt(id);

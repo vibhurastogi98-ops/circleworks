@@ -2,17 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { employees, users } from '@/db/schema';
 import { eq, or, ilike, and } from 'drizzle-orm';
-import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
     
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     // Find the user's company
     const [userEmployee] = await db

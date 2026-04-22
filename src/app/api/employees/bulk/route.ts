@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, onboardingCases } from "@/db/schema";
-import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const body = await req.json();
     const { employees: employeesData } = body;
