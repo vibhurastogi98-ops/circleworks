@@ -9,7 +9,7 @@ import {
   Users, LogOut, Moon, Sun, Bell, Settings, LayoutGrid,
   ArrowLeft, Menu, X, CheckCircle2
 } from "lucide-react";
-import { useClerk, useUser } from "@clerk/nextjs";
+
 import { usePlatformStore } from "@/store/usePlatformStore";
 
 
@@ -36,16 +36,19 @@ export default function AccountantPortalLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  // Guest Mode: Authentication disabled
+  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+
   const { isDarkMode, toggleDarkMode } = usePlatformStore();
   const [clients, setClients] = useState<ClientCompany[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
 
-  const displayName = user?.fullName || user?.firstName || "Accountant";
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${displayName}&backgroundColor=transparent`;
+  // Hardcoded guest accountant info
+  const displayName = "Senior Accountant";
+  const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=Accountant&backgroundColor=transparent`;
+
 
   useEffect(() => {
     setMounted(true);

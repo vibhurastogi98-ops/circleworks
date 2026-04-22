@@ -6,10 +6,9 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    // Guest Mode: Hardcoded admin user for demo purposes
+    const MOCK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const userId = MOCK_USER_ID;
 
     const [employee] = await db
       .select({

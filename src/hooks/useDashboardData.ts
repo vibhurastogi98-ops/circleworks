@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/nextjs";
+
 import { useQuery } from "@tanstack/react-query";
 import { 
   KPI_CARDS, 
@@ -13,7 +13,13 @@ import {
 } from "@/data/dashboard";
 
 export function useDashboardData() {
-  const { user, isLoaded } = useUser();
+  // Guest Mode: Hardcoded user data
+  const user = {
+    firstName: "Admin",
+    lastName: "User",
+    publicMetadata: { companyName: "CircleWorks Demo", hasData: true }
+  };
+  const isLoaded = true;
 
   // 1. Fetch Dashboard Stats
   const { data: liveStats, isLoading: statsLoading } = useQuery({
@@ -23,7 +29,7 @@ export function useDashboardData() {
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: isLoaded && !!user,
+    enabled: true, // Always fetch in guest mode
   });
 
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;

@@ -38,7 +38,7 @@ import {
   LogOut,
   ChevronDown
 } from "lucide-react";
-import { useAuth, useClerk, useUser } from "@clerk/nextjs";
+
 
 // --- Data Definitions ---
 
@@ -200,39 +200,19 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
   const pathname = usePathname();
   const router = useRouter();
   
-  // Clerk authentication hooks - optimized for fast response
-  const { isSignedIn, isLoaded } = useAuth();
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  // Guest Mode: Authentication disabled
+  const isSignedIn = true;
+  const isLoaded = true;
+  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
   
-  // Local state for immediate UI updates
+  // Local state for guest user
   const [localAuthState, setLocalAuthState] = useState({
-    isSignedIn: false,
-    displayName: "User",
-    displayEmail: "user@company.com",
-    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
+    isSignedIn: true,
+    displayName: "Admin User",
+    displayEmail: "admin@circleworks.com",
+    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent"
   });
 
-  // Update local state immediately when auth state changes
-  useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
-      setLocalAuthState({
-        isSignedIn: true,
-        displayName: user?.fullName || user?.firstName || "User",
-        displayEmail: user?.primaryEmailAddress?.emailAddress || "user@company.com",
-        avatarUrl: user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.firstName || 'User'}&backgroundColor=transparent`
-      });
-    } else if (isLoaded && !isSignedIn) {
-      setLocalAuthState({
-        isSignedIn: false,
-        displayName: "User",
-        displayEmail: "user@company.com",
-        avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent"
-      });
-      // Close profile menu immediately on logout
-      setIsProfileMenuOpen(false);
-    }
-  }, [isSignedIn, isLoaded, user]);
 
   // Use local state for immediate UI updates
   const { displayName, displayEmail, avatarUrl } = localAuthState;

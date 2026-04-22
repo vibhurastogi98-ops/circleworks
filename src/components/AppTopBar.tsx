@@ -8,7 +8,7 @@ import {
   Menu, Search, Bell, HelpCircle, Sun, Moon, AlertTriangle, X, 
   Settings, User, CreditCard, LogOut, Loader2, Sparkles, ChevronRight
 } from "lucide-react";
-import { useClerk, useUser } from "@clerk/nextjs";
+
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { useDataSync } from "@/hooks/useDataSync";
@@ -21,13 +21,14 @@ import CommandPalette from "@/components/CommandPalette";
 export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  // Guest Mode: Authentication disabled
+  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+  
+  // Hardcoded guest user info
+  const displayName = "Admin User";
+  const displayEmail = "admin@circleworks.com";
+  const avatarUrl = "https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent";
 
-  // Derive info (Remove login dependency with Guest fallback)
-  const displayName = user?.fullName || user?.firstName || "";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
-  const avatarUrl = user?.imageUrl || "";
   const { toggleSidebar } = useSidebarStore();
   
   // Platform global state

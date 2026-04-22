@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Shield, Cookie, Settings } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
+
 
 interface CookiePreferences {
   necessary: boolean;
@@ -17,7 +17,7 @@ type InteractedValue = "all" | "rejected" | "custom" | null;
 export default function CookieBanner() {
   const [hasInteracted, setHasInteracted] = useState<InteractedValue>(null);
   const [showPreferences, setShowPreferences] = useState(false);
-  const { getToken } = useAuth();
+
   
   // Custom toggles
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -53,22 +53,9 @@ export default function CookieBanner() {
     setHasInteracted(mode);
     setShowPreferences(false);
 
-    // Patch to tracking/user API
-    try {
-      const token = await getToken();
-      if (token) {
-        await fetch("https://circleworks-worker.vibhurastogi98.workers.dev/users/me", {
-          method: "PATCH",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-          },
-          body: JSON.stringify({ cookiePreferences: payload })
-        });
-      }
-    } catch (e) {
-      console.warn("Could not sync consent to backend API");
-    }
+    // Guest Mode: Skipping sync to backend API
+    console.log("Consent saved locally:", payload);
+
   };
 
   const handleAcceptAll = () => {

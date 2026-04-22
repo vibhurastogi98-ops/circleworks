@@ -6,11 +6,8 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    // Get current authenticated user
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    // Guest Mode: Allow unrestricted access to dashboard stats
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     // Find the user's employee record to get their company
     const [userEmployee] = await db

@@ -9,7 +9,7 @@ import {
   Clock, Receipt, Target, Shield, BarChart2, Settings, HelpCircle, 
   LogOut, ChevronDown, ChevronRight, CheckCircle2, Building2
 } from "lucide-react";
-import { useClerk, useUser } from "@clerk/nextjs";
+
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePlatformStore } from "@/store/usePlatformStore";
@@ -117,8 +117,9 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  // Guest Mode: Authentication disabled
+  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+
   const { currentUser, isNewUser } = useDashboardData();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
     "Payroll": false
@@ -129,10 +130,11 @@ export default function AppSidebar() {
     setMounted(true);
   }, []);
 
-  // Derive display info (with Guest fallback to remove login dependency)
-  const displayName = user?.fullName || user?.firstName || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
-  const avatarUrl = user?.imageUrl || "";
+  // Hardcoded guest user info
+  const displayName = "Admin User";
+  const displayEmail = "admin@circleworks.com";
+  const avatarUrl = "https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent";
+
   
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
   const { socket } = useSocket();
