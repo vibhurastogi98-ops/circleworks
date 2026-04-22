@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs/legacy";
-import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,8 +53,17 @@ const INDUSTRIES = ["Technology", "Healthcare", "Retail", "Professional Services
 const SIZES = ["1-10", "11-50", "51-250", "251-1000", "1000+"];
 
 export default function SignupPage() {
-  const { isLoaded, signUp, setActive } = useSignUp();
-  const { isSignedIn } = useAuth();
+  // Guest Mode: Authentication disabled
+  const isLoaded = true;
+  const isSignedIn = false;
+  const signUp = {
+    create: async () => {},
+    prepareEmailAddressVerification: async () => {},
+    attemptEmailAddressVerification: async () => ({ status: "complete" }),
+    authenticateWithRedirect: async () => {},
+    createdSessionId: "mock_session",
+  };
+  const setActive = async () => {};
   const router = useRouter();
 
   const [mounted, setMounted] = useState(false);
@@ -81,24 +88,10 @@ export default function SignupPage() {
 
   const { register, trigger, getValues, setValue, watch, formState: { errors } } = methods;
 
-  // Load from local storage on mount
+  // Guest Mode: Always redirect to dashboard in demo
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("circleworks_signup_progress");
-    if (saved) {
-      try {
-        const { step: savedStep, data } = JSON.parse(saved);
-        if (savedStep > 1 && savedStep < 5) {
-          setUnfinishedBanner(true);
-        }
-        Object.keys(data).forEach((key) => {
-          setValue(key as keyof FormData, data[key]);
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, [setValue]);
+    router.push("/dashboard");
+  }, [router]);
 
   // Note: Removed automatic redirect to dashboard after signup
   // Users will now stay on the page and can navigate via the navbar profile menu

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { useUser } from "@clerk/nextjs";
+
 import { toast } from "sonner";
 
 interface SocketContextType {
@@ -18,12 +18,14 @@ const SocketContext = createContext<SocketContextType>({
 export const useSocket = () => useContext(SocketContext);
 
 export default function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
+  // Guest Mode: Hardcoded user for socket connection
+  const user = { id: "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD", publicMetadata: { companyId: "comp_123" } };
+  const isLoaded = true;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded) return;
 
     // Configuration
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";

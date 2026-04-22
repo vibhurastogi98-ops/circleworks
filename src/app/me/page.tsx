@@ -8,7 +8,7 @@ import {
   CalendarDays, AlertCircle, ChevronRight, Megaphone, Gift,
   Plane, Thermometer, User as UserIcon
 } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
+
 import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import {
   mockPtoBalances, mockPendingTasks, mockKudos, mockPayStubs,
@@ -128,7 +128,9 @@ function AnnouncementsWidget() {
 }
 
 export default function EmployeeHomePage() {
-  const { user } = useUser();
+  // Guest Mode: Mock user data
+  const user = { firstName: "Guest", lastName: "Employee" };
+
   const { data, isLoading, error } = useEmployeePortal();
 
   const profile = data?.profile;

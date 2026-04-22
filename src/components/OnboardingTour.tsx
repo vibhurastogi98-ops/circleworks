@@ -3,15 +3,17 @@
 import { useEffect, useRef } from "react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
-import { useUser } from "@clerk/nextjs";
+
 
 export default function OnboardingTour() {
-  const { user, isLoaded } = useUser();
+  // Guest Mode: Mock user for tour
+  const user = { publicMetadata: { hasCompletedTour: false } };
+  const isLoaded = true;
   const hasStarted = useRef(false);
 
   useEffect(() => {
     // Only run once, ensure user is loaded
-    if (!isLoaded || !user) return;
+    if (!isLoaded) return;
 
     const tourDriver = driver({
       showProgress: true,

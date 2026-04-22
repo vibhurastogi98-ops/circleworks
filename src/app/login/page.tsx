@@ -4,8 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShieldCheck, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { useSignIn } from "@clerk/nextjs/legacy";
-import { useAuth, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,9 +39,15 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type MfaFormValues = z.infer<typeof mfaSchema>;
 
 export default function LoginPage() {
-  const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  // Guest Mode: Authentication disabled
+  const isLoaded = true;
+  const isSignedIn = false;
+  const user = null;
+  const signIn = {
+    create: async () => ({ status: "complete", createdSessionId: "mock_session" }),
+    authenticateWithRedirect: async () => {},
+  };
+  const setActive = async () => {};
   const router = useRouter();
 
   const [activeQuote, setActiveQuote] = useState(0);
@@ -78,16 +82,10 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect already signed-in users
+  // Guest Mode: Always redirect to dashboard in demo
   useEffect(() => {
-    if (isSignedIn && isLoaded) {
-      if (user?.publicMetadata?.role === "accountant") {
-        router.push("/accountant-portal");
-      } else {
-        router.push("/dashboard");
-      }
-    }
-  }, [isSignedIn, isLoaded, user, router]);
+    router.push("/dashboard");
+  }, [router]);
 
   const onLoginSubmit = async (data: LoginFormValues) => {
     if (!isLoaded || isSignedIn) return;

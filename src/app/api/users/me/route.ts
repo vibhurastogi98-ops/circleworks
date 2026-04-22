@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, users, employeeBankAccounts, payrollItems, payrolls, companies } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
-import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
@@ -35,12 +34,10 @@ export async function GET() {
     // If the local Postgres record is missing (happens for older test accounts), create it now.
     if (!currentUserEmployee) {
       try {
-        const client = await clerkClient();
-        const clerkUser = await client.users.getUser(userId);
-        const email = clerkUser.emailAddresses[0]?.emailAddress || "";
-        const firstName = clerkUser.firstName || "Admin";
-        const lastName = clerkUser.lastName || "";
-        const companyName = clerkUser.publicMetadata?.companyName as string || "Your Company";
+        const email = "admin@circleworks.com";
+        const firstName = "Admin";
+        const lastName = "User";
+        const companyName = "CircleWorks";
 
         // Create Company
         const [newCompany] = await db.insert(companies).values({
@@ -170,53 +167,19 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
+    // Guest Mode: Authentication disabled
+    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
     const body = await req.json();
-    const client = await clerkClient();
 
-    // 1. Update Clerk Metadata if relevant fields are present
-    const metadataToUpdate: Record<string, any> = {};
-    if (typeof body.hasCompletedTour === "boolean") {
-      metadataToUpdate.hasCompletedTour = body.hasCompletedTour;
-    }
-    if (typeof body.companyName === "string") {
-      metadataToUpdate.companyName = body.companyName;
-    }
-    if (typeof body.companyLogoUrl === "string") {
-      metadataToUpdate.companyLogoUrl = body.companyLogoUrl;
-    }
-    if (typeof body.hasData === "boolean") {
-      metadataToUpdate.hasData = body.hasData;
-    }
-    if (typeof body.role === "string") {
-      metadataToUpdate.role = body.role;
-    }
-
-    if (Object.keys(metadataToUpdate).length > 0) {
-      try {
-        await client.users.updateUserMetadata(userId, {
-          publicMetadata: metadataToUpdate
-        });
-      } catch (clerkErr: any) {
-        console.error("Clerk metadata update failed:", clerkErr);
-        return NextResponse.json({ 
-          error: clerkErr.message || "Failed to update metadata",
-          details: clerkErr.errors 
-        }, { status: 422 });
-      }
-    }
+    // Guest Mode: Skipping Clerk metadata updates
+    console.log("[Guest Mode] PATCH /api/users/me - Skipping metadata sync:", body);
 
     // 2. Local Database Sync: Auto-create Company and User records on signup completion
     if (typeof body.companyName === "string") {
       try {
-        const clerkUser = await client.users.getUser(userId);
-        const email = clerkUser.emailAddresses[0]?.emailAddress || "";
-        const firstName = clerkUser.firstName || "Admin";
-        const lastName = clerkUser.lastName || "";
+        const email = "admin@circleworks.com";
+        const firstName = "Admin";
+        const lastName = "User";
 
         let [existingUser] = await db.select().from(users).where(eq(users.clerkUserId, userId));
         
@@ -251,16 +214,8 @@ export async function PATCH(req: Request) {
     }
 
     // 3. Optional: Sync with Backend Database (Worker API)
-    const token = await getToken();
     try {
-      await fetch("https://circleworks-worker.vibhurastogi98.workers.dev/users/me", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(body)
-      });
+      // Guest Mode: Skipping worker sync in demo
     } catch (err) {
       console.error("Failed to sync profile fields to backend DB", err);
       // non-blocking

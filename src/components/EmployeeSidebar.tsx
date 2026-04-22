@@ -9,7 +9,7 @@ import {
   ChevronDown, LogOut, Receipt, Target, GraduationCap,
   Banknote, Users2, User, ChevronRight,
 } from "lucide-react";
-import { useClerk, useUser } from "@clerk/nextjs";
+
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
@@ -44,17 +44,19 @@ const EMPLOYEE_NAV: NavItem[] = [
 export default function EmployeeSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  // Guest Mode: Authentication disabled
+  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+
   const { currentUser } = useDashboardData();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  const displayName = user?.fullName || user?.firstName || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "user@company.com";
-  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
+  const displayName = "Guest Employee";
+  const displayEmail = "employee@circleworks.com";
+  const avatarUrl = "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
+
 
   const toggleAccordion = (label: string) => {
     setOpenAccordions(prev => ({ ...prev, [label]: !prev[label] }));
