@@ -5,15 +5,16 @@ import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
 
+// Guest Mode: Mock user for tour
+const GUEST_USER = { publicMetadata: { hasCompletedTour: false } };
+const GUEST_IS_LOADED = true;
+
 export default function OnboardingTour() {
-  // Guest Mode: Mock user for tour
-  const user = { publicMetadata: { hasCompletedTour: false } };
-  const isLoaded = true;
   const hasStarted = useRef(false);
 
   useEffect(() => {
     // Only run once, ensure user is loaded
-    if (!isLoaded) return;
+    if (!GUEST_IS_LOADED) return;
 
     const tourDriver = driver({
       showProgress: true,
@@ -126,7 +127,7 @@ export default function OnboardingTour() {
     });
 
     // Check flag in publicMetadata for auto-start
-    const hasCompletedTour = user.publicMetadata?.hasCompletedTour === true;
+    const hasCompletedTour = GUEST_USER.publicMetadata?.hasCompletedTour === true;
     if (!hasCompletedTour && !hasStarted.current) {
       hasStarted.current = true;
       // Increased delay to ensure DOM is fully ready
@@ -148,7 +149,7 @@ export default function OnboardingTour() {
     window.addEventListener("circleworks:start-tour", handleStartTour);
     return () => window.removeEventListener("circleworks:start-tour", handleStartTour);
 
-  }, [isLoaded, user]);
+  }, []);
 
   return null;
 }
