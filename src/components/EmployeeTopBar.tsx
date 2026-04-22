@@ -24,7 +24,14 @@ export default function EmployeeTopBar() {
   const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
   const isSignedIn = true;
   const isLoaded = true;
-  const user = { firstName: "Guest", lastName: "Employee", publicMetadata: { companyName: "CircleWorks" } };
+  const user = { 
+    firstName: "Guest", 
+    lastName: "Employee", 
+    fullName: "Guest Employee",
+    primaryEmailAddress: { emailAddress: "employee@circleworks.com" },
+    imageUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent",
+    publicMetadata: { companyName: "CircleWorks" } 
+  };
 
 
   // Local state for immediate UI updates
