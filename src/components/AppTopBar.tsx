@@ -25,9 +25,9 @@ export default function AppTopBar() {
   const { user } = useUser();
 
   // Derive info (Remove login dependency with Guest fallback)
-  const displayName = user?.fullName || user?.firstName || "Guest";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "guest@circleworks.com";
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=guest&backgroundColor=transparent`;
+  const displayName = user?.fullName || user?.firstName || "";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
+  const avatarUrl = user?.imageUrl || "";
   const { toggleSidebar } = useSidebarStore();
   
   // Platform global state

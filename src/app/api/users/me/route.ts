@@ -7,35 +7,8 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 export async function GET() {
   try {
     const { userId } = await auth();
-    
-    // IF NOT LOGGED IN, RETURN MOCK DATA (Remove Login Dependency)
     if (!userId) {
-      console.log("[API] Returning mock data for unauthenticated user");
-      return NextResponse.json({
-        profile: {
-          id: "guest-user",
-          firstName: "Guest",
-          lastName: "User",
-          fullName: "Guest User",
-          email: "guest@example.com",
-          jobTitle: "Guest Explorer",
-          department: "Product",
-          startDate: new Date().toISOString().split("T")[0],
-          employeeType: "full-time",
-          location: "Remote",
-          locationType: "remote",
-          avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Guest&backgroundColor=transparent",
-          status: "active",
-          bankAccount: {
-            bankName: "Demo Bank",
-            routingNumber: "123456789",
-            accountNumber: "****1234",
-            accountType: "Checking",
-            lastUpdated: new Date().toISOString().split("T")[0],
-          },
-        },
-        payStubs: [],
-      });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const [employee] = await db

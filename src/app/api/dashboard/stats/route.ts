@@ -8,19 +8,8 @@ export async function GET() {
   try {
     // Get current authenticated user
     const { userId } = await auth();
-    
-    // IF NOT LOGGED IN, RETURN MOCK STATS (Remove Login Dependency)
     if (!userId) {
-      return NextResponse.json({
-        totalEmployees: 42,
-        monthlyPayroll: 125000,
-        pendingApprovals: 5,
-        recentHires: [
-          { id: "1", name: "Alex Rivera", title: "Senior Designer", startDate: "Apr 12", onboardingPercent: 85, avatarSeed: "Alex" },
-          { id: "2", name: "Jordan Smith", title: "DevOps Engineer", startDate: "Apr 15", onboardingPercent: 40, avatarSeed: "Jordan" },
-          { id: "3", name: "Sam Wilson", title: "Success Manager", startDate: "Apr 18", onboardingPercent: 10, avatarSeed: "Sam" }
-        ]
-      });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     // Find the user's employee record to get their company

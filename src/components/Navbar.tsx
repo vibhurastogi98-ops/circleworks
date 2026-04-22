@@ -536,17 +536,17 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                 /* Non-authenticated User - Login/Signup Buttons */
                 <>
                   <Link
-                    href="/dashboard"
+                    href="/login"
                     className={`font-semibold text-[15px] transition-colors ${isNavWhite ? "text-[#0A1628] hover:text-blue-600" : "text-white hover:text-blue-400"
                       }`}
                   >
-                    Dashboard
+                    Log In
                   </Link>
                   <Link
-                    href="/dashboard"
+                    href="/signup"
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-full px-6 py-2.5 transition-all shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] hover:-translate-y-0.5"
                   >
-                    Get Started Free
+                    Start Free - No Credit Card
                   </Link>
                 </>
               )}

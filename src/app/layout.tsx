@@ -35,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <head>
           <meta charSet="UTF-8" />
           <meta name="robots" content="index, follow" />
@@ -97,7 +97,7 @@ export default function RootLayout({
           `}
         </Script>
 
-        <body className="antialiased">
+        <body className="antialiased" suppressHydrationWarning>
           <Toaster position="top-right" richColors />
           <KeyboardShortcuts />
           <CookieBanner />

@@ -9,7 +9,7 @@ import FeatureVisual from "@/components/FeatureVisual";
 import { 
   ArrowRight, CheckCircle2, ChevronDown, 
   HelpCircle, MessageSquare, Quote, 
-  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, Target, MonitorPlay, Phone, Lock, Volume2
+  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, Target, MonitorPlay, Phone, Lock, Volume2, Film, Smartphone
 } from "lucide-react";
 
 export async function generateStaticParams() {
@@ -24,6 +24,8 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
   
   if (!data) return {};
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://circleworks.io";
+
   return {
     title: data.seoTitle,
     description: data.seoDesc,
@@ -31,6 +33,17 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
       title: data.seoTitle,
       description: data.seoDesc,
       type: "website",
+      url: `${baseUrl}/solutions/${segment}`,
+      siteName: "CircleWorks",
+      images: data.ogImage
+        ? [{ url: `${baseUrl}${data.ogImage}`, width: 1200, height: 630, alt: data.seoTitle }]
+        : [{ url: `${baseUrl}/og/default.png`, width: 1200, height: 630, alt: "CircleWorks" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: data.seoTitle,
+      description: data.seoDesc,
+      images: data.ogImage ? [`${baseUrl}${data.ogImage}`] : [`${baseUrl}/og/default.png`],
     },
   };
 }
@@ -119,10 +132,12 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                 shield: ShieldCheck,
                 briefcase: Landmark,
                 globe: Globe,
-                monitor: Landmark,
+                monitor: MonitorPlay,
                 keyboard: Landmark,
                 scroll: Landmark,
                 search: Landmark,
+                users: Users,
+                lock: Lock,
               };
               const DisplayIcon = IconMap[point.icon] || Zap;
 
@@ -169,22 +184,25 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                    file: Landmark,
                    video: Activity,
                    zap: Zap,
-                   film: Activity,
+                   film: Film,
                    chart: Activity,
                    activity: Activity,
                    id: Landmark,
                    shield: ShieldCheck,
-                   monitor: Landmark,
+                   monitor: MonitorPlay,
                    ban: Landmark,
-                   smartphone: Landmark,
+                   smartphone: Smartphone,
                    award: Star,
                    refresh: Landmark,
-                   phone: Landmark,
+                   phone: Phone,
                    rocket: Rocket,
                    "trending-down": Activity,
-                   lock: ShieldCheck,
-                   volume: Landmark,
+                   lock: Lock,
+                   volume: Volume2,
                    star: Star,
+                   building: Building,
+                   globe: Globe,
+                   dollar: CreditCard,
                  };
                  const DisplayIcon = IconMap[feature.icon] || Zap;
 

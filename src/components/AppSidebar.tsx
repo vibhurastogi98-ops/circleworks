@@ -130,9 +130,9 @@ export default function AppSidebar() {
   }, []);
 
   // Derive display info (with Guest fallback to remove login dependency)
-  const displayName = user?.fullName || user?.firstName || "Guest User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "guest@circleworks.com";
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/notionists/svg?seed=guest&backgroundColor=transparent`;
+  const displayName = user?.fullName || user?.firstName || "User";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
+  const avatarUrl = user?.imageUrl || "";
   
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
   const { socket } = useSocket();
