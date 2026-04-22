@@ -44,10 +44,11 @@ export default function LoginPage() {
   const isSignedIn = false;
   const user = null;
   const signIn = {
-    create: async () => ({ status: "complete", createdSessionId: "mock_session" }),
-    authenticateWithRedirect: async () => {},
+    create: async (data: any) => ({ status: "complete", createdSessionId: "mock_session" }),
+    authenticateWithRedirect: async (data: any) => {},
+    attemptSecondFactor: async (data: any) => ({ status: "complete", createdSessionId: "mock_session" }),
   };
-  const setActive = async () => {};
+  const setActive = async (data: any) => {};
   const router = useRouter();
 
   const [activeQuote, setActiveQuote] = useState(0);

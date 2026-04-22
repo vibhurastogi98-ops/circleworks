@@ -57,13 +57,13 @@ export default function SignupPage() {
   const isLoaded = true;
   const isSignedIn = false;
   const signUp = {
-    create: async () => {},
-    prepareEmailAddressVerification: async () => {},
-    attemptEmailAddressVerification: async () => ({ status: "complete" }),
-    authenticateWithRedirect: async () => {},
+    create: async (data: any) => {},
+    prepareEmailAddressVerification: async (data: any) => {},
+    attemptEmailAddressVerification: async (data: any) => ({ status: "complete" }),
+    authenticateWithRedirect: async (data: any) => {},
     createdSessionId: "mock_session",
   };
-  const setActive = async () => {};
+  const setActive = async (data: any) => {};
   const router = useRouter();
 
   const [mounted, setMounted] = useState(false);

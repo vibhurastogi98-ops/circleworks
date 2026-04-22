@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Auth disabled per user request
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
