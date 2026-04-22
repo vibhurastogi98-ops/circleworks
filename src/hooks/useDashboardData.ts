@@ -17,7 +17,7 @@ export function useDashboardData() {
   const user = {
     firstName: "Admin",
     lastName: "User",
-    publicMetadata: { companyName: "CircleWorks Demo", hasData: true }
+    publicMetadata: { companyName: "CircleWorks Demo", hasData: true, companyLogoUrl: "" }
   };
   const isLoaded = true;
 
