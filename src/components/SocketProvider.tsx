@@ -17,15 +17,16 @@ const SocketContext = createContext<SocketContextType>({
 
 export const useSocket = () => useContext(SocketContext);
 
+// Guest Mode: Hardcoded user for socket connection
+const GUEST_USER = { id: "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD", publicMetadata: { companyId: "comp_123" } };
+const GUEST_IS_LOADED = true;
+
 export default function SocketProvider({ children }: { children: React.ReactNode }) {
-  // Guest Mode: Hardcoded user for socket connection
-  const user = { id: "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD", publicMetadata: { companyId: "comp_123" } };
-  const isLoaded = true;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!GUEST_IS_LOADED) return;
 
     // Configuration
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
@@ -39,7 +40,7 @@ export default function SocketProvider({ children }: { children: React.ReactNode
       autoConnect: true,
       auth: {
         token: "clerk-auth-token-placeholder", // In production, pass Clerk JWT
-        userId: user.id,
+        userId: GUEST_USER.id,
       }
     });
 
@@ -48,9 +49,9 @@ export default function SocketProvider({ children }: { children: React.ReactNode
       console.log("🟢 WebSocket Connected");
 
       // Join standard rooms
-      const companyId = user.publicMetadata?.companyId as string || "default-company";
+      const companyId = GUEST_USER.publicMetadata?.companyId as string || "default-company";
       socketInstance.emit("join-room", `company:${companyId}`);
-      socketInstance.emit("join-room", `user:${user.id}`);
+      socketInstance.emit("join-room", `user:${GUEST_USER.id}`);
     });
 
     socketInstance.on("disconnect", () => {
@@ -68,7 +69,7 @@ export default function SocketProvider({ children }: { children: React.ReactNode
     return () => {
       socketInstance.disconnect();
     };
-  }, [user, isLoaded]);
+  }, []);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>
