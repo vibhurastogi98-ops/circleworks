@@ -75,7 +75,7 @@ const PRODUCT_MENU = {
     { label: "Security", desc: "Bank-level encryption", icon: ShieldCheck, href: "/security" },
     { label: "Integrations", desc: "Connect your tech stack", icon: Zap, href: "/integrations" },
     { label: "Pricing", desc: "Transparent, simple plans", icon: Calculator, href: "/pricing" },
-    { label: "ROI Calculator", desc: "Calculate your savings", icon: Target, href: "/resources/roi-calculator" },
+    { label: "ROI Calculator", desc: "Calculate your savings", icon: Target, href: "/roi-calculator" },
   ],
 };
 
