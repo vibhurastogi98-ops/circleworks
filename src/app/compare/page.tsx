@@ -6,11 +6,12 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 
 const competitors = [
-  { name: "Gusto", slug: "vs-gusto", desc: "Why growing companies switch from Gusto for true enterprise scalability." },
-  { name: "Rippling", slug: "vs-rippling", desc: "Compare our truly unified HRIS architecture vs Rippling's ecosystem." },
-  { name: "ADP", slug: "vs-adp", desc: "Leave the 90s UI behind. See how we beat ADP on speed and usability." },
-  { name: "BambooHR", slug: "vs-bamboohr", desc: "Adding robust payroll to your HR system instead of API workarounds." },
-  { name: "Justworks", slug: "vs-justworks", desc: "More flexibility and better margins compared to a traditional PEO." },
+  { name: "Gusto", slug: "gusto", desc: "Why growing companies switch from Gusto for true enterprise scalability." },
+  { name: "Rippling", slug: "rippling", desc: "Compare our truly unified HRIS architecture vs Rippling's ecosystem." },
+  { name: "ADP", slug: "adp", desc: "Leave the 90s UI behind. See how we beat ADP on speed and usability." },
+  { name: "BambooHR", slug: "bamboohr", desc: "Adding robust payroll to your HR system instead of API workarounds." },
+  { name: "Paychex", slug: "paychex", desc: "Traditional payroll processing vs modern HR speed and usability." },
+  { name: "Paycom", slug: "paycom", desc: "Enterprise single-database HR vs a truly modern, transparent platform." },
 ];
 
 export default function CompareHubPage() {
