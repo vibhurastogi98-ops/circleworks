@@ -21,7 +21,7 @@ export default function TimeOverview() {
   const [loading, setLoading] = React.useState(true);
   const [showManualEntry, setShowManualEntry] = React.useState(false);
 
-  React.useEffect(() => {
+  const fetchData = React.useCallback(() => {
     fetch('/api/time/admin/overview')
       .then(res => res.json())
       .then(d => {
@@ -35,6 +35,27 @@ export default function TimeOverview() {
         setLoading(false);
       });
   }, []);
+
+  React.useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const handleAction = async (employeeId: number, action: 'clock-out' | 'end-break') => {
+    try {
+      const res = await fetch(`/api/time/admin/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId })
+      });
+      if (res.ok) {
+        fetchData(); // Refresh immediately
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (loading) {
     return (
@@ -150,8 +171,10 @@ export default function TimeOverview() {
                   <th className="px-5 py-3">Employee</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3 text-right">Clock In</th>
+                  <th className="px-5 py-3 text-right">Break</th>
                   <th className="px-5 py-3 text-right">Hours Today</th>
                   <th className="px-5 py-3 text-right">Week Total</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -170,11 +193,32 @@ export default function TimeOverview() {
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right font-medium text-slate-700 dark:text-slate-300">{emp.clockIn ?? "—"}</td>
+                      <td className="px-5 py-3 text-right font-medium text-slate-700 dark:text-slate-300">
+                        {emp.breakMinutes > 0 ? `${emp.breakMinutes}m` : "—"}
+                      </td>
                       <td className="px-5 py-3 text-right font-bold text-slate-900 dark:text-white">{emp.hoursToday}h</td>
                       <td className="px-5 py-3 text-right">
                         <span className={`font-bold ${emp.hoursThisWeek >= 40 ? "text-red-600 dark:text-red-400" : emp.hoursThisWeek >= 35 ? "text-amber-600 dark:text-amber-400" : "text-slate-900 dark:text-white"}`}>
                           {emp.hoursThisWeek}h
                         </span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        {emp.status === 'clocked-in' && (
+                          <button 
+                            onClick={() => handleAction(emp.id, 'clock-out')}
+                            className="text-xs font-medium text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded"
+                          >
+                            Clock Out
+                          </button>
+                        )}
+                        {emp.status === 'on-break' && (
+                          <button 
+                            onClick={() => handleAction(emp.id, 'end-break')}
+                            className="text-xs font-medium text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded"
+                          >
+                            End Break
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

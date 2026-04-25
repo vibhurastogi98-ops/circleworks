@@ -16,48 +16,41 @@ export async function GET() {
       .where(eq(users.clerkUserId, GUEST_CLERK_USER_ID));
 
     const employeeId = userEmployee?.employeeId ?? 1;
-
-    // 1. Check for currently open entry (clocked in, not yet clocked out)
-    const openEntry = await db.query.timeEntries.findFirst({
-      where: (te, { eq, and, isNull }) => and(
-        eq(te.employeeId, employeeId),
-        isNull(te.clockOut)
-      ),
-      with: {
-        breaks: true,
-      }
-    });
-
-    // 2. Check for open break
-    const openBreak = openEntry?.breaks?.find((b: any) => b.breakEnd === null) || null;
-
-    // 3. Get all of today's entries to compute total hours worked
-    const todayStart = new Date();
+    const now = new Date();
+    const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 
-    const todayEntries = await db.query.timeEntries.findMany({
-      where: (te, { eq, and, gte }) => and(
-        eq(te.employeeId, employeeId),
-        gte(te.clockIn, todayStart)
-      ),
-      with: {
-        breaks: true,
-      }
-    });
+    // 1. Fetch data in parallel
+    const [openEntry, todayEntries] = await Promise.all([
+      db.query.timeEntries.findFirst({
+        where: (te, { eq, and, isNull }) => and(
+          eq(te.employeeId, employeeId),
+          isNull(te.clockOut)
+        ),
+        with: { breaks: true }
+      }),
+      db.query.timeEntries.findMany({
+        where: (te, { eq, and, gte }) => and(
+          eq(te.employeeId, employeeId),
+          gte(te.clockIn, todayStart)
+        ),
+        with: { breaks: true }
+      })
+    ]);
 
-    // Sum hours from completed (clocked-out) entries only, subtracting breaks
-    const todayTotalSeconds = todayEntries
-      .filter((e) => e.clockOut !== null)
-      .reduce((acc: number, e: any) => {
-        const entryMs = new Date(e.clockOut!).getTime() - new Date(e.clockIn).getTime();
-        const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
-          if (b.breakEnd) {
-            return bAcc + (new Date(b.breakEnd).getTime() - new Date(b.breakStart).getTime());
-          }
-          return bAcc;
-        }, 0);
-        return acc + (entryMs - breakMs) / 1000;
+    // 2. Check for open break in the open entry
+    const openBreak = openEntry?.breaks?.find((b: any) => b.breakEnd === null) || null;
+
+    // 3. Sum hours from completed entries + active entry (up to now)
+    const todayTotalSeconds = todayEntries.reduce((acc: number, e: any) => {
+      const end = e.clockOut ? new Date(e.clockOut) : now;
+      const entryMs = end.getTime() - new Date(e.clockIn).getTime();
+      const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
+        const bEnd = b.breakEnd ? new Date(b.breakEnd) : (e.clockOut ? null : now);
+        return bEnd ? bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime()) : bAcc;
       }, 0);
+      return acc + (entryMs - breakMs) / 1000;
+    }, 0);
 
     const todayTotalHours = parseFloat((todayTotalSeconds / 3600).toFixed(2));
 

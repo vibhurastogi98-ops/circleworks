@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    "circleworks-worker"
+    "circleworks-worker",
+    "scratch"
   ]
 }

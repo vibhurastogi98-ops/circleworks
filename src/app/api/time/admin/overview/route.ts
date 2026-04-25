@@ -1,7 +1,12 @@
 import { db } from "@/db";
-import { timeEntries, timeBreaks, employees, users, timesheets } from "@/db/schema";
+import { timeEntries, timeBreaks, employees, users, timesheets, shifts } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { eq, and, isNull, gte, desc, sql } from "drizzle-orm";
+import { eq, and, isNull, gte, lt, desc, sql, or } from "drizzle-orm";
+import { headers } from "next/headers";
+
+export const dynamic = 'force-dynamic';
+
+const GUEST_CLERK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
 export async function GET() {
   try {
@@ -15,123 +20,181 @@ export async function GET() {
     weekStart.setDate(diff);
     weekStart.setHours(0, 0, 0, 0);
 
-    // 1. Fetch all employees
-    const allEmployees = await db.query.employees.findMany({
-      with: {
-        user: true,
-      }
-    });
+    // 0. Resolve Company (Guest Mode)
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(users)
+      .innerJoin(employees, eq(users.id, employees.userId))
+      .where(eq(users.clerkUserId, GUEST_CLERK_USER_ID));
 
-    // 2. Fetch active entries (Clocked In)
-    const activeEntries = await db.query.timeEntries.findMany({
-      where: (te, { isNull }) => isNull(te.clockOut),
-      with: {
-        employee: true,
-        breaks: true,
-      }
-    });
+    const companyId = userEmployee?.companyId ?? 1;
 
-    // 3. Fetch today's entries
-    const todayEntries = await db.query.timeEntries.findMany({
-      where: (te, { gte }) => gte(te.clockIn, todayStart),
-      with: {
-        employee: true,
-        breaks: true,
-      }
-    });
+    // 1. Parallelize data fetching to reduce total latency
+    const [allEmployees, weekEntries, pendingTimesheets, todayShifts, activeBreaks] = await Promise.all([
+      db.select({
+        id: employees.id,
+        firstName: employees.firstName,
+        lastName: employees.lastName,
+        department: employees.department,
+        location: employees.location,
+        companyId: employees.companyId,
+      })
+      .from(employees)
+      .where(eq(employees.companyId, companyId)),
 
-    // 4. Fetch this week's entries
-    const weekEntries = await db.query.timeEntries.findMany({
-      where: (te, { gte }) => gte(te.clockIn, weekStart),
-      with: {
-        breaks: true,
-      }
-    });
+      db.query.timeEntries.findMany({
+        where: (te, { gte, isNull, and, or, eq }) => and(
+          eq(te.companyId, companyId),
+          or(
+            gte(te.clockIn, weekStart),
+            isNull(te.clockOut)
+          )
+        ),
+        with: { breaks: true }
+      }),
 
-    // 5. Pending Timesheets
-    const pendingTimesheets = await db.query.timesheets.findMany({
-      where: (ts, { eq }) => eq(ts.status, 'Submitted'),
-    });
+      db.query.timesheets.findMany({
+        where: (ts, { eq, and }) => and(
+          eq(ts.status, 'Submitted'),
+          eq(ts.companyId, companyId)
+        ),
+      }),
 
-    // Calculate stats
-    const clockedInCount = activeEntries.length;
-    const onBreakCount = activeEntries.filter(e => e.breaks.some((b: any) => b.breakEnd === null)).length;
+      db.query.shifts.findMany({
+        where: (s, { gte, eq, and }) => and(
+          gte(s.startTime, todayStart),
+          eq(s.companyId, companyId)
+        ),
+      }),
+
+      db.query.timeBreaks.findMany({
+        where: (tb, { isNull, gte, and, exists }) => and(
+          isNull(tb.breakEnd),
+          gte(tb.breakStart, weekStart)
+          // Note: Filtering by company for breaks usually goes through the time entry relation
+        ),
+      })
+    ]);
+
+    // 2. Pre-process and group data using Maps for O(1) lookup
     const totalEmployees = allEmployees.length;
+    const weekEntriesByEmp = new Map<number, any[]>();
+    const todayEntries: any[] = [];
+    
+    weekEntries.forEach(e => {
+      const empId = e.employeeId!;
+      if (!weekEntriesByEmp.has(empId)) weekEntriesByEmp.set(empId, []);
+      weekEntriesByEmp.get(empId)!.push(e);
+      
+      const clockInDate = new Date(e.clockIn);
+      const isToday = clockInDate >= todayStart;
+      const isActive = e.clockOut === null;
 
-    // Week Total Hours
-    const totalWeekSeconds = weekEntries.reduce((acc: number, e: any) => {
-      const end = e.clockOut ? new Date(e.clockOut) : new Date();
-      const entryMs = end.getTime() - new Date(e.clockIn).getTime();
-      const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
-        const bEnd = b.breakEnd ? new Date(b.breakEnd) : (e.clockOut ? null : new Date());
-        if (bEnd) {
-          return bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime());
-        }
-        return bAcc;
-      }, 0);
-      return acc + (entryMs - breakMs) / 1000;
-    }, 0);
+      if (isToday || isActive) {
+        todayEntries.push(e);
+      }
+    });
+
+    const todayEntriesByEmp = new Map<number, any[]>();
+    todayEntries.forEach(e => {
+      const empId = e.employeeId!;
+      if (!todayEntriesByEmp.has(empId)) todayEntriesByEmp.set(empId, []);
+      todayEntriesByEmp.get(empId)!.push(e);
+    });
+
+    const activeEntries = todayEntries.filter(e => e.clockOut === null);
+    console.log(`[Admin Overview] Found ${allEmployees.length} total employees, ${weekEntries.length} week entries, ${todayEntries.length} today entries, ${activeEntries.length} active entries`);
+    
+    const shiftByEmp = new Map<number, any>();
+    todayShifts.forEach(s => shiftByEmp.set(s.employeeId!, s));
+
+    // 3. Calculate stats efficiently
+    const clockedInCount = activeEntries.length;
+    const onBreakCount = activeBreaks.length;
+
+    // Calculate Week Hours and Overtime Risks
+    const empWeekHours: Record<number, number> = {};
+    let totalWeekSeconds = 0;
+    
+    weekEntriesByEmp.forEach((entries, empId) => {
+      let empTotalMs = 0;
+      entries.forEach(e => {
+        const end = e.clockOut ? new Date(e.clockOut) : now;
+        const entryMs = end.getTime() - new Date(e.clockIn).getTime();
+        const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
+          const bEnd = b.breakEnd ? new Date(b.breakEnd) : (e.clockOut ? null : now);
+          return bEnd ? bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime()) : bAcc;
+        }, 0);
+        empTotalMs += (entryMs - breakMs);
+      });
+      const hours = empTotalMs / 3600000;
+      empWeekHours[empId] = hours;
+      totalWeekSeconds += (empTotalMs / 1000);
+    });
 
     const weekTotalHours = parseFloat((totalWeekSeconds / 3600).toFixed(1));
     const weekAvgHours = totalEmployees > 0 ? parseFloat((weekTotalHours / totalEmployees).toFixed(1)) : 0;
+    const overtimeRisks = Object.values(empWeekHours).filter(h => h >= 38).length;
 
-    // Missed Punches (employees with no entries today)
-    const employeesWithPunchesToday = new Set(todayEntries.map(e => e.employeeId));
-    const missedPunches = allEmployees.filter(e => !employeesWithPunchesToday.has(e.id)).length;
-
-    // Overtime Risks (week hours > 35)
-    const empWeekHours: Record<number, number> = {};
-    weekEntries.forEach((e: any) => {
-      const end = e.clockOut ? new Date(e.clockOut) : new Date();
-      const entryMs = end.getTime() - new Date(e.clockIn).getTime();
-      const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
-        const bEnd = b.breakEnd ? new Date(b.breakEnd) : (e.clockOut ? null : new Date());
-        if (bEnd) {
-          return bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime());
-        }
-        return bAcc;
-      }, 0);
-      const hours = (entryMs - breakMs) / 3600000;
-      if (e.employeeId) {
-        empWeekHours[e.employeeId] = (empWeekHours[e.employeeId] || 0) + hours;
+    // 4. Calculate Missed Punches
+    let missedPunches = 0;
+    activeEntries.forEach(entry => {
+      const shift = shiftByEmp.get(entry.employeeId!);
+      if ((shift?.endTime && new Date(shift.endTime) < now) || 
+          (!shift && (now.getTime() - new Date(entry.clockIn).getTime()) > 12 * 3600000)) {
+        missedPunches++;
       }
     });
 
-    const overtimeRisks = Object.values(empWeekHours).filter(h => h > 35).length;
-
-    // Employee List with status
-    const employeeStatusList = allEmployees.map(emp => {
-      const activeEntry = activeEntries.find(e => e.employeeId === emp.id);
-      const todayTotalSec = todayEntries
-        .filter(e => e.employeeId === emp.id)
-        .reduce((acc: number, e: any) => {
-           const end = e.clockOut ? new Date(e.clockOut) : new Date();
-           const entryMs = end.getTime() - new Date(e.clockIn).getTime();
-           const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
-             const bEnd = b.breakEnd ? new Date(b.breakEnd) : (e.clockOut ? null : new Date());
-             if (bEnd) return bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime());
-             return bAcc;
-           }, 0);
-           return acc + (entryMs - breakMs) / 1000;
+    // 5. Build Employee List
+    const todayEmpIds = new Set(todayEntries.map(e => e.employeeId));
+    const employeeStatusList = allEmployees
+      .map(emp => {
+        const empTodayEntries = todayEntriesByEmp.get(emp.id) || [];
+        const activeEntry = empTodayEntries.find(e => e.clockOut === null);
+        
+        const todayTotalMs = empTodayEntries.reduce((acc, e) => {
+          const end = e.clockOut ? new Date(e.clockOut) : now;
+          const entryMs = end.getTime() - new Date(e.clockIn).getTime();
+          const breakMs = e.breaks.reduce((bAcc: number, b: any) => {
+            const bEnd = b.breakEnd ? new Date(b.breakEnd) : (e.clockOut ? null : now);
+            return bEnd ? bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime()) : bAcc;
+          }, 0);
+          return acc + (entryMs - breakMs);
         }, 0);
 
-      const status = activeEntry 
-        ? (activeEntry.breaks.some((b: any) => b.breakEnd === null) ? 'on-break' : 'clocked-in')
-        : (todayEntries.some(e => e.employeeId === emp.id) ? 'clocked-out' : 'no-show');
+        const todayBreakMs = empTodayEntries.reduce((acc, e) => {
+          return acc + e.breaks.reduce((bAcc: number, b: any) => {
+            const bEnd = b.breakEnd ? new Date(b.breakEnd) : now;
+            return bAcc + (bEnd.getTime() - new Date(b.breakStart).getTime());
+          }, 0);
+        }, 0);
 
-      return {
-        id: emp.id,
-        name: `${emp.firstName} ${emp.lastName}`,
-        department: emp.department,
-        location: emp.location,
-        status,
-        clockIn: activeEntry ? new Date(activeEntry.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
-        hoursToday: parseFloat((todayTotalSec / 3600).toFixed(1)),
-        hoursThisWeek: parseFloat((empWeekHours[emp.id] || 0).toFixed(1)),
-        missedPunch: status === 'no-show',
-        overtimeRisk: (empWeekHours[emp.id] || 0) > 35,
-      };
-    });
+        const shift = shiftByEmp.get(emp.id);
+        const isMissedPunch = activeEntry && (
+          (shift?.endTime && new Date(shift.endTime) < now) || 
+          (!shift && (now.getTime() - new Date(activeEntry.clockIn).getTime()) > 12 * 3600000)
+        );
+
+        let status = activeEntry 
+          ? (activeEntry.breaks.some((b: any) => b.breakEnd === null) ? 'on-break' : 'clocked-in')
+          : 'clocked-out';
+        if (isMissedPunch) status = 'no-show';
+
+        return {
+          id: emp.id,
+          name: `${emp.firstName} ${emp.lastName}`,
+          department: emp.department,
+          location: emp.location,
+          status,
+          clockIn: empTodayEntries[0] ? new Date(empTodayEntries[0].clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
+          hoursToday: parseFloat((todayTotalMs / 3600000).toFixed(1)),
+          hoursThisWeek: parseFloat((empWeekHours[emp.id] || 0).toFixed(1)),
+          breakMinutes: Math.round(todayBreakMs / 60000),
+          missedPunch: !!isMissedPunch,
+          overtimeRisk: (empWeekHours[emp.id] || 0) >= 38,
+        };
+      });
 
     return NextResponse.json({
       success: true,

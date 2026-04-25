@@ -1,26 +1,31 @@
 import { db } from "@/db";
-import { timeEntries } from "@/db/schema";
+import { timeEntries, employees, users } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq, and, isNull, desc } from "drizzle-orm";
+
+// Guest Mode: hardcoded Clerk user ID
+const GUEST_CLERK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const employeeId = searchParams.get('employeeId');
+    let employeeId = searchParams.get('employeeId');
 
+    // If no employeeId provided, try to resolve from guest user
     if (!employeeId) {
-      const entries = await db.query.timeEntries.findMany({
-        orderBy: (te, { desc }) => [desc(te.clockIn)],
-        with: {
-          breaks: true,
-        },
-      });
-      return NextResponse.json({ success: true, entries });
+      const [userEmployee] = await db
+        .select({ employeeId: employees.id })
+        .from(users)
+        .innerJoin(employees, eq(users.id, employees.userId))
+        .where(eq(users.clerkUserId, GUEST_CLERK_USER_ID));
+      
+      employeeId = userEmployee?.employeeId?.toString() ?? '1';
     }
 
     const entries = await db.query.timeEntries.findMany({
-      where: (te, { eq }) => eq(te.employeeId, parseInt(employeeId)),
+      where: (te, { eq }) => eq(te.employeeId, parseInt(employeeId!)),
       orderBy: (te, { desc }) => [desc(te.clockIn)],
+      limit: 50, // Limit to recent 50 entries for performance
       with: {
         breaks: true,
       },

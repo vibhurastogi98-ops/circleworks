@@ -1233,6 +1233,15 @@ export const webhookRegistrations = pgTable('webhook_registrations', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+export const contactRequests = pgTable('contact_requests', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  companySize: text('company_size'),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const webhookRegistrationsRelations = relations(webhookRegistrations, ({ one }) => ({
   company: one(companies, { fields: [webhookRegistrations.companyId], references: [companies.id] }),
 }));

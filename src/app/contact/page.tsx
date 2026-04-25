@@ -18,11 +18,12 @@ export default function ContactPage() {
       const firstName = (form[0] as HTMLInputElement).value;
       const lastName = (form[1] as HTMLInputElement).value;
       const email = (form[2] as HTMLInputElement).value;
+      const companySize = (form[3] as HTMLSelectElement).value;
       const message = (form[4] as HTMLTextAreaElement).value;
 
       try {
          const res = await fetch(
-            "https://circleworks-worker.vibhurastogi98.workers.dev/contact",
+            "/api/contact",
             {
                method: "POST",
                headers: {
@@ -31,6 +32,7 @@ export default function ContactPage() {
                body: JSON.stringify({
                   name: `${firstName} ${lastName}`,
                   email,
+                  companySize,
                   message,
                }),
             }
