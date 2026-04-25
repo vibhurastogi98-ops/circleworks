@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home, DollarSign, Clock, Heart, FileText, MoreHorizontal,
+  Home, DollarSign, Clock, Timer, Heart, FileText, MoreHorizontal,
   ChevronDown, LogOut, Receipt, Target, GraduationCap,
   Banknote, Users2, User, ChevronRight,
 } from "lucide-react";
@@ -30,6 +30,7 @@ const EMPLOYEE_NAV: NavItem[] = [
     ],
   },
   { label: "Time Off", icon: Clock, href: "/me/time-off", badgeCount: 1 },
+  { label: "Time", icon: Timer, href: "/me/time" },
   { label: "Benefits", icon: Heart, href: "/me/benefits" },
   { label: "Expenses", icon: Receipt, href: "/me/expenses" },
   { label: "Documents", icon: FileText, href: "/me/documents" },

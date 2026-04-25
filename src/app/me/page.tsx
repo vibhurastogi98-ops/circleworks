@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   DollarSign, Clock, Receipt, CreditCard, FileText, Star,
   CalendarDays, AlertCircle, ChevronRight, Megaphone, Gift,
-  Plane, Thermometer, User as UserIcon
+  Plane, Thermometer, User as UserIcon, Timer
 } from "lucide-react";
 
 import { useEmployeePortal } from "@/hooks/useEmployeePortal";
@@ -24,6 +24,7 @@ function getGreeting(): string {
 }
 
 const quickActions = [
+  { label: "Clock In/Out", icon: Timer, href: "/me/time", color: "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400" },
   { label: "Request Time Off", icon: Plane, href: "/me/time-off", color: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" },
   { label: "Submit Expense", icon: Receipt, href: "/me/expenses", color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" },
   { label: "Update Bank Info", icon: CreditCard, href: "/me/profile", color: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" },
@@ -163,7 +164,7 @@ export default function EmployeeHomePage() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {quickActions.map((action, i) => (
             <motion.div key={action.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Link

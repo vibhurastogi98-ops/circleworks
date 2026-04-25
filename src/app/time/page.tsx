@@ -17,10 +17,47 @@ const STATUS_STYLES: Record<string, { dot: string; bg: string; label: string }> 
 };
 
 export default function TimeOverview() {
-  const stats = getTimeOverviewStats();
-  const missedPunches = mockEmployeeClock.filter(e => e.missedPunch);
-  const overtimeRisk = mockEmployeeClock.filter(e => e.overtimeRisk);
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
   const [showManualEntry, setShowManualEntry] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/time/admin/overview')
+      .then(res => res.json())
+      .then(d => {
+        if (d.success) {
+          setData(d);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+      </div>
+    );
+  }
+
+  const stats = data?.stats || {
+    clockedIn: 0,
+    totalEmployees: 0,
+    overtimeRisks: 0,
+    pendingTimesheets: 0,
+    missedPunches: 0,
+    weekTotalHours: 0,
+    weekAvgHours: 0,
+    onBreak: 0
+  };
+  
+  const employees = data?.employees || [];
+  const missedPunchesList = employees.filter((e: any) => e.missedPunch);
+  const overtimeRiskList = employees.filter((e: any) => e.overtimeRisk);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -118,7 +155,7 @@ export default function TimeOverview() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {mockEmployeeClock.map((emp) => {
+                {employees.map((emp: any) => {
                   const st = STATUS_STYLES[emp.status];
                   return (
                     <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
@@ -150,7 +187,7 @@ export default function TimeOverview() {
         {/* Right Column: Alerts & Quick Links */}
         <div className="flex flex-col gap-6">
           {/* Overtime Risk Alerts */}
-          {overtimeRisk.length > 0 && (
+          {overtimeRiskList.length > 0 && (
             <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/50 rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/10">
                 <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
@@ -159,7 +196,7 @@ export default function TimeOverview() {
                 </h3>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {overtimeRisk.map((emp) => (
+                {overtimeRiskList.map((emp: any) => (
                   <div key={emp.id} className="px-4 py-3 flex items-center justify-between">
                     <div>
                       <div className="text-sm font-bold text-slate-900 dark:text-white">{emp.name}</div>
@@ -176,7 +213,7 @@ export default function TimeOverview() {
           )}
 
           {/* Missed Punches */}
-          {missedPunches.length > 0 && (
+          {missedPunchesList.length > 0 && (
             <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-800/50 rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10">
                 <h3 className="text-sm font-bold text-red-800 dark:text-red-300 flex items-center gap-2">
@@ -185,11 +222,11 @@ export default function TimeOverview() {
                 </h3>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {missedPunches.map((emp) => (
+                {missedPunchesList.map((emp: any) => (
                   <div key={emp.id} className="px-4 py-3 flex items-center justify-between">
                     <div>
                       <div className="text-sm font-bold text-slate-900 dark:text-white">{emp.name}</div>
-                      <div className="text-xs text-slate-500">{emp.role} &middot; {emp.location}</div>
+                      <div className="text-xs text-slate-500">{emp.department} &middot; {emp.location}</div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">No Show</span>
                   </div>
@@ -235,7 +272,7 @@ export default function TimeOverview() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Employee</label>
                 <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm">
                   <option>Select employee...</option>
-                  {mockEmployeeClock.map(e => <option key={e.id}>{e.name}</option>)}
+                  {employees.map((e: any) => <option key={e.id}>{e.name}</option>)}
                 </select>
               </div>
               <div>
@@ -278,3 +315,4 @@ export default function TimeOverview() {
     </div>
   );
 }
+

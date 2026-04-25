@@ -10,20 +10,26 @@ export async function GET(request: Request) {
 
     if (!employeeId) {
       const entries = await db.query.timeEntries.findMany({
-        orderBy: [desc(timeEntries.clockIn)],
+        orderBy: (te, { desc }) => [desc(te.clockIn)],
+        with: {
+          breaks: true,
+        },
       });
       return NextResponse.json({ success: true, entries });
     }
 
     const entries = await db.query.timeEntries.findMany({
-      where: eq(timeEntries.employeeId, parseInt(employeeId)),
-      orderBy: [desc(timeEntries.clockIn)],
+      where: (te, { eq }) => eq(te.employeeId, parseInt(employeeId)),
+      orderBy: (te, { desc }) => [desc(te.clockIn)],
+      with: {
+        breaks: true,
+      },
     });
 
     return NextResponse.json({ success: true, entries });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching time entries:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch time entries" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to fetch time entries", details: error.message }, { status: 500 });
   }
 }
 
@@ -38,9 +44,9 @@ export async function POST(request: Request) {
 
     // Identify if there is an active (un-clocked-out) entry for this employee
     const activeEntry = await db.query.timeEntries.findFirst({
-      where: and(
-        eq(timeEntries.employeeId, parseInt(employeeId)),
-        isNull(timeEntries.clockOut)
+      where: (te, { eq, and, isNull }) => and(
+        eq(te.employeeId, parseInt(employeeId)),
+        isNull(te.clockOut)
       ),
     });
 
@@ -76,8 +82,8 @@ export async function POST(request: Request) {
         entry: newEntry 
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error processing kiosk entry:", error);
-    return NextResponse.json({ success: false, error: "Failed to process clock-in/out" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to process clock-in/out", details: error.message }, { status: 500 });
   }
 }

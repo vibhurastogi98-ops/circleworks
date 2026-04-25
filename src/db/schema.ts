@@ -132,6 +132,26 @@ export const timeEntries = pgTable('time_entries', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+export const timeBreaks = pgTable('time_breaks', {
+  id: serial('id').primaryKey(),
+  timeEntryId: integer('time_entry_id').references(() => timeEntries.id, { onDelete: 'cascade' }),
+  breakStart: timestamp('break_start').notNull(),
+  breakEnd: timestamp('break_end'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const shifts = pgTable('shifts', {
+  id: serial('id').primaryKey(),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  startTime: timestamp('start_time').notNull(),
+  endTime: timestamp('end_time').notNull(),
+  status: text('status').default('Scheduled'), // Scheduled, Published, Completed, Cancelled
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // --- PROJECTS & BILLING ---
 
 export const projects = pgTable('projects', {
@@ -445,11 +465,21 @@ export const projectAssignmentsRelations = relations(projectAssignments, ({ one 
   employee: one(employees, { fields: [projectAssignments.employeeId], references: [employees.id] }),
 }));
 
-export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
+export const timeEntriesRelations = relations(timeEntries, ({ one, many }) => ({
   employee: one(employees, { fields: [timeEntries.employeeId], references: [employees.id] }),
   company: one(companies, { fields: [timeEntries.companyId], references: [companies.id] }),
   timesheet: one(timesheets, { fields: [timeEntries.timesheetId], references: [timesheets.id] }),
   project: one(projects, { fields: [timeEntries.projectId], references: [projects.id] }),
+  breaks: many(timeBreaks),
+}));
+
+export const timeBreaksRelations = relations(timeBreaks, ({ one }) => ({
+  timeEntry: one(timeEntries, { fields: [timeBreaks.timeEntryId], references: [timeEntries.id] }),
+}));
+
+export const shiftsRelations = relations(shifts, ({ one }) => ({
+  employee: one(employees, { fields: [shifts.employeeId], references: [employees.id] }),
+  company: one(companies, { fields: [shifts.companyId], references: [companies.id] }),
 }));
 
 // --- CONTRACTORS ---
