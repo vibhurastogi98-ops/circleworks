@@ -370,6 +370,7 @@ export function I9Step({ onNext, onBack, data }: StepProps) {
 // ---------------------------------------------------------
 export function SignDocumentsStep({ onNext, onBack, data, companyName }: StepProps) {
   const [signedDocs, setSignedDocs] = useState<string[]>(data.docs || []);
+  const [submitting, setSubmitting] = useState(false);
   const documents = [
     { id: "offer-letter", title: "Offer Letter", type: "Required" },
     { id: "handbook", title: "Employee Handbook", type: "Required" },
@@ -382,6 +383,15 @@ export function SignDocumentsStep({ onNext, onBack, data, companyName }: StepPro
     } else {
       setSignedDocs([...signedDocs, id]);
     }
+  };
+
+  const handleComplete = () => {
+    setSubmitting(true);
+    // Simulate queueing to BullMQ pdf-generation queue & onboarding completion
+    setTimeout(() => {
+      setSubmitting(false);
+      onNext({ docs: signedDocs });
+    }, 2000);
   };
 
   return (
@@ -418,15 +428,15 @@ export function SignDocumentsStep({ onNext, onBack, data, companyName }: StepPro
       </div>
 
       <div className="flex items-center justify-between mt-10 p-2">
-        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium">
+        <button onClick={onBack} disabled={submitting} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:hover:text-white font-medium disabled:opacity-50">
           <ArrowLeft size={16} /> Back
         </button>
         <button 
-          onClick={() => onNext({ docs: signedDocs })}
-          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all disabled:opacity-50"
-          disabled={signedDocs.filter(id => documents.find(d => d.id === id)?.type === 'Required').length < 2}
+          onClick={handleComplete}
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all disabled:opacity-50 flex items-center gap-2"
+          disabled={signedDocs.filter(id => documents.find(d => d.id === id)?.type === 'Required').length < 2 || submitting}
         >
-          Complete Pre-Boarding
+          {submitting ? "Processing via BullMQ..." : "Complete Pre-Boarding"}
         </button>
       </div>
     </div>

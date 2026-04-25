@@ -854,3 +854,62 @@ CREATE TABLE IF NOT EXISTS tax_reconciliations (
 
 CREATE INDEX IF NOT EXISTS idx_w2_forms_emp ON w2_forms(employee_id, tax_year);
 CREATE INDEX IF NOT EXISTS idx_tax_reconciliations_company ON tax_reconciliations(company_id, tax_year, quarter);
+
+-- =============================================================================
+-- 🚀 PRE-BOARDING PORTAL (SECTION 20)
+-- =============================================================================
+
+-- 50. PRE-BOARDING INVITATIONS
+CREATE TABLE IF NOT EXISTS preboarding_invitations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER NOT NULL,
+  email TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  token TEXT UNIQUE NOT NULL,
+  status TEXT CHECK(status IN ('Pending','Completed','Expired')) DEFAULT 'Pending',
+  start_date DATE NOT NULL,
+  manager_id INTEGER,
+  employee_id INTEGER, -- Filled once account is created
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(manager_id) REFERENCES employees(id) ON DELETE SET NULL,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE SET NULL
+);
+
+-- 51. I9 VERIFICATIONS
+CREATE TABLE IF NOT EXISTS i9_verifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL UNIQUE,
+  citizenship_status TEXT,
+  attested BOOLEAN DEFAULT 0,
+  attested_at DATETIME,
+  section_2_completed BOOLEAN DEFAULT 0,
+  section_2_completed_by INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(section_2_completed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 52. W4 FORMS
+CREATE TABLE IF NOT EXISTS w4_forms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL UNIQUE,
+  filing_status TEXT,
+  multiple_jobs BOOLEAN DEFAULT 0,
+  claim_dependents INTEGER DEFAULT 0,
+  other_income INTEGER DEFAULT 0,
+  deductions INTEGER DEFAULT 0,
+  extra_withholding INTEGER DEFAULT 0,
+  exempt BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_preboarding_invitations_token ON preboarding_invitations(token);
+CREATE INDEX IF NOT EXISTS idx_i9_verifications_emp ON i9_verifications(employee_id);
+CREATE INDEX IF NOT EXISTS idx_w4_forms_emp ON w4_forms(employee_id);

@@ -105,6 +105,40 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
         </Text>
       </View>
 
+      {/* Company Overview */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Company Overview</Text>
+        <Text style={styles.text}>
+          {companyName} was founded with a simple goal: making work life easier. We value transparency, collaboration, and continuous improvement. We're an agile team dedicated to providing best-in-class solutions for modern businesses. We are excited to have you join our journey.
+        </Text>
+      </View>
+
+      {/* Benefits Summary */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Benefits Summary</Text>
+        <Text style={styles.text}>
+          As a full-time employee, you are eligible for our comprehensive benefits package:
+        </Text>
+        <View style={styles.list}>
+          <View style={styles.listItem}>
+            <Text style={styles.bullet}>•</Text>
+            <Text style={styles.text}>Health, Dental, and Vision Insurance (Effective Day 1)</Text>
+          </View>
+          <View style={styles.listItem}>
+            <Text style={styles.bullet}>•</Text>
+            <Text style={styles.text}>401(k) Retirement Plan with up to 4% Company Match</Text>
+          </View>
+          <View style={styles.listItem}>
+            <Text style={styles.bullet}>•</Text>
+            <Text style={styles.text}>Unlimited Paid Time Off (PTO) & 12 Paid Company Holidays</Text>
+          </View>
+          <View style={styles.listItem}>
+            <Text style={styles.bullet}>•</Text>
+            <Text style={styles.text}>Monthly Wellness & Home Office Stipends</Text>
+          </View>
+        </View>
+      </View>
+
       {/* First Day Schedule */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>First Day Schedule</Text>
@@ -138,7 +172,7 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
         <Text style={styles.text}>
           Your primary workstations and accounts have been provisioned. Please follow these steps to activate your access:
         </Text>
-        <div style={styles.list}>
+        <View style={styles.list}>
           <View style={styles.listItem}>
             <Text style={styles.bullet}>1.</Text>
             <Text style={styles.text}>Connect to the "CW-Internal" Wi-Fi network.</Text>
@@ -151,7 +185,7 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
             <Text style={styles.bullet}>3.</Text>
             <Text style={styles.text}>Set up Multi-Factor Authentication (MFA) via the Okta dashboard.</Text>
           </View>
-        </div>
+        </View>
       </View>
 
       {/* HR Contact */}

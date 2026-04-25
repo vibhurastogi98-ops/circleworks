@@ -1121,3 +1121,61 @@ export const agencyInvoiceItemsRelations = relations(agencyInvoiceItems, ({ one 
   invoice: one(agencyInvoices, { fields: [agencyInvoiceItems.invoiceId], references: [agencyInvoices.id] }),
   employee: one(employees, { fields: [agencyInvoiceItems.employeeId], references: [employees.id] }),
 }));
+
+// --- PRE-BOARDING PORTAL ---
+
+export const preboardingInvitations = pgTable('preboarding_invitations', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name').notNull(),
+  token: text('token').unique().notNull(),
+  status: text('status').default('Pending'), // Pending, Completed, Expired
+  startDate: date('start_date').notNull(),
+  managerId: integer('manager_id').references(() => employees.id, { onDelete: 'set null' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const i9Verifications = pgTable('i9_verifications', {
+  id: serial('id').primaryKey(),
+  employeeId: integer('employee_id').unique().references(() => employees.id, { onDelete: 'cascade' }),
+  citizenshipStatus: text('citizenship_status'),
+  attested: boolean('attested').default(false),
+  attestedAt: timestamp('attested_at'),
+  section2Completed: boolean('section_2_completed').default(false),
+  section2CompletedBy: integer('section_2_completed_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const w4Forms = pgTable('w4_forms', {
+  id: serial('id').primaryKey(),
+  employeeId: integer('employee_id').unique().references(() => employees.id, { onDelete: 'cascade' }),
+  filingStatus: text('filing_status'),
+  multipleJobs: boolean('multiple_jobs').default(false),
+  claimDependents: integer('claim_dependents').default(0),
+  otherIncome: integer('other_income').default(0),
+  deductions: integer('deductions').default(0),
+  extraWithholding: integer('extra_withholding').default(0),
+  exempt: boolean('exempt').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const preboardingInvitationsRelations = relations(preboardingInvitations, ({ one }) => ({
+  company: one(companies, { fields: [preboardingInvitations.companyId], references: [companies.id] }),
+  manager: one(employees, { fields: [preboardingInvitations.managerId], references: [employees.id] }),
+  employee: one(employees, { fields: [preboardingInvitations.employeeId], references: [employees.id] }),
+}));
+
+export const i9VerificationsRelations = relations(i9Verifications, ({ one }) => ({
+  employee: one(employees, { fields: [i9Verifications.employeeId], references: [employees.id] }),
+}));
+
+export const w4FormsRelations = relations(w4Forms, ({ one }) => ({
+  employee: one(employees, { fields: [w4Forms.employeeId], references: [employees.id] }),
+}));
