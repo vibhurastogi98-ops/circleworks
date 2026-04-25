@@ -29,7 +29,10 @@ export function useDashboardData() {
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: true, // Always fetch in guest mode
+    staleTime: 60 * 1000, // Cache for 60 seconds
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: true,
   });
 
   const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;

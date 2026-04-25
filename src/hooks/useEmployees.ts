@@ -22,8 +22,9 @@ export function useEmployees() {
   const query = useQuery({
     queryKey: ["employees"],
     queryFn: fetchEmployees,
-    staleTime: 0, // Force refetch every time
-    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000, // Cache for 60 seconds
+    gcTime: 10 * 60 * 1000, // Keep in garbage collection for 10 minutes
+    refetchOnWindowFocus: false, // Prevent refetching when switching tabs
     refetchOnReconnect: true,
   });
 

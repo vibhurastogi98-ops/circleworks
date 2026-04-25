@@ -147,6 +147,8 @@ export default function AppSidebar() {
       if (!res.ok) return null;
       return res.json();
     },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000,
     retry: false
   });
   const isAssignedEmployee = !!userProfile?.profile?.id;

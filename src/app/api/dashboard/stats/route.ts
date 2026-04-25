@@ -27,56 +27,65 @@ export async function GET() {
       });
     }
 
-    // 1. Total Employee Count (filtered by company)
-    const [employeeStats] = await db
-      .select({ value: count() })
-      .from(employees)
-      .where(eq(employees.companyId, userEmployee.companyId));
-    const totalEmployees = employeeStats?.value || 0;
-
-    // 2. Recent Hires (Top 4, filtered by company)
-    const recentHires = await db.query.employees.findMany({
-      where: eq(employees.companyId, userEmployee.companyId),
-      orderBy: [desc(employees.createdAt)],
-      limit: 4,
-    });
-
-    // 3. Monthly Payroll Aggregation (Last 30 days, filtered by company)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-    const [payrollStats] = await db
-      .select({ total: sum(payrolls.totalNet) })
-      .from(payrolls)
-      .where(and(
-        eq(payrolls.companyId, userEmployee.companyId),
-        gte(payrolls.checkDate, thirtyDaysAgoStr),
-        sql`${payrolls.status} = 'paid' OR ${payrolls.status} = 'processed'`
-      ));
-    
+    // Run independent stats queries in parallel
+    const [
+      [employeeStats],
+      recentHires,
+      [payrollStats],
+      [ptoPending],
+      [timesheetPending]
+    ] = await Promise.all([
+      // 1. Total Employee Count
+      db
+        .select({ value: count() })
+        .from(employees)
+        .where(eq(employees.companyId, userEmployee.companyId)),
+
+      // 2. Recent Hires
+      db.query.employees.findMany({
+        where: eq(employees.companyId, userEmployee.companyId),
+        orderBy: [desc(employees.createdAt)],
+        limit: 4,
+      }),
+
+      // 3. Monthly Payroll Aggregation
+      db
+        .select({ total: sum(payrolls.totalNet) })
+        .from(payrolls)
+        .where(and(
+          eq(payrolls.companyId, userEmployee.companyId),
+          gte(payrolls.checkDate, thirtyDaysAgoStr),
+          sql`${payrolls.status} = 'paid' OR ${payrolls.status} = 'processed'`
+        )),
+
+      // 4. Pending PTO
+      db
+        .select({ value: count() })
+        .from(ptoRequests)
+        .where(and(
+          eq(ptoRequests.companyId, userEmployee.companyId),
+          sql`${ptoRequests.status} = 'Pending'`
+        )),
+
+      // 5. Pending Timesheets
+      db
+        .select({ value: count() })
+        .from(timesheets)
+        .where(and(
+          eq(timesheets.companyId, userEmployee.companyId),
+          or(
+            sql`${timesheets.status} = 'Pending'`,
+            sql`${timesheets.status} = 'Draft'`
+          )
+        ))
+    ]);
+
+    const totalEmployees = employeeStats?.value || 0;
     const monthlyPayroll = Number(payrollStats?.total || 0);
-
-    // 4. Pending Approvals (PTO + Timesheets, filtered by company)
-    const [ptoPending] = await db
-      .select({ value: count() })
-      .from(ptoRequests)
-      .where(and(
-        eq(ptoRequests.companyId, userEmployee.companyId),
-        sql`${ptoRequests.status} = 'Pending'`
-      ));
-
-    const [timesheetPending] = await db
-      .select({ value: count() })
-      .from(timesheets)
-      .where(and(
-        eq(timesheets.companyId, userEmployee.companyId),
-        or(
-          sql`${timesheets.status} = 'Pending'`,
-          sql`${timesheets.status} = 'Draft'`
-        )
-      ));
-
     const pendingApprovals = (ptoPending?.value || 0) + (timesheetPending?.value || 0);
 
     // 5. Construct Live Data
