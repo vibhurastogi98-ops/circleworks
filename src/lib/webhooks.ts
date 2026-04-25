@@ -12,6 +12,7 @@
  *   payroll.completed
  *   document.signed
  *   candidate.hired
+ *   employee.auto_created_from_ats
  */
 
 import crypto from "crypto";
@@ -64,6 +65,17 @@ export interface CandidateHiredPayload {
   timestamp: string;
 }
 
+export interface EmployeeAutoCreatedPayload {
+  employeeId: number;
+  candidateId: number;
+  companyId: number | null;
+  firstName: string;
+  lastName: string | null;
+  personalEmail: string | null;
+  startDate: string | null;
+  timestamp: string;
+}
+
 // ─── Event Map ────────────────────────────────────────────────────────────────
 
 export type WebhookEventName =
@@ -71,7 +83,8 @@ export type WebhookEventName =
   | "employee.terminated"
   | "payroll.completed"
   | "document.signed"
-  | "candidate.hired";
+  | "candidate.hired"
+  | "employee.auto_created_from_ats";
 
 type WebhookPayloadMap = {
   "employee.created": EmployeeCreatedPayload;
@@ -79,6 +92,7 @@ type WebhookPayloadMap = {
   "payroll.completed": PayrollCompletedPayload;
   "document.signed": DocumentSignedPayload;
   "candidate.hired": CandidateHiredPayload;
+  "employee.auto_created_from_ats": EmployeeAutoCreatedPayload;
 };
 
 // ─── Webhook Envelope ─────────────────────────────────────────────────────────

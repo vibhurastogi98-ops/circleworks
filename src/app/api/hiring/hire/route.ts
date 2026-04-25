@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "@/lib/email";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +19,12 @@ export async function POST(req: Request) {
     const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const body = await req.json();
-    const { candidateId, offerId, ignoreDuplicate = false } = body;
+    const { 
+      candidateId, 
+      offerId, 
+      ignoreDuplicate = false,
+      overrides = {} 
+    } = body;
 
     if (!candidateId || !offerId) {
       return NextResponse.json({ error: "Candidate ID and Offer ID are required" }, { status: 400 });
@@ -60,9 +66,10 @@ export async function POST(req: Request) {
       .where(eq(atsJobs.id, offer.jobId as number));
 
     // 2. DUPLICATE CHECK
-    if (candidate.email && !ignoreDuplicate) {
+    const finalEmail = overrides.email || candidate.email;
+    if (finalEmail && !ignoreDuplicate) {
       const existingEmployee = await db.query.employees.findFirst({
-        where: eq(employees.personalEmail, candidate.email),
+        where: eq(employees.personalEmail, finalEmail),
       });
 
       if (existingEmployee) {
@@ -86,17 +93,15 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: "User or company not found" }, { status: 400 });
     }
 
-    // 4. MAP FIELDS & CREATE EMPLOYEE
-    // status per prompt: 'pre_boarding'
-    
+    // 4. MAP FIELDS & CREATE EMPLOYEE (Canonical Mapping with Overrides)
     const [newEmployee] = await db.insert(employees).values({
       companyId: companyId,
-      firstName: candidate.firstName,
-      lastName: candidate.lastName,
-      personalEmail: candidate.email,
-      personalPhone: candidate.phone,
+      firstName: overrides.firstName || candidate.firstName,
+      lastName: overrides.lastName || candidate.lastName,
+      personalEmail: finalEmail,
+      personalPhone: overrides.phone || candidate.phone,
       salary: offer.salary,
-      startDate: offer.startDate,
+      startDate: overrides.startDate || offer.startDate,
       jobTitle: offer.title || job?.title,
       departmentId: offer.departmentId,
       locationId: offer.locationId,
@@ -106,7 +111,6 @@ export async function POST(req: Request) {
     }).returning();
 
     // 5. TRIGGER ONBOARDING TEMPLATE ASSIGNMENT
-    // Search for any active template for this company
     const [template] = await db
       .select({ id: onboardingTemplates.id })
       .from(onboardingTemplates)
@@ -116,8 +120,8 @@ export async function POST(req: Request) {
     const [onboardingCase] = await db.insert(onboardingCases).values({
       employeeId: newEmployee.id,
       candidateId: candidate.id,
-      templateId: template?.id || null, // Best esfuerzo to assign template
-      startDate: offer.startDate,
+      templateId: template?.id || null,
+      startDate: overrides.startDate || offer.startDate,
       status: "Active",
     }).returning();
 
@@ -126,29 +130,65 @@ export async function POST(req: Request) {
       .set({ stage: 'Hired' })
       .where(eq(atsCandidates.id, candidate.id));
 
-    // 7. EMIT WS (Mocking as it requires Socket.io server logic usually in a custom server or pusher)
-    // In a real local setup with Next.js Custom Server:
-    // global.io?.to(`company:${companyId}`).emit('employee.auto_created_from_ats', { 
-    //   employeeId: newEmployee.id, 
-    //   candidateId: candidate.id 
-    // });
+    // 7. EMIT WS: 'employee.auto_created_from_ats'
+    // @ts-ignore - global.io is attached in custom server
+    if (global.io) {
+      // @ts-ignore
+      global.io.to(`company:${companyId}`).emit('employee.auto_created_from_ats', { 
+        employeeId: newEmployee.id, 
+        candidateId: candidate.id 
+      });
+    }
 
-    // 8. SEND PRE-BOARDING INVITE (Template #28)
-    if (candidate.email) {
+    // 8. DISPATCH WEBHOOK: 'employee.auto_created_from_ats'
+    await dispatchWebhook("employee.auto_created_from_ats", {
+      employeeId: newEmployee.id,
+      candidateId: candidate.id,
+      companyId: companyId,
+      firstName: overrides.firstName || candidate.firstName,
+      lastName: overrides.lastName || candidate.lastName,
+      personalEmail: finalEmail,
+      startDate: overrides.startDate || offer.startDate,
+      timestamp: new Date().toISOString()
+    });
+
+    // 9. SEND PRE-BOARDING INVITE (Template #28)
+    if (finalEmail) {
       await sendEmail({
-        to: candidate.email,
-        subject: `Welcome to the team, ${candidate.firstName}!`,
+        to: finalEmail,
+        subject: `Welcome to the team, ${overrides.firstName || candidate.firstName}!`,
         html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h1 style="color: #2563eb;">Welcome to CircleWorks!</h1>
-            <p>Hi ${candidate.firstName},</p>
-            <p>We're thrilled to have you join our team as <strong>${offer.title || job?.title}</strong>!</p>
-            <p>Your journey with us begins on <strong>${offer.startDate}</strong>. To get things started, we've prepared a pre-boarding portal for you.</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/welcome/${onboardingCase.id}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Start Your Onboarding</a>
+          <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h1 style="color: #1e293b; font-size: 24px; font-weight: 700; margin: 0;">Welcome to CircleWorks!</h1>
             </div>
-            <p>If you have any questions before your first day, don't hesitate to reach out.</p>
-            <p>Best regards,<br/>The HR Team</p>
+            
+            <p style="color: #475569; font-size: 16px; line-height: 24px;">Hi ${overrides.firstName || candidate.firstName},</p>
+            
+            <p style="color: #475569; font-size: 16px; line-height: 24px;">We're thrilled to officially welcome you to the team! You've been hired as our new <strong>${offer.title || job?.title}</strong>.</p>
+            
+            <div style="background-color: #f8fafc; padding: 24px; border-radius: 12px; margin: 32px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px 0;">Joining Details</h3>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <p style="color: #64748b; font-size: 14px; margin: 0;"><strong>Start Date:</strong> ${overrides.startDate || offer.startDate}</p>
+                <p style="color: #64748b; font-size: 14px; margin: 0;"><strong>Employment:</strong> ${offer.employmentType || 'Full-Time'}</p>
+              </div>
+            </div>
+            
+            <p style="color: #475569; font-size: 16px; line-height: 24px;">To make your first day as smooth as possible, we've set up a pre-boarding portal for you to complete some initial paperwork and get to know the team.</p>
+            
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/welcome/${onboardingCase.id}" 
+                 style="background-color: #2563eb; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);">
+                Start Your Onboarding
+              </a>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 32px 0;" />
+            
+            <p style="color: #94a3b8; font-size: 13px; line-height: 20px; text-align: center;">
+              If you have any questions before your first day, please don't hesitate to reach out to our HR department.
+            </p>
           </div>
         `
       });
@@ -157,7 +197,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       employeeId: newEmployee.id,
-      message: `Employee created and pre-boarding invitation sent to ${candidate.email}`
+      message: `Employee created and pre-boarding invitation sent to ${finalEmail}`
     });
 
   } catch (error: any) {
