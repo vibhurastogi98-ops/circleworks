@@ -19,7 +19,7 @@ export default function OnboardingTour() {
     const tourDriver = driver({
       showProgress: true,
       animate: true,
-      allowClose: false,
+      allowClose: true,
       overlayColor: "rgba(10, 22, 40, 0.7)",
       nextBtnText: "Next &rarr;",
       prevBtnText: "&larr; Prev",

@@ -718,3 +718,83 @@ body {
     width: 100% !important;
   }
 }
+
+/* Customizing Driver.js Popover for Premium Feel */
+.driver-popover {
+  border-radius: var(--radius-xl) !important;
+  padding: var(--space-6) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: var(--shadow-lg) !important;
+  background-color: var(--surface-default) !important;
+}
+
+.driver-popover-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  margin-bottom: var(--space-2) !important;
+}
+
+.driver-popover-description {
+  font-size: 0.95rem !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.driver-popover-close-btn {
+  color: var(--color-gray-300) !important;
+  font-size: 18px !important;
+  font-weight: normal !important;
+  top: 15px !important;
+  right: 15px !important;
+  transition: all var(--transition-base) !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-full) !important;
+}
+
+.driver-popover-close-btn:hover {
+  color: var(--color-gray-700) !important;
+  background-color: var(--color-gray-100) !important;
+}
+
+.driver-popover-footer {
+  margin-top: var(--space-4) !important;
+}
+
+.driver-popover-next-btn, .driver-popover-prev-btn {
+  padding: 8px 16px !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  text-shadow: none !important;
+  transition: all var(--transition-base) !important;
+}
+
+.driver-popover-next-btn {
+  background-color: var(--color-blue-600) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.driver-popover-next-btn:hover {
+  background-color: var(--color-blue-700) !important;
+}
+
+.driver-popover-prev-btn {
+  background-color: transparent !important;
+  color: var(--color-gray-700) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background-color: var(--color-gray-100) !important;
+}
+
+.driver-popover-progress-text {
+  color: var(--color-gray-500) !important;
+  font-size: 0.875rem !important;
+}
