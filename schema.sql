@@ -810,3 +810,47 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_emp ON notifications(employee_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+
+-- =============================================================================
+-- 📄 YEAR-END & QUARTERLY TAX MODULE (SECTION 17)
+-- =============================================================================
+
+-- 48. W2 FORMS
+CREATE TABLE IF NOT EXISTS w2_forms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER NOT NULL,
+  employee_id INTEGER NOT NULL,
+  tax_year INTEGER NOT NULL,
+  box_1_wages INTEGER DEFAULT 0,
+  box_2_fed_tax INTEGER DEFAULT 0,
+  box_3_ss_wages INTEGER DEFAULT 0,
+  box_4_ss_tax INTEGER DEFAULT 0,
+  box_5_med_wages INTEGER DEFAULT 0,
+  box_6_med_tax INTEGER DEFAULT 0,
+  status TEXT CHECK(status IN ('Draft','Reviewed','Filed','Distributed')) DEFAULT 'Draft',
+  xml_data TEXT, -- Optional XML generated for SSA filing
+  pdf_url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- 49. TAX RECONCILIATIONS (Form 941 / Quarterly)
+CREATE TABLE IF NOT EXISTS tax_reconciliations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER NOT NULL,
+  quarter INTEGER CHECK(quarter IN (1, 2, 3, 4)) NOT NULL,
+  tax_year INTEGER NOT NULL,
+  expected_deposits INTEGER DEFAULT 0,
+  actual_deposits INTEGER DEFAULT 0,
+  variance INTEGER DEFAULT 0,
+  status TEXT CHECK(status IN ('Pending','Reconciled','Discrepancy')) DEFAULT 'Pending',
+  worksheet_url TEXT, -- URL to generated 941 worksheet PDF
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_w2_forms_emp ON w2_forms(employee_id, tax_year);
+CREATE INDEX IF NOT EXISTS idx_tax_reconciliations_company ON tax_reconciliations(company_id, tax_year, quarter);

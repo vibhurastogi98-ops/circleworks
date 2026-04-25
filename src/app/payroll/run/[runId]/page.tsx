@@ -2,6 +2,7 @@ import React from "react";
 import { Download, FileText, CheckCircle2, Building2 } from "lucide-react";
 import Link from "next/link";
 import RunExportButton from "@/components/payroll/run/RunExportButton";
+import PayrollReportButton from "@/components/payroll/run/PayrollReportButton";
 
 export default async function RunDetailPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
@@ -21,6 +22,7 @@ export default async function RunDetailPage({ params }: { params: Promise<{ runI
             <FileText size={16} /> View Paystubs
           </Link>
           <RunExportButton />
+          <PayrollReportButton runId={runId} />
         </div>
       </div>
 

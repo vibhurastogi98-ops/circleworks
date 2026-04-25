@@ -218,11 +218,17 @@ export default function AccountantPartnerPage() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-16 text-center">How the program works</h2>
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#030712] relative overflow-hidden">
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">How the program works</h2>
+              <div className="w-24 h-1.5 bg-blue-600 mx-auto rounded-full mb-6"></div>
+              <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+                Four simple steps to transform your practice and unlock new revenue streams.
+              </p>
+            </div>
             
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12">
               {[
                 { step: "01", title: "Apply", desc: "Fill out the simple partner application form below to get started." },
                 { step: "02", title: "Get Certified", desc: "Complete our free 2-hour CircleWorks certification course online." },
@@ -230,10 +236,23 @@ export default function AccountantPartnerPage() {
                 { step: "04", title: "Earn", desc: "Start collecting your recurring revenue share from day one." }
               ].map((item) => (
                 <div key={item.step} className="relative group">
-                  <div className="text-7xl font-black text-slate-100 dark:text-slate-800/50 mb-2 transition-colors group-hover:text-blue-50 dark:group-hover:text-blue-900/20">{item.step}</div>
-                  <div className="absolute top-12 left-0 w-8 h-1 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 pt-4">{item.title}</h3>
-                  <p className="text-slate-600 dark:text-slate-400">{item.desc}</p>
+                  {/* Background Number with better contrast */}
+                  <div className="text-8xl font-black text-slate-200/60 dark:text-slate-800/60 mb-2 transition-all duration-500 group-hover:text-blue-600/20 dark:group-hover:text-blue-400/20 select-none group-hover:scale-110 group-hover:-translate-x-2">
+                    {item.step}
+                  </div>
+                  
+                  {/* Decorative Bar */}
+                  <div className="absolute top-14 left-0 w-12 h-1.5 bg-blue-600 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all duration-300 group-hover:w-20"></div>
+                  
+                  {/* Content */}
+                  <div className="pt-8">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                      {item.desc}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
