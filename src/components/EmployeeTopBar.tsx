@@ -17,21 +17,28 @@ import NotificationPanel from "@/components/notifications/NotificationPanel";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import CommandPalette from "@/components/CommandPalette";
 
+// Guest Mode: Authentication constants
+const GUEST_SIGN_OUT = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+const GUEST_IS_SIGNED_IN = true;
+const GUEST_IS_LOADED = true;
+const GUEST_USER = { 
+  firstName: "Guest", 
+  lastName: "Employee", 
+  fullName: "Guest Employee",
+  primaryEmailAddress: { emailAddress: "employee@circleworks.com" },
+  imageUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent",
+  publicMetadata: { companyName: "CircleWorks" } 
+};
+
 export default function EmployeeTopBar() {
   const pathname = usePathname() || "/me";
   const router = useRouter();
-  // Guest Mode: Authentication disabled
-  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
-  const isSignedIn = true;
-  const isLoaded = true;
-  const user = { 
-    firstName: "Guest", 
-    lastName: "Employee", 
-    fullName: "Guest Employee",
-    primaryEmailAddress: { emailAddress: "employee@circleworks.com" },
-    imageUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent",
-    publicMetadata: { companyName: "CircleWorks" } 
-  };
+  
+  // Use guest constants
+  const signOut = GUEST_SIGN_OUT;
+  const isSignedIn = GUEST_IS_SIGNED_IN;
+  const isLoaded = GUEST_IS_LOADED;
+  const user = GUEST_USER;
 
 
   // Local state for immediate UI updates

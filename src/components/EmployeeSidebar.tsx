@@ -41,21 +41,27 @@ const EMPLOYEE_NAV: NavItem[] = [
   { label: "My Profile", icon: User, href: "/me/profile" },
 ];
 
+// Guest Mode: Authentication constants
+const GUEST_SIGN_OUT = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+const GUEST_DISPLAY_NAME = "Guest Employee";
+const GUEST_DISPLAY_EMAIL = "employee@circleworks.com";
+const GUEST_AVATAR_URL = "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
+
 export default function EmployeeSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
-  // Guest Mode: Authentication disabled
-  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+  
+  // Use guest constants
+  const signOut = GUEST_SIGN_OUT;
+  const displayName = GUEST_DISPLAY_NAME;
+  const displayEmail = GUEST_DISPLAY_EMAIL;
+  const avatarUrl = GUEST_AVATAR_URL;
 
   const { currentUser } = useDashboardData();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
-
-  const displayName = "Guest Employee";
-  const displayEmail = "employee@circleworks.com";
-  const avatarUrl = "https://api.dicebear.com/7.x/notionists/svg?seed=Alex&backgroundColor=transparent";
 
 
   const toggleAccordion = (label: string) => {
