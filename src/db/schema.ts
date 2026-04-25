@@ -1176,6 +1176,33 @@ export const i9VerificationsRelations = relations(i9Verifications, ({ one }) => 
   employee: one(employees, { fields: [i9Verifications.employeeId], references: [employees.id] }),
 }));
 
+
 export const w4FormsRelations = relations(w4Forms, ({ one }) => ({
   employee: one(employees, { fields: [w4Forms.employeeId], references: [employees.id] }),
+}));
+
+// --- WEBHOOKS ---
+
+/**
+ * Sec. 35 — Webhook Registrations
+ * Stores per-company webhook endpoint URLs and signing secrets.
+ * Supported events: employee.created | employee.terminated | payroll.completed | document.signed | candidate.hired
+ */
+export const webhookRegistrations = pgTable('webhook_registrations', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  secret: text('secret').notNull(), // HMAC-SHA256 signing secret
+  events: text('events').notNull(), // JSON array of subscribed event names
+  description: text('description'),
+  active: boolean('active').default(true),
+  lastDeliveryAt: timestamp('last_delivery_at'),
+  lastDeliveryStatus: integer('last_delivery_status'), // HTTP status of last delivery
+  failureCount: integer('failure_count').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const webhookRegistrationsRelations = relations(webhookRegistrations, ({ one }) => ({
+  company: one(companies, { fields: [webhookRegistrations.companyId], references: [companies.id] }),
 }));

@@ -17,6 +17,8 @@ export interface StandardReport {
   category: ReportCategory;
   icon: string;
   popular?: boolean;
+  columns?: { key: string; label: string; type: string; sortable: boolean }[];
+  exportableFormats?: string[];
 }
 
 export const standardReports: StandardReport[] = [
@@ -28,6 +30,7 @@ export const standardReports: StandardReport[] = [
   { id: "rpt-5", name: "Deduction Report", description: "Breakdown of all employee deductions by type.", category: "Payroll", icon: "Minus" },
   { id: "rpt-6", name: "Employer Tax Liability", description: "Federal and state employer tax obligations by period.", category: "Payroll", icon: "Landmark" },
   { id: "rpt-7", name: "Workers' Comp Summary", description: "Work-comp premium amounts by class code per payroll.", category: "Payroll", icon: "Shield" },
+    { id: "rpt-3b", name: "Year-to-Date Earnings", description: "Employee x month x YTD cumulative earnings.", category: "Payroll", icon: "DollarSign", exportableFormats: ["CSV", "PDF", "Excel"], columns: [ { key: "employee", label: "Employee", type: "text", sortable: true }, { key: "month", label: "Month", type: "text", sortable: true }, { key: "ytdCumulative", label: "YTD Cumulative", type: "currency", sortable: true } ] },
   // Employees
   { id: "rpt-8", name: "Employee Directory", description: "Full active employee roster with contact info and department.", category: "Employees", icon: "Users", popular: true },
   { id: "rpt-9", name: "Headcount Report", description: "Total headcount over time — hires, terminations, and net change.", category: "Employees", icon: "TrendingUp" },
@@ -37,6 +40,7 @@ export const standardReports: StandardReport[] = [
   { id: "rpt-12", name: "Anniversary & Birthday", description: "Upcoming work anniversaries and employee birthdays.", category: "Employees", icon: "Cake" },
   { id: "rpt-13", name: "New Hire Report", description: "All new hires within date range — start date, department, manager.", category: "Employees", icon: "UserPlus", popular: true },
   { id: "rpt-14", name: "Termination Report", description: "Terminated employees with reason codes and last day worked.", category: "Employees", icon: "UserMinus" },
+    { id: "rpt-12b", name: "Org Chart Export", description: "Downloadable PNG/PDF org chart.", category: "Employees", icon: "Users", exportableFormats: ["PNG", "PDF"], columns: [ { key: "node", label: "Node", type: "text", sortable: false } ] },
   // Tax & Compliance
   { id: "rpt-15", name: "941 Quarterly Summary", description: "Quarterly federal tax return preparation summary.", category: "Tax & Compliance", icon: "FileCheck" },
   { id: "rpt-16", name: "State Tax Summary", description: "State-level withholding and unemployment tax summary.", category: "Tax & Compliance", icon: "Globe" },
@@ -57,6 +61,7 @@ export const standardReports: StandardReport[] = [
   { id: "rpt-28", name: "Overtime Report", description: "Employees with overtime hours — weekly breakdown.", category: "Time & Attendance", icon: "AlertTriangle" },
   { id: "rpt-29", name: "Attendance Summary", description: "Absences, tardiness, and patterns by employee.", category: "Time & Attendance", icon: "CalendarX" },
   { id: "rpt-30", name: "Schedule Variance", description: "Actual vs scheduled hours comparison.", category: "Time & Attendance", icon: "GitCompare" },
+    { id: "rpt-27b", name: "PTO Liability", description: "Accrued balance x hourly rate = dollar liability.", category: "Time & Attendance", icon: "CalendarDays", exportableFormats: ["CSV", "PDF", "Excel"], columns: [ { key: "employee", label: "Employee", type: "text", sortable: true }, { key: "accruedBalance", label: "Accrued Balance", type: "number", sortable: true }, { key: "hourlyRate", label: "Hourly Rate", type: "currency", sortable: true }, { key: "dollarLiability", label: "Dollar Liability", type: "currency", sortable: true } ] },
   // Hiring
   { id: "rpt-31", name: "Applicant Pipeline", description: "Candidates by stage — applied, screened, interviewed, offered.", category: "Hiring", icon: "Briefcase" },
   { id: "rpt-32", name: "Time to Fill", description: "Average days to fill open positions by department.", category: "Hiring", icon: "Clock" },
