@@ -80,6 +80,9 @@ export interface EmployeeAutoCreatedPayload {
 
 export type WebhookEventName =
   | "employee.created"
+  | "employee.termination.initiated"
+  | "employee.access.revoked"
+  | "employee.cobra.triggered"
   | "employee.terminated"
   | "payroll.completed"
   | "document.signed"
@@ -88,6 +91,9 @@ export type WebhookEventName =
 
 type WebhookPayloadMap = {
   "employee.created": EmployeeCreatedPayload;
+  "employee.termination.initiated": EmployeeTerminatedPayload;
+  "employee.access.revoked": EmployeeTerminatedPayload;
+  "employee.cobra.triggered": EmployeeTerminatedPayload;
   "employee.terminated": EmployeeTerminatedPayload;
   "payroll.completed": PayrollCompletedPayload;
   "document.signed": DocumentSignedPayload;

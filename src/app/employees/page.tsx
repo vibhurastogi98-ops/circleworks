@@ -138,7 +138,7 @@ export default function EmployeesDirectoryPage() {
         }
         break;
       case 'terminate':
-        toast.info('Termination feature coming soon');
+        router.push(`/employees/${employeeId}/terminate`);
         break;
       default:
         break;
