@@ -30,8 +30,9 @@ import {
   Check,
   RefreshCw,
   Edit3,
+  Wallet,
 } from "lucide-react";
-import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type TimesheetHoursImport, type VerifyStatus } from "@/store/usePayrollRunStore";
+import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type PayrollReimbursementLine, type TimesheetHoursImport, type VerifyStatus } from "@/store/usePayrollRunStore";
 import { MOCK_EMPLOYEES, MOCK_APPROVERS, PAY_PERIOD } from "@/data/payrollRunMocks";
 import ProcessingOverlay from "@/components/payroll/run/ProcessingOverlay";
 import ApprovalModal from "@/components/payroll/run/ApprovalModal";
@@ -65,10 +66,24 @@ function totalDeductionsForEmployee(lines?: BenefitDeductionLine[]) {
   return roundCurrency((lines || []).reduce((sum, line) => sum + line.perPaycheckAmount, 0));
 }
 
+function totalReimbursementsForEmployee(lines?: PayrollReimbursementLine[]) {
+  return roundCurrency(
+    (lines || [])
+      .filter((line) => line.includeInThisRun && !line.deferToNextRun)
+      .reduce((sum, line) => sum + line.amount, 0)
+  );
+}
+
 function calculateHourlyGross(emp: PayrollEmployee, hours: number) {
   const currentHours = emp.hours || hours || 1;
   const hourlyRate = emp.grossPay / currentHours;
   return roundCurrency(hourlyRate * hours);
+}
+
+function calculateNetPay(emp: PayrollEmployee, grossPay = emp.grossPay, deductionOverride?: number, reimbursementOverride?: number) {
+  const deductions = deductionOverride ?? emp.deductions;
+  const reimbursements = reimbursementOverride ?? totalReimbursementsForEmployee(emp.reimbursements);
+  return roundCurrency(grossPay - totalTaxesForEmployee(emp) - deductions + reimbursements);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -226,6 +241,10 @@ interface TimeImportApiResult {
   }>;
 }
 
+interface ReimbursementsApiResult {
+  reimbursements: PayrollReimbursementLine[];
+}
+
 function TimeImportPreflight({
   summary,
   importing,
@@ -301,15 +320,17 @@ function SummaryCards() {
   const totalGross = employees.reduce((s, e) => s + e.grossPay, 0);
   const totalTaxes = employees.reduce((s, e) => s + e.taxes.federalIT + e.taxes.ficaSS + e.taxes.ficaMed + e.taxes.stateIT + e.taxes.localIT, 0);
   const totalNet = employees.reduce((s, e) => s + e.netPay, 0);
+  const totalReimbursements = employees.reduce((s, e) => s + totalReimbursementsForEmployee(e.reimbursements), 0);
   // Employer cost = gross + employer FICA match
   const employerFICA = employees.reduce((s, e) => s + e.taxes.ficaSS + e.taxes.ficaMed, 0);
-  const totalEmployerCost = totalGross + employerFICA;
+  const totalEmployerCost = totalGross + employerFICA + totalReimbursements;
 
   const cards = [
     { key: "gross", label: "Total Gross", value: totalGross, icon: DollarSign, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10" },
     { key: "taxes", label: "Total Taxes", value: totalTaxes, icon: Building2, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10" },
     { key: "net", label: "Total Net", value: totalNet, icon: Receipt, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
     { key: "employer", label: "Employer Cost", value: totalEmployerCost, icon: Users, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-500/10" },
+    { key: "reimbursements", label: "Reimbursements", value: totalReimbursements, icon: Wallet, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-500/10" },
   ];
 
   return (
@@ -347,13 +368,15 @@ function BreakdownModal() {
   const totalGross = employees.reduce((s, e) => s + e.grossPay, 0);
   const totalDeductions = employees.reduce((s, e) => s + e.deductions, 0);
   const totalNet = employees.reduce((s, e) => s + e.netPay, 0);
+  const totalReimbursements = employees.reduce((s, e) => s + totalReimbursementsForEmployee(e.reimbursements), 0);
 
-  const titles: Record<string, string> = { gross: "Gross Pay Breakdown", taxes: "Tax Breakdown", net: "Net Pay Breakdown", employer: "Employer Cost Breakdown" };
+  const titles: Record<string, string> = { gross: "Gross Pay Breakdown", taxes: "Tax Breakdown", net: "Net Pay Breakdown", employer: "Employer Cost Breakdown", reimbursements: "Reimbursements Breakdown" };
   const rows: Record<string, [string, number][]> = {
     gross: [["Base Salaries", totalGross * 0.92], ["Hourly Wages", totalGross * 0.08]],
     taxes: [["Federal Income Tax", totalFederalIT], ["FICA Social Security", totalFICASS], ["FICA Medicare", totalFICAMed], ["State Income Tax", totalStateIT], ["Local Taxes", totalLocalIT]],
-    net: [["Total Gross", totalGross], ["Total Deductions", -totalDeductions], ["Net Pay", totalNet]],
-    employer: [["Employee Gross Pay", totalGross], ["Employer FICA SS Match", totalFICASS], ["Employer FICA Med Match", totalFICAMed], ["FUTA (est.)", totalGross * 0.006]],
+    net: [["Total Gross", totalGross], ["Total Deductions", -totalDeductions], ["Expense Reimbursements", totalReimbursements], ["Net Pay", totalNet]],
+    employer: [["Employee Gross Pay", totalGross], ["Employer FICA SS Match", totalFICASS], ["Employer FICA Med Match", totalFICAMed], ["Expense Reimbursements", totalReimbursements], ["FUTA (est.)", totalGross * 0.006]],
+    reimbursements: employees.flatMap((emp) => (emp.reimbursements || []).filter((line) => line.includeInThisRun && !line.deferToNextRun).map((line) => [`${emp.name}: ${line.description}`, line.amount] as [string, number])),
   };
 
   return (
@@ -936,6 +959,147 @@ function EmployeeTable() {
   );
 }
 
+function ReimbursementsSection() {
+  const { employees, updateEmployee } = usePayrollRunStore();
+  const [open, setOpen] = useState(true);
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(new Set());
+
+  const employeesWithReimbursements = employees.filter((employee) => (employee.reimbursements || []).length > 0);
+  const totalReimbursements = employeesWithReimbursements.reduce((sum, employee) => sum + totalReimbursementsForEmployee(employee.reimbursements), 0);
+
+  const toggleExpanded = (employeeId: string) => {
+    setExpandedEmployees((current) => {
+      const next = new Set(current);
+      if (next.has(employeeId)) next.delete(employeeId);
+      else next.add(employeeId);
+      return next;
+    });
+  };
+
+  const handleToggleReimbursement = (employee: PayrollEmployee, expenseReportId: string | number, checked: boolean) => {
+    const reimbursements = (employee.reimbursements || []).map((line) =>
+      line.expenseReportId === expenseReportId
+        ? { ...line, includeInThisRun: checked, deferToNextRun: !checked }
+        : line
+    );
+
+    updateEmployee(employee.id, {
+      reimbursements,
+      netPay: calculateNetPay(employee, employee.grossPay, employee.deductions, totalReimbursementsForEmployee(reimbursements)),
+    });
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden">
+      <button
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center">
+            <Wallet size={16} className="text-cyan-600 dark:text-cyan-300" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-bold text-slate-900 dark:text-white">Reimbursements</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{employeesWithReimbursements.length} employees · {fmt(totalReimbursements)} non-taxable</p>
+          </div>
+        </div>
+        {open ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+      </button>
+
+      {open && (
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {employeesWithReimbursements.map((employee) => {
+            const expanded = expandedEmployees.has(employee.id);
+            const reimbursements = employee.reimbursements || [];
+            const hasFlag = reimbursements.some((line) => line.flags.length > 0);
+
+            return (
+              <div key={employee.id} className="px-5 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button onClick={() => toggleExpanded(employee.id)} className="flex items-center gap-3 text-left">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <img src={employee.avatar} alt={employee.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{employee.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{reimbursements.length} pending reimbursement{reimbursements.length > 1 ? "s" : ""}</p>
+                    </div>
+                    {expanded ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                  </button>
+                  <div className="flex items-center gap-3">
+                    {hasFlag && (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-200">
+                        <AlertTriangle size={12} /> Review required
+                      </span>
+                    )}
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{fmt(totalReimbursementsForEmployee(reimbursements))}</span>
+                  </div>
+                </div>
+
+                {expanded && (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          <th className="py-2 pr-3">Include</th>
+                          <th className="py-2 pr-3">Expense Report</th>
+                          <th className="py-2 pr-3">Description</th>
+                          <th className="py-2 pr-3 text-right">Amount</th>
+                          <th className="py-2 pr-3">Approved By</th>
+                          <th className="py-2 pr-3">Date</th>
+                          <th className="py-2">Flags</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {reimbursements.map((line) => (
+                          <tr key={`${employee.id}-${line.expenseReportId}`}>
+                            <td className="py-3 pr-3">
+                              <input
+                                type="checkbox"
+                                checked={line.includeInThisRun && !line.deferToNextRun}
+                                onChange={(e) => handleToggleReimbursement(employee, line.expenseReportId, e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                              />
+                            </td>
+                            <td className="py-3 pr-3 font-bold text-slate-900 dark:text-white">#{line.expenseReportId}</td>
+                            <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{line.description}</td>
+                            <td className="py-3 pr-3 text-right font-bold text-slate-900 dark:text-white">{fmt(line.amount)}</td>
+                            <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{line.approvedBy}</td>
+                            <td className="py-3 pr-3 text-slate-500 dark:text-slate-400">{line.approvedDate ? fmtDate(line.approvedDate) : "—"}</td>
+                            <td className="py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {line.flags.length === 0 && <span className="text-xs text-slate-400">—</span>}
+                                {line.flags.includes("terminated_manual_check") && (
+                                  <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-200">
+                                    Requires manual check
+                                  </span>
+                                )}
+                                {line.flags.includes("contractor_1099_consideration") && (
+                                  <span className="inline-flex items-center gap-1 rounded-lg bg-violet-50 px-2 py-1 text-[11px] font-bold text-violet-700 dark:bg-violet-500/10 dark:text-violet-200">
+                                    1099 consideration
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {employeesWithReimbursements.length === 0 && (
+            <div className="px-5 py-8 text-sm text-slate-500 dark:text-slate-400">No approved expense reimbursements are queued for this run.</div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  STICKY BOTTOM BAR                                                        */
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -1000,6 +1164,7 @@ export default function RunPayrollPage() {
   const [recalculating, setRecalculating] = useState(false);
   const [timeImportSummary, setTimeImportSummary] = useState<TimeImportSummary | null>(null);
   const [importingHours, setImportingHours] = useState(false);
+  const [loadingReimbursements, setLoadingReimbursements] = useState(false);
 
   const loadDeductions = useCallback(async () => {
     setRecalculating(true);
@@ -1035,6 +1200,37 @@ export default function RunPayrollPage() {
       console.error("[Payroll Run Deductions]", error);
     } finally {
       setRecalculating(false);
+    }
+  }, [updateEmployee]);
+
+  const loadReimbursements = useCallback(async () => {
+    setLoadingReimbursements(true);
+    try {
+      const response = await fetch("/api/payroll/runs/draft-preview/reimbursements", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load payroll reimbursements");
+
+      const result: ReimbursementsApiResult = await response.json();
+      const grouped = new Map<string, PayrollReimbursementLine[]>();
+      result.reimbursements.forEach((line) => {
+        const key = String(line.employeeId);
+        const existing = grouped.get(key) || [];
+        existing.push(line);
+        grouped.set(key, existing);
+      });
+
+      const currentEmployees = usePayrollRunStore.getState().employees;
+      const payrollEmployees = currentEmployees.length > 0 ? currentEmployees : MOCK_EMPLOYEES;
+      payrollEmployees.forEach((employee) => {
+        const reimbursements = grouped.get(employee.id) || [];
+        updateEmployee(employee.id, {
+          reimbursements,
+          netPay: calculateNetPay(employee, employee.grossPay, employee.deductions, totalReimbursementsForEmployee(reimbursements)),
+        });
+      });
+    } catch (error) {
+      console.error("[Payroll Run Reimbursements]", error);
+    } finally {
+      setLoadingReimbursements(false);
     }
   }, [updateEmployee]);
 
@@ -1094,6 +1290,10 @@ export default function RunPayrollPage() {
     void loadTimesheetHours();
   }, [loadTimesheetHours]);
 
+  useEffect(() => {
+    void loadReimbursements();
+  }, [loadReimbursements]);
+
   return (
     <>
       <div className="flex flex-col gap-5 pb-24">
@@ -1118,6 +1318,7 @@ export default function RunPayrollPage() {
         <FilterBar />
         <BulkActionsBar />
         <EmployeeTable />
+        <ReimbursementsSection />
       </div>
 
       {/* Sticky Bottom */}

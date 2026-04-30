@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { usePayrollRunStore, type ProcessingStep } from "@/store/usePayrollRunStore";
+import { markExpenseReportReimbursed } from "@/data/mockExpenses";
 
 const STEPS: { key: ProcessingStep; label: string; icon: string }[] = [
   { key: "calculating", label: "Calculating taxes…", icon: "🧮" },
@@ -14,7 +15,7 @@ const STEPS: { key: ProcessingStep; label: string; icon: string }[] = [
 ];
 
 export default function ProcessingOverlay() {
-  const { showProcessing, processingStep, setProcessingStep, setShowProcessing, setRunState } =
+  const { showProcessing, processingStep, setProcessingStep, setShowProcessing, setRunState, employees } =
     usePayrollRunStore();
 
   useEffect(() => {
@@ -39,6 +40,13 @@ export default function ProcessingOverlay() {
       if (idx >= stepOrder.length - 1) {
         clearInterval(interval);
         setTimeout(() => {
+          employees.forEach((employee) => {
+            (employee.reimbursements || [])
+              .filter((line) => line.includeInThisRun && !line.deferToNextRun)
+              .forEach((line) => {
+                markExpenseReportReimbursed(String(line.expenseReportId), "draft-preview", new Date().toISOString());
+              });
+          });
           setRunState("complete");
           setShowProcessing(false);
         }, 2000);
@@ -46,7 +54,7 @@ export default function ProcessingOverlay() {
     }, 2200);
 
     return () => clearInterval(interval);
-  }, [showProcessing, setProcessingStep, setShowProcessing, setRunState]);
+  }, [employees, showProcessing, setProcessingStep, setShowProcessing, setRunState]);
 
   const currentIdx = STEPS.findIndex((s) => s.key === processingStep);
   const progress = ((currentIdx + 1) / STEPS.length) * 100;

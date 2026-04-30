@@ -218,8 +218,14 @@ export type Expense = {
 };
 
 export type ExpenseReport = {
-  id: string; title: string; status: 'Draft' | 'Submitted' | 'Approved' | 'Processing' | 'Paid';
-  totalAmount: number; itemCount: number; submittedDate?: string; paidDate?: string;
+  id: string;
+  title: string;
+  status: 'Draft' | 'Submitted' | 'Approved' | 'Pending Payroll' | 'Processing' | 'Paid' | 'Reimbursed';
+  totalAmount: number;
+  itemCount: number;
+  submittedDate?: string;
+  paidDate?: string;
+  payrollRunLabel?: string;
 };
 
 export const mockExpenses: Expense[] = [
@@ -232,8 +238,8 @@ export const mockExpenses: Expense[] = [
 ];
 
 export const mockExpenseReports: ExpenseReport[] = [
-  { id: 'ER-001', title: 'LA Design Conference — March 2026', status: 'Paid', totalAmount: 676.00, itemCount: 2, submittedDate: '2026-03-30', paidDate: '2026-04-04' },
-  { id: 'ER-002', title: 'WFH Equipment — March 2026', status: 'Approved', totalAmount: 149.99, itemCount: 1, submittedDate: '2026-03-29' },
+  { id: 'ER-001', title: 'LA Design Conference — March 2026', status: 'Reimbursed', totalAmount: 676.00, itemCount: 2, submittedDate: '2026-03-30', paidDate: '2026-04-04', payrollRunLabel: 'Reimbursed via Payroll Apr 4, 2026' },
+  { id: 'ER-002', title: 'WFH Equipment — March 2026', status: 'Pending Payroll', totalAmount: 149.99, itemCount: 1, submittedDate: '2026-03-29', payrollRunLabel: 'Queued for next payroll run' },
   { id: 'ER-003', title: 'Client Meetings — April 2026', status: 'Submitted', totalAmount: 53.25, itemCount: 2, submittedDate: '2026-04-03' },
 ];
 

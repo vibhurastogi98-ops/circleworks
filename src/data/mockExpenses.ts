@@ -2,7 +2,7 @@
 // 💰 MOCK DATA — Expenses & Mileage Module
 // =============================================================================
 
-export type ExpenseStatus = "Draft" | "Submitted" | "Approved" | "Rejected" | "Paid";
+export type ExpenseStatus = "Draft" | "Submitted" | "Approved" | "Pending Payroll" | "Rejected" | "Reimbursed" | "Paid";
 export type PayrollSyncStatus = "Synced" | "Pending" | "Error" | "N/A";
 export type PolicyViolationStatus = "Pass" | "Warn" | "Flag" | "Block";
 
@@ -34,7 +34,12 @@ export interface ExpenseReport {
   syncStatus: PayrollSyncStatus;
   submittedAt: string | null;
   approvedAt: string | null;
+  approvedBy?: string | null;
   paidAt: string | null;
+  payrollRunId?: string | null;
+  reimbursedAt?: string | null;
+  reimbursementIncluded?: boolean;
+  reimbursementDeferred?: boolean;
   rejectionNote?: string;
   items?: ExpenseItem[];
 }
@@ -76,6 +81,31 @@ export const mockExpenseItems: ExpenseItem[] = [];
 // Mock Expense Reports
 // ---------------------------
 export const mockExpenseReports: ExpenseReport[] = [];
+
+export function approveExpenseReportForPayroll(id: string, approvedBy = "Payroll Admin") {
+  const report = mockExpenseReports.find((entry) => entry.id === id);
+  if (!report) return null;
+
+  report.status = "Pending Payroll";
+  report.syncStatus = "Pending";
+  report.approvedAt = new Date().toISOString();
+  report.approvedBy = approvedBy;
+  report.reimbursementIncluded = true;
+  report.reimbursementDeferred = false;
+  return report;
+}
+
+export function markExpenseReportReimbursed(id: string, payrollRunId: string, paidAt = new Date().toISOString()) {
+  const report = mockExpenseReports.find((entry) => entry.id === id);
+  if (!report) return null;
+
+  report.status = "Reimbursed";
+  report.syncStatus = "Synced";
+  report.payrollRunId = payrollRunId;
+  report.reimbursedAt = paidAt;
+  report.paidAt = paidAt;
+  return report;
+}
 
 // ---------------------------
 // Mock Mileage Log

@@ -10,13 +10,15 @@ const statusStyles: Record<string, string> = {
   Draft: "bg-slate-100 dark:bg-slate-700/40 text-slate-600 dark:text-slate-300",
   Submitted: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
   Approved: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
+  "Pending Payroll": "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
   Processing: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+  Reimbursed: "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400",
   Paid: "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400",
   Rejected: "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
 };
 
 const statusIcons: Record<string, React.ElementType> = {
-  Draft: AlertCircle, Submitted: Clock, Approved: CheckCircle2, Processing: Clock, Paid: CheckCircle2, Rejected: XCircle,
+  Draft: AlertCircle, Submitted: Clock, Approved: CheckCircle2, "Pending Payroll": Clock, Processing: Clock, Reimbursed: CheckCircle2, Paid: CheckCircle2, Rejected: XCircle,
 };
 
 export default function ExpensesPage() {
@@ -97,6 +99,9 @@ export default function ExpensesPage() {
                   <span>·</span>
                   <span className="font-bold text-slate-900 dark:text-white">${report.totalAmount.toFixed(2)}</span>
                 </div>
+                {report.payrollRunLabel && (
+                  <p className="text-[11px] text-cyan-700 dark:text-cyan-300 mt-2 font-medium">{report.payrollRunLabel}</p>
+                )}
                 {report.submittedDate && (
                   <p className="text-[11px] text-slate-400 mt-2">Submitted {new Date(report.submittedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                 )}

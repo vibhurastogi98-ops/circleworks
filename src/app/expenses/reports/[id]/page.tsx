@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   MessageSquare
 } from "lucide-react";
-import { getExpenseReportById, ExpenseReport, ExpenseItem } from "@/data/mockExpenses";
+import { approveExpenseReportForPayroll, getExpenseReportById, ExpenseReport, ExpenseItem } from "@/data/mockExpenses";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
 
@@ -32,7 +32,8 @@ export default function ExpenseReportDetailPage() {
   if (!report) return <div className="p-12 text-center text-slate-500">Expense report not found.</div>;
 
   const handleApprove = () => {
-    toast.success("Expense report approved successfully!");
+    approveExpenseReportForPayroll(id as string, "Sarah Chen");
+    toast.success("Expense report approved and queued for payroll!");
     router.push("/expenses/reports");
   };
 
@@ -82,7 +83,7 @@ export default function ExpenseReportDetailPage() {
                     onClick={handleApprove}
                     className="px-6 py-2 bg-indigo-600 border border-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                   >
-                    Approve & Pay
+                    Approve & Queue for Payroll
                   </button>
                 </>
              )}
@@ -220,8 +221,10 @@ export default function ExpenseReportDetailPage() {
                       <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                    </div>
                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">Approved & Synced</div>
-                      <div className="text-[10px] text-slate-500">Awaiting Manager</div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">Payroll Queue</div>
+                      <div className="text-[10px] text-slate-500">
+                        {report.status === "Pending Payroll" ? "Queued for next payroll run" : "Awaiting approval"}
+                      </div>
                    </div>
                 </div>
              </div>

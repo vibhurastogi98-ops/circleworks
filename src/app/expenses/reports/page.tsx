@@ -21,7 +21,9 @@ const STATUS_STYLING: Record<ExpenseStatus, string> = {
   Draft: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
   Submitted: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   Approved: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+  "Pending Payroll": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   Rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  Reimbursed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   Paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
 };
 
@@ -68,7 +70,7 @@ export default function ExpenseReportsPage() {
         </div>
         
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
-          {(["All", "Submitted", "Approved", "Paid", "Rejected", "Draft"] as const).map(s => (
+          {(["All", "Submitted", "Approved", "Pending Payroll", "Reimbursed", "Paid", "Rejected", "Draft"] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}

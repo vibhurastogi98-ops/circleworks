@@ -27,9 +27,19 @@ function PaystubDownloadButton({ type = "PDF" }: { type?: "PDF" | "ZIP" }) {
 export default function PaystubsPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = React.use(params);
   const stubs = [
-    { name: "Jordan Brown", net: "$3,267.50", status: "Available" },
-    { name: "Taylor Smith", net: "$4,102.10", status: "Available" },
-    { name: "Alex Clark", net: "$2,890.00", status: "Available" },
+    {
+      name: "Jordan Brown",
+      net: "$3,417.49",
+      status: "Available",
+      reimbursements: [{ description: "WFH Equipment - March 2026", amount: "$149.99" }],
+    },
+    {
+      name: "Taylor Smith",
+      net: "$4,314.50",
+      status: "Available",
+      reimbursements: [{ description: "Field Visit Travel Reimbursement", amount: "$212.40" }],
+    },
+    { name: "Alex Clark", net: "$2,890.00", status: "Available", reimbursements: [] },
   ];
 
   return (
@@ -65,6 +75,17 @@ export default function PaystubsPage({ params }: { params: Promise<{ runId: stri
                    <p className="font-extrabold text-slate-900">{s.net}</p>
                  </div>
                </div>
+               {s.reimbursements.length > 0 && (
+                <div className="rounded-lg border border-cyan-100 bg-cyan-50/60 px-3 py-2 text-xs dark:border-cyan-900/40 dark:bg-cyan-950/20">
+                  <p className="font-bold text-cyan-800 dark:text-cyan-200 mb-1">Expense Reimbursements</p>
+                  {s.reimbursements.map((line) => (
+                    <div key={line.description} className="flex items-center justify-between text-cyan-900 dark:text-cyan-100">
+                      <span>{line.description}</span>
+                      <span className="font-bold">{line.amount}</span>
+                    </div>
+                  ))}
+                </div>
+               )}
                <PaystubDownloadButton type="PDF" />
              </div>
           ))}

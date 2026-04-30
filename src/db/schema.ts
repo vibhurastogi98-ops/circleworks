@@ -318,6 +318,9 @@ export const expenseReports = pgTable('expense_reports', {
   status: text('status').default('Draft'),
   submittedAt: timestamp('submitted_at'),
   approvedAt: timestamp('approved_at'),
+  approvedBy: integer('approved_by').references(() => users.id, { onDelete: 'set null' }),
+  payrollRunId: integer('payroll_run_id').references(() => payrolls.id, { onDelete: 'set null' }),
+  reimbursedAt: timestamp('reimbursed_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -485,6 +488,8 @@ export const onboardingCasesRelations = relations(onboardingCases, ({ one }) => 
 
 export const expenseReportsRelations = relations(expenseReports, ({ one, many }) => ({
   employee: one(employees, { fields: [expenseReports.employeeId], references: [employees.id] }),
+  approver: one(users, { fields: [expenseReports.approvedBy], references: [users.id] }),
+  payrollRun: one(payrolls, { fields: [expenseReports.payrollRunId], references: [payrolls.id] }),
   items: many(expenseItems),
 }));
 

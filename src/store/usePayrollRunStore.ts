@@ -42,6 +42,20 @@ export interface TimesheetHoursImport {
   days: TimesheetHoursDay[];
 }
 
+export interface PayrollReimbursementLine {
+  expenseReportId: string | number;
+  employeeId: string | number;
+  employeeName: string;
+  description: string;
+  amount: number;
+  approvedBy: string;
+  approvedDate: string | null;
+  includeInThisRun: boolean;
+  deferToNextRun: boolean;
+  nonTaxable: true;
+  flags: Array<"terminated_manual_check" | "contractor_1099_consideration">;
+}
+
 export interface PayrollEmployee {
   id: string;
   name: string;
@@ -56,6 +70,7 @@ export interface PayrollEmployee {
   taxes: TaxBreakdown;
   benefitDeductions?: BenefitDeductionLine[];
   timesheetImport?: TimesheetHoursImport;
+  reimbursements?: PayrollReimbursementLine[];
   hoursManuallyOverridden?: boolean;
   hoursOverrideAudit?: {
     overriddenAt: string;
