@@ -9,7 +9,7 @@ import {
   atsJobs,
   users
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, or, ilike } from "drizzle-orm";
 import { sendEmail } from "@/lib/email";
 import { dispatchWebhook } from "@/lib/webhooks";
 
@@ -56,6 +56,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Offer not found" }, { status: 404 });
     }
 
+    // Ensure this flow is only used when offer is accepted / candidate can be moved to Hired.
+    if (offer.status !== "Accepted") {
+      return NextResponse.json(
+        { error: "Offer must be accepted before moving candidate to Hired" },
+        { status: 400 }
+      );
+    }
+
     if (!offer.jobId) {
       return NextResponse.json({ error: "Offer has no associated job" }, { status: 400 });
     }
@@ -65,11 +73,47 @@ export async function POST(req: Request) {
       .from(atsJobs)
       .where(eq(atsJobs.id, offer.jobId as number));
 
+    // Canonical mapped values (candidate/offer/job -> employee)
+    const mappedFirstName = overrides.firstName || candidate.firstName;
+    const mappedLastName = overrides.lastName || candidate.lastName;
+    const mappedEmail = overrides.email || candidate.email;
+    const mappedPhone = overrides.phone || candidate.phone;
+    const mappedStartDate = overrides.startDate || offer.startDate;
+
+    // Pre-flight checklist gate:
+    // Required: name + email
+    // Warnings: phone missing, start date missing
+    const missingRequired: string[] = [];
+    if (!mappedFirstName || !mappedLastName) missingRequired.push("name");
+    if (!mappedEmail) missingRequired.push("email");
+
+    const warnings: string[] = [];
+    if (!mappedPhone) warnings.push("phone_missing");
+    if (!mappedStartDate) warnings.push("start_date_not_confirmed");
+
+    if (missingRequired.length > 0) {
+      return NextResponse.json(
+        {
+          error: "PRE_FLIGHT_REQUIRED_FIELDS_MISSING",
+          message: "Please update missing required fields before hiring",
+          preflight: {
+            required: ["name", "email"],
+            missing: missingRequired,
+            warnings,
+          },
+        },
+        { status: 422 }
+      );
+    }
+
     // 2. DUPLICATE CHECK
-    const finalEmail = overrides.email || candidate.email;
+    const finalEmail = mappedEmail;
     if (finalEmail && !ignoreDuplicate) {
       const existingEmployee = await db.query.employees.findFirst({
-        where: eq(employees.personalEmail, finalEmail),
+        where: or(
+          ilike(employees.personalEmail, finalEmail),
+          ilike(employees.email, finalEmail)
+        ),
       });
 
       if (existingEmployee) {
@@ -96,12 +140,13 @@ export async function POST(req: Request) {
     // 4. MAP FIELDS & CREATE EMPLOYEE (Canonical Mapping with Overrides)
     const [newEmployee] = await db.insert(employees).values({
       companyId: companyId,
-      firstName: overrides.firstName || candidate.firstName,
-      lastName: overrides.lastName || candidate.lastName,
+      firstName: mappedFirstName,
+      lastName: mappedLastName,
       personalEmail: finalEmail,
-      personalPhone: overrides.phone || candidate.phone,
+      personalPhone: mappedPhone,
+      // employee.compensation.annualSalary maps to the current salary column in this schema.
       salary: offer.salary,
-      startDate: overrides.startDate || offer.startDate,
+      startDate: mappedStartDate,
       jobTitle: offer.title || job?.title,
       departmentId: offer.departmentId,
       locationId: offer.locationId,
@@ -121,7 +166,7 @@ export async function POST(req: Request) {
       employeeId: newEmployee.id,
       candidateId: candidate.id,
       templateId: template?.id || null,
-      startDate: overrides.startDate || offer.startDate,
+      startDate: mappedStartDate,
       status: "Active",
     }).returning();
 
@@ -145,10 +190,10 @@ export async function POST(req: Request) {
       employeeId: newEmployee.id,
       candidateId: candidate.id,
       companyId: companyId,
-      firstName: overrides.firstName || candidate.firstName,
-      lastName: overrides.lastName || candidate.lastName,
+      firstName: mappedFirstName,
+      lastName: mappedLastName,
       personalEmail: finalEmail,
-      startDate: overrides.startDate || offer.startDate,
+      startDate: mappedStartDate,
       timestamp: new Date().toISOString()
     });
 
@@ -156,21 +201,21 @@ export async function POST(req: Request) {
     if (finalEmail) {
       await sendEmail({
         to: finalEmail,
-        subject: `Welcome to the team, ${overrides.firstName || candidate.firstName}!`,
+        subject: `Welcome to the team, ${mappedFirstName}!`,
         html: `
           <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
             <div style="text-align: center; margin-bottom: 32px;">
               <h1 style="color: #1e293b; font-size: 24px; font-weight: 700; margin: 0;">Welcome to CircleWorks!</h1>
             </div>
             
-            <p style="color: #475569; font-size: 16px; line-height: 24px;">Hi ${overrides.firstName || candidate.firstName},</p>
+            <p style="color: #475569; font-size: 16px; line-height: 24px;">Hi ${mappedFirstName},</p>
             
             <p style="color: #475569; font-size: 16px; line-height: 24px;">We're thrilled to officially welcome you to the team! You've been hired as our new <strong>${offer.title || job?.title}</strong>.</p>
             
             <div style="background-color: #f8fafc; padding: 24px; border-radius: 12px; margin: 32px 0;">
               <h3 style="color: #1e293b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px 0;">Joining Details</h3>
               <div style="display: flex; flex-direction: column; gap: 8px;">
-                <p style="color: #64748b; font-size: 14px; margin: 0;"><strong>Start Date:</strong> ${overrides.startDate || offer.startDate}</p>
+                <p style="color: #64748b; font-size: 14px; margin: 0;"><strong>Start Date:</strong> ${mappedStartDate}</p>
                 <p style="color: #64748b; font-size: 14px; margin: 0;"><strong>Employment:</strong> ${offer.employmentType || 'Full-Time'}</p>
               </div>
             </div>
