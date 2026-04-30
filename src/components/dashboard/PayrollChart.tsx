@@ -24,7 +24,6 @@ function formatCurrency(val: number) {
   return `$${val}`;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -57,7 +56,6 @@ function CustomTooltip({ active, payload, label }: any) {
     </div>
   );
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export default function PayrollChart() {
   const [mounted, setMounted] = useState(false);

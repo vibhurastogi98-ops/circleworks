@@ -100,7 +100,7 @@ export default function HeadcountForecastPage() {
         
         const endHC = currentHC + netChange;
         
-        let budgetDelta = (budgetLimit - endHC) * (avgSalary / 12);
+        const budgetDelta = (budgetLimit - endHC) * (avgSalary / 12);
         let status = "On Track";
         if (endHC > budgetLimit) status = "Over Budget";
         else if (endHC < budgetLimit - 10) status = "Under Plan";

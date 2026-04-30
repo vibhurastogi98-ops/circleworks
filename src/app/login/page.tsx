@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShieldCheck, Lock, Eye, EyeOff, AlertCircle, X, ChevronLeft } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -42,7 +42,13 @@ type ErrorType = "none" | "invalid_credentials" | "locked" | "unverified";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+
+  const getNextPath = () => {
+    const params = new URLSearchParams(window.location.search);
+    const nextPath = params.get("next") || "/dashboard";
+    // Prevent open redirect to absolute URLs.
+    return nextPath.startsWith("/") ? nextPath : "/dashboard";
+  };
 
   const [activeQuote, setActiveQuote] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -105,7 +111,7 @@ export default function LoginPage() {
     } else {
       const maxAge = data.rememberMe ? 60 * 60 * 24 * 30 : undefined;
       document.cookie = `cw_session=active; path=/; samesite=lax${maxAge ? `; max-age=${maxAge}` : ""}`;
-      const nextPath = searchParams.get("next") || "/dashboard";
+      const nextPath = getNextPath();
       router.push(nextPath);
     }
     
@@ -159,24 +165,24 @@ export default function LoginPage() {
     if (code === "123456") {
       setErrorType("invalid_credentials"); // repurposing for mfa error or just toast
       document.cookie = "cw_session=active; path=/; samesite=lax";
-      const nextPath = searchParams.get("next") || "/dashboard";
+      const nextPath = getNextPath();
       router.push(nextPath);
     } else {
       document.cookie = "cw_session=active; path=/; samesite=lax";
-      const nextPath = searchParams.get("next") || "/dashboard";
+      const nextPath = getNextPath();
       router.push(nextPath);
     }
   };
 
   const handleGoogleLogin = () => {
     document.cookie = "cw_session=active; path=/; samesite=lax";
-    const nextPath = searchParams.get("next") || "/dashboard";
+    const nextPath = getNextPath();
     router.push(nextPath);
   };
 
   const handleMicrosoftLogin = () => {
     document.cookie = "cw_session=active; path=/; samesite=lax";
-    const nextPath = searchParams.get("next") || "/dashboard";
+    const nextPath = getNextPath();
     router.push(nextPath);
   };
 

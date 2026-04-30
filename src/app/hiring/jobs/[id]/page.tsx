@@ -121,8 +121,6 @@ export default function KanbanBoard() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
 
-  if (!job) return <div>Job not found</div>;
-
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
   };
@@ -186,6 +184,8 @@ export default function KanbanBoard() {
     toast.success("Candidate added successfully!");
   };
 
+  const currentActiveCandidate = useMemo(() => candidates.find(c => c.id === activeId), [activeId, candidates]);
+
   if (!job) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] text-center">
@@ -200,8 +200,6 @@ export default function KanbanBoard() {
       </div>
     );
   }
-
-  const currentActiveCandidate = useMemo(() => candidates.find(c => c.id === activeId), [activeId, candidates]);
 
   if (!isMounted) return null;
 

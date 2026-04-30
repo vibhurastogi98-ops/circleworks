@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const view = searchParams.get("view") || "total"; // "total", "department", "location"
 
   // Base state
-  let currentHC = 150;
+  const currentHC = 150;
   let targetHC = 160;
   
   // Date calculation
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     const endHC = hc + plannedHires - plannedAttrition;
     targetHC = targetHC + (i % 3 === 0 ? 1 : 0);
 
-    let budgetDelta = (targetHC - endHC) * 10000;
+    const budgetDelta = (targetHC - endHC) * 10000;
     let status = "On Track";
     if (endHC > targetHC) status = "Over Budget";
     else if (endHC < targetHC - 5) status = "Under Plan";

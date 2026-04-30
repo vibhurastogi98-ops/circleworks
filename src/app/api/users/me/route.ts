@@ -181,7 +181,7 @@ export async function PATCH(req: Request) {
         const firstName = "Admin";
         const lastName = "User";
 
-        let [existingUser] = await db.select().from(users).where(eq(users.clerkUserId, userId));
+        const [existingUser] = await db.select().from(users).where(eq(users.clerkUserId, userId));
         
         if (!existingUser) {
           // Create Company

@@ -158,7 +158,7 @@ export default function AnnouncementsSettingsPage() {
         publishTime = new Date(`${publishAtDate}T${publishAtTime}`);
       }
 
-      let expireTime = expireAtDate ? new Date(expireAtDate) : null;
+      const expireTime = expireAtDate ? new Date(expireAtDate) : null;
       let status = publishImmediate ? 'Published' : 'Scheduled';
 
       if (!publishImmediate && publishTime <= new Date()) {
