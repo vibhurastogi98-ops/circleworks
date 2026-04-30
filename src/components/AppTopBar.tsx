@@ -22,7 +22,10 @@ export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
   // Guest Mode: Authentication disabled
-  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+  const signOut = (options?: { redirectUrl?: string }) => {
+    document.cookie = "cw_session=; path=/; max-age=0; samesite=lax";
+    window.location.href = options?.redirectUrl || "/";
+  };
   
   // Hardcoded guest user info
   const displayName = "Admin User";

@@ -7,6 +7,7 @@ export default function SSOCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
+    document.cookie = "cw_session=active; path=/; samesite=lax";
     router.push("/dashboard");
   }, [router]);
 

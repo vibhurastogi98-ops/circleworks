@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShieldCheck, Lock, Eye, EyeOff, AlertCircle, X, ChevronLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -42,6 +42,7 @@ type ErrorType = "none" | "invalid_credentials" | "locked" | "unverified";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [activeQuote, setActiveQuote] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -102,8 +103,10 @@ export default function LoginPage() {
       // Reset MFA focus
       setTimeout(() => mfaRefs.current[0]?.focus(), 100);
     } else {
-      // Success
-      router.push("/dashboard");
+      const maxAge = data.rememberMe ? 60 * 60 * 24 * 30 : undefined;
+      document.cookie = `cw_session=active; path=/; samesite=lax${maxAge ? `; max-age=${maxAge}` : ""}`;
+      const nextPath = searchParams.get("next") || "/dashboard";
+      router.push(nextPath);
     }
     
     setLoading(false);
@@ -155,15 +158,27 @@ export default function LoginPage() {
     setLoading(false);
     if (code === "123456") {
       setErrorType("invalid_credentials"); // repurposing for mfa error or just toast
-      // For demo, success goes to dashboard
-      router.push("/dashboard");
+      document.cookie = "cw_session=active; path=/; samesite=lax";
+      const nextPath = searchParams.get("next") || "/dashboard";
+      router.push(nextPath);
     } else {
-      router.push("/dashboard");
+      document.cookie = "cw_session=active; path=/; samesite=lax";
+      const nextPath = searchParams.get("next") || "/dashboard";
+      router.push(nextPath);
     }
   };
 
-  const handleGoogleLogin = () => router.push("/dashboard");
-  const handleMicrosoftLogin = () => router.push("/dashboard");
+  const handleGoogleLogin = () => {
+    document.cookie = "cw_session=active; path=/; samesite=lax";
+    const nextPath = searchParams.get("next") || "/dashboard";
+    router.push(nextPath);
+  };
+
+  const handleMicrosoftLogin = () => {
+    document.cookie = "cw_session=active; path=/; samesite=lax";
+    const nextPath = searchParams.get("next") || "/dashboard";
+    router.push(nextPath);
+  };
 
   return (
     <main className="min-h-screen flex selection:bg-blue-500/30 selection:text-blue-900">

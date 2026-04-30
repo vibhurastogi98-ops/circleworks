@@ -18,7 +18,10 @@ import { useNotificationStore } from "@/store/useNotificationStore";
 import CommandPalette from "@/components/CommandPalette";
 
 // Guest Mode: Authentication constants
-const GUEST_SIGN_OUT = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+const GUEST_SIGN_OUT = (options?: { redirectUrl?: string }) => {
+  document.cookie = "cw_session=; path=/; max-age=0; samesite=lax";
+  window.location.href = options?.redirectUrl || "/";
+};
 const GUEST_IS_SIGNED_IN = true;
 const GUEST_IS_LOADED = true;
 const GUEST_USER = { 
