@@ -47,8 +47,9 @@ function generateEmployees(count: number): PayrollEmployee[] {
     const localIT = Math.round(grossPay * (Math.random() * 0.02) * 100) / 100;
     const totalTaxes = federalIT + ficaSS + ficaMed + stateIT + localIT;
     const benefits = Math.round(grossPay * (0.02 + Math.random() * 0.06) * 100) / 100;
-    const deductions = Math.round((totalTaxes + benefits) * 100) / 100;
-    const netPay = Math.round((grossPay - deductions) * 100) / 100;
+    // The payroll preview's "Deductions" column represents employee benefit deductions only.
+    const deductions = benefits;
+    const netPay = Math.round((grossPay - totalTaxes - benefits) * 100) / 100;
 
     // Status distribution: 80% verified, 8% flagged, 4% error, 8% pending
     const rand = Math.random();

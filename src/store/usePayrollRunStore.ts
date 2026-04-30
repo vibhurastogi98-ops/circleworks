@@ -12,6 +12,17 @@ export interface TaxBreakdown {
   localIT: number;
 }
 
+export interface BenefitDeductionLine {
+  employeeId: string | number;
+  benefitPlanId: string | number;
+  planName: string;
+  monthlyPremium: number;
+  employeeShare: number;
+  perPaycheckAmount: number;
+  pretaxOrPosttax: "pre_tax" | "post_tax";
+  deductionCode: string;
+}
+
 export interface PayrollEmployee {
   id: string;
   name: string;
@@ -24,6 +35,7 @@ export interface PayrollEmployee {
   deductions: number;
   netPay: number;
   taxes: TaxBreakdown;
+  benefitDeductions?: BenefitDeductionLine[];
   verifyStatus: VerifyStatus;
   flagReason?: string;
   errorMessage?: string;

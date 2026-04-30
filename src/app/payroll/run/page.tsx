@@ -29,7 +29,7 @@ import {
   Gift,
   Check,
 } from "lucide-react";
-import { usePayrollRunStore, type PayrollEmployee, type VerifyStatus } from "@/store/usePayrollRunStore";
+import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type VerifyStatus } from "@/store/usePayrollRunStore";
 import { MOCK_EMPLOYEES, MOCK_APPROVERS, PAY_PERIOD } from "@/data/payrollRunMocks";
 import ProcessingOverlay from "@/components/payroll/run/ProcessingOverlay";
 import ApprovalModal from "@/components/payroll/run/ApprovalModal";
@@ -45,6 +45,18 @@ function fmtShort(n: number) {
 }
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function roundCurrency(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function totalTaxesForEmployee(emp: PayrollEmployee) {
+  return emp.taxes.federalIT + emp.taxes.ficaSS + emp.taxes.ficaMed + emp.taxes.stateIT + emp.taxes.localIT;
+}
+
+function totalDeductionsForEmployee(lines?: BenefitDeductionLine[]) {
+  return roundCurrency((lines || []).reduce((sum, line) => sum + line.perPaycheckAmount, 0));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -136,6 +148,48 @@ function VerificationPanel() {
         {flagged > 0 && <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400"><AlertTriangle size={12} /> {flagged} Flagged</span>}
         {errors > 0 && <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400"><AlertCircle size={12} /> {errors} Errors</span>}
         {pending > 0 && <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500"><Clock size={12} /> {pending} Pending</span>}
+      </div>
+    </motion.div>
+  );
+}
+
+function BenefitsChangedBanner({
+  changedEmployeesCount,
+  recalculating,
+  onRecalculate,
+}: {
+  changedEmployeesCount: number;
+  recalculating: boolean;
+  onRecalculate: () => void;
+}) {
+  if (changedEmployeesCount <= 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div>
+            <p className="text-sm font-bold">
+              Benefits changed for {changedEmployeesCount} {changedEmployeesCount === 1 ? "employee" : "employees"} since draft — recalculate?
+            </p>
+            <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
+              Active enrollments were updated after this payroll draft was prepared.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onRecalculate}
+          disabled={recalculating}
+          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {recalculating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+          {recalculating ? "Recalculating..." : "Recalculate"}
+        </button>
       </div>
     </motion.div>
   );
@@ -399,6 +453,9 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
   const [editing, setEditing] = useState(false);
   const [grossVal, setGrossVal] = useState(emp.grossPay.toFixed(2));
   const inputRef = useRef<HTMLInputElement>(null);
+  const pretaxDeductions = (emp.benefitDeductions || []).filter((line) => line.pretaxOrPosttax === "pre_tax");
+  const posttaxDeductions = (emp.benefitDeductions || []).filter((line) => line.pretaxOrPosttax === "post_tax");
+  const deductionTotal = totalDeductionsForEmployee(emp.benefitDeductions);
 
   useEffect(() => { setGrossVal(emp.grossPay.toFixed(2)); }, [emp.grossPay]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
@@ -417,8 +474,10 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
   const handleSaveGross = () => {
     const v = parseFloat(grossVal);
     if (!isNaN(v) && v > 0) {
-      const diff = v - emp.grossPay;
-      updateEmployee(emp.id, { grossPay: v, netPay: Math.round((emp.netPay + diff * 0.7) * 100) / 100 });
+      updateEmployee(emp.id, {
+        grossPay: v,
+        netPay: roundCurrency(v - totalTaxesForEmployee(emp) - deductionTotal),
+      });
     }
     setEditing(false);
   };
@@ -472,8 +531,47 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
           )}
         </td>
         {/* Deductions */}
-        <td className="px-3 py-3 text-sm font-semibold text-red-600 dark:text-red-400 text-right tabular-nums">
-          -{fmt(emp.deductions)}
+        <td className="px-3 py-3 text-right">
+          <div className="group/deductions relative inline-flex">
+            <span className="text-sm font-semibold text-red-600 dark:text-red-400 tabular-nums">
+              -{fmt(emp.deductions)}
+            </span>
+            <div className="absolute right-0 top-full z-30 mt-2 hidden w-72 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-2xl group-hover/deductions:block dark:border-slate-700 dark:bg-slate-900">
+              {pretaxDeductions.length > 0 && (
+                <div>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">Pre-tax</p>
+                  <div className="space-y-1.5">
+                    {pretaxDeductions.map((line) => (
+                      <div key={`${line.employeeId}-${line.benefitPlanId}`} className="flex items-start justify-between gap-3 text-xs">
+                        <span className="text-slate-600 dark:text-slate-300">{line.planName}</span>
+                        <span className="font-bold text-red-600 dark:text-red-400">-{fmt(line.perPaycheckAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {posttaxDeductions.length > 0 && (
+                <div className={pretaxDeductions.length > 0 ? "mt-4" : ""}>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-violet-500">Post-tax</p>
+                  <div className="space-y-1.5">
+                    {posttaxDeductions.map((line) => (
+                      <div key={`${line.employeeId}-${line.benefitPlanId}`} className="flex items-start justify-between gap-3 text-xs">
+                        <span className="text-slate-600 dark:text-slate-300">{line.planName}</span>
+                        <span className="font-bold text-red-600 dark:text-red-400">-{fmt(line.perPaycheckAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {pretaxDeductions.length === 0 && posttaxDeductions.length === 0 && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">No active benefit deductions for this payroll run.</p>
+              )}
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-bold dark:border-slate-800">
+                <span className="text-slate-700 dark:text-slate-200">Total</span>
+                <span className="text-red-600 dark:text-red-400">-{fmt(emp.deductions)}</span>
+              </div>
+            </div>
+          </div>
         </td>
         {/* Net */}
         <td className="px-3 py-3 text-sm font-bold text-slate-900 dark:text-white text-right tabular-nums">
@@ -525,6 +623,33 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
                             <p className="text-xs font-bold text-slate-900 dark:text-white tabular-nums mt-0.5">{fmt(val as number)}</p>
                           </div>
                         ))}
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-rose-400 mb-3 flex items-center gap-1.5">
+                        <Receipt size={12} /> Benefit Deductions
+                      </p>
+                      <div className="space-y-2">
+                        {(emp.benefitDeductions || []).map((line) => (
+                          <div key={`${line.employeeId}-${line.benefitPlanId}`} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <div>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">{line.planName}</p>
+                              <p className="text-[10px] text-slate-500">
+                                {line.pretaxOrPosttax === "pre_tax" ? "Pre-tax" : "Post-tax"} · {line.deductionCode}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs font-bold text-red-600 dark:text-red-400">-{fmt(line.perPaycheckAmount)}</p>
+                              <p className="text-[9px] text-slate-400">Per paycheck</p>
+                            </div>
+                          </div>
+                        ))}
+                        {(emp.benefitDeductions || []).length === 0 && (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                            No active benefit deductions on this draft.
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -679,12 +804,52 @@ function StickyBottomBar() {
 /*  MAIN PAGE                                                                */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 export default function RunPayrollPage() {
-  const { setEmployees, setApprovers, runState } = usePayrollRunStore();
+  const { setEmployees, setApprovers, updateEmployee, runState } = usePayrollRunStore();
+  const [changedEmployeesCount, setChangedEmployeesCount] = useState(0);
+  const [recalculating, setRecalculating] = useState(false);
+
+  const loadDeductions = useCallback(async () => {
+    setRecalculating(true);
+    try {
+      const response = await fetch("/api/payroll/runs/draft-preview/deductions", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load payroll deductions");
+
+      const lines: BenefitDeductionLine[] = await response.json();
+      setChangedEmployeesCount(Number(response.headers.get("X-Benefits-Changed-Employees") || "0"));
+
+      const linesByEmployeeId = new Map<string, BenefitDeductionLine[]>();
+      lines.forEach((line) => {
+        const key = String(line.employeeId);
+        const existing = linesByEmployeeId.get(key) || [];
+        existing.push(line);
+        linesByEmployeeId.set(key, existing);
+      });
+
+      MOCK_EMPLOYEES.forEach((employee) => {
+        const benefitDeductions = linesByEmployeeId.get(employee.id) || [];
+        const totalBenefits = totalDeductionsForEmployee(benefitDeductions);
+
+        updateEmployee(employee.id, {
+          deductions: totalBenefits,
+          benefitDeductions,
+          netPay: roundCurrency(employee.grossPay - totalTaxesForEmployee(employee) - totalBenefits),
+        });
+      });
+    } catch (error) {
+      console.error("[Payroll Run Deductions]", error);
+    } finally {
+      setRecalculating(false);
+    }
+  }, [updateEmployee]);
 
   useEffect(() => {
     setEmployees(MOCK_EMPLOYEES);
     setApprovers(MOCK_APPROVERS);
   }, [setEmployees, setApprovers]);
+
+  useEffect(() => {
+    void loadDeductions();
+  }, [loadDeductions]);
 
   return (
     <>
@@ -696,6 +861,11 @@ export default function RunPayrollPage() {
           <VerificationPanel />
         </div>
 
+        <BenefitsChangedBanner
+          changedEmployeesCount={changedEmployeesCount}
+          recalculating={recalculating}
+          onRecalculate={() => { void loadDeductions(); }}
+        />
         <FilterBar />
         <BulkActionsBar />
         <EmployeeTable />
