@@ -22,22 +22,48 @@ function pick<T>(arr: T[]): T {
 function generateEmployees(count: number): PayrollEmployee[] {
   const employees: PayrollEmployee[] = [];
   const usedNames = new Set<string>();
+  const seededEmployees = [
+    { id: "1", name: "Sarah Smith", department: "Engineering", title: "Lead Engineer", payType: "salary" as const, compensationRate: 145000, hours: null as number | null },
+    { id: "2", name: "Michael Chen", department: "Design", title: "Product Designer", payType: "salary" as const, compensationRate: 130000, hours: null as number | null },
+    { id: "3", name: "Emma Watson", department: "Marketing", title: "Marketing Manager", payType: "salary" as const, compensationRate: 95000, hours: null as number | null },
+    { id: "4", name: "David Lee", department: "Sales", title: "Sales Director", payType: "salary" as const, compensationRate: 160000, hours: null as number | null },
+  ];
 
   for (let i = 0; i < count; i++) {
+    const seeded = seededEmployees[i];
     let name: string;
-    do {
-      name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
-    } while (usedNames.has(name));
+    let dept: string;
+    let title: string;
+    let payType: "salary" | "hourly";
+    let hours: number | null;
+    let compensationRate: number;
+
+    if (seeded) {
+      name = seeded.name;
+      dept = seeded.department;
+      title = seeded.title;
+      payType = seeded.payType;
+      hours = seeded.hours;
+      compensationRate = seeded.compensationRate;
+    } else {
+      do {
+        name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+      } while (usedNames.has(name));
+      dept = pick(DEPARTMENTS);
+      title = pick(TITLES[dept]);
+      const isSalary = Math.random() > 0.3;
+      payType = isSalary ? "salary" : "hourly";
+      hours = isSalary ? null : Math.round(72 + Math.random() * 16); // 72-88 hours biweekly
+      compensationRate = isSalary
+        ? Math.round(55000 + Math.random() * 95000)
+        : Math.round((22 + Math.random() * 38) * 100) / 100;
+    }
+
     usedNames.add(name);
 
-    const dept = pick(DEPARTMENTS);
-    const title = pick(TITLES[dept]);
-    const isSalary = Math.random() > 0.3;
-    const payType: "salary" | "hourly" = isSalary ? "salary" : "hourly";
-    const hours = isSalary ? null : Math.round(72 + Math.random() * 16); // 72-88 hours biweekly
-    const basePay = isSalary
-      ? Math.round((55000 + Math.random() * 95000) / 24) // biweekly salary
-      : Math.round((22 + Math.random() * 38) * (hours || 80) * 100) / 100;
+    const basePay = payType === "salary"
+      ? Math.round((compensationRate / 26) * 100) / 100
+      : Math.round(compensationRate * (hours || 80) * 100) / 100;
 
     const grossPay = Math.round(basePay * 100) / 100;
     const federalIT = Math.round(grossPay * (0.12 + Math.random() * 0.10) * 100) / 100;
@@ -80,12 +106,14 @@ function generateEmployees(count: number): PayrollEmployee[] {
     }
 
     employees.push({
-      id: `emp-${String(i + 1).padStart(3, "0")}`,
+      id: seeded?.id || `emp-${String(i + 1).padStart(3, "0")}`,
       name,
       title,
       department: dept,
       avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`,
       payType,
+      compensationRate,
+      compensationRateUnit: payType === "salary" ? "year" : "hour",
       hours,
       grossPay,
       deductions,

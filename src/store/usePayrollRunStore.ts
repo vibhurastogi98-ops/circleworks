@@ -56,6 +56,25 @@ export interface PayrollReimbursementLine {
   flags: Array<"terminated_manual_check" | "contractor_1099_consideration">;
 }
 
+export type MidPeriodHandlingOption = "full_period" | "prorate" | "next_period_only";
+
+export interface PayrollCompensationChange {
+  employeeId: string;
+  employeeName: string;
+  oldRate: number;
+  newRate: number;
+  effectiveDate: string;
+  handling: MidPeriodHandlingOption;
+  savedAt: string;
+  daysBefore: number;
+  daysAfter: number;
+  periodDays: number;
+  grossPay: number;
+  oldEarnings: number;
+  newEarnings: number;
+  tooltip: string;
+}
+
 export interface PayrollEmployee {
   id: string;
   name: string;
@@ -63,6 +82,8 @@ export interface PayrollEmployee {
   department: string;
   avatar: string;
   payType: PayType;
+  compensationRate: number;
+  compensationRateUnit: "year" | "hour";
   hours: number | null; // null for salary
   grossPay: number;
   deductions: number;
@@ -81,6 +102,7 @@ export interface PayrollEmployee {
   verifyStatus: VerifyStatus;
   flagReason?: string;
   errorMessage?: string;
+  compensationChange?: PayrollCompensationChange;
 }
 
 export type ApproverStatus = "pending" | "approved" | "rejected";

@@ -50,11 +50,21 @@ export function useDataSync() {
     console.log("🔄 Rule 5: Expense Sync Complete");
   }, [queryClient]);
 
+  // Rule 6: After compensation change, invalidate: ['employees', 'employee-profile', 'payroll', 'payroll-preview']
+  const notifyCompensationChange = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["employees"] });
+    await queryClient.invalidateQueries({ queryKey: ["employee-profile"] });
+    await queryClient.invalidateQueries({ queryKey: ["payroll"] });
+    await queryClient.invalidateQueries({ queryKey: ["payroll-preview"] });
+    console.log("🔄 Rule 6: Compensation Sync Complete");
+  }, [queryClient]);
+
   return {
     notifyPayrollComplete,
     notifyEmployeeChange,
     notifyBenefitsEnrollment,
     notifyTimeEntryApproval,
     notifyExpenseApproval,
+    notifyCompensationChange,
   };
 }

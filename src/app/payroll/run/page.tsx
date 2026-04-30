@@ -36,6 +36,7 @@ import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, ty
 import { MOCK_EMPLOYEES, MOCK_APPROVERS, PAY_PERIOD } from "@/data/payrollRunMocks";
 import ProcessingOverlay from "@/components/payroll/run/ProcessingOverlay";
 import ApprovalModal from "@/components/payroll/run/ApprovalModal";
+import { applyGrossToTaxes, ensureDraftCreatedAt, getCompensationChangesSinceDraft } from "@/lib/payroll/compensation-sync";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  HELPERS                                                                  */
@@ -75,8 +76,9 @@ function totalReimbursementsForEmployee(lines?: PayrollReimbursementLine[]) {
 }
 
 function calculateHourlyGross(emp: PayrollEmployee, hours: number) {
-  const currentHours = emp.hours || hours || 1;
-  const hourlyRate = emp.grossPay / currentHours;
+  const hourlyRate = emp.compensationRateUnit === "hour"
+    ? emp.compensationRate
+    : emp.grossPay / (emp.hours || hours || 1);
   return roundCurrency(hourlyRate * hours);
 }
 
@@ -84,6 +86,24 @@ function calculateNetPay(emp: PayrollEmployee, grossPay = emp.grossPay, deductio
   const deductions = deductionOverride ?? emp.deductions;
   const reimbursements = reimbursementOverride ?? totalReimbursementsForEmployee(emp.reimbursements);
   return roundCurrency(grossPay - totalTaxesForEmployee(emp) - deductions + reimbursements);
+}
+
+function calculateNetPayWithTaxes(
+  grossPay: number,
+  taxes: PayrollEmployee["taxes"],
+  deductionOverride: number,
+  reimbursementOverride: number
+) {
+  return roundCurrency(
+    grossPay
+      - taxes.federalIT
+      - taxes.ficaSS
+      - taxes.ficaMed
+      - taxes.stateIT
+      - taxes.localIT
+      - deductionOverride
+      + reimbursementOverride
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -216,6 +236,48 @@ function BenefitsChangedBanner({
         >
           {recalculating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
           {recalculating ? "Recalculating..." : "Recalculate"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function CompensationChangedBanner({
+  changedEmployeesCount,
+  recalculating,
+  onRecalculate,
+}: {
+  changedEmployeesCount: number;
+  recalculating: boolean;
+  onRecalculate: () => void;
+}) {
+  if (changedEmployeesCount <= 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-blue-950 shadow-sm dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <AlertCircle size={18} className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-300" />
+          <div>
+            <p className="text-sm font-bold">
+              {changedEmployeesCount} employees have rate changes since draft — recalculate?
+            </p>
+            <p className="mt-1 text-xs text-blue-900/80 dark:text-blue-100/80">
+              Only employees with mid-period compensation changes will be recalculated.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onRecalculate}
+          disabled={recalculating}
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {recalculating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+          {recalculating ? "Recalculating..." : "Recalculate Affected"}
         </button>
       </div>
     </motion.div>
@@ -578,6 +640,7 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
   const posttaxDeductions = (emp.benefitDeductions || []).filter((line) => line.pretaxOrPosttax === "post_tax");
   const deductionTotal = totalDeductionsForEmployee(emp.benefitDeductions);
   const importedFromTimesheet = emp.timesheetImport?.source === "timesheet";
+  const hasCompensationChange = Boolean(emp.compensationChange);
 
   useEffect(() => { setGrossVal(emp.grossPay.toFixed(2)); }, [emp.grossPay]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
@@ -659,7 +722,17 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
               <img src={emp.avatar} alt={emp.name} className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{emp.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{emp.name}</p>
+                {hasCompensationChange && (
+                  <span
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-200 dark:ring-blue-500/30"
+                    title={emp.compensationChange?.tooltip}
+                  >
+                    <Sparkles size={12} />
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{emp.title}</p>
             </div>
           </div>
@@ -708,9 +781,16 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
               onBlur={handleSaveGross} onKeyDown={(e) => { if (e.key === "Enter") handleSaveGross(); if (e.key === "Escape") { setGrossVal(emp.grossPay.toFixed(2)); setEditing(false); } }}
               className="w-28 text-right text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums" />
           ) : (
-            <button onClick={() => setEditing(true)} className="text-sm font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors tabular-nums cursor-text">
-              {fmt(emp.grossPay)}
-            </button>
+            <div className="inline-flex flex-col items-end">
+              <button onClick={() => setEditing(true)} className="text-sm font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors tabular-nums cursor-text">
+                {fmt(emp.grossPay)}
+              </button>
+              {emp.compensationChange?.handling === "prorate" && (
+                <span className="mt-1 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/10 dark:text-blue-200">
+                  Prorated
+                </span>
+              )}
+            </div>
           )}
         </td>
         {/* Deductions */}
@@ -1161,10 +1241,41 @@ function StickyBottomBar() {
 export default function RunPayrollPage() {
   const { setEmployees, setApprovers, updateEmployee, runState } = usePayrollRunStore();
   const [changedEmployeesCount, setChangedEmployeesCount] = useState(0);
+  const [compensationChangedCount, setCompensationChangedCount] = useState(0);
   const [recalculating, setRecalculating] = useState(false);
+  const [recalculatingCompensation, setRecalculatingCompensation] = useState(false);
   const [timeImportSummary, setTimeImportSummary] = useState<TimeImportSummary | null>(null);
   const [importingHours, setImportingHours] = useState(false);
   const [loadingReimbursements, setLoadingReimbursements] = useState(false);
+
+  const recalculateCompensationChanges = useCallback(() => {
+    setRecalculatingCompensation(true);
+    try {
+      const employees = usePayrollRunStore.getState().employees;
+      const { byEmployeeId } = getCompensationChangesSinceDraft(employees, PAY_PERIOD);
+
+      byEmployeeId.forEach((change, employeeId) => {
+        const employee = employees.find((entry) => entry.id === employeeId);
+        if (!employee) return;
+
+        const nextTaxes = applyGrossToTaxes(employee.taxes, employee.grossPay, change.grossPay);
+        const reimbursements = totalReimbursementsForEmployee(employee.reimbursements);
+        const nextNetPay = calculateNetPayWithTaxes(change.grossPay, nextTaxes, employee.deductions, reimbursements);
+
+        updateEmployee(employeeId, {
+          grossPay: change.grossPay,
+          taxes: nextTaxes,
+          netPay: nextNetPay,
+          compensationRate: change.newRate,
+          compensationChange: change,
+        });
+      });
+
+      setCompensationChangedCount(0);
+    } finally {
+      setRecalculatingCompensation(false);
+    }
+  }, [updateEmployee]);
 
   const loadDeductions = useCallback(async () => {
     setRecalculating(true);
@@ -1278,7 +1389,13 @@ export default function RunPayrollPage() {
   }, [updateEmployee]);
 
   useEffect(() => {
-    setEmployees(MOCK_EMPLOYEES);
+    ensureDraftCreatedAt();
+    const { byEmployeeId } = getCompensationChangesSinceDraft(MOCK_EMPLOYEES, PAY_PERIOD);
+    const seededEmployees = MOCK_EMPLOYEES.map((employee) => ({
+      ...employee,
+      compensationChange: byEmployeeId.get(employee.id),
+    }));
+    setEmployees(seededEmployees);
     setApprovers(MOCK_APPROVERS);
   }, [setEmployees, setApprovers]);
 
@@ -1294,6 +1411,11 @@ export default function RunPayrollPage() {
     void loadReimbursements();
   }, [loadReimbursements]);
 
+  useEffect(() => {
+    const { count } = getCompensationChangesSinceDraft(MOCK_EMPLOYEES, PAY_PERIOD);
+    setCompensationChangedCount(count);
+  }, []);
+
   return (
     <>
       <div className="flex flex-col gap-5 pb-24">
@@ -1308,6 +1430,11 @@ export default function RunPayrollPage() {
           changedEmployeesCount={changedEmployeesCount}
           recalculating={recalculating}
           onRecalculate={() => { void loadDeductions(); }}
+        />
+        <CompensationChangedBanner
+          changedEmployeesCount={compensationChangedCount}
+          recalculating={recalculatingCompensation}
+          onRecalculate={recalculateCompensationChanges}
         />
         <TimeImportPreflight
           summary={timeImportSummary}
