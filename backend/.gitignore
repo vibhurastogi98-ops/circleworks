@@ -48,3 +48,6 @@ prisma/dev.db-journal
 # Cache
 .cache
 .eslintcache
+
+# TypeScript build info
+tsconfig.tsbuildinfo
