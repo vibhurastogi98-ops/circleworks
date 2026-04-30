@@ -32,14 +32,22 @@ export default function PaystubsPage({ params }: { params: Promise<{ runId: stri
       net: "$3,417.49",
       status: "Available",
       reimbursements: [{ description: "WFH Equipment - March 2026", amount: "$149.99" }],
+      deductions: [],
     },
     {
       name: "Taylor Smith",
       net: "$4,314.50",
       status: "Available",
       reimbursements: [{ description: "Field Visit Travel Reimbursement", amount: "$212.40" }],
+      deductions: [],
     },
-    { name: "Alex Clark", net: "$2,890.00", status: "Available", reimbursements: [] },
+    {
+      name: "Alex Clark",
+      net: "$2,890.00",
+      status: "Available",
+      reimbursements: [],
+      deductions: [{ description: "EWA Repayment", amount: "$325.00" }],
+    },
   ];
 
   return (
@@ -82,6 +90,17 @@ export default function PaystubsPage({ params }: { params: Promise<{ runId: stri
                     <div key={line.description} className="flex items-center justify-between text-cyan-900 dark:text-cyan-100">
                       <span>{line.description}</span>
                       <span className="font-bold">{line.amount}</span>
+                    </div>
+                  ))}
+                </div>
+               )}
+               {s.deductions.length > 0 && (
+                <div className="rounded-lg border border-violet-100 bg-violet-50/60 px-3 py-2 text-xs dark:border-violet-900/40 dark:bg-violet-950/20">
+                  <p className="font-bold text-violet-800 dark:text-violet-200 mb-1">Deductions</p>
+                  {s.deductions.map((line) => (
+                    <div key={line.description} className="flex items-center justify-between text-violet-900 dark:text-violet-100">
+                      <span>{line.description}</span>
+                      <span className="font-bold">-{line.amount}</span>
                     </div>
                   ))}
                 </div>

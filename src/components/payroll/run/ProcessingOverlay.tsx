@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { usePayrollRunStore, type ProcessingStep } from "@/store/usePayrollRunStore";
 import { markExpenseReportReimbursed } from "@/data/mockExpenses";
+import { applyEwaRepayment } from "@/data/mockEwa";
 
 const STEPS: { key: ProcessingStep; label: string; icon: string }[] = [
   { key: "calculating", label: "Calculating taxes…", icon: "🧮" },
@@ -45,6 +46,11 @@ export default function ProcessingOverlay() {
               .filter((line) => line.includeInThisRun && !line.deferToNextRun)
               .forEach((line) => {
                 markExpenseReportReimbursed(String(line.expenseReportId), "draft-preview", new Date().toISOString());
+              });
+            (employee.ewaRepayments || [])
+              .filter((line) => line.includeInThisRun && !line.deferToNextRun)
+              .forEach((line) => {
+                applyEwaRepayment(line.advanceId, "draft-preview", line.deductionAmount);
               });
           });
           setRunState("complete");

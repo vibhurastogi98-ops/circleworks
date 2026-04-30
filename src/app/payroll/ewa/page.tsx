@@ -1,8 +1,12 @@
 "use client";
 import React from "react";
 import { Wallet, Info, Activity } from "lucide-react";
+import { getOutstandingEwaAdvances } from "@/data/mockEwa";
 
 export default function EWAPage() {
+  const outstandingAdvances = getOutstandingEwaAdvances();
+  const totalOutstanding = outstandingAdvances.reduce((sum, advance) => sum + advance.remainingBalance, 0);
+
   return (
     <div className="flex flex-col gap-6 pb-24">
        <div className="flex items-center justify-between">
@@ -18,13 +22,13 @@ export default function EWAPage() {
       <div className="grid grid-cols-3 gap-6 mt-4">
          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
            <p className="text-xs font-bold text-slate-400 uppercase">Active Enrollees</p>
-           <p className="text-3xl font-extrabold mt-1">24</p>
-           <p className="text-sm text-emerald-600 font-semibold mt-2">+3 this month</p>
+           <p className="text-3xl font-extrabold mt-1">{outstandingAdvances.length}</p>
+           <p className="text-sm text-emerald-600 font-semibold mt-2">Employees with outstanding advances</p>
          </div>
          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
            <p className="text-xs font-bold text-slate-400 uppercase">Total Advanced (This Period)</p>
-           <p className="text-3xl font-extrabold mt-1">$4,850.00</p>
-           <p className="text-sm text-slate-500 mt-2">Will be deducted on Apr 5</p>
+           <p className="text-3xl font-extrabold mt-1">${totalOutstanding.toFixed(2)}</p>
+           <p className="text-sm text-slate-500 mt-2">Queued for deduction on the next payroll run</p>
          </div>
          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm bg-gradient-to-br from-slate-900 to-blue-900 text-white">
            <p className="text-xs font-bold text-blue-200 uppercase flex justify-between">EWA Status <Activity size={14}/></p>

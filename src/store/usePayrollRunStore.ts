@@ -56,6 +56,28 @@ export interface PayrollReimbursementLine {
   flags: Array<"terminated_manual_check" | "contractor_1099_consideration">;
 }
 
+export type EwaRepaymentStatus = "outstanding" | "partial" | "repaid";
+
+export interface PayrollEwaRepaymentLine {
+  advanceId: string;
+  employeeId: string | number;
+  employeeName: string;
+  amount: number;
+  deductionAmount: number;
+  remainingBalance: number;
+  issueDate: string;
+  repaymentRunId: string | null;
+  status: EwaRepaymentStatus;
+  includeInThisRun: boolean;
+  deferToNextRun: boolean;
+  stateMinimumWage: number;
+  protectedNetFloor: number;
+  availableNetAfterProtection: number;
+  blockedByMinimumWage: boolean;
+  tooltip: string;
+  splitAcrossRuns?: boolean;
+}
+
 export type MidPeriodHandlingOption = "full_period" | "prorate" | "next_period_only";
 
 export interface PayrollCompensationChange {
@@ -90,6 +112,7 @@ export interface PayrollEmployee {
   netPay: number;
   taxes: TaxBreakdown;
   benefitDeductions?: BenefitDeductionLine[];
+  ewaRepayments?: PayrollEwaRepaymentLine[];
   timesheetImport?: TimesheetHoursImport;
   reimbursements?: PayrollReimbursementLine[];
   hoursManuallyOverridden?: boolean;
@@ -103,6 +126,7 @@ export interface PayrollEmployee {
   flagReason?: string;
   errorMessage?: string;
   compensationChange?: PayrollCompensationChange;
+  ewaRepaymentBlocked?: boolean;
 }
 
 export type ApproverStatus = "pending" | "approved" | "rejected";
