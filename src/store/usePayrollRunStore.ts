@@ -23,6 +23,25 @@ export interface BenefitDeductionLine {
   deductionCode: string;
 }
 
+export interface TimesheetHoursDay {
+  date: string;
+  regularHours: number;
+  overtimeHours: number;
+  doubleTimeHours: number;
+}
+
+export interface TimesheetHoursImport {
+  source: "timesheet" | "scheduled" | "manual";
+  regularHours: number;
+  overtimeHours: number;
+  doubleTimeHours: number;
+  totalHours: number;
+  importedAt: string;
+  lateWithinCutoff: boolean;
+  partialPeriodReason?: "new_hire" | "termination";
+  days: TimesheetHoursDay[];
+}
+
 export interface PayrollEmployee {
   id: string;
   name: string;
@@ -36,6 +55,14 @@ export interface PayrollEmployee {
   netPay: number;
   taxes: TaxBreakdown;
   benefitDeductions?: BenefitDeductionLine[];
+  timesheetImport?: TimesheetHoursImport;
+  hoursManuallyOverridden?: boolean;
+  hoursOverrideAudit?: {
+    overriddenAt: string;
+    originalHours: number | null;
+    overrideHours: number;
+    reason: string;
+  };
   verifyStatus: VerifyStatus;
   flagReason?: string;
   errorMessage?: string;

@@ -15,6 +15,13 @@
       "when": 1776243792335,
       "tag": "0001_legal_menace",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777535640920,
+      "tag": "0002_chemical_cerise",
+      "breakpoints": true
     }
   ]
 }

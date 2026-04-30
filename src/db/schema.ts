@@ -48,10 +48,12 @@ export const employees = pgTable('employees', {
   departmentId: text('department_id'), // Reference to department system
   salary: integer('salary'),
   employmentType: text('employment_type').default('full-time'),
+  payType: text('pay_type').default('salary'), // salary, hourly, contractor
   location: text('location'), // Display name
   locationId: text('location_id'), // Reference to location system
   locationType: text('location_type').default('On-Site'), // Remote, Hybrid, On-Site
   startDate: date('start_date'),
+  terminationDate: date('termination_date'),
   status: text('status').default('active'), // active, onboarding, pre_boarding, terminated
   managerId: integer('manager_id'), // Self-reference for Org Chart
   createdAt: timestamp('created_at').defaultNow(),
@@ -84,6 +86,40 @@ export const payrollItems = pgTable('payroll_items', {
   benefits: integer('benefits').default(0),
   net: integer('net').notNull(),
   type: text('type').default('regular'),
+});
+
+export const paySchedules = pgTable('pay_schedules', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  frequency: text('frequency').notNull(), // weekly, biweekly, semi-monthly, monthly
+  cutoffHoursBeforeRun: integer('cutoff_hours_before_run').default(24),
+  isDefault: boolean('is_default').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const payrollTimeImports = pgTable('payroll_time_imports', {
+  id: serial('id').primaryKey(),
+  payrollId: integer('payroll_id').references(() => payrolls.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  timesheetId: integer('timesheet_id').references(() => timesheets.id, { onDelete: 'set null' }),
+  source: text('source').default('timesheet'), // timesheet, scheduled, manual
+  regularHours: real('regular_hours').default(0),
+  overtimeHours: real('overtime_hours').default(0),
+  doubleTimeHours: real('double_time_hours').default(0),
+  totalHours: real('total_hours').default(0),
+  dailyBreakdown: text('daily_breakdown'), // JSON array of per-day imported hours
+  lateWithinCutoff: boolean('late_within_cutoff').default(false),
+  partialPeriodReason: text('partial_period_reason'), // new_hire, termination
+  manuallyOverridden: boolean('manually_overridden').default(false),
+  overrideOriginalHours: real('override_original_hours'),
+  overrideHours: real('override_hours'),
+  overrideReason: text('override_reason'),
+  overriddenAt: timestamp('overridden_at'),
+  importedAt: timestamp('imported_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // --- TIME & ATTENDANCE ---
@@ -398,6 +434,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const companiesRelations = relations(companies, ({ many }) => ({
   employees: many(employees),
   payrolls: many(payrolls),
+  paySchedules: many(paySchedules),
   agencyClients: many(agencyClients),
   agencyInvoices: many(agencyInvoices),
 }));
@@ -413,11 +450,22 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   documents: many(employeeDocuments),
   bankAccounts: many(employeeBankAccounts),
   payrollItems: many(payrollItems),
+  payrollTimeImports: many(payrollTimeImports),
   manager: one(employees, { fields: [employees.managerId], references: [employees.id], relationName: 'subordinates' }),
   subordinates: many(employees, { relationName: 'subordinates' }),
   announcementReads: many(announcementReads),
   assetAssignments: many(assetAssignments),
   projectAssignments: many(projectAssignments),
+}));
+
+export const paySchedulesRelations = relations(paySchedules, ({ one }) => ({
+  company: one(companies, { fields: [paySchedules.companyId], references: [companies.id] }),
+}));
+
+export const payrollTimeImportsRelations = relations(payrollTimeImports, ({ one }) => ({
+  payroll: one(payrolls, { fields: [payrollTimeImports.payrollId], references: [payrolls.id] }),
+  employee: one(employees, { fields: [payrollTimeImports.employeeId], references: [employees.id] }),
+  timesheet: one(timesheets, { fields: [payrollTimeImports.timesheetId], references: [timesheets.id] }),
 }));
 
 export const announcementsRelations = relations(announcements, ({ one, many }) => ({

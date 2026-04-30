@@ -28,8 +28,10 @@ import {
   Sparkles,
   Gift,
   Check,
+  RefreshCw,
+  Edit3,
 } from "lucide-react";
-import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type VerifyStatus } from "@/store/usePayrollRunStore";
+import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type TimesheetHoursImport, type VerifyStatus } from "@/store/usePayrollRunStore";
 import { MOCK_EMPLOYEES, MOCK_APPROVERS, PAY_PERIOD } from "@/data/payrollRunMocks";
 import ProcessingOverlay from "@/components/payroll/run/ProcessingOverlay";
 import ApprovalModal from "@/components/payroll/run/ApprovalModal";
@@ -51,12 +53,22 @@ function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function roundHours(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 function totalTaxesForEmployee(emp: PayrollEmployee) {
   return emp.taxes.federalIT + emp.taxes.ficaSS + emp.taxes.ficaMed + emp.taxes.stateIT + emp.taxes.localIT;
 }
 
 function totalDeductionsForEmployee(lines?: BenefitDeductionLine[]) {
   return roundCurrency((lines || []).reduce((sum, line) => sum + line.perPaycheckAmount, 0));
+}
+
+function calculateHourlyGross(emp: PayrollEmployee, hours: number) {
+  const currentHours = emp.hours || hours || 1;
+  const hourlyRate = emp.grossPay / currentHours;
+  return roundCurrency(hourlyRate * hours);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -190,6 +202,92 @@ function BenefitsChangedBanner({
           {recalculating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
           {recalculating ? "Recalculating..." : "Recalculate"}
         </button>
+      </div>
+    </motion.div>
+  );
+}
+
+interface TimeImportSummary {
+  hourlyEmployeeCount: number;
+  approvedCount: number;
+  missingCount: number;
+  missingEmployees: string[];
+  lateCount: number;
+  cutoffHoursBeforeRun: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+interface TimeImportApiResult {
+  summary: TimeImportSummary;
+  imports: Array<TimesheetHoursImport & {
+    employeeId: string | number;
+    employeeName: string;
+  }>;
+}
+
+function TimeImportPreflight({
+  summary,
+  importing,
+  onImport,
+  onUseScheduledHours,
+}: {
+  summary: TimeImportSummary | null;
+  importing: boolean;
+  onImport: () => void;
+  onUseScheduledHours: () => void;
+}) {
+  if (!summary) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-blue-950 shadow-sm dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100"
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-sm font-bold">
+            {summary.approvedCount} of {summary.hourlyEmployeeCount} hourly employees have approved timesheets
+          </p>
+          {summary.missingCount > 0 && (
+            <p className="mt-1 text-xs text-blue-900/80 dark:text-blue-100/80">
+              {summary.missingCount} employees missing timesheets: {summary.missingEmployees.slice(0, 5).join(", ")}
+            </p>
+          )}
+          {summary.lateCount > 0 && (
+            <p className="mt-2 inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
+              <AlertTriangle size={12} /> Submitted within cutoff window — may miss run
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onImport}
+            disabled={importing}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {importing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+            {importing ? "Importing..." : `Continue with ${summary.approvedCount}`}
+          </button>
+          {summary.missingCount > 0 && (
+            <>
+              <button
+                className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:bg-slate-900 dark:text-blue-200"
+                disabled={importing}
+              >
+                Wait for remaining {summary.missingCount}
+              </button>
+              <button
+                onClick={onUseScheduledHours}
+                disabled={importing}
+                className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:bg-slate-900 dark:text-blue-200"
+              >
+                Use scheduled hours
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -456,6 +554,7 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
   const pretaxDeductions = (emp.benefitDeductions || []).filter((line) => line.pretaxOrPosttax === "pre_tax");
   const posttaxDeductions = (emp.benefitDeductions || []).filter((line) => line.pretaxOrPosttax === "post_tax");
   const deductionTotal = totalDeductionsForEmployee(emp.benefitDeductions);
+  const importedFromTimesheet = emp.timesheetImport?.source === "timesheet";
 
   useEffect(() => { setGrossVal(emp.grossPay.toFixed(2)); }, [emp.grossPay]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
@@ -480,6 +579,40 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
       });
     }
     setEditing(false);
+  };
+
+  const handleOverrideHours = () => {
+    const currentHours = emp.hours ?? emp.timesheetImport?.totalHours ?? 0;
+    const nextValue = window.prompt("Override hours for this payroll run", String(currentHours));
+    if (nextValue === null) return;
+
+    const overrideHours = parseFloat(nextValue);
+    if (Number.isNaN(overrideHours) || overrideHours < 0) return;
+
+    const grossPay = emp.payType === "hourly" ? calculateHourlyGross(emp, overrideHours) : emp.grossPay;
+
+    updateEmployee(emp.id, {
+      hours: overrideHours,
+      grossPay,
+      netPay: roundCurrency(grossPay - totalTaxesForEmployee(emp) - deductionTotal),
+      hoursManuallyOverridden: true,
+      timesheetImport: emp.timesheetImport
+        ? {
+            ...emp.timesheetImport,
+            source: "manual",
+            totalHours: overrideHours,
+            regularHours: overrideHours,
+            overtimeHours: 0,
+            doubleTimeHours: 0,
+          }
+        : undefined,
+      hoursOverrideAudit: {
+        overriddenAt: new Date().toISOString(),
+        originalHours: currentHours,
+        overrideHours,
+        reason: "Payroll run screen manual override",
+      },
+    });
   };
 
   return (
@@ -515,8 +648,35 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
           </span>
         </td>
         {/* Hours */}
-        <td className="px-3 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 text-center tabular-nums">
-          {emp.hours !== null ? emp.hours : "—"}
+        <td className="px-3 py-3 text-center">
+          <div className="flex items-center justify-center gap-1.5">
+            {importedFromTimesheet && (
+              <button
+                onClick={() => toggleExpandRow(emp.id)}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-cyan-50 text-[10px] font-black text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-500/30"
+                title="Imported from approved timesheet"
+              >
+                T
+              </button>
+            )}
+            {emp.hoursManuallyOverridden && (
+              <span className="inline-flex h-6 items-center rounded-md bg-amber-50 px-1.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/30">
+                OVERRIDE
+              </span>
+            )}
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+              {emp.hours !== null ? emp.hours : "—"}
+            </span>
+            {emp.payType === "hourly" && (
+              <button
+                onClick={handleOverrideHours}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800"
+                title="Manual override"
+              >
+                <Edit3 size={13} />
+              </button>
+            )}
+          </div>
         </td>
         {/* Gross Pay - inline editable */}
         <td className="px-3 py-3 text-right">
@@ -648,6 +808,37 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
                         {(emp.benefitDeductions || []).length === 0 && (
                           <div className="rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
                             No active benefit deductions on this draft.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-1.5">
+                        <Clock size={12} /> Timesheet Hours
+                      </p>
+                      <div className="space-y-2">
+                        {(emp.timesheetImport?.days || []).map((day) => (
+                          <div key={day.date} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <div>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">{fmtDate(day.date)}</p>
+                              <p className="text-[10px] text-slate-500">
+                                {(day.overtimeHours + day.doubleTimeHours) > 0 ? "Includes overtime" : "Regular hours"}
+                              </p>
+                            </div>
+                            <p className="text-xs font-black text-cyan-600 dark:text-cyan-300">
+                              {roundHours(day.regularHours + day.overtimeHours + day.doubleTimeHours)}h
+                            </p>
+                          </div>
+                        ))}
+                        {!emp.timesheetImport && (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                            No approved timesheet imported for this employee.
+                          </div>
+                        )}
+                        {emp.timesheetImport?.partialPeriodReason && (
+                          <div className="rounded-lg bg-amber-50 p-3 text-xs font-bold text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+                            Partial period: {emp.timesheetImport.partialPeriodReason === "new_hire" ? "new hire start date applied" : "termination date applied"}
                           </div>
                         )}
                       </div>
@@ -807,6 +998,8 @@ export default function RunPayrollPage() {
   const { setEmployees, setApprovers, updateEmployee, runState } = usePayrollRunStore();
   const [changedEmployeesCount, setChangedEmployeesCount] = useState(0);
   const [recalculating, setRecalculating] = useState(false);
+  const [timeImportSummary, setTimeImportSummary] = useState<TimeImportSummary | null>(null);
+  const [importingHours, setImportingHours] = useState(false);
 
   const loadDeductions = useCallback(async () => {
     setRecalculating(true);
@@ -825,7 +1018,10 @@ export default function RunPayrollPage() {
         linesByEmployeeId.set(key, existing);
       });
 
-      MOCK_EMPLOYEES.forEach((employee) => {
+      const currentEmployees = usePayrollRunStore.getState().employees;
+      const payrollEmployees = currentEmployees.length > 0 ? currentEmployees : MOCK_EMPLOYEES;
+
+      payrollEmployees.forEach((employee) => {
         const benefitDeductions = linesByEmployeeId.get(employee.id) || [];
         const totalBenefits = totalDeductionsForEmployee(benefitDeductions);
 
@@ -842,6 +1038,49 @@ export default function RunPayrollPage() {
     }
   }, [updateEmployee]);
 
+  const loadTimesheetHours = useCallback(async (missingMode: "skip" | "scheduled" = "skip") => {
+    setImportingHours(true);
+    try {
+      const suffix = missingMode === "scheduled" ? "?missing=scheduled" : "";
+      const response = await fetch(`/api/payroll/runs/draft-preview/time-import${suffix}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to import timesheet hours");
+
+      const result: TimeImportApiResult = await response.json();
+      setTimeImportSummary(result.summary);
+
+      const importsByEmployeeId = new Map(result.imports.map((line) => [String(line.employeeId), line]));
+      const currentEmployees = usePayrollRunStore.getState().employees;
+      const payrollEmployees = currentEmployees.length > 0 ? currentEmployees : MOCK_EMPLOYEES;
+
+      payrollEmployees.forEach((employee) => {
+        const imported = importsByEmployeeId.get(employee.id);
+        if (!imported || employee.payType !== "hourly") return;
+
+        const grossPay = calculateHourlyGross(employee, imported.totalHours);
+        updateEmployee(employee.id, {
+          hours: imported.totalHours,
+          grossPay,
+          netPay: roundCurrency(grossPay - totalTaxesForEmployee(employee) - employee.deductions),
+          timesheetImport: {
+            source: imported.source,
+            regularHours: imported.regularHours,
+            overtimeHours: imported.overtimeHours,
+            doubleTimeHours: imported.doubleTimeHours,
+            totalHours: imported.totalHours,
+            importedAt: imported.importedAt,
+            lateWithinCutoff: imported.lateWithinCutoff,
+            partialPeriodReason: imported.partialPeriodReason,
+            days: imported.days,
+          },
+        });
+      });
+    } catch (error) {
+      console.error("[Payroll Run Time Import]", error);
+    } finally {
+      setImportingHours(false);
+    }
+  }, [updateEmployee]);
+
   useEffect(() => {
     setEmployees(MOCK_EMPLOYEES);
     setApprovers(MOCK_APPROVERS);
@@ -850,6 +1089,10 @@ export default function RunPayrollPage() {
   useEffect(() => {
     void loadDeductions();
   }, [loadDeductions]);
+
+  useEffect(() => {
+    void loadTimesheetHours();
+  }, [loadTimesheetHours]);
 
   return (
     <>
@@ -865,6 +1108,12 @@ export default function RunPayrollPage() {
           changedEmployeesCount={changedEmployeesCount}
           recalculating={recalculating}
           onRecalculate={() => { void loadDeductions(); }}
+        />
+        <TimeImportPreflight
+          summary={timeImportSummary}
+          importing={importingHours}
+          onImport={() => { void loadTimesheetHours(); }}
+          onUseScheduledHours={() => { void loadTimesheetHours("scheduled"); }}
         />
         <FilterBar />
         <BulkActionsBar />

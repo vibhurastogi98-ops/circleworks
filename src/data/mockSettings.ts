@@ -44,9 +44,9 @@ export const mockRoles = [
 ];
 
 export const mockPaySchedules = [
-  { id: "ps_1", name: "Salaried Bi-Weekly", frequency: "Bi-Weekly", nextPayDay: "2026-04-10", cutoff: "2026-04-06", employees: 185, default: true },
-  { id: "ps_2", name: "Hourly Weekly", frequency: "Weekly", nextPayDay: "2026-04-08", cutoff: "2026-04-05", employees: 49, default: false },
-  { id: "ps_3", name: "Executive Monthly", frequency: "Monthly", nextPayDay: "2026-04-30", cutoff: "2026-04-25", employees: 12, default: false },
+  { id: "ps_1", name: "Salaried Bi-Weekly", frequency: "Bi-Weekly", nextPayDay: "2026-04-10", cutoff: "2026-04-06", cutoffHoursBeforeRun: 24, employees: 185, default: true },
+  { id: "ps_2", name: "Hourly Weekly", frequency: "Weekly", nextPayDay: "2026-04-08", cutoff: "2026-04-05", cutoffHoursBeforeRun: 24, employees: 49, default: false },
+  { id: "ps_3", name: "Executive Monthly", frequency: "Monthly", nextPayDay: "2026-04-30", cutoff: "2026-04-25", cutoffHoursBeforeRun: 24, employees: 12, default: false },
 ];
 
 export const mockBankAccounts = [
