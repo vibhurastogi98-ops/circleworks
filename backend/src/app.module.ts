@@ -23,6 +23,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { SearchModule } from './modules/search/search.module';
 import { AutomationsModule } from './modules/automations/automations.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { WebsocketsModule } from './modules/websockets/websockets.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -69,6 +70,7 @@ import { AppService } from './app.service';
     SearchModule,
     AutomationsModule,
     WebhooksModule,
+    WebsocketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

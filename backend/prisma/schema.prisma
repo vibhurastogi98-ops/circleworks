@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
 }
 
 datasource db {
@@ -37,10 +38,8 @@ model User {
   refreshTokens         RefreshToken[]
   notifications         Notification[]
   reviewsGiven          PerformanceReview[] @relation("reviewer")
-  reviewsReceived       PerformanceReview[] @relation("reviewee")
   goals                 PerformanceGoal[]
   feedback              PerformanceFeedback[]
-  expenseReports        Expense[]
   approvals             Approval[]
   automations           Automation[]
 
@@ -103,7 +102,7 @@ model Company {
   onboardingTasks       OnboardingTask[]
   timeEntries           TimeEntry[]
   timesheets            Timesheet[]
-  expenses              Expense[]
+  expenses              Expense[] @relation("expenses")
   approvals             Approval[]
   automations           Automation[]
   webhooks              Webhook[]
@@ -179,6 +178,7 @@ model Employee {
   goals                 PerformanceGoal[]
   interviews            Interview[]
   candidateProfile      Candidate?
+  expenses              Expense[] @relation("employee")
 
   @@unique([companyId, email])
   @@index([companyId])
@@ -434,7 +434,7 @@ model Candidate {
   id              String      @id @default(cuid())
   companyId       String
   jobOpeningId    String?
-  employeeId      String?
+  employeeId      String?     @unique
   firstName       String
   lastName        String
   email           String
@@ -650,6 +650,8 @@ model PtoPolicy {
   isActive        Boolean     @default(true)
   createdAt       DateTime    @default(now())
 
+  employees       PtoPolicyEmployee[]
+
   @@index([companyId])
 }
 
@@ -721,8 +723,8 @@ model Expense {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  company         Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  company         Company     @relation("expenses", fields: [companyId], references: [id], onDelete: Cascade)
+  employee        Employee    @relation("employee", fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
   @@index([employeeId])
@@ -922,5 +924,4 @@ model SearchIndex {
 
   @@index([companyId])
   @@index([entityType])
-  @@fulltext([title, content])
 }
