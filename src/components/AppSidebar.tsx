@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,11 +10,12 @@ import {
   LogOut, ChevronDown, ChevronRight, CheckCircle2, Building2
 } from "lucide-react";
 
-import { useSidebarStore } from "@/store/useSidebarStore";
+import { useQuery } from "@tanstack/react-query";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useSidebarStore } from "@/store/useSidebarStore";
+import { useCompanyStore } from "@/store/useCompanyStore";
 
 type SubItem = {
   label: string;
@@ -116,8 +117,8 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
-  // Guest Mode: Authentication disabled
-  const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
+  const { user } = useUser();
+  const { currentCompany } = useCompanyStore();
 
   const { currentUser, isNewUser } = useDashboardData();
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
@@ -129,12 +130,13 @@ export default function AppSidebar() {
     setMounted(true);
   }, []);
 
-  // Hardcoded guest user info
-  const displayName = "Admin User";
-  const displayEmail = "admin@circleworks.com";
-  const avatarUrl = "https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent";
+  // User info from Clerk
+  const displayName = user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user?.firstName || user?.username || "User";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
+  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent";
 
-  
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
 
   // Check if current user is also an employee
@@ -196,7 +198,7 @@ export default function AppSidebar() {
           
           <div className="ml-3 flex-1 flex flex-col justify-center overflow-hidden lg:hidden xl:flex transition-opacity duration-300">
              <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">
-                {mounted ? (currentUser.companyName || "Your Company") : "Your Company"}
+                {currentCompany?.name || "CircleWorks"}
              </span>
              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                Switch company
@@ -206,7 +208,7 @@ export default function AppSidebar() {
 
           {/* Tooltip for 72px state */}
           <div className="absolute left-[78px] px-2 py-1 bg-slate-800 text-white text-[12px] font-medium rounded opacity-0 invisible lg:group-hover:opacity-100 lg:group-hover:visible xl:hidden z-50 whitespace-nowrap shadow-lg whitespace-nowrap">
-             {mounted ? (currentUser.companyName || "Your Company") : "Your Company"}
+             {currentCompany?.name || "CircleWorks"}
           </div>
         </div>
 
@@ -412,7 +414,7 @@ export default function AppSidebar() {
              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
                 <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
              </div>
-             
+
              {/* Tooltip for 72px state */}
              <div className="absolute left-[62px] bottom-2 px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/user:opacity-100 lg:group-hover/user:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
                 {displayName}
@@ -423,13 +425,19 @@ export default function AppSidebar() {
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{displayEmail}</div>
              </div>
 
-             <button
-                onClick={() => signOut({ redirectUrl: "/" })}
-                className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity lg:hidden xl:block text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer"
-                title="Log Out"
-             >
-                <LogOut size={16} />
-             </button>
+             <div className="ml-auto lg:hidden xl:block">
+               <UserButton
+                 appearance={{
+                   elements: {
+                     avatarBox: "w-6 h-6",
+                     userButtonPopoverCard: "bg-slate-900 border-slate-700",
+                     userButtonPopoverActionButton: "hover:bg-slate-800",
+                     userButtonPopoverActionButtonText: "text-slate-200",
+                     userButtonPopoverFooter: "hidden"
+                   }
+                 }}
+               />
+             </div>
           </div>
         </div>
       </aside>

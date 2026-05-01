@@ -16,8 +16,9 @@ import TeamCalendar from "@/components/dashboard/TeamCalendar";
 import { Loader2 } from "lucide-react";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OnboardingTour from "@/components/OnboardingTour";
-import { useDashboardData } from "@/hooks/useDashboardData";
 import CirceWidget from "@/components/CirceWidget";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { useUser } from "@clerk/nextjs";
 
 // Recharts client-only
 const PayrollChart = dynamic(
@@ -27,14 +28,16 @@ const PayrollChart = dynamic(
 
 export default function DashboardPage() {
   const { isLoading } = useDashboardData();
-  const user = { publicMetadata: { role: "admin" } };
+  const { user } = useUser();
+
+  const userRole = (user?.publicMetadata?.role as string) || "admin";
   const router = useRouter();
-  
+
   useEffect(() => {
-    if (user?.publicMetadata?.role === "accountant") {
+    if (userRole === "accountant") {
       router.push("/accountant-portal");
     }
-  }, [user, router]);
+  }, [userRole, router]);
 
   if (isLoading) {
     return (

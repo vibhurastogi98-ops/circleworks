@@ -15,22 +15,22 @@ import { useDataSync } from "@/hooks/useDataSync";
 import { toast } from "sonner";
 import Breadcrumb from "./Breadcrumb";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
-import { useNotificationStore } from "@/store/useNotificationStore";
 import CommandPalette from "@/components/CommandPalette";
+import { useNotificationStore } from "@/store/useNotificationStore";
+import { useClerk, useUser } from "@clerk/nextjs";
 
 export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
-  // Guest Mode: Authentication disabled
-  const signOut = (options?: { redirectUrl?: string }) => {
-    document.cookie = "cw_session=; path=/; max-age=0; samesite=lax";
-    window.location.href = options?.redirectUrl || "/";
-  };
-  
-  // Hardcoded guest user info
-  const displayName = "Admin User";
-  const displayEmail = "admin@circleworks.com";
-  const avatarUrl = "https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent";
+  const { signOut } = useClerk();
+  const { user } = useUser();
+
+  // User info from Clerk
+  const displayName = user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user?.firstName || user?.username || "User";
+  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
+  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent";
 
   const { toggleSidebar } = useSidebarStore();
   

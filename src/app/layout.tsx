@@ -7,6 +7,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import QueryProvider from "@/components/QueryProvider";
 import SocketProvider from "@/components/SocketProvider";
+import { ClerkProvider } from '@clerk/nextjs';
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -110,9 +111,37 @@ export default function RootLayout({
         </a>
 
         <QueryProvider>
-          <SocketProvider>
-            {children}
-          </SocketProvider>
+          <ClerkProvider
+            publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+            appearance={{
+              baseTheme: undefined,
+              variables: {
+                colorPrimary: '#0ea5e9',
+                colorBackground: '#0f172a',
+                colorInputBackground: '#1e293b',
+                colorInputText: '#f1f5f9',
+                colorText: '#f1f5f9',
+                borderRadius: '8px'
+              },
+              elements: {
+                formButtonPrimary: 'bg-blue-600 hover:bg-blue-700',
+                card: 'bg-slate-900 border-slate-700',
+                headerTitle: 'text-slate-200',
+                headerSubtitle: 'text-slate-400',
+                socialButtonsBlockButton: 'bg-slate-800 border-slate-600 hover:bg-slate-700',
+                socialButtonsBlockButtonText: 'text-slate-200',
+                dividerLine: 'bg-slate-700',
+                dividerText: 'text-slate-400',
+                formFieldInput: 'bg-slate-800 border-slate-600 text-slate-200',
+                formFieldLabel: 'text-slate-300',
+                footerActionLink: 'text-blue-400 hover:text-blue-300'
+              }
+            }}
+          >
+            <SocketProvider>
+              {children}
+            </SocketProvider>
+          </ClerkProvider>
         </QueryProvider>
       </body>
     </html>
