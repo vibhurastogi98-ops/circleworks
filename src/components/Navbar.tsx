@@ -551,13 +551,6 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                   >
                     Log In
                   </Link>
-                  <Link
-                    href="/signup"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-5 py-2 transition-colors"
-                    suppressHydrationWarning
-                  >
-                    Start Free &mdash; No Credit Card
-                  </Link>
                 </>
               )}
             </div>
@@ -838,7 +831,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                   </button>
                 </>
               ) : (
-                /* Non-authenticated User - Login/Signup Buttons */
+                /* Non-authenticated User - Login Button */
                 <>
                   <Link
                     href="/login"
@@ -847,14 +840,6 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                     tabIndex={0}
                   >
                     Log In
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={closeMenus}
-                    className="w-full text-center py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full transition-colors"
-                    tabIndex={0}
-                  >
-                    Start Free &mdash; No Credit Card
                   </Link>
                 </>
               )}

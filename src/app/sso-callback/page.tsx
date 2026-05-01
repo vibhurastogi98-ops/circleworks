@@ -7,9 +7,9 @@ export default function SSOCallbackPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <AuthenticateWithRedirectCallback
         signInUrl="/login"
-        signUpUrl="/signup"
+        signUpUrl="/login"
         signInFallbackRedirectUrl="/dashboard"
-        signUpFallbackRedirectUrl="/onboarding/company-setup"
+        signUpFallbackRedirectUrl="/login"
       />
     </div>
   );

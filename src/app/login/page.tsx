@@ -658,10 +658,7 @@ export default function LoginPage() {
 
           {!mfaNeeded && (
             <p className="mt-8 text-center text-sm text-gray-500 font-medium">
-              Don't have an account?{" "}
-              <Link href="/signup" className="text-blue-600 font-bold hover:underline">
-                Start free &rarr;
-              </Link>
+              Need access? Please contact support.
             </p>
           )}
         </div>
