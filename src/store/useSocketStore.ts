@@ -14,7 +14,10 @@ interface SocketState {
   off: (event: string, callback?: (data: any) => void) => void;
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
+const ENABLE_WEBSOCKETS = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKETS === 'true';
+const isLocalWebSocketUrl = WS_URL ? /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(WS_URL) : false;
+const shouldConnectWebSocket = Boolean(WS_URL && (ENABLE_WEBSOCKETS || !isLocalWebSocketUrl));
 
 export const useSocketStore = create<SocketState>((set, get) => ({
   socket: null,
@@ -25,6 +28,10 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
   connect: (token?: string) => {
     const { socket: existingSocket, disconnect } = get();
+
+    if (!shouldConnectWebSocket || !WS_URL) {
+      return;
+    }
 
     // Disconnect existing socket if any
     if (existingSocket) {
@@ -49,8 +56,14 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('WebSocket disconnected:', reason);
+      if (process.env.NODE_ENV === 'development') {
+        console.info('WebSocket disconnected:', reason);
+      }
       set({ isConnected: false });
+
+      if (reason === 'io client disconnect') {
+        return;
+      }
 
       // Attempt reconnection with exponential backoff
       const { reconnectAttempts, maxReconnectAttempts, reconnectDelay } = get();
@@ -62,14 +75,20 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         });
 
         setTimeout(() => {
-          console.log(`Attempting reconnection ${reconnectAttempts + 1}/${maxReconnectAttempts}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.info(`Attempting reconnection ${reconnectAttempts + 1}/${maxReconnectAttempts}`);
+          }
           socket.connect();
         }, delay);
       }
     });
 
     socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      set({ isConnected: false });
+
+      if (process.env.NODE_ENV === 'development') {
+        console.info('Realtime socket unavailable:', error.message);
+      }
     });
 
     socket.on('reconnect', () => {

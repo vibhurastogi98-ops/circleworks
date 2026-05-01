@@ -16,7 +16,7 @@ const SocketContext = createContext<SocketContextType>({
 export const useSocket = () => useContext(SocketContext);
 
 export default function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { isConnected, connect } = useSocketStore();
+  const { isConnected, connect, disconnect } = useSocketStore();
   const { getToken, isLoaded, isSignedIn } = useAuth();
 
   // Register all WebSocket event handlers
@@ -24,7 +24,16 @@ export default function SocketProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     const initializeSocket = async () => {
-      if (isLoaded && isSignedIn) {
+      if (!isLoaded) {
+        return;
+      }
+
+      if (!isSignedIn) {
+        disconnect();
+        return;
+      }
+
+      if (isSignedIn) {
         try {
           const token = await getToken();
           if (token) {
@@ -37,7 +46,7 @@ export default function SocketProvider({ children }: { children: React.ReactNode
     };
 
     initializeSocket();
-  }, [isLoaded, isSignedIn, getToken, connect]);
+  }, [isLoaded, isSignedIn, getToken, connect, disconnect]);
 
   return (
     <SocketContext.Provider value={{ isConnected }}>
