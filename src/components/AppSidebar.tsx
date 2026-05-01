@@ -13,7 +13,6 @@ import {
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import { useSocket } from "./SocketProvider";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -137,7 +136,6 @@ export default function AppSidebar() {
 
   
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
-  const { socket } = useSocket();
 
   // Check if current user is also an employee
   const { data: userProfile } = useQuery({
@@ -153,16 +151,8 @@ export default function AppSidebar() {
   });
   const isAssignedEmployee = !!userProfile?.profile?.id;
 
-  // Rule 6: Sidebar notification badge — subscribed to WS 'notification.new' event
-  useEffect(() => {
-    if (!socket) return;
-    const handleNewNotification = (data: any) => {
-      console.log("🔔 Rule 6: New Notification Received", data);
-      incrementNotificationCount();
-    };
-    socket.on("notification.new", handleNewNotification);
-    return () => { socket.off("notification.new", handleNewNotification); };
-  }, [socket, incrementNotificationCount]);
+  // Rule 6: Sidebar notification badge — handled globally in useWebSocketEvents hook
+  // No need for local event listener as notifications are managed centrally
 
   const toggleAccordion = (label: string) => {
     setOpenAccordions(prev => ({ ...prev, [label]: !prev[label] }));
