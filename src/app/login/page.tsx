@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShieldCheck, Lock, Eye, EyeOff, AlertCircle, X, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,7 @@ type ErrorType = "none" | "invalid_credentials" | "locked" | "unverified" | "ser
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useSignIn();
+  const { isLoaded, isSignedIn } = useAuth();
 
   const getNextPath = () => {
     const params = new URLSearchParams(window.location.search);
@@ -52,6 +53,13 @@ export default function LoginPage() {
     // Prevent open redirect to absolute URLs.
     return nextPath.startsWith("/") ? nextPath : "/dashboard";
   };
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (isSignedIn) {
+      router.replace(getNextPath());
+    }
+  }, [isLoaded, isSignedIn, router]);
 
   const [activeQuote, setActiveQuote] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
