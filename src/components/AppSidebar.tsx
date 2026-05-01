@@ -143,7 +143,7 @@ export default function AppSidebar() {
   const { data: userProfile } = useQuery({
     queryKey: ["user-me"],
     queryFn: async () => {
-      const res = await fetch("/api/users/me");
+      const res = await fetch("/api/users/me", { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
     },
@@ -430,9 +430,11 @@ export default function AppSidebar() {
                  appearance={{
                    elements: {
                      avatarBox: "w-6 h-6",
-                     userButtonPopoverCard: "bg-slate-900 border-slate-700",
+                     userButtonPopoverCard: "bg-slate-900 border-slate-700 shadow-2xl",
                      userButtonPopoverActionButton: "hover:bg-slate-800",
                      userButtonPopoverActionButtonText: "text-slate-200",
+                     userPreviewMainIdentifier: "text-slate-100",
+                     userPreviewSecondaryIdentifier: "text-slate-300",
                      userButtonPopoverFooter: "hidden"
                    }
                  }}

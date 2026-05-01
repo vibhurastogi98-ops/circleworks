@@ -58,7 +58,7 @@ export function useEmployeePortal() {
   return useQuery<EmployeePortalData>({
     queryKey: ["employee-portal"],
     queryFn: async () => {
-      const response = await fetch("/api/users/me");
+      const response = await fetch("/api/users/me", { credentials: "include" });
       if (!response.ok) {
         throw new Error("Failed to load employee portal data");
       }

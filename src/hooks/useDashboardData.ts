@@ -25,7 +25,7 @@ export function useDashboardData() {
   const { data: liveStats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
-      const res = await fetch("/api/dashboard/stats");
+      const res = await fetch("/api/dashboard/stats", { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
     },

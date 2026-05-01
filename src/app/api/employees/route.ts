@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { employees, employeeBankAccounts, onboardingCases, users } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
@@ -7,8 +8,25 @@ import { desc, sql, eq } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    let userId: string | null = null;
+    const GUEST_USER_ID = process.env.NODE_ENV !== 'production' ? "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD" : null;
+
+    try {
+      const authResult = await auth();
+      userId = authResult.userId ?? null;
+    } catch (authError) {
+      console.warn("[Employees GET] Clerk auth failed, falling back to demo guest user", authError);
+      userId = GUEST_USER_ID;
+    }
+
+    if (!userId) {
+      if (GUEST_USER_ID) {
+        console.warn("[Employees GET] No Clerk user session found; using demo guest user in development.");
+        userId = GUEST_USER_ID;
+      } else {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
     
     // Find the user's employee record to get their company
     const [userEmployee] = await db
@@ -20,6 +38,21 @@ export async function GET() {
     let allEmployees;
 
     if (!userEmployee || !userEmployee.companyId) {
+      // Check if user exists in users table
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.clerkUserId, userId));
+
+      if (!existingUser) {
+        // Create user record (this should normally be done by webhook, but fallback here)
+        await db.insert(users).values({
+          clerkUserId: userId,
+          email: "", // Will be updated by webhook or profile
+          role: "employee",
+        });
+      }
+
       // IF NOT FOUND IN DB, RETURN MOCK EMPLOYEES (Safety fallback)
       return NextResponse.json([
         { id: "1", firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15" },
@@ -69,9 +102,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     // 1. VALIDATION
     if (!body.firstName || !body.email) {
@@ -92,7 +129,7 @@ export async function POST(req: Request) {
 
     // 2.1 GUARD: Reject if company cannot be resolved
     if (!companyId) {
-      console.error("[Employees POST] Could not resolve companyId for guest user");
+      console.error("[Employees POST] Could not resolve companyId for user:", userId);
       return Response.json({ 
         error: "Your account is not linked to a company. Please complete company setup first." 
       }, { status: 400 });

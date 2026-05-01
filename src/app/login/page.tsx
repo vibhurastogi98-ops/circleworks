@@ -140,22 +140,14 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await signIn.finalize({
-      navigate: ({ decorateUrl }) => {
-        const destination = decorateUrl(getNextPath());
-
-        if (destination.startsWith("http")) {
-          window.location.href = destination;
-          return;
-        }
-
-        router.push(destination);
-      },
-    });
+    const result = await signIn.finalize();
 
     if (result.error) {
       handleAuthError(result.error);
+      return;
     }
+
+    router.push(getNextPath());
   };
 
   const sendSecondFactorCode = async () => {

@@ -422,6 +422,18 @@ body {
   transition: all 0.3s ease;
 }
 
+/* Clerk user preview styling fixes */
+.cl-userButtonPopoverCard {
+  z-index: 9999 !important;
+}
+
+.cl-userPreviewMainIdentifier,
+.cl-userPreviewSecondaryIdentifier,
+.cl-userPreviewIdentifierLabel,
+.cl-userPreviewText {
+  color: #e2e8f0 !important;
+}
+
 .cta-ghost:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.5);

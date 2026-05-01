@@ -7,7 +7,7 @@ import { toast } from "sonner";
 // Real API fetch
 const fetchEmployees = async () => {
   console.log("[useEmployees] Fetching employees from API...");
-  const response = await fetch("/api/employees");
+  const response = await fetch("/api/employees", { credentials: "include" });
   if (!response.ok) throw new Error("Failed to fetch employees");
   const data = await response.json();
   console.log("[useEmployees] Fetched employees:", data);
@@ -33,6 +33,7 @@ export function useEmployees() {
     mutationFn: async (newEmployee: any) => {
       const response = await fetch("/api/employees", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newEmployee),
       });
@@ -64,7 +65,7 @@ export function useEmployee(id: string | number) {
   return useQuery({
     queryKey: ["employees", id],
     queryFn: async () => {
-      const response = await fetch(`/api/employees/${id}`);
+      const response = await fetch(`/api/employees/${id}`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch employee");
       return response.json();
     },

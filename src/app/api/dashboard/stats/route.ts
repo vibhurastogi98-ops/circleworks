@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { employees, payrolls, ptoRequests, timesheets, users, companies } from "@/db/schema";
 import { desc, count, sum, sql, and, gte, or, eq } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Guest Mode: Allow unrestricted access to dashboard stats
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const { userId } = await auth();
 
-    // Find the user's employee record to get their company
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const [userEmployee] = await db
       .select({ 
         companyId: employees.companyId,
@@ -19,6 +22,21 @@ export async function GET() {
       .where(eq(users.clerkUserId, userId));
 
     if (!userEmployee || !userEmployee.companyId) {
+      // Check if user exists in users table
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.clerkUserId, userId));
+
+      if (!existingUser) {
+        // Create user record (this should normally be done by webhook, but fallback here)
+        await db.insert(users).values({
+          clerkUserId: userId,
+          email: "", // Will be updated by webhook or profile
+          role: "employee",
+        });
+      }
+
       return NextResponse.json({ 
         totalEmployees: 0,
         monthlyPayroll: 0,
