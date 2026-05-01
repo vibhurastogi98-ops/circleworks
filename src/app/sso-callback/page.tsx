@@ -1,22 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 
 export default function SSOCallbackPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    document.cookie = "cw_session=active; path=/; samesite=lax";
-    router.push("/dashboard");
-  }, [router]);
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-600 font-medium">Completing guest login...</p>
-      </div>
+      <AuthenticateWithRedirectCallback
+        signInUrl="/login"
+        signUpUrl="/signup"
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/onboarding/company-setup"
+      />
     </div>
   );
 }
