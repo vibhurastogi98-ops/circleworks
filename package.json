@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "antigravity": "node ./scripts/antigravity.js",
+    "antigravity:on": "node ./scripts/antigravity.js on",
+    "antigravity:off": "node ./scripts/antigravity.js off",
+    "antigravity:toggle": "node ./scripts/antigravity.js toggle",
+    "antigravity:status": "node ./scripts/antigravity.js status"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.3",
@@ -19,6 +24,7 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/uuid": "^10.0.0",
     "@xyflow/react": "^12.10.2",
+    "antigravity": "^0.0.0",
     "canvas-confetti": "^1.9.4",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.1",

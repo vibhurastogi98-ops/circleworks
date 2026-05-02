@@ -40,7 +40,8 @@ import {
   DollarSign,
   UserPlus,
   Receipt,
-  Shield
+  Shield,
+  Sparkles
 } from "lucide-react";
 import { usePlatformStore } from "@/store/usePlatformStore";
 
