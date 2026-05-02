@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: "If email exists, a reset link has been sent." });
     }
 
-    const token = await new SignJWT({ sub: user.id, type: "password-reset" })
+    const token = await new SignJWT({ sub: String(user.id), type: "password-reset" })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("1h")

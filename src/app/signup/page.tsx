@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import SignupWizard from "@/components/signup/SignupWizard";
 
 export default function SignupPage() {
-  redirect('/')
+  return <SignupWizard />;
 }
