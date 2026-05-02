@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
@@ -41,25 +41,4 @@ export async function getSession(req?: NextRequest): Promise<SessionUser | null>
     : (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   return verifySessionToken(token);
-}
-
-export function hashPassword(password: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto");
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
-  return `${salt}:${hash}`;
-}
-
-export function verifyPassword(password: string, stored: string): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const crypto = require("crypto");
-  const [salt, storedHash] = stored.split(":");
-  if (!salt || !storedHash) return false;
-  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
-  try {
-    return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(storedHash, "hex"));
-  } catch {
-    return false;
-  }
 }

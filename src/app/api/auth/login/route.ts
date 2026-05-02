@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createSessionToken, verifyPassword, SESSION_COOKIE } from "@/lib/session";
+import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { verifyPassword } from "@/lib/password";
 
 export async function POST(req: Request) {
   try {
