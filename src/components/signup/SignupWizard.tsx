@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import {
   Check, ChevronRight, ChevronLeft, Eye, EyeOff, ShieldCheck, Lock,
@@ -158,8 +157,6 @@ function Step1Form({ data, onComplete }: { data: WizardData["step1"]; onComplete
   const pw = watch("password", "");
   const strength = getPasswordStrength(pw);
 
-  const handleSSO = () => toast.info("SSO sign-up is coming soon. Please use email and password.");
-
   const fieldCls = (hasErr: boolean) =>
     `w-full h-10 px-3 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors ${hasErr ? "border-red-400 bg-red-50" : "border-gray-300"}`;
 
@@ -167,36 +164,6 @@ function Step1Form({ data, onComplete }: { data: WizardData["step1"]; onComplete
     <div>
       <h2 className="text-2xl font-bold text-[#0A1628] mb-1">Create your account</h2>
       <p className="text-gray-500 text-sm mb-5">Start for free — no credit card required.</p>
-
-      <div className="flex flex-col gap-2.5 mb-5">
-        <button type="button" onClick={handleSSO}
-          className="w-full flex items-center justify-center gap-3 h-10 bg-white border border-gray-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-all text-sm">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.11c-.22-.67-.35-1.39-.35-2.11s.13-1.44.35-2.11V7.05H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.95l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.51 6.16-4.51z" fill="#EA4335"/>
-          </svg>
-          Sign up with Google
-        </button>
-        <button type="button" onClick={handleSSO}
-          className="w-full flex items-center justify-center gap-3 h-10 bg-white border border-gray-300 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-all text-sm">
-          <svg width="18" height="18" viewBox="0 0 21 21">
-            <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-            <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
-            <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
-            <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
-          </svg>
-          Sign up with Microsoft
-        </button>
-      </div>
-
-      <div className="relative mb-5">
-        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-3 text-gray-400 font-medium">or sign up with email</span>
-        </div>
-      </div>
 
       <form onSubmit={handleSubmit(onComplete)} className="space-y-4">
         <div>
@@ -597,7 +564,7 @@ function Step5Success({ data }: { data: WizardData }) {
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-5 text-left divide-y divide-slate-200">
         {[
           ["Company",      data.step2.companyName || "—"],
-          ["Team members", data.step4.skip ? "To be added" : "1 employee"],
+          ["Team members", data.step4.skip || data.step4.isAdminEmployee ? "1 admin" : "1 admin + 1 employee"],
           ["Plan",         "Starter Plan"],
           ["Next payroll", data.step3.skipPayroll ? "Not set" : (payrollDateStr || "Not set")],
         ].map(([k, v]) => (

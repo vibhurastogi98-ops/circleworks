@@ -1,9 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
-export default function proxy(request: NextRequest) {
+const SESSION_COOKIE = "cw_session";
+const SESSION_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
+);
+
+async function hasValidSession(request: NextRequest) {
+  const sessionCookie = request.cookies.get(SESSION_COOKIE)?.value;
+  if (!sessionCookie) return false;
+
+  try {
+    await jwtVerify(sessionCookie, SESSION_SECRET);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionCookie = request.cookies.get("cw_session")?.value;
 
   const protectedPrefixes = [
     "/dashboard",
@@ -28,7 +45,7 @@ export default function proxy(request: NextRequest) {
 
   const needsAuth = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix));
 
-  if (needsAuth && !sessionCookie) {
+  if (needsAuth && !(await hasValidSession(request))) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
