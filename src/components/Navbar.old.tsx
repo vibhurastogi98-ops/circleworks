@@ -1,0 +1,875 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calculator,
+  ShieldCheck,
+  Star,
+  Target,
+  Users,
+  Zap,
+  Briefcase,
+  FileCode2,
+  BookOpen,
+  MessageCircle,
+  HelpCircle,
+  Activity,
+  Globe,
+  Heart,
+  ShoppingBag,
+  Landmark,
+  Building,
+  Rocket,
+  ArrowRight,
+  Menu,
+  X,
+  Coins,
+  FileCheck,
+  Clock,
+  Wallet,
+  PieChart,
+  MonitorPlay,
+  GraduationCap,
+  User,
+  Settings,
+  LogOut,
+  ChevronDown,
+  DollarSign,
+  UserPlus,
+  Receipt,
+  Shield,
+  Sparkles
+} from "lucide-react";
+import { usePlatformStore } from "@/store/usePlatformStore";
+
+// --- Data Definitions ---
+
+interface MegaMenuLinkProps {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+  desc: string;
+  onClick?: () => void;
+}
+
+interface MobileAccordionProps {
+  label: string;
+  children: React.ReactNode;
+  activeLabel: string | null;
+  setActiveLabel: (label: string | null) => void;
+}
+
+const PRODUCT_MENU = {
+  platform: [
+    { label: "Payroll", desc: "All 50 states, auto tax filing", icon: DollarSign, href: "/product/payroll" },
+    { label: "HRIS", desc: "Employee records and org management", icon: Users, href: "/product/hris" },
+    { label: "ATS", desc: "Hire faster with smart pipelines", icon: Briefcase, href: "/product/ats" },
+    { label: "Onboarding", desc: "Automated Day-1 experience", icon: UserPlus, href: "/product/onboarding" },
+    { label: "Benefits", desc: "Health, dental, vision, 401k", icon: Heart, href: "/product/benefits" },
+    { label: "Time Tracking", desc: "Project and shift time tracking", icon: Clock, href: "/product/time-tracking" },
+    { label: "Expenses", desc: "Automated expense approvals", icon: Receipt, href: "/product/expenses" },
+    { label: "Performance", desc: "OKRs, reviews, and growth", icon: Target, href: "/product/performance" },
+    { label: "Compliance", desc: "Stay compliant in all 50 states", icon: Shield, href: "/product/compliance" },
+  ],
+  why: [
+    { label: "Customer Stories", desc: "See how companies scale", icon: Star, href: "/customers" },
+    { label: "Security", desc: "Bank-level encryption", icon: ShieldCheck, href: "/security" },
+    { label: "Integrations", desc: "Connect your tech stack", icon: Zap, href: "/integrations" },
+    { label: "Pricing", desc: "Transparent, simple plans", icon: Calculator, href: "/pricing" },
+    { label: "ROI Calculator", desc: "Calculate your savings", icon: Target, href: "/roi-calculator" },
+  ],
+};
+
+const SOLUTIONS_MENU = {
+  sizes: [
+    { label: "Startups", desc: "Foundations for growth", icon: Rocket, href: "/solutions/startups" },
+    { label: "SMBs (10-250)", desc: "Streamline your operations", icon: Building, href: "/solutions/smbs" },
+    { label: "Mid-Market (250-2000)", desc: "Scale with confidence", icon: Target, href: "/solutions/mid-market" },
+    { label: "Enterprise (2000+)", desc: "Custom configurations", icon: Globe, href: "/solutions/enterprise" },
+  ],
+  industries: [
+    { label: "Technology", desc: "Software & high-growth tech", icon: MonitorPlay, href: "/solutions/technology" },
+    { label: "Healthcare", desc: "Clinics & care providers", icon: Heart, href: "/solutions/healthcare" },
+    { label: "Retail", desc: "Stores & digital commerce", icon: ShoppingBag, href: "/solutions/retail" },
+    { label: "Non-Profit", desc: "Organizations & charities", icon: Landmark, href: "/solutions/nonprofit" },
+    { label: "Professional Services", desc: "Agencies & consulting", icon: Briefcase, href: "/solutions/professional-services" },
+  ]
+};
+
+const INTEGRATIONS_MENU = [
+  { label: "QuickBooks", desc: "Sync payroll journal entries", href: "/integrations/quickbooks", icon: Zap },
+  { label: "Slack", desc: "Time-off requests in chat", href: "/integrations/slack", icon: Zap },
+  { label: "Okta", desc: "Seamless employee provision", href: "/integrations/okta", icon: Zap },
+  { label: "Checkr", desc: "Fast background checks", href: "/integrations/checkr", icon: Zap },
+  { label: "DocuSign", desc: "E-signature integration", href: "/integrations/docusign", icon: Zap },
+  { label: "Guideline", desc: "Retirement contributions", href: "/integrations/guideline-401-k", icon: Zap },
+  { label: "Xero", desc: "Accounting synchronization", href: "/integrations/xero", icon: Zap },
+  { label: "Google Workspace", desc: "Directory & email sync", href: "/integrations/google-workspace", icon: Zap },
+];
+
+const RESOURCES_MENU = {
+  left: [
+    { label: "Blog", desc: "Payroll & HR insights", icon: FileCheck, href: "/blog" },
+    { label: "HR Guides", desc: "Free HR assets", icon: BookOpen, href: "/guides" },
+    { label: "Glossary", desc: "Industry terms defined", icon: GraduationCap, href: "/blog/labor-law-dictionary" },
+    { label: "Webinars", desc: "Live and on-demand sessions", icon: MonitorPlay, href: "/webinars" },
+    { label: "Templates", desc: "Ready-to-use documents", icon: FileCode2, href: "/templates" },
+    { label: "State Payroll Guides", desc: "Jurisdiction compliance", icon: Globe, href: "/resources/state-tax-guides" },
+  ],
+  right: [
+    { label: "Changelog", desc: "Product updates", icon: Activity, href: "/changelog" },
+    { label: "API Docs", desc: "Developer documentation", icon: FileCode2, href: "/docs" },
+    { label: "Status", desc: "System performance", icon: Activity, href: "/status" },
+    { label: "Help Center", desc: "Support articles & FAQs", icon: HelpCircle, href: "/help" },
+    { label: "Community", desc: "Connect with users", icon: MessageCircle, href: "/community" },
+  ],
+};
+
+const NAV_ITEMS = [
+  { label: "PRODUCT", isMega: true },
+  { label: "SOLUTIONS", isMega: true },
+  { label: "INTEGRATIONS", isMega: true, singleColumn: true },
+  { label: "RESOURCES", isMega: true },
+  { label: "PRICING", isMega: false, href: "/pricing" },
+];
+
+// --- Subcomponents ---
+
+const MegaMenuLink = ({ href, icon: Icon, label, desc, onClick }: MegaMenuLinkProps) => (
+  <Link href={href} onClick={onClick} className="flex gap-3 p-2 -m-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+    <div className="flex-shrink-0 mt-0.5">
+      <div className="w-8 h-8 rounded-md bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+        <Icon size={20} />
+      </div>
+    </div>
+    <div>
+      <div className="text-[15px] font-semibold text-slate-900 dark:text-white mb-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        {label}
+      </div>
+      <div className="text-[13px] text-slate-500 dark:text-slate-400 line-clamp-1">{desc}</div>
+    </div>
+  </Link>
+);
+
+const MobileAccordion = ({ label, children, activeLabel, setActiveLabel }: MobileAccordionProps) => {
+  const isOpen = activeLabel === label;
+  return (
+    <div className="border-b border-slate-200 dark:border-slate-800">
+      <button
+        onClick={() => setActiveLabel(isOpen ? null : label)}
+        className="flex items-center justify-between w-full py-4 text-left font-semibold text-slate-900 dark:text-white"
+        aria-expanded={isOpen}
+      >
+        {label}
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <Zap className="w-5 h-5 opacity-50" />
+        </motion.div>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="pb-4 flex flex-col gap-2">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// --- Main Navbar Component ---
+
+export default function Navbar({ forceLight = false }: { forceLight?: boolean }) {
+  const { toggleCirce } = usePlatformStore();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [mobileActiveAccordion, setMobileActiveAccordion] = useState<string | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  
+  // Guest Mode: Authentication disabled
+  const isLoaded = true;
+  // Local state for guest user with persistence
+  const [localAuthState, setLocalAuthState] = useState({
+    isSignedIn: true, // Default to true for demo
+    displayName: "Admin User",
+    displayEmail: "admin@circleworks.com",
+    avatarUrl: "https://api.dicebear.com/7.x/notionists/svg?seed=Admin&backgroundColor=transparent"
+  });
+
+  // Sync with localStorage on mount and updates
+  useEffect(() => {
+    const savedAuth = localStorage.getItem("cw_guest_auth");
+    if (savedAuth) {
+      setLocalAuthState(JSON.parse(savedAuth));
+    }
+  }, []);
+
+  const updateAuthState = (newState: any) => {
+    const updated = typeof newState === 'function' ? newState(localAuthState) : newState;
+    setLocalAuthState(updated);
+    localStorage.setItem("cw_guest_auth", JSON.stringify(updated));
+  };
+
+  const { isSignedIn, displayName, displayEmail, avatarUrl } = localAuthState;
+
+  const signOut = (options?: { redirectUrl?: string }) => { 
+    updateAuthState({ ...localAuthState, isSignedIn: false });
+    if (options?.redirectUrl) {
+      router.push(options.redirectUrl);
+    } else {
+      router.refresh();
+    }
+  };
+
+  // Scroll handler
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll(); // initial check
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Keyboard navigation & Esc to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveMenu(null);
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Close menus on route change
+  useEffect(() => {
+    setActiveMenu(null);
+    setMobileOpen(false);
+    setIsProfileMenuOpen(false);
+  }, [pathname]);
+
+  // Focus trap for mobile menu
+  useEffect(() => {
+    if (mobileOpen && mobileMenuRef.current) {
+      document.body.style.overflow = "hidden";
+      const focusableElements = mobileMenuRef.current.querySelectorAll(
+        'a[href], button, textarea, input[type="text"], input[type="radio"], input[type="checkbox"], select'
+      );
+      const firstElement = focusableElements[0] as HTMLElement;
+      firstElement?.focus();
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  // Click outside listener for desktop
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setActiveMenu(null);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
+
+  // Hover handlers with custom delays to prevent accidental triggers/hides
+  const handleMouseEnter = (menuLabel: string) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    if (activeMenu) {
+      // If a menu is already open, switch instantly for better UX
+      setActiveMenu(menuLabel);
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        setActiveMenu(menuLabel);
+      }, 150);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setActiveMenu(null);
+    }, 200);
+  };
+
+  const closeMenus = () => {
+    setActiveMenu(null);
+    setMobileOpen(false);
+    setIsProfileMenuOpen(false);
+  };
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    closeMenus();
+    if (pathname === "/") {
+      // SEO Update: smooth scroll to top instead of reload on homepage
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Determine navbar mode - always white on internal pages, dynamic on homepage
+  const isNavWhite = scrolled || forceLight || pathname !== "/";
+
+  return (
+    <>
+      <nav
+        ref={navRef}
+        role="navigation"
+        aria-label="Main"
+        suppressHydrationWarning
+        onMouseLeave={handleMouseLeave}
+        className={`sticky top-0 left-0 right-0 z-50 h-[64px] transition-all duration-300 flex items-center ${
+          isNavWhite 
+            ? "bg-white border-b border-[#E5E7EB] shadow-sm" 
+            : "bg-transparent"
+        }`}
+      >
+        <div className="max-w-[1400px] w-full mx-auto px-6 lg:px-8" suppressHydrationWarning>
+          <div className="flex items-center justify-between">
+            {/* LEFT: Logo */}
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 group z-50" 
+              onClick={handleLogoClick} 
+              onMouseEnter={handleMouseLeave}
+            >
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" suppressHydrationWarning>
+                <circle cx="16" cy="16" r="14" stroke={isNavWhite ? "#0A1628" : "white"} strokeWidth="3" suppressHydrationWarning />
+                <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" suppressHydrationWarning />
+              </svg>
+              <div className="flex flex-col">
+                <span className={`text-[22px] font-bold tracking-tight transition-colors ${isNavWhite ? "text-[#0A1628]" : "text-white"}`} suppressHydrationWarning>
+                  Circle<span className="text-blue-500" suppressHydrationWarning>Works</span>
+                </span>
+              </div>
+            </Link>
+
+            {/* CENTER: Desktop Nav */}
+            <div className="hidden lg:flex items-center gap-1 h-full">
+              {NAV_ITEMS.map((item) => {
+                const isActive = pathname === item.href || (item.label !== "PRICING" && activeMenu === item.label);
+
+                return (
+                  <div
+                    key={item.label}
+                    className="relative"
+                    onMouseEnter={() => item.isMega ? handleMouseEnter(item.label) : handleMouseLeave()}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    {item.isMega ? (
+                      <button
+                        className={`px-4 py-2.5 text-[14px] font-medium transition-colors relative flex items-center gap-1.5 ${
+                          isActive 
+                            ? "text-blue-600" 
+                            : (isNavWhite ? "text-gray-700 hover:text-blue-600" : "text-white/80 hover:text-white")
+                        }`}
+                        aria-expanded={activeMenu === item.label}
+                        suppressHydrationWarning
+                      >
+                        {item.label}
+
+                        {/* Active Underline */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-indicator"
+                            className="absolute -bottom-[20px] left-0 right-0 h-[3px] bg-blue-600 rounded-t-full"
+                          />
+                        )}
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.href || "#"}
+                        onClick={closeMenus}
+                        className={`px-4 py-2.5 text-[14px] font-medium transition-colors relative flex items-center gap-1.5 ${
+                          isActive 
+                            ? "text-blue-600" 
+                            : (isNavWhite ? "text-gray-700 hover:text-blue-600" : "text-white/80 hover:text-white")
+                        }`}
+                        suppressHydrationWarning
+                      >
+                        {item.label}
+                        {isActive && (
+                          <motion.div
+                            layoutId="nav-indicator"
+                            className="absolute -bottom-[20px] left-0 right-0 h-[3px] bg-blue-600 rounded-t-full"
+                          />
+                        )}
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RIGHT: CTAs or Profile Menu */}
+            <div className="hidden lg:flex items-center gap-4 z-50" onMouseEnter={handleMouseLeave}>
+              <button
+                onClick={toggleCirce}
+                className={`flex items-center gap-2 font-medium text-[14px] px-3 py-2 rounded-full transition-colors ${
+                  isNavWhite ? "text-gray-700 hover:text-blue-600 hover:bg-gray-50" : "text-white hover:text-white/80"
+                }`}
+                title="Toggle Circe AI Assistant"
+              >
+                <Sparkles size={18} />
+                <span className="hidden xl:inline">Ask Circe</span>
+              </button>
+              {isSignedIn ? (
+                /* Authenticated User - Profile Menu */
+                <div className="relative" ref={profileMenuRef}>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsProfileMenuOpen(!isProfileMenuOpen);
+                    }}
+                    className={`flex items-center gap-2 font-semibold text-[15px] transition-colors ${isNavWhite ? "text-[#0A1628] hover:text-blue-600" : "text-white hover:text-white/80"}`}
+                    aria-label="Open Profile Menu"
+                    aria-expanded={isProfileMenuOpen}
+                    aria-haspopup="true"
+                    suppressHydrationWarning
+                  >
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-current">
+                      <img 
+                        src={avatarUrl} 
+                        alt="User Avatar" 
+                        className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" 
+                      />
+                    </div>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {isProfileMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-3 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                      >
+                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 select-none">
+                          <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
+                          <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate mt-0.5" onContextMenu={(e) => e.preventDefault()}>{displayEmail}</p>
+                          <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">CircleWorks</p>
+                        </div>
+                        
+                        <div className="p-2 flex flex-col gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/me");
+                            }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <Briefcase size={16} className="text-slate-400" /> Employee Portal
+                          </button>
+                        <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/dashboard");
+                            }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <Target size={16} className="text-slate-400" /> Go to Dashboard
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/settings/profile");
+                            }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <User size={16} className="text-slate-400" /> My Profile
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              router.push("/settings");
+                            }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <Settings size={16} className="text-slate-400" /> Other Settings
+                          </button>
+                        </div>
+
+                        <div className="p-2 border-t border-slate-100 dark:border-slate-700">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsProfileMenuOpen(false);
+                              // Immediate UI feedback - reset local state instantly
+                              updateAuthState({
+                                ...localAuthState,
+                                isSignedIn: false,
+                              });
+                              // Then perform actual signOut
+                              signOut({ redirectUrl: "/" });
+                            }}
+                            className="w-full text-left px-3 py-2 text-[13px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md flex items-center gap-2 transition-colors"
+                          >
+                            <LogOut size={16} /> Log Out
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                /* Non-authenticated User - Login/Signup Buttons */
+                <>
+                  <button
+                    onClick={toggleCirce}
+                    className={`flex items-center gap-2 font-medium text-[14px] px-4 py-2 rounded-full transition-colors ${
+                      isNavWhite ? "text-gray-700 hover:text-blue-600 hover:bg-gray-50" : "text-white hover:text-white/80"
+                    }`}
+                    title="Toggle Circe AI Assistant"
+                  >
+                    <Sparkles size={18} />
+                    <span className="hidden xl:inline">Ask Circe</span>
+                  </button>
+                  <Link
+                    href="/login"
+                    className={`font-medium text-[14px] px-4 py-2 rounded-full transition-colors ${
+                      isNavWhite ? "text-gray-700 hover:text-blue-600 hover:bg-gray-50" : "text-white hover:text-white/80"
+                    }`}
+                    suppressHydrationWarning
+                  >
+                    Log In
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* Mobile Hamburger */}
+            <button
+              aria-label="Toggle menu"
+              className={`lg:hidden p-2 -mr-2 z-[60] relative transition-colors ${isNavWhite ? "text-[#0A1628]" : "text-white"}`}
+              onClick={() => setMobileOpen(!mobileOpen)}
+              suppressHydrationWarning
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+
+        {/* --- DESKTOP MEGA MENUS --- */}
+        <div className="hidden lg:flex justify-center absolute left-0 right-0 top-full pointer-events-none">
+          <AnimatePresence>
+            {activeMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="pt-2 pointer-events-auto"
+                onMouseEnter={() => handleMouseEnter(activeMenu)}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Product Menu */}
+                {activeMenu === "PRODUCT" && (
+                  <div className="bg-white dark:bg-[#0F1C2E] rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-2xl border border-slate-200 dark:border-slate-800 w-[640px] origin-top overflow-hidden">
+                    <div className="flex">
+                      <div className="flex-1 p-8">
+                        <h3 className="text-[11px] font-bold text-gray-400 tracking-widest mb-5 uppercase">Platform</h3>
+                        <div className="flex flex-col gap-3">
+                          {PRODUCT_MENU.platform.map((item) => (
+                            <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex-1 bg-slate-50 dark:bg-slate-800/20 p-8 border-l border-slate-100 dark:border-slate-800 flex flex-col">
+                        <h3 className="text-[11px] font-bold text-gray-400 tracking-widest mb-5 uppercase">Why CircleWorks</h3>
+                        <div className="flex flex-col gap-3">
+                          {PRODUCT_MENU.why.map((item) => (
+                            <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <Link href="/product" onClick={closeMenus} className="bg-blue-600 text-white font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors py-4">
+                      See all features <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                )}
+
+                {/* Solutions Menu */}
+                {activeMenu === "SOLUTIONS" && (
+                  <div className="bg-white dark:bg-[#0F1C2E] rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-2xl border border-slate-200 dark:border-slate-800 p-8 flex gap-12 w-[480px] origin-top">
+                    <div className="flex-1">
+                      <h3 className="text-[11px] font-bold text-gray-400 tracking-widest mb-5 uppercase">By Company Size</h3>
+                      <div className="flex flex-col gap-3">
+                        {SOLUTIONS_MENU.sizes.map((item) => (
+                          <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-[11px] font-bold text-gray-400 tracking-widest mb-5 uppercase">By Industry</h3>
+                      <div className="flex flex-col gap-3">
+                        {SOLUTIONS_MENU.industries.map((item) => (
+                          <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Integrations Menu */}
+                {activeMenu === "INTEGRATIONS" && (
+                  <div className="bg-white dark:bg-[#0F1C2E] rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-2xl border border-slate-200 dark:border-slate-800 p-6 w-[280px] origin-top flex flex-col">
+                    <div className="flex flex-col gap-2">
+                      {INTEGRATIONS_MENU.map((item) => (
+                        <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <Link href="/integrations" onClick={closeMenus} className="text-blue-600 dark:text-blue-400 font-bold text-[15px] flex items-center gap-2 hover:gap-3 transition-all w-full justify-center">
+                        See all 50+ integrations <ArrowRight size={16} />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* Resources Menu */}
+                {activeMenu === "RESOURCES" && (
+                  <div className="bg-white dark:bg-[#0F1C2E] rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-2xl border border-slate-200 dark:border-slate-800 p-8 flex gap-12 w-[480px] origin-top">
+                    <div className="flex-1">
+                      <h3 className="text-[11px] font-bold text-gray-400 tracking-widest mb-5 uppercase">Learn</h3>
+                      <div className="flex flex-col gap-3">
+                        {RESOURCES_MENU.left.map((item) => (
+                          <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-[11px] font-bold text-gray-400 tracking-widest mb-5 uppercase">Support</h3>
+                      <div className="flex flex-col gap-3">
+                        {RESOURCES_MENU.right.map((item) => (
+                          <MegaMenuLink key={item.label} {...item} onClick={closeMenus} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </nav>
+
+      {/* --- MOBILE FULL SCREEN OVERLAY --- */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden flex">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setMobileOpen(false)}
+            />
+            
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="relative w-[85%] max-w-sm h-full bg-white dark:bg-[#0A1628] shadow-2xl flex flex-col pt-24 pb-8 px-6 overflow-y-auto"
+              ref={mobileMenuRef}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex-1 flex flex-col gap-2">
+                <MobileAccordion label="PRODUCT" activeLabel={mobileActiveAccordion} setActiveLabel={setMobileActiveAccordion}>
+                  <div className="pl-4 border-l-2 border-slate-100 dark:border-slate-800 flex flex-col gap-3 py-2">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 mb-1">Platform</div>
+                    {PRODUCT_MENU.platform.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-1">Why CircleWorks</div>
+                    {PRODUCT_MENU.why.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                  </div>
+                </MobileAccordion>
+
+                <MobileAccordion label="SOLUTIONS" activeLabel={mobileActiveAccordion} setActiveLabel={setMobileActiveAccordion}>
+                  <div className="pl-4 border-l-2 border-slate-100 dark:border-slate-800 flex flex-col gap-3 py-2">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 mb-1">By Company Size</div>
+                    {SOLUTIONS_MENU.sizes.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-1">By Industry</div>
+                    {SOLUTIONS_MENU.industries.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                  </div>
+                </MobileAccordion>
+
+                <MobileAccordion label="INTEGRATIONS" activeLabel={mobileActiveAccordion} setActiveLabel={setMobileActiveAccordion}>
+                  <div className="pl-4 border-l-2 border-slate-100 dark:border-slate-800 flex flex-col gap-3 py-2">
+                    {INTEGRATIONS_MENU.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                    <Link href="/integrations" onClick={closeMenus} className="text-blue-600 font-bold py-1 mt-2">See all 50+ &rarr;</Link>
+                  </div>
+                </MobileAccordion>
+
+                <MobileAccordion label="RESOURCES" activeLabel={mobileActiveAccordion} setActiveLabel={setMobileActiveAccordion}>
+                  <div className="pl-4 border-l-2 border-slate-100 dark:border-slate-800 flex flex-col gap-3 py-2">
+                    {RESOURCES_MENU.left.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                    {RESOURCES_MENU.right.map(item => (
+                      <Link key={item.label} href={item.href} onClick={closeMenus} className="text-slate-700 dark:text-slate-300 font-medium py-1">{item.label}</Link>
+                    ))}
+                  </div>
+                </MobileAccordion>
+
+                <div className="border-b border-slate-200 dark:border-slate-800">
+                  <Link
+                    href="/pricing"
+                    onClick={closeMenus}
+                    className="flex items-center justify-between w-full py-4 text-left font-semibold text-slate-900 dark:text-white"
+                  >
+                    PRICING
+                  </Link>
+                </div>
+              </div>
+
+            <div className="mt-8 flex flex-col gap-3">
+              {isSignedIn ? (
+                /* Authenticated User - Mobile Profile Options */
+                <>
+                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 select-none">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-600">
+                        <img 
+                          src={avatarUrl} 
+                          alt="User Avatar" 
+                          className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" 
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold text-slate-900 dark:text-white truncate" onContextMenu={(e) => e.preventDefault()}>{displayName}</p>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate" onContextMenu={(e) => e.preventDefault()}>{displayEmail}</p>
+                        <p className="text-[11px] text-blue-600 dark:text-blue-400 truncate mt-1 font-medium select-none">CircleWorks</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Link
+                    href="/me"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <Briefcase size={16} /> Employee Portal
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <Target size={16} /> Go to Dashboard
+                  </Link>
+                  
+                  <Link
+                    href="/settings/profile"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <User size={16} /> My Profile
+                  </Link>
+                  
+                  <Link
+                    href="/settings"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <Settings size={16} /> Other Settings
+                  </Link>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      closeMenus();
+                      // Immediate UI feedback - reset local state instantly
+                      updateAuthState({
+                        ...localAuthState,
+                        isSignedIn: false,
+                      });
+                      // Then perform actual signOut
+                      signOut({ redirectUrl: "/" });
+                    }}
+                    className="w-full text-center py-4 rounded-xl border-2 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
+                    tabIndex={0}
+                  >
+                    <LogOut size={16} /> Log Out
+                  </button>
+                </>
+              ) : (
+                /* Non-authenticated User - Login Button */
+                <>
+                  <Link
+                    href="/login"
+                    onClick={closeMenus}
+                    className="w-full text-center py-4 rounded-full border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    tabIndex={0}
+                  >
+                    Log In
+                  </Link>
+                </>
+              )}
+            </div>
+          </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
