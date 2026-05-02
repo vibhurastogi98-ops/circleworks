@@ -3,6 +3,29 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose"; // ✅ edge-compatible
 
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/employees",
+  "/payroll",
+  "/settings",
+  "/me",
+  "/onboarding",
+  "/benefits",
+  "/time",
+  "/compliance",
+  "/reports",
+  "/agency",
+  "/hiring",
+  "/learning",
+  "/performance",
+  "/contractors",
+  "/accountant-portal",
+];
+
+function isProtected(pathname: string): boolean {
+  return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+}
+
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
