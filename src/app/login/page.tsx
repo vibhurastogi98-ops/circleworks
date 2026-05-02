@@ -191,6 +191,16 @@ export default function LoginPage() {
 
       {/* RIGHT: Form */}
       <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center p-6 sm:p-10 lg:px-16 lg:py-8 relative overflow-y-auto">
+        <div className="absolute right-6 top-6 hidden sm:flex items-center gap-2 text-sm font-semibold text-slate-600">
+          <span>New here?</span>
+          <Link
+            href="/signup"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-[#0A1628] px-4 text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+          >
+            Start free
+          </Link>
+        </div>
+
         <div className="max-w-sm w-full mx-auto">
           {/* Mobile Logo */}
           <Link href="/" className="lg:hidden inline-flex items-center gap-2 mb-8">
@@ -421,9 +431,22 @@ export default function LoginPage() {
           )}
 
           {!mfaNeeded && (
-            <p className="mt-8 text-center text-sm text-gray-500 font-medium">
-              Need access? Please contact support.
-            </p>
+            <div className="mt-8 space-y-3 text-center">
+              <p className="text-sm text-gray-500 font-medium">
+                New to CircleWorks?{" "}
+                <Link href="/signup" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  Sign up
+                </Link>
+                {" "}or{" "}
+                <Link href="/signup" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                  start free
+                </Link>
+                .
+              </p>
+              <p className="text-xs text-gray-400 font-medium">
+                No credit card required.
+              </p>
+            </div>
           )}
         </div>
       </div>
