@@ -3,6 +3,7 @@ import Script from "next/script";
 
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
+import CirceWidget from "@/components/CirceWidget";
 import "./globals.css";
 import { Toaster } from "sonner";
 import QueryProvider from "@/components/QueryProvider";
@@ -140,6 +141,7 @@ export default function RootLayout({
           >
             <SocketProvider>
               {children}
+              <CirceWidget />
             </SocketProvider>
           </ClerkProvider>
         </QueryProvider>

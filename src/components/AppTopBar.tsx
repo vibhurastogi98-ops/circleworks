@@ -43,7 +43,8 @@ export default function AppTopBar() {
     hasComplianceAlert, 
     dismissComplianceAlert,
     setPayrollRunning,
-    setCommandPaletteOpen
+    setCommandPaletteOpen,
+    toggleCirce
   } = usePlatformStore();
   const { notifyPayrollComplete } = useDataSync();
   const { unreadCount } = useNotificationStore();
@@ -211,6 +212,16 @@ export default function AppTopBar() {
           >
             <HelpCircle size={20} />
           </Link>
+
+          {/* 2.5 Circe AI Toggle */}
+          <button 
+            onClick={toggleCirce}
+            className="w-10 h-10 flex items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors group focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 outline-none"
+            title="Toggle Circe AI Assistant (Cmd+J)"
+            aria-label="Toggle Circe AI Assistant"
+          >
+            <Sparkles size={20} className="group-hover:text-purple-500 transition-colors" />
+          </button>
 
           {/* 3. Notifications Bell */}
           <button 

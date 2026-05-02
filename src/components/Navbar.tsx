@@ -42,7 +42,7 @@ import {
   Receipt,
   Shield
 } from "lucide-react";
-
+import { usePlatformStore } from "@/store/usePlatformStore";
 
 // --- Data Definitions ---
 
@@ -186,6 +186,7 @@ const MobileAccordion = ({ label, children, activeLabel, setActiveLabel }: Mobil
 // --- Main Navbar Component ---
 
 export default function Navbar({ forceLight = false }: { forceLight?: boolean }) {
+  const { toggleCirce } = usePlatformStore();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -429,7 +430,17 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
 
             {/* RIGHT: CTAs or Profile Menu */}
             <div className="hidden lg:flex items-center gap-4 z-50" onMouseEnter={handleMouseLeave}>
-                            {isSignedIn ? (
+              <button
+                onClick={toggleCirce}
+                className={`flex items-center gap-2 font-medium text-[14px] px-3 py-2 rounded-full transition-colors ${
+                  isNavWhite ? "text-gray-700 hover:text-blue-600 hover:bg-gray-50" : "text-white hover:text-white/80"
+                }`}
+                title="Toggle Circe AI Assistant"
+              >
+                <Sparkles size={18} />
+                <span className="hidden xl:inline">Ask Circe</span>
+              </button>
+              {isSignedIn ? (
                 /* Authenticated User - Profile Menu */
                 <div className="relative" ref={profileMenuRef}>
                   <button
@@ -542,6 +553,16 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
               ) : (
                 /* Non-authenticated User - Login/Signup Buttons */
                 <>
+                  <button
+                    onClick={toggleCirce}
+                    className={`flex items-center gap-2 font-medium text-[14px] px-4 py-2 rounded-full transition-colors ${
+                      isNavWhite ? "text-gray-700 hover:text-blue-600 hover:bg-gray-50" : "text-white hover:text-white/80"
+                    }`}
+                    title="Toggle Circe AI Assistant"
+                  >
+                    <Sparkles size={18} />
+                    <span className="hidden xl:inline">Ask Circe</span>
+                  </button>
                   <Link
                     href="/login"
                     className={`font-medium text-[14px] px-4 py-2 rounded-full transition-colors ${

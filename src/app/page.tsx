@@ -16,7 +16,6 @@ import IntegrationsSection from "@/components/IntegrationsSection";
 import FAQSection from "@/components/FAQSection";
 import CtaSection from "@/components/CtaSection";
 import SiteFooter from "@/components/Footer";
-import CirceWidget from "@/components/CirceWidget";
 
 /* ─── Metadata (Next.js App Router) ─── */
 
@@ -290,10 +289,6 @@ export default function HomePage() {
           <SiteFooter />
         </Suspense>
       </main>
-
-
-      {/* ── Circe AI Widget (fixed, over all content) ── */}
-      <CirceWidget />
     </>
   );
 }

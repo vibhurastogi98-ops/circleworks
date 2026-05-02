@@ -11,6 +11,7 @@ export default function KeyboardShortcuts() {
   const router = useRouter();
   const { isAdmin, setPayrollRunning } = usePlatformStore();
   const { setSidebarOpen } = useSidebarStore();
+  const { toggleCirce } = usePlatformStore();
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [gKeyPressed, setGKeyPressed] = useState(false);
 
@@ -69,6 +70,12 @@ export default function KeyboardShortcuts() {
       if (cmdOrCtrl && e.key === "/") {
         e.preventDefault();
         setShowShortcutsModal(prev => !prev);
+        return;
+      }
+
+      if (cmdOrCtrl && e.key === "j") {
+        e.preventDefault();
+        toggleCirce();
         return;
       }
 
@@ -184,6 +191,12 @@ export default function KeyboardShortcuts() {
                         <Command size={12} className="opacity-70"/> <span>⇧</span> <span>P</span>
                       </kbd>
                     </div>
+                  </li>
+                  <li className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Toggle AI Agent</span>
+                    <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
+                      <Command size={12} className="opacity-70"/> <span>J</span>
+                    </kbd>
                   </li>
                 </ul>
               </div>

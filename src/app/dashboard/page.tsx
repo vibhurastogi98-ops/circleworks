@@ -16,7 +16,6 @@ import TeamCalendar from "@/components/dashboard/TeamCalendar";
 import { Loader2 } from "lucide-react";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OnboardingTour from "@/components/OnboardingTour";
-import CirceWidget from "@/components/CirceWidget";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useUser } from "@clerk/nextjs";
 
@@ -91,7 +90,6 @@ export default function DashboardPage() {
             </div>
 
             <ActivityFeed />
-            <CirceWidget />
           </div>
         </main>
       </div>

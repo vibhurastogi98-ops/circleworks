@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { X, Send, Sparkles } from "lucide-react";
+import { usePlatformStore } from "@/store/usePlatformStore";
 
 type Message = {
   role: "user" | "assistant";
@@ -15,7 +16,7 @@ const SUGGESTED = [
 ];
 
 export default function CirceWidget() {
-  const [open, setOpen] = useState(false);
+  const { isCirceOpen: open, toggleCirce, setIsCirceOpen } = usePlatformStore();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -86,7 +87,7 @@ export default function CirceWidget() {
       {/* --- FAB Button --- */}
       <button
         id="tour-circe"
-        onClick={() => setOpen(!open)}
+        onClick={() => toggleCirce()}
         aria-label="Ask Circe — AI HR Assistant"
         title="Ask Circe — AI HR Assistant"
         className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group ${
@@ -120,7 +121,7 @@ export default function CirceWidget() {
             <div className="text-[11px] text-white/70 font-medium">CircleWorks AI Assistant</div>
           </div>
           <button
-            onClick={() => setOpen(false)}
+            onClick={() => setIsCirceOpen(false)}
             className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
           >
             <X size={14} />
