@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -196,9 +196,6 @@ export default function TimePage() {
   const [breakCount, setBreakCount] = useState(0);
   const [breakElapsed, setBreakElapsed] = useState(0); // seconds
   const [totalBreakSeconds, setTotalBreakSeconds] = useState(0);
-
-  const statusRef = useRef(status);
-  statusRef.current = status;
 
   // ── Sync local state with API status ─────────────────────────────────────
   useEffect(() => {

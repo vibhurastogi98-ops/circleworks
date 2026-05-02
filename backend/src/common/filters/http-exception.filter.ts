@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -16,7 +17,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const requestId = request.headers['x-request-id'] || require('uuid').v4();
+    const requestId = request.headers['x-request-id'] || uuidv4();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
