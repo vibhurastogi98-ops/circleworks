@@ -26,16 +26,41 @@ function isProtected(pathname: string): boolean {
   return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
 }
 
+export const config = {
+  matcher: [
+    "/dashboard/:path*",
+    "/employees/:path*",
+    "/payroll/:path*",
+    "/settings/:path*",
+    "/me/:path*",
+    "/onboarding/:path*",
+    "/benefits/:path*",
+    "/time/:path*",
+    "/compliance/:path*",
+    "/reports/:path*",
+    "/agency/:path*",
+    "/hiring/:path*",
+    "/learning/:path*",
+    "/performance/:path*",
+    "/contractors/:path*",
+    "/accountant-portal/:path*",
+  ],
+};
+
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (!isProtected(pathname)) return NextResponse.next();
 
   const token = req.cookies.get("session")?.value;
-  if (!token) return NextResponse.redirect(new URL("/login", req.url));
+  const secret = process.env.JWT_SECRET;
+
+  if (!token || !secret) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
 
   try {
-    await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET!));
+    await jwtVerify(token, new TextEncoder().encode(secret));
     return NextResponse.next();
   } catch {
     return NextResponse.redirect(new URL("/login", req.url));
