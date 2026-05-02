@@ -1,5 +1,4 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 
 const SECRET = new TextEncoder().encode(
@@ -36,9 +35,13 @@ export async function verifySessionToken(token: string): Promise<SessionUser | n
 }
 
 export async function getSession(req?: NextRequest): Promise<SessionUser | null> {
-  const token = req
-    ? req.cookies.get(SESSION_COOKIE)?.value
-    : (await cookies()).get(SESSION_COOKIE)?.value;
+  let token: string | undefined;
+  if (req) {
+    token = req.cookies.get(SESSION_COOKIE)?.value;
+  } else {
+    const { cookies } = await import("next/headers");
+    token = (await cookies()).get(SESSION_COOKIE)?.value;
+  }
   if (!token) return null;
   return verifySessionToken(token);
 }
