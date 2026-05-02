@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -292,7 +292,9 @@ export default function ResetPasswordPage() {
               </svg>
             </Link>
           </div>
-          <ResetPasswordForm />
+          <Suspense fallback={<div className="py-8 text-center text-sm text-slate-500">Loading reset form…</div>}>
+            <ResetPasswordForm />
+          </Suspense>
         </motion.div>
 
         <div className="mt-8 text-center">
