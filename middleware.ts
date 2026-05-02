@@ -1,10 +1,20 @@
-import middleware from "./proxy";
+// middleware (edge-safe) — only verify the JWT/cookie
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose"; // ✅ edge-compatible
 
-export const config = {
-  matcher: [
-    "/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
-  ],
-};
+export default async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-export default middleware;
+  if (!isProtected(pathname)) return NextResponse.next();
+
+  const token = req.cookies.get("session")?.value;
+  if (!token) return NextResponse.redirect(new URL("/login", req.url));
+
+  try {
+    await jwtVerify(token, new TextEncoder().encode(process.env.JWT_SECRET!));
+    return NextResponse.next();
+  } catch {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+}
