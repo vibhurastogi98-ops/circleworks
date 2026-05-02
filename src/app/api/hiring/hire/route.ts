@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/lib/session";
 import { db } from "@/db";
 import { 
   employees, 
@@ -15,8 +16,8 @@ import { dispatchWebhook } from "@/lib/webhooks";
 
 export async function POST(req: Request) {
   try {
-    // Guest Mode: Authentication disabled
-    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const session = await getSession();
+    const userId = session?.userId;
 
     const body = await req.json();
     const { 
@@ -126,11 +127,13 @@ export async function POST(req: Request) {
     }
 
     // 3. GET COMPANY ID
-    const [currentUser] = await db
-      .select({ companyId: employees.companyId })
-      .from(users)
-      .innerJoin(employees, eq(users.id, employees.userId))
-      .where(eq(users.clerkUserId, clerkUserId));
+    const [currentUser] = userId
+      ? await db
+          .select({ companyId: employees.companyId })
+          .from(users)
+          .innerJoin(employees, eq(users.id, employees.userId))
+          .where(eq(users.id, userId))
+      : [];
     
     const companyId = currentUser?.companyId;
     if (!companyId) {

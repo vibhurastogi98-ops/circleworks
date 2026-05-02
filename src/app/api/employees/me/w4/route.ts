@@ -2,19 +2,20 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { users, employees, employeeDocuments } from "@/db/schema";
+import { getSession } from "@/lib/session";
 
 export async function POST(req: Request) {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
-    
+    const session = await getSession();
+
     const data = await req.json();
-    
-    // Find employee record based on clerk User ID
-    const user = await db.query.users.findFirst({
-      where: eq(users.clerkUserId, userId),
-      with: { employees: true }
-    });
+
+    const user = session
+      ? await db.query.users.findFirst({
+          where: eq(users.id, session.userId),
+          with: { employees: true }
+        })
+      : null;
 
     if (!user || !user.employees || user.employees.length === 0) {
       return NextResponse.json({ error: "Employee record not found" }, { status: 404 });

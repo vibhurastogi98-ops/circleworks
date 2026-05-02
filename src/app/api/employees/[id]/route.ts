@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { employees, employeeBankAccounts, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
+import { getSession } from "@/lib/session";
 
 export async function GET(
   req: NextRequest,
@@ -43,14 +44,13 @@ export async function GET(
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    // Guest Mode: Authentication disabled
-    const clerkId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
-    let requesterRole = 'admin'; // Always admin in guest mode for full visibility
+    const session = await getSession();
+    let requesterRole = 'admin';
     let requesterEmployeeId = null;
 
-    if (clerkId) {
+    if (session) {
       const user = await db.query.users.findFirst({
-        where: eq(users.clerkUserId, clerkId),
+        where: eq(users.id, session.userId),
         with: { employees: true }
       });
       if (user) {

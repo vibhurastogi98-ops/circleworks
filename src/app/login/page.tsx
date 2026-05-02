@@ -5,11 +5,11 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShieldCheck, Lock, Eye, EyeOff, AlertCircle, X, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useSignIn, useAuth } from "@clerk/nextjs";
-import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
+import { useAuth } from "@/context/AuthContext";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "sonner";
 
 const QUOTES = [
   {
@@ -40,17 +40,16 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-type ErrorType = "none" | "invalid_credentials" | "locked" | "unverified" | "server";
+type ErrorType = "none" | "invalid_credentials" | "locked" | "server";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn } = useSignIn();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, refreshUser } = useAuth();
 
   const getNextPath = () => {
+    if (typeof window === "undefined") return "/dashboard";
     const params = new URLSearchParams(window.location.search);
     const nextPath = params.get("next") || "/dashboard";
-    // Prevent open redirect to absolute URLs.
     return nextPath.startsWith("/") ? nextPath : "/dashboard";
   };
 
@@ -64,22 +63,20 @@ export default function LoginPage() {
   const [activeQuote, setActiveQuote] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
   const [errorType, setErrorType] = useState<ErrorType>("none");
   const [errorMessage, setErrorMessage] = useState("");
-  const [mfaNeeded, setMfaNeeded] = useState(false);
 
-  // MFA States
-  const [mfaCode, setMfaCode] = useState<string[]>(Array(6).fill(""));
+  // MFA placeholder state (not implemented without Clerk — kept for UI consistency)
+  const [mfaNeeded] = useState(false);
+  const [mfaCode] = useState<string[]>(Array(6).fill(""));
   const mfaRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [countdown, setCountdown] = useState(0);
+  const [countdown] = useState(0);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", rememberMe: false },
   });
 
-  // Rotate quotes
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveQuote((prev) => (prev + 1) % QUOTES.length);
@@ -87,257 +84,46 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // MFA Countdown
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (countdown > 0) {
-      timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
-    }
-    return () => clearInterval(timer);
-  }, [countdown]);
-
-  const triggerResend = () => {
-    if (countdown === 0) {
-      sendSecondFactorCode();
-    }
-  };
-
-  const getErrorMessage = (error: unknown) => {
-    if (isClerkAPIResponseError(error)) {
-      return (
-        error.errors[0]?.longMessage ||
-        error.errors[0]?.message ||
-        "We couldn't complete sign in. Please try again."
-      );
-    }
-
-    if (error instanceof Error) {
-      return error.message;
-    }
-
-    return "Internal server error. Please try again.";
-  };
-
-  const handleAuthError = (error: unknown) => {
-    const message = getErrorMessage(error);
-    const code = isClerkAPIResponseError(error) ? error.errors[0]?.code : "";
-
-    if (code.includes("locked")) {
-      setErrorType("locked");
-      return;
-    }
-
-    if (code.includes("verification") || code.includes("unverified")) {
-      setErrorType("unverified");
-      return;
-    }
-
-    if (code.includes("password") || code.includes("identifier")) {
-      setErrorType("invalid_credentials");
-      return;
-    }
-
-    setErrorMessage(message);
-    setErrorType("server");
-  };
-
-  const completeSignIn = async () => {
-    if (!signIn) {
-      setErrorMessage("Internal server error. Authentication is not ready yet.");
-      setErrorType("server");
-      return;
-    }
-
-    const result = await signIn.finalize();
-
-    if (result.error) {
-      handleAuthError(result.error);
-      return;
-    }
-
-    router.push(getNextPath());
-  };
-
-  const sendSecondFactorCode = async () => {
-    if (!signIn) {
-      return;
-    }
-
-    const strategies = signIn.supportedSecondFactors.map((factor) => factor.strategy);
-
-    try {
-      if (strategies.includes("phone_code")) {
-        const result = await signIn.mfa.sendPhoneCode();
-        if (result.error) {
-          handleAuthError(result.error);
-          return;
-        }
-      } else if (strategies.includes("email_code")) {
-        const result = await signIn.mfa.sendEmailCode();
-        if (result.error) {
-          handleAuthError(result.error);
-          return;
-        }
-      }
-
-      setCountdown(60);
-    } catch (error) {
-      handleAuthError(error);
-    }
-  };
-
-  const showSecondFactor = async () => {
-    setMfaNeeded(true);
-    setMfaCode(Array(6).fill(""));
-    await sendSecondFactorCode();
-    setTimeout(() => mfaRefs.current[0]?.focus(), 100);
-  };
-
   const onLoginSubmit = async (data: LoginFormValues) => {
     setLoading(true);
     setErrorType("none");
     setErrorMessage("");
 
-    if (!signIn) {
-      setErrorMessage("Internal server error. Authentication is not ready yet.");
-      setErrorType("server");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const result = await signIn.password({
-        identifier: data.email,
-        password: data.password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          rememberMe: data.rememberMe,
+        }),
       });
 
-      if (result.error) {
-        handleAuthError(result.error);
+      if (res.ok) {
+        await refreshUser();
+        router.push(getNextPath());
         return;
       }
 
-      if (signIn.status === "complete") {
-        await completeSignIn();
-      } else if (signIn.status === "needs_second_factor") {
-        await showSecondFactor();
-      } else if (signIn.status === "needs_new_password") {
-        router.push("/reset-password");
+      const body = await res.json();
+
+      if (body.error === "invalid_credentials") {
+        setErrorType("invalid_credentials");
       } else {
-        setErrorMessage("Internal server error. Sign in could not be completed.");
+        setErrorMessage(body.error || "Internal server error. Please try again.");
         setErrorType("server");
       }
-    } catch (error) {
-      handleAuthError(error);
+    } catch {
+      setErrorMessage("Network error. Please check your connection and try again.");
+      setErrorType("server");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMfaChange = (index: number, value: string) => {
-    if (!/^[0-9]*$/.test(value)) return;
-    const newCode = [...mfaCode];
-    newCode[index] = value;
-    setMfaCode(newCode);
-
-    if (value && index < 5) {
-      mfaRefs.current[index + 1]?.focus();
-    }
-    
-    // Auto-submit if all filled
-    if (index === 5 && value && newCode.every(v => v !== "")) {
-      submitMfa(newCode.join(""));
-    }
-  };
-
-  const handleMfaKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !mfaCode[index] && index > 0) {
-      mfaRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleMfaPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pastedData) {
-      const newCode = [...mfaCode];
-      for (let i = 0; i < pastedData.length; i++) {
-        newCode[i] = pastedData[i];
-      }
-      setMfaCode(newCode);
-      const focusIndex = Math.min(pastedData.length, 5);
-      mfaRefs.current[focusIndex]?.focus();
-      
-      if (pastedData.length === 6) {
-        submitMfa(pastedData);
-      }
-    }
-  };
-
-  const submitMfa = async (code: string) => {
-    setLoading(true);
-    setErrorType("none");
-    setErrorMessage("");
-
-    if (!signIn) {
-      setErrorMessage("Internal server error. Authentication is not ready yet.");
-      setErrorType("server");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const strategies = signIn.supportedSecondFactors.map((factor) => factor.strategy);
-      const result = strategies.includes("phone_code")
-        ? await signIn.mfa.verifyPhoneCode({ code })
-        : strategies.includes("email_code")
-          ? await signIn.mfa.verifyEmailCode({ code })
-          : await signIn.mfa.verifyTOTP({ code });
-
-      if (result.error) {
-        handleAuthError(result.error);
-        return;
-      }
-
-      if (signIn.status === "complete") {
-        await completeSignIn();
-      } else {
-        setErrorMessage("Internal server error. Multi-factor verification could not be completed.");
-        setErrorType("server");
-      }
-    } catch (error) {
-      handleAuthError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOAuthLogin = async (strategy: "oauth_google" | "oauth_microsoft") => {
-    setErrorType("none");
-    setErrorMessage("");
-
-    if (!signIn) {
-      setErrorMessage("Internal server error. Authentication is not ready yet.");
-      setErrorType("server");
-      return;
-    }
-
-    const result = await signIn.sso({
-      strategy,
-      redirectUrl: getNextPath(),
-      redirectCallbackUrl: "/sso-callback",
-    });
-
-    if (result.error) {
-      handleAuthError(result.error);
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    handleOAuthLogin("oauth_google");
-  };
-
-  const handleMicrosoftLogin = () => {
-    handleOAuthLogin("oauth_microsoft");
+  const handleOAuthNotAvailable = () => {
+    toast.info("SSO login is not available. Please use your email and password.");
   };
 
   return (
@@ -370,7 +156,7 @@ export default function LoginPage() {
                 className="absolute inset-0 flex flex-col justify-center"
               >
                 <p className="text-[18px] text-white leading-relaxed font-medium">
-                  "{QUOTES[activeQuote].quote}"
+                  &ldquo;{QUOTES[activeQuote].quote}&rdquo;
                 </p>
                 <div className="flex items-center gap-3 mt-5">
                   <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm text-white">
@@ -434,15 +220,6 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
-            {errorType === "unverified" && (
-              <div className="p-3 rounded-lg bg-yellow-50 text-yellow-800 flex items-start gap-2 border border-yellow-200">
-                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold">Please verify your email.</span>
-                  <button className="text-sm font-bold underline mt-1 text-yellow-900 self-start">Resend verification &rarr;</button>
-                </div>
-              </div>
-            )}
             {errorType === "server" && (
               <div className="p-3 rounded-lg bg-red-50 text-red-700 flex items-start gap-2 border border-red-100 relative pr-8">
                 <AlertCircle size={18} className="shrink-0 mt-0.5" />
@@ -466,7 +243,7 @@ export default function LoginPage() {
               <div className="flex flex-col gap-3 mb-6">
                 <button
                   type="button"
-                  onClick={handleGoogleLogin}
+                  onClick={handleOAuthNotAvailable}
                   className="w-full flex items-center justify-center gap-3 px-4 h-11 bg-white border border-gray-300 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition-all text-[16px]"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -479,7 +256,7 @@ export default function LoginPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleMicrosoftLogin}
+                  onClick={handleOAuthNotAvailable}
                   className="w-full flex items-center justify-center gap-3 px-4 h-11 bg-white border border-gray-300 rounded-lg text-slate-700 font-bold hover:bg-slate-50 transition-all text-[16px]"
                 >
                   <svg width="18" height="18" viewBox="0 0 21 21" fill="none">
@@ -516,7 +293,7 @@ export default function LoginPage() {
                     }`}
                     placeholder="Work email address"
                   />
-                  <label 
+                  <label
                     htmlFor="email"
                     className={`absolute left-4 top-1.5 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-1.5 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
                       loginForm.formState.errors.email ? "text-red-500" : "text-gray-500 peer-focus:text-blue-600"
@@ -542,7 +319,7 @@ export default function LoginPage() {
                     }`}
                     placeholder="Password"
                   />
-                  <label 
+                  <label
                     htmlFor="password"
                     className={`absolute left-4 top-1.5 text-[11px] font-bold uppercase tracking-widest transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:font-medium peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[11px] peer-focus:top-1.5 peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-widest ${
                       loginForm.formState.errors.password ? "text-red-500" : "text-gray-500 peer-focus:text-blue-600"
@@ -567,11 +344,11 @@ export default function LoginPage() {
 
                 <div className="flex items-center justify-between pt-2">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       tabIndex={3}
                       {...loginForm.register("rememberMe")}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600" 
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                     />
                     <span className="text-sm font-medium text-slate-700">Remember me</span>
                   </label>
@@ -607,7 +384,7 @@ export default function LoginPage() {
                 </p>
               </header>
 
-              <div className="flex gap-2 justify-center sm:justify-between mb-8" onPaste={handleMfaPaste}>
+              <div className="flex gap-2 justify-center sm:justify-between mb-8">
                 {mfaCode.map((digit, i) => (
                   <input
                     key={i}
@@ -616,38 +393,25 @@ export default function LoginPage() {
                     inputMode="numeric"
                     maxLength={1}
                     value={digit}
-                    onChange={(e) => handleMfaChange(i, e.target.value)}
-                    onKeyDown={(e) => handleMfaKeyDown(i, e)}
+                    readOnly
                     className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all bg-white"
                   />
                 ))}
               </div>
 
-              {loading && (
-                <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold mb-6">
-                  <div className="w-4 h-4 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
-                  Verifying...
-                </div>
-              )}
-
               <div className="flex flex-col items-center gap-4">
                 <button
                   type="button"
                   disabled={countdown > 0}
-                  onClick={triggerResend}
                   className="text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:text-gray-400 transition-colors"
                 >
                   {countdown > 0 ? `Resend code (${countdown}s)` : "Resend code"}
                 </button>
-                <button type="button" className="text-sm font-medium text-gray-500 hover:text-gray-800 underline underline-offset-2">
-                  Use backup code
-                </button>
               </div>
 
               <div className="mt-8 pt-6 border-t border-gray-100 text-center lg:text-left">
-                <button 
-                  type="button" 
-                  onClick={() => setMfaNeeded(false)}
+                <button
+                  type="button"
                   className="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-gray-800 transition-colors"
                 >
                   <ChevronLeft size={16} /> Back to login

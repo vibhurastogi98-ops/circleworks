@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useAuth } from "@/context/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
@@ -117,7 +117,7 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
-  const { user } = useUser();
+  const { user } = useAuth();
   const { currentCompany } = useCompanyStore();
 
   const { currentUser, isNewUser } = useDashboardData();
@@ -130,12 +130,9 @@ export default function AppSidebar() {
     setMounted(true);
   }, []);
 
-  // User info from Clerk
-  const displayName = user?.firstName && user?.lastName
-    ? `${user.firstName} ${user.lastName}`
-    : user?.firstName || user?.username || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
-  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent";
+  const displayName = user?.email?.split("@")[0] || "User";
+  const displayEmail = user?.email || "";
+  const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(displayEmail)}&backgroundColor=transparent`;
 
   const { notificationCount, incrementNotificationCount } = usePlatformStore();
 
@@ -426,19 +423,7 @@ export default function AppSidebar() {
              </div>
 
              <div className="ml-auto lg:hidden xl:block">
-               <UserButton
-                 appearance={{
-                   elements: {
-                     avatarBox: "w-6 h-6",
-                     userButtonPopoverCard: "bg-slate-900 border-slate-700 shadow-2xl",
-                     userButtonPopoverActionButton: "hover:bg-slate-800",
-                     userButtonPopoverActionButtonText: "text-slate-200",
-                     userPreviewMainIdentifier: "text-slate-100",
-                     userPreviewSecondaryIdentifier: "text-slate-300",
-                     userButtonPopoverFooter: "hidden"
-                   }
-                 }}
-               />
+               <Settings size={16} className="text-slate-400" />
              </div>
           </div>
         </div>

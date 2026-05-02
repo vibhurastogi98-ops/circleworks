@@ -2,11 +2,9 @@ import { db } from "@/db";
 import { timeEntries, timeBreaks, employees, users, timesheets, shifts } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq, and, isNull, gte, lt, desc, sql, or } from "drizzle-orm";
-import { headers } from "next/headers";
+import { getSession } from "@/lib/session";
 
 export const dynamic = 'force-dynamic';
-
-const GUEST_CLERK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
 export async function GET() {
   try {
@@ -20,12 +18,16 @@ export async function GET() {
     weekStart.setDate(diff);
     weekStart.setHours(0, 0, 0, 0);
 
-    // 0. Resolve Company (Guest Mode)
-    const [userEmployee] = await db
-      .select({ companyId: employees.companyId })
-      .from(users)
-      .innerJoin(employees, eq(users.id, employees.userId))
-      .where(eq(users.clerkUserId, GUEST_CLERK_USER_ID));
+    const session = await getSession();
+    const userId = session?.userId ?? null;
+
+    const [userEmployee] = userId
+      ? await db
+          .select({ companyId: employees.companyId })
+          .from(users)
+          .innerJoin(employees, eq(users.id, employees.userId))
+          .where(eq(users.id, userId))
+      : [];
 
     const companyId = userEmployee?.companyId ?? 1;
 

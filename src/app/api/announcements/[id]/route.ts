@@ -39,7 +39,6 @@ export async function PATCH(
 ) {
   try {
     // Guest Mode: Authentication disabled
-    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const { id } = await params;
     const annId = parseInt(id);
@@ -74,7 +73,6 @@ export async function DELETE(
 ) {
   try {
     // Guest Mode: Authentication disabled
-    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const { id } = await params;
     const annId = parseInt(id);

@@ -2,23 +2,23 @@ import { db } from "@/db";
 import { timeEntries, employees, users } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq, and, isNull, desc } from "drizzle-orm";
-
-// Guest Mode: hardcoded Clerk user ID
-const GUEST_CLERK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+import { getSession } from "@/lib/session";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     let employeeId = searchParams.get('employeeId');
 
-    // If no employeeId provided, try to resolve from guest user
     if (!employeeId) {
-      const [userEmployee] = await db
-        .select({ employeeId: employees.id })
-        .from(users)
-        .innerJoin(employees, eq(users.id, employees.userId))
-        .where(eq(users.clerkUserId, GUEST_CLERK_USER_ID));
-      
+      const session = await getSession();
+      const userId = session?.userId ?? null;
+      const [userEmployee] = userId
+        ? await db
+            .select({ employeeId: employees.id })
+            .from(users)
+            .innerJoin(employees, eq(users.id, employees.userId))
+            .where(eq(users.id, userId))
+        : [];
       employeeId = userEmployee?.employeeId?.toString() ?? '1';
     }
 

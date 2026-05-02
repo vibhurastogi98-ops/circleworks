@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { announcements, announcementReads, users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { getSession } from "@/lib/session";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Guest Mode: Authentication disabled
-    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const session = await getSession();
 
     const { id } = await params;
     const annId = parseInt(id);
@@ -19,10 +19,12 @@ export async function POST(
     }
 
     // Get current user employee mapping
-    const user = await db.query.users.findFirst({
-      where: eq(users.clerkUserId, clerkUserId),
-      with: { employees: true }
-    });
+    const user = session
+      ? await db.query.users.findFirst({
+          where: eq(users.id, session.userId),
+          with: { employees: true }
+        })
+      : null;
 
     const employeeId = user?.employees?.[0]?.id;
 

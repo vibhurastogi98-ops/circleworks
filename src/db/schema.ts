@@ -20,8 +20,9 @@ export const billingCycleEnum = pgEnum('billing_cycle', ['weekly', 'bi-weekly', 
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  clerkUserId: text('clerk_user_id').unique().notNull(),
+  clerkUserId: text('clerk_user_id').unique(),
   email: text('email').notNull(),
+  passwordHash: text('password_hash'),
   role: text('role').default('employee'), // admin, hr, employee
   createdAt: timestamp('created_at').defaultNow(),
 });

@@ -1,43 +1,30 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { db } from "@/db";
 import { employees, payrolls, ptoRequests, timesheets, users, companies } from "@/db/schema";
 import { desc, count, sum, sql, and, gte, or, eq } from "drizzle-orm";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const session = await getSession();
 
-    if (!userId) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.userId;
+
     const [userEmployee] = await db
-      .select({ 
+      .select({
         companyId: employees.companyId,
-        role: users.role 
+        role: users.role
       })
       .from(employees)
       .leftJoin(users, eq(employees.userId, users.id))
-      .where(eq(users.clerkUserId, userId));
+      .where(eq(users.id, userId));
 
     if (!userEmployee || !userEmployee.companyId) {
-      // Check if user exists in users table
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.clerkUserId, userId));
-
-      if (!existingUser) {
-        // Create user record (this should normally be done by webhook, but fallback here)
-        await db.insert(users).values({
-          clerkUserId: userId,
-          email: "", // Will be updated by webhook or profile
-          role: "employee",
-        });
-      }
-
-      return NextResponse.json({ 
+      return NextResponse.json({
         totalEmployees: 0,
         monthlyPayroll: 0,
         pendingApprovals: 0,

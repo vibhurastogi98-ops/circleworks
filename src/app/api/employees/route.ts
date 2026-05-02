@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/session";
 import { db } from "@/db";
 import { employees, employeeBankAccounts, onboardingCases, users } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
@@ -8,50 +8,24 @@ import { desc, sql, eq } from "drizzle-orm";
 
 export async function GET() {
   try {
-    let userId: string | null = null;
-    const GUEST_USER_ID = process.env.NODE_ENV !== 'production' ? "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD" : null;
+    const session = await getSession();
 
-    try {
-      const authResult = await auth();
-      userId = authResult.userId ?? null;
-    } catch (authError) {
-      console.warn("[Employees GET] Clerk auth failed, falling back to demo guest user", authError);
-      userId = GUEST_USER_ID;
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!userId) {
-      if (GUEST_USER_ID) {
-        console.warn("[Employees GET] No Clerk user session found; using demo guest user in development.");
-        userId = GUEST_USER_ID;
-      } else {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    }
-    
+    const userId = session.userId;
+
     // Find the user's employee record to get their company
     const [userEmployee] = await db
       .select({ companyId: employees.companyId, role: users.role, requesterEmployeeId: employees.id })
       .from(employees)
       .leftJoin(users, eq(employees.userId, users.id))
-      .where(eq(users.clerkUserId, userId));
+      .where(eq(users.id, userId));
 
     let allEmployees;
 
     if (!userEmployee || !userEmployee.companyId) {
-      // Check if user exists in users table
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.clerkUserId, userId));
-
-      if (!existingUser) {
-        // Create user record (this should normally be done by webhook, but fallback here)
-        await db.insert(users).values({
-          clerkUserId: userId,
-          email: "", // Will be updated by webhook or profile
-          role: "employee",
-        });
-      }
 
       // IF NOT FOUND IN DB, RETURN MOCK EMPLOYEES (Safety fallback)
       return NextResponse.json([
@@ -102,12 +76,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
+    const session = await getSession();
 
-    if (!userId) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userId = session.userId;
     const body = await req.json();
 
     // 1. VALIDATION
@@ -117,13 +92,13 @@ export async function POST(req: Request) {
 
     // 2. GET COMPANY ID FOR THE CURRENT USER
     let companyId = body.companyId;
-    if (!companyId && userId) {
+    if (!companyId) {
       const [userEmployee] = await db
         .select({ companyId: employees.companyId })
         .from(employees)
         .leftJoin(users, eq(employees.userId, users.id))
-        .where(eq(users.clerkUserId, userId));
-      
+        .where(eq(users.id, userId));
+
       companyId = userEmployee?.companyId || null;
     }
 

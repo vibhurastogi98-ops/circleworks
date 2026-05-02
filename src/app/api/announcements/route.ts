@@ -6,7 +6,6 @@ import { eq, desc } from "drizzle-orm";
 export async function GET(req: NextRequest) {
   try {
     // Guest Mode: Authentication disabled
-    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     const searchParams = req.nextUrl.searchParams;
     const filter = searchParams.get('filter') || 'All'; // All, Active, Scheduled, Expired
@@ -37,7 +36,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Guest Mode: Authentication disabled
-    const clerkUserId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
     // Usually we check if user is admin, assume yes for settings
     const body = await req.json();

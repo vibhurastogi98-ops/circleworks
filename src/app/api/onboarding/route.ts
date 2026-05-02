@@ -2,18 +2,20 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { onboardingCases, employees, users } from "@/db/schema";
 import { desc, eq, and } from "drizzle-orm";
+import { getSession } from "@/lib/session";
 
 export async function GET() {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
-    
-    // Find the user's company
-    const [userEmployee] = await db
-      .select({ companyId: employees.companyId })
-      .from(employees)
-      .leftJoin(users, eq(employees.userId, users.id))
-      .where(eq(users.clerkUserId, userId));
+    const session = await getSession();
+    const userId = session?.userId ?? null;
+
+    const [userEmployee] = userId
+      ? await db
+          .select({ companyId: employees.companyId })
+          .from(employees)
+          .leftJoin(users, eq(employees.userId, users.id))
+          .where(eq(users.id, userId))
+      : [];
 
     if (!userEmployee || !userEmployee.companyId) {
       // IF NOT FOUND IN DB, RETURN MOCK ONBOARDING CASES (Safety fallback)

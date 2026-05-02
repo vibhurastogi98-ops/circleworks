@@ -4,3 +4,5 @@ node_modules
 dist
 # clerk configuration (can include secrets)
 /.clerk/
+# local antigravity toggle state
+.antigravity-enabled

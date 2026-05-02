@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/context/AuthContext";
 import { useCompanyStore } from "@/store/useCompanyStore";
 import { CheckCircle2, Building2, Users, Settings, ArrowRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,7 +41,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 
 export default function CompanyOnboardingPage() {
   const router = useRouter();
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuth();
   const { currentCompany, addCompany, setCurrentCompany } = useCompanyStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);

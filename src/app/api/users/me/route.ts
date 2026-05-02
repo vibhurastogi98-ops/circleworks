@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, users, employeeBankAccounts, payrollItems, payrolls, companies } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
+import { getSession } from "@/lib/session";
 
 export async function GET() {
   try {
-    // Guest Mode: Hardcoded admin user for demo purposes
-    const MOCK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
-    const userId = MOCK_USER_ID;
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const [employee] = await db
       .select({
@@ -26,55 +28,9 @@ export async function GET() {
       })
       .from(employees)
       .leftJoin(users, eq(employees.userId, users.id))
-      .where(eq(users.clerkUserId, userId));
+      .where(eq(users.id, session.userId));
 
-    let currentUserEmployee = employee;
-
-    // --- AUTO-REPAIR FOR ORPHANED CLERK ACCOUNTS ---
-    // If the local Postgres record is missing (happens for older test accounts), create it now.
-    if (!currentUserEmployee) {
-      try {
-        const email = "admin@circleworks.com";
-        const firstName = "Admin";
-        const lastName = "User";
-        const companyName = "CircleWorks";
-
-        // Create Company
-        const [newCompany] = await db.insert(companies).values({
-          name: companyName,
-        }).returning();
-        
-        // Create User
-        const [newUser] = await db.insert(users).values({
-          clerkUserId: userId,
-          email: email,
-          role: "admin",
-        }).returning();
-
-        // Create initial Admin Employee record
-        const [newEmployee] = await db.insert(employees).values({
-          userId: newUser.id,
-          companyId: newCompany.id,
-          firstName: firstName,
-          lastName: lastName,
-          email: email,
-          jobTitle: "Administrator",
-          employmentType: "full-time",
-          status: "active",
-        }).returning();
-
-        console.log("[DB Sync] Repaired missing database records for:", email);
-        
-        // Assign the newly created record to bypass the 404
-        currentUserEmployee = {
-          ...newEmployee,
-          avatar: null, // Ensure compatibility with type
-        };
-      } catch (repairErr) {
-        console.error("Failed to repair missing user:", repairErr);
-        return NextResponse.json({ error: "Database sync failed. Please re-login." }, { status: 500 });
-      }
-    }
+    const currentUserEmployee = employee;
 
     if (!currentUserEmployee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
@@ -167,58 +123,39 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
 
-    // Guest Mode: Skipping Clerk metadata updates
-    console.log("[Guest Mode] PATCH /api/users/me - Skipping metadata sync:", body);
-
-    // 2. Local Database Sync: Auto-create Company and User records on signup completion
     if (typeof body.companyName === "string") {
       try {
-        const email = "admin@circleworks.com";
-        const firstName = "Admin";
-        const lastName = "User";
+        const [existingEmployee] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .leftJoin(users, eq(employees.userId, users.id))
+          .where(eq(users.id, session.userId));
 
-        const [existingUser] = await db.select().from(users).where(eq(users.clerkUserId, userId));
-        
-        if (!existingUser) {
-          // Create Company
+        if (!existingEmployee) {
           const [newCompany] = await db.insert(companies).values({
             name: body.companyName,
           }).returning();
-          
-          // Create User
-          const [newUser] = await db.insert(users).values({
-            clerkUserId: userId,
-            email: email,
-            role: "admin",
-          }).returning();
 
-          // Create initial Admin Employee record
           await db.insert(employees).values({
-            userId: newUser.id,
+            userId: session.userId,
             companyId: newCompany.id,
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
+            firstName: session.email.split("@")[0],
+            email: session.email,
             jobTitle: "Administrator",
             status: "active",
           });
-          console.log("[DB Sync] Successfully created company, user, and employee for:", email);
+          console.log("[DB Sync] Created company and employee for:", session.email);
         }
       } catch (dbErr) {
         console.error("[DB Sync] Failed to create postgres records:", dbErr);
       }
-    }
-
-    // 3. Optional: Sync with Backend Database (Worker API)
-    try {
-      // Guest Mode: Skipping worker sync in demo
-    } catch (err) {
-      console.error("Failed to sync profile fields to backend DB", err);
-      // non-blocking
     }
 
     return NextResponse.json({ success: true, updatedFields: Object.keys(body) });

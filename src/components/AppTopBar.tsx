@@ -17,20 +17,16 @@ import Breadcrumb from "./Breadcrumb";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
 import CommandPalette from "@/components/CommandPalette";
 import { useNotificationStore } from "@/store/useNotificationStore";
-import { useClerk, useUser } from "@clerk/nextjs";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AppTopBar() {
   const pathname = usePathname() || "/dashboard";
   const router = useRouter();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  const { user, signOut } = useAuth();
 
-  // User info from Clerk
-  const displayName = user?.firstName && user?.lastName
-    ? `${user.firstName} ${user.lastName}`
-    : user?.firstName || user?.username || "User";
-  const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
-  const avatarUrl = user?.imageUrl || "https://api.dicebear.com/7.x/notionists/svg?seed=User&backgroundColor=transparent";
+  const displayName = user?.email?.split("@")[0] || "User";
+  const displayEmail = user?.email || "";
+  const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(displayEmail)}&backgroundColor=transparent`;
 
   const { toggleSidebar } = useSidebarStore();
   

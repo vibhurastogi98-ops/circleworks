@@ -2,18 +2,20 @@ import { db } from "@/db";
 import { timeEntries, employees, users } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq, and, isNull } from "drizzle-orm";
-
-// Guest Mode: hardcoded Clerk user ID
-const GUEST_CLERK_USER_ID = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+import { getSession } from "@/lib/session";
 
 export async function POST() {
   try {
-    // Resolve employee from guest user
-    const [userEmployee] = await db
-      .select({ employeeId: employees.id, companyId: employees.companyId })
-      .from(users)
-      .innerJoin(employees, eq(users.id, employees.userId))
-      .where(eq(users.clerkUserId, GUEST_CLERK_USER_ID));
+    const session = await getSession();
+    const userId = session?.userId ?? null;
+
+    const [userEmployee] = userId
+      ? await db
+          .select({ employeeId: employees.id, companyId: employees.companyId })
+          .from(users)
+          .innerJoin(employees, eq(users.id, employees.userId))
+          .where(eq(users.id, userId))
+      : [];
 
     console.log("[Clock-In API] Resolved UserEmployee:", userEmployee);
     const employeeId = userEmployee?.employeeId ?? 1;

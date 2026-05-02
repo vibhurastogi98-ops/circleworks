@@ -2,21 +2,23 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { employees, users } from '@/db/schema';
 import { eq, or, ilike, and } from 'drizzle-orm';
+import { getSession } from '@/lib/session';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
-    
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
 
-    // Find the user's company
-    const [userEmployee] = await db
-      .select({ companyId: employees.companyId })
-      .from(employees)
-      .leftJoin(users, eq(employees.userId, users.id))
-      .where(eq(users.clerkUserId, userId));
+    const session = await getSession();
+    const userId = session?.userId ?? null;
+
+    const [userEmployee] = userId
+      ? await db
+          .select({ companyId: employees.companyId })
+          .from(employees)
+          .leftJoin(users, eq(employees.userId, users.id))
+          .where(eq(users.id, userId))
+      : [];
 
     if (!userEmployee || !userEmployee.companyId) {
       return NextResponse.json({ results: [] });

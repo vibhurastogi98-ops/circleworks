@@ -17,7 +17,7 @@ import { Loader2 } from "lucide-react";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import OnboardingTour from "@/components/OnboardingTour";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/context/AuthContext";
 
 // Recharts client-only
 const PayrollChart = dynamic(
@@ -27,9 +27,9 @@ const PayrollChart = dynamic(
 
 export default function DashboardPage() {
   const { isLoading } = useDashboardData();
-  const { user } = useUser();
+  const { user } = useAuth();
 
-  const userRole = (user?.publicMetadata?.role as string) || "admin";
+  const userRole = user?.role || "admin";
   const router = useRouter();
 
   useEffect(() => {

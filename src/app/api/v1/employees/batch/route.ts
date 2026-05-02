@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, onboardingCases, users } from "@/db/schema";
+import { getSession } from "@/lib/session";
 import { eq, inArray } from "drizzle-orm";
 import { dispatchWebhook } from "../../../../../lib/webhooks";
 
@@ -102,13 +103,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // Resolve companyId — default guest mode
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
-    const [userEmployee] = await db
-      .select({ companyId: employees.companyId })
-      .from(employees)
-      .leftJoin(users, eq(employees.userId, users.id))
-      .where(eq(users.clerkUserId, userId));
+    const session = await getSession();
+    const userId = session?.userId ?? null;
+
+    const [userEmployee] = userId
+      ? await db
+          .select({ companyId: employees.companyId })
+          .from(employees)
+          .leftJoin(users, eq(employees.userId, users.id))
+          .where(eq(users.id, userId))
+      : [];
 
     const companyId = userEmployee?.companyId || body.companyId;
     if (!companyId) {
