@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { X, Send, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { usePlatformStore } from "@/store/usePlatformStore";
 
 type Message = {
@@ -16,6 +17,7 @@ const SUGGESTED = [
 ];
 
 export default function CirceWidget() {
+  const pathname = usePathname();
   const { isCirceOpen: open, toggleCirce, setIsCirceOpen } = usePlatformStore();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -81,6 +83,12 @@ export default function CirceWidget() {
     e.preventDefault();
     sendMessage(input);
   };
+
+  const isAuthPage = ["/login", "/signup", "/forgot-password", "/reset-password"].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
+
+  if (isAuthPage) return null;
 
   return (
     <>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Shield, Cookie, Settings } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 
 interface CookiePreferences {
@@ -15,6 +16,7 @@ interface CookiePreferences {
 type InteractedValue = "all" | "rejected" | "custom" | null;
 
 export default function CookieBanner() {
+  const pathname = usePathname();
   const [hasInteracted, setHasInteracted] = useState<InteractedValue>(null);
   const [showPreferences, setShowPreferences] = useState(false);
 
@@ -78,7 +80,11 @@ export default function CookieBanner() {
     }));
   };
 
-  if (hasInteracted) return null;
+  const isAuthPage = ["/login", "/signup", "/forgot-password", "/reset-password"].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
+
+  if (hasInteracted || isAuthPage) return null;
 
   return (
     <AnimatePresence>

@@ -158,12 +158,23 @@ function Step1Form({ data, onComplete }: { data: WizardData["step1"]; onComplete
   const strength = getPasswordStrength(pw);
 
   const fieldCls = (hasErr: boolean) =>
-    `w-full h-10 px-3 border rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors ${hasErr ? "border-red-400 bg-red-50" : "border-gray-300"}`;
+    `w-full h-12 px-4 border rounded-xl text-[15px] text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors ${hasErr ? "border-red-400 bg-red-50" : "border-slate-200"}`;
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#0A1628] mb-1">Create your account</h2>
-      <p className="text-gray-500 text-sm mb-5">Start for free — no credit card required.</p>
+      <div className="mb-7">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 mb-3">30-day free trial</p>
+        <h2 className="text-3xl font-black text-[#0A1628] tracking-tight mb-2">Create your CircleWorks account</h2>
+        <p className="text-slate-500 text-[15px] leading-relaxed">Set up payroll, HR, onboarding, and compliance in one workspace. No credit card required.</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {["No credit card", "Cancel anytime", "Secure setup"].map((item) => (
+          <div key={item} className="flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 text-center text-[11px] font-bold text-slate-600">
+            {item}
+          </div>
+        ))}
+      </div>
 
       <form onSubmit={handleSubmit(onComplete)} className="space-y-4">
         <div>
@@ -231,12 +242,12 @@ function Step1Form({ data, onComplete }: { data: WizardData["step1"]; onComplete
         </div>
 
         <button type="submit"
-          className="w-full h-11 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-all flex items-center justify-center gap-2 text-sm mt-1">
+          className="w-full h-12 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-all flex items-center justify-center gap-2 text-[15px] mt-2 shadow-sm shadow-blue-600/20">
           Continue <ChevronRight size={16} />
         </button>
       </form>
 
-      <p className="mt-4 text-center text-xs text-gray-400 font-medium">
+      <p className="mt-5 text-center text-xs text-gray-400 font-medium">
         Start for free — no credit card required
       </p>
     </div>
@@ -705,7 +716,7 @@ export default function SignupWizard() {
   };
 
   return (
-    <main className="min-h-screen flex selection:bg-blue-500/30 selection:text-blue-900">
+    <main className="min-h-screen flex bg-slate-50 selection:bg-blue-500/30 selection:text-blue-900">
       {/* Draft Banner */}
       <AnimatePresence>
         {showBanner && (
@@ -728,14 +739,14 @@ export default function SignupWizard() {
       </AnimatePresence>
 
       {/* ── LEFT PANEL ── */}
-      <div className={`hidden lg:flex w-2/5 bg-[#0A1628] text-white flex-col justify-between p-10 relative overflow-hidden flex-shrink-0 ${showBanner ? "pt-20" : ""}`}>
+      <div className={`hidden lg:flex w-[44%] bg-[#0A1628] text-white flex-col justify-between p-12 relative overflow-hidden flex-shrink-0 ${showBanner ? "pt-20" : ""}`}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-0 w-72 h-72 bg-blue-900/40 rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center gap-3 group mb-10">
+          <Link href="/" className="inline-flex items-center gap-3 group mb-14">
             <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
               <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="3"/>
               <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round"/>
@@ -743,12 +754,22 @@ export default function SignupWizard() {
             <span className="text-xl font-black tracking-tight group-hover:text-blue-400 transition-colors">CircleWorks</span>
           </Link>
 
-          <nav className="space-y-1">
+          <div className="max-w-md mb-12">
+            <p className="text-sm font-bold uppercase tracking-[0.22em] text-blue-300 mb-5">Payroll and HR setup</p>
+            <h1 className="text-5xl font-black leading-[1.04] tracking-tight mb-5">
+              Start running your team from one calm workspace.
+            </h1>
+            <p className="text-base leading-7 text-white/65">
+              Create your company, invite your team, and get payroll-ready without juggling disconnected tools.
+            </p>
+          </div>
+
+          <nav className="space-y-1.5">
             {WIZARD_STEPS.map((title, idx) => {
               const done   = idx < step;
               const active = idx === step;
               return (
-                <div key={idx} className="flex items-center gap-3 py-2.5">
+                <div key={idx} className="flex items-center gap-3 py-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold border-2 transition-all duration-300
                     ${done   ? "bg-green-500 border-green-500 text-white"
                     : active ? "bg-blue-600 border-blue-600 text-white scale-110"
@@ -790,45 +811,52 @@ export default function SignupWizard() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className={`w-full lg:w-3/5 bg-white flex flex-col min-h-screen ${showBanner ? "pt-14" : ""}`}>
+      <div className={`w-full lg:w-[56%] bg-slate-50 flex flex-col min-h-screen ${showBanner ? "pt-14" : ""}`}>
         {/* Progress bar */}
-        <div className="px-6 lg:px-14 pt-8 pb-3 border-b border-gray-100">
-          {/* Mobile logo */}
-          <Link href="/" className="lg:hidden inline-flex items-center gap-2 mb-5">
-            <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="14" stroke="#0A1628" strokeWidth="3"/>
-              <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-            <span className="text-lg font-black text-[#0A1628] tracking-tight">CircleWorks</span>
-          </Link>
-
-          <div className="flex items-center gap-1.5">
-            {WIZARD_STEPS.map((_, idx) => {
-              const done   = idx < step;
-              const active = idx === step;
-              return (
-                <React.Fragment key={idx}>
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-300
-                    ${done   ? "bg-green-500 text-white"
-                    : active ? "bg-blue-600 text-white"
-                    :          "bg-gray-100 text-gray-400"}`}>
-                    {done ? <Check size={11} strokeWidth={3} /> : idx + 1}
-                  </div>
-                  {idx < WIZARD_STEPS.length - 1 && (
-                    <div className={`flex-1 h-0.5 rounded-full transition-all duration-500 ${idx < step ? "bg-green-400" : "bg-gray-200"}`} />
-                  )}
-                </React.Fragment>
-              );
-            })}
+        <div className="px-5 sm:px-8 lg:px-14 pt-6 pb-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/" className="lg:hidden inline-flex items-center gap-2">
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="14" stroke="#0A1628" strokeWidth="3"/>
+                <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round"/>
+              </svg>
+              <span className="text-lg font-black text-[#0A1628] tracking-tight">CircleWorks</span>
+            </Link>
+            <Link href="/login" className="ml-auto rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-600">
+              Sign in
+            </Link>
           </div>
-          <p className="text-xs text-gray-400 mt-2 font-medium">
-            Step {step + 1} of {WIZARD_STEPS.length} — {WIZARD_STEPS[step]}
-          </p>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-1.5">
+              {WIZARD_STEPS.map((_, idx) => {
+                const done   = idx < step;
+                const active = idx === step;
+                return (
+                  <React.Fragment key={idx}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all duration-300
+                      ${done   ? "bg-green-500 text-white"
+                      : active ? "bg-blue-600 text-white"
+                      :          "bg-slate-100 text-slate-400"}`}>
+                      {done ? <Check size={12} strokeWidth={3} /> : idx + 1}
+                    </div>
+                    {idx < WIZARD_STEPS.length - 1 && (
+                      <div className={`flex-1 h-1 rounded-full transition-all duration-500 ${idx < step ? "bg-green-400" : "bg-slate-100"}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            <p className="text-xs text-slate-400 mt-3 font-semibold">
+              Step {step + 1} of {WIZARD_STEPS.length} · {WIZARD_STEPS[step]}
+            </p>
+          </div>
         </div>
 
         {/* Step form */}
-        <div className="flex-1 px-6 lg:px-14 py-8 overflow-y-auto">
-          <div className="max-w-md mx-auto w-full">
+        <div className="flex-1 px-5 sm:px-8 lg:px-14 pb-8 overflow-y-auto">
+          <div className="max-w-xl mx-auto w-full rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
             {apiError && (
               <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-100 flex items-start gap-2" role="alert">
                 <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
@@ -890,7 +918,7 @@ export default function SignupWizard() {
         </div>
 
         {step < 4 && (
-          <footer className="px-6 lg:px-14 py-4 border-t border-gray-100 text-center">
+          <footer className="px-6 lg:px-14 py-5 text-center">
             <p className="text-xs text-gray-400 font-medium">
               Already have an account?{" "}
               <Link href="/login" className="text-blue-600 hover:underline font-semibold">Sign in</Link>
