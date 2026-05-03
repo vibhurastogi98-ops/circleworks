@@ -144,7 +144,7 @@ export default async function CaseStudyPage({
             <p className="text-slate-500 mb-7">Set up CircleWorks in under 48 hours. No contracts. No setup fees.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/signup" className={`px-8 py-3.5 rounded-full bg-gradient-to-r ${study.coverGradient} text-white font-bold text-[15px] hover:shadow-lg transition-shadow`}>
-                Start Free Trial
+                Start Free
               </Link>
               <Link href="/contact" className="px-8 py-3.5 rounded-full border border-slate-300 text-slate-700 font-bold text-[15px] hover:bg-slate-100 transition-colors">
                 Talk to Sales

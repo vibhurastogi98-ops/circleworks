@@ -50,7 +50,7 @@ export default function CtaSection() {
             href="/signup"
             className="h-[56px] px-8 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
           >
-            Start Free Trial
+            Start Free
             <ArrowRight size={18} />
           </Link>
           <Link

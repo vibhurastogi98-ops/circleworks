@@ -360,7 +360,7 @@ export default function PricingPage() {
                   </ul>
 
                   <Link href="/signup" id="pro-cta" className="w-full text-center px-6 py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-[15px] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-shadow">
-                    Start Free Trial
+                    Start Free
                   </Link>
                 </div>
               </motion.div>

@@ -145,6 +145,7 @@ export default function AddEmployeeWizard() {
           await addEmployeeAsync(payload);
           // Invalidate both employees and dashboard so counts update immediately
           queryClient.invalidateQueries({ queryKey: ['employees'] });
+          queryClient.invalidateQueries({ queryKey: ['onboarding'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
           toast.success(`${formData.firstName} ${formData.lastName} has been added!`);
           router.push("/employees");

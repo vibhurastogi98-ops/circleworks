@@ -92,7 +92,7 @@ export default function PricingTeaser() {
               href="/signup"
               className="mt-8 mb-8 w-full py-3.5 rounded-xl border-2 border-blue-600 text-blue-600 font-bold text-[15px] hover:bg-blue-50 transition-colors flex items-center justify-center"
             >
-              Start Free Trial
+              Start Free
             </Link>
             <div className="flex flex-col gap-4 mt-auto border-t border-slate-100 pt-6">
               <div className="flex items-start gap-3">
@@ -160,7 +160,7 @@ export default function PricingTeaser() {
               href="/signup"
               className="mt-8 mb-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-[15px] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all flex items-center justify-center"
             >
-              Start Free Trial
+              Start Free
             </Link>
             <div className="flex flex-col gap-4 mt-auto border-t border-slate-100 pt-6">
               <div className="flex items-start gap-3">

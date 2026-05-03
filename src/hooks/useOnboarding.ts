@@ -14,10 +14,13 @@ export interface OnboardingCase {
 
 export function useOnboarding() {
   return useQuery<OnboardingCase[]>({
-    queryKey: ["onboarding-cases"],
+    queryKey: ["onboarding"],
     queryFn: async () => {
-      const response = await fetch("/api/onboarding");
-      if (!response.ok) throw new Error("Failed to fetch onboarding cases");
+      const response = await fetch("/api/onboarding", { credentials: "include" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || "Failed to fetch onboarding cases");
+      }
       return response.json();
     },
     staleTime: 5 * 60 * 1000,

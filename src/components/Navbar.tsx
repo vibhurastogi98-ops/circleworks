@@ -330,7 +330,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
               href="/signup"
               className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-indigo-700 transition-all"
             >
-              Start Free Trial
+              Start Free
             </Link>
           </div>
 
@@ -572,7 +572,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                   onClick={closeMobile}
                   className="block rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-center text-base font-semibold text-white shadow-lg shadow-blue-500/20 hover:from-blue-700 hover:to-indigo-700 transition"
                 >
-                  Start Free Trial
+                  Start Free
                 </Link>
               </div>
             </motion.div>

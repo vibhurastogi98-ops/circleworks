@@ -43,7 +43,10 @@ export function useEmployees() {
     onSuccess: () => {
       console.log("[useEmployees] Invalidating queries and refetching...");
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.refetchQueries({ queryKey: ["employees"] });
+      queryClient.refetchQueries({ queryKey: ["onboarding"] });
       notifyEmployeeChange();
       toast.success("Employee added successfully!");
     },

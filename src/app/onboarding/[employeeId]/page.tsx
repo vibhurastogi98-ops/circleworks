@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getCaseById, OnboardingTask } from "@/data/mockOnboarding";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { ChevronLeft, CheckCircle2, Circle, SkipForward, Bell, Eye, User, Briefcase, Monitor, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
@@ -22,15 +23,47 @@ const ROLE_COLOR: Record<string, string> = {
   Employee: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
 };
 
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function defaultTasksFor(onboardingCase: { id: string; startDate: string; tasks?: unknown[] }): OnboardingTask[] {
+  const start = onboardingCase.startDate && onboardingCase.startDate !== "TBD"
+    ? new Date(`${onboardingCase.startDate}T00:00:00`)
+    : new Date();
+
+  return [
+    { id: `${onboardingCase.id}-profile`, title: "Confirm employee profile", assignee: "HR", dueDate: addDays(start, -5).toISOString(), phase: "Pre-Hire", status: "Pending" },
+    { id: `${onboardingCase.id}-equipment`, title: "Prepare equipment and access", assignee: "IT", dueDate: addDays(start, -3).toISOString(), phase: "Pre-Hire", status: "Pending" },
+    { id: `${onboardingCase.id}-welcome`, title: "Send first-day welcome details", assignee: "Manager", dueDate: start.toISOString(), phase: "Week 1", status: "Pending" },
+  ];
+}
+
 export default function IndividualOnboarding() {
   const { employeeId } = useParams();
-  const onboardingCase = useMemo(() => getCaseById(employeeId as string), [employeeId]);
-  const [tasks, setTasks] = useState<OnboardingTask[]>(onboardingCase?.tasks || []);
+  const { data: realCases = [], isLoading } = useOnboarding();
+  const onboardingCase = useMemo(() => {
+    const id = String(employeeId);
+    const liveCase = realCases.find((c) => String(c.employeeId) === id || String(c.id) === id);
+    return liveCase || getCaseById(id);
+  }, [employeeId, realCases]);
+  const [tasks, setTasks] = useState<OnboardingTask[]>([]);
 
+  useEffect(() => {
+    if (!onboardingCase) {
+      setTasks([]);
+      return;
+    }
+    setTasks(onboardingCase.tasks?.length ? onboardingCase.tasks : defaultTasksFor(onboardingCase));
+  }, [onboardingCase]);
+
+  if (isLoading) return <div className="p-12 text-center text-slate-500">Loading onboarding case...</div>;
   if (!onboardingCase) return <div className="p-12 text-center text-slate-500">Onboarding case not found.</div>;
 
   const completed = tasks.filter(t => t.status === 'Complete').length;
-  const total = tasks.length;
+  const total = tasks.length || 1;
   const pct = Math.round((completed / total) * 100);
 
   const toggleTask = (taskId: string) => {

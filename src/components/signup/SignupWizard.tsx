@@ -51,7 +51,7 @@ const PAY_SCHEDULES = [
   { value: "monthly",      label: "Monthly",      desc: "Once a month · 12×/yr" },
 ];
 const WIZARD_STEPS = [
-  "Create your account",
+  "Start free",
   "Tell us about your company",
   "Set up payroll basics",
   "Add your first employee",

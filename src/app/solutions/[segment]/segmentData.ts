@@ -18,7 +18,7 @@ export const segments: Record<string, SegmentContent> = {
   agencies: {
     title: "Run payroll for all your clients from one dashboard",
     sub: "The command center for agencies. Manage every client's team, automate billing-hour payroll sync, and deliver white-label reports — without ever logging out.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     ogImage: "/og/agencies.png",
@@ -60,7 +60,7 @@ export const segments: Record<string, SegmentContent> = {
   services: {
     title: "Payroll for professional service firms",
     sub: "From consulting to creative agencies. Manage billable hours, track project costs, and manage your clients from one centralized dashboard.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     painPoints: [
@@ -97,7 +97,7 @@ export const segments: Record<string, SegmentContent> = {
   agency: {
     title: "Payroll for agencies & professional service firms",
     sub: "From consulting to creative agencies. Manage billable hours, track project costs, and manage your clients from one centralized dashboard.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     painPoints: [
@@ -134,7 +134,7 @@ export const segments: Record<string, SegmentContent> = {
   creators: {
     title: "Pay your talent, track royalties, and file 1099s — all in one place",
     sub: "The all-in-one financial stack for creators, influencers, and production houses. Get back to creating while we handle every payment, form, and filing.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Creator Features",
     heroGradient: "from-pink-500 via-rose-500 to-orange-500",
     ogImage: "/og/creators.png",
@@ -176,7 +176,7 @@ export const segments: Record<string, SegmentContent> = {
   startups: {
     title: "The payroll platform built for hypergrowth",
     sub: "Scale from your first hire to Series C without breaking HR. CircleWorks handles equity payroll, automated state nexus, and R&D tax credit tracking — at startup speed.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Startup Features",
     heroGradient: "from-blue-400 via-cyan-400 to-emerald-400",
     ogImage: "/og/startups.png",
@@ -218,7 +218,7 @@ export const segments: Record<string, SegmentContent> = {
   healthcare: {
     title: "Compliant payroll built for medicine",
     sub: "Handle shift differentials, 8/80 overtime rules, and credential tracking without the manual work. Stay audit-ready with a fully HIPAA-compliant HR platform.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Healthcare Features",
     heroGradient: "from-emerald-500 via-teal-500 to-blue-500",
     ogImage: "/og/healthcare.png",
@@ -260,7 +260,7 @@ export const segments: Record<string, SegmentContent> = {
   tech: {
     title: "The workforce OS for modern tech companies",
     sub: "Payroll, benefits, and IT provisioning unified in one platform. Onboard a developer in any country, ship their laptop, and grant 50+ app accesses — all in one workflow.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Tech Features",
     heroGradient: "from-slate-800 via-blue-900 to-indigo-900",
     ogImage: "/og/tech.png",
@@ -302,7 +302,7 @@ export const segments: Record<string, SegmentContent> = {
   restaurants: {
     title: "Payroll that understands hospitality",
     sub: "Handle tip credit, multiple pay rates, and front-of-house turnover without the headache. Built for the realities of kitchens, bars, and multi-location restaurant groups.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Restaurant Features",
     heroGradient: "from-orange-500 via-red-500 to-rose-600",
     ogImage: "/og/restaurants.png",
@@ -344,7 +344,7 @@ export const segments: Record<string, SegmentContent> = {
   smbs: {
     title: "The all-in-one HR & payroll for small business",
     sub: "Finally, a payroll platform that saves you time instead of taking it. Tax filings, 401k, and health insurance — all on autopilot.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See SMB Features",
     heroGradient: "from-blue-600 via-indigo-600 to-violet-600",
     painPoints: [
@@ -446,7 +446,7 @@ export const segments: Record<string, SegmentContent> = {
   retail: {
     title: "Workforce management for modern retail",
     sub: "From the storefront to the warehouse. Automate scheduling, handle high turnover, and simplify multi-location payroll.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "See Retail Case Studies",
     heroGradient: "from-violet-500 via-purple-500 to-fuchsia-500",
     painPoints: [
@@ -480,7 +480,7 @@ export const segments: Record<string, SegmentContent> = {
   nonprofit: {
     title: "HR & Payroll for mission-driven organizations",
     sub: "Focus on your mission, not your paperwork. CircleWorks handles the complexities of grant-based cost tracking and non-profit compliance.",
-    ctaHero: "Start Free Trial",
+    ctaHero: "Start Free",
     ctaSub: "Get Non-Profit Pricing",
     heroGradient: "from-teal-600 via-emerald-600 to-green-600",
     painPoints: [

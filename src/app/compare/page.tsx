@@ -79,7 +79,7 @@ export default function CompareHubPage() {
             <p className="text-xl text-blue-100 mb-10">Import your employee data directly from any major provider in under 5 minutes.</p>
             <div className="flex justify-center flex-wrap gap-4">
                <Link href="/pricing" className="bg-white text-blue-600 px-8 py-4 font-bold rounded-xl shadow-xl hover:-translate-y-1 transition-transform">
-                  Start Free Trial
+                  Start Free
                </Link>
                <Link href="/contact" className="bg-transparent border-2 border-white/30 text-white px-8 py-4 font-bold rounded-xl hover:bg-white/10 transition-colors">
                   Talk to an Expert

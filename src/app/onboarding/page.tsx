@@ -115,7 +115,7 @@ export default function OnboardingDashboard() {
           const pct = c.onboardingPercent || Math.round((completed / total) * 100);
 
           return (
-            <Link key={c.id} href={`/onboarding/${c.id}`} className="block group focus:outline-none">
+            <Link key={c.id} href={`/onboarding/${c.employeeId}`} className="block group focus:outline-none">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm hover:shadow-md transition-all hover:border-blue-300 dark:hover:border-blue-800 flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                   <img src={c.avatar} className="w-12 h-12 rounded-full border-2 border-white dark:border-slate-800 shadow-sm object-cover" alt="" />

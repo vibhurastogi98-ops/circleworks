@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, companies, employees } from "@/db/schema";
+import { users, companies, employees, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "@/lib/password";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
@@ -11,6 +11,17 @@ function splitFullName(fullName: string | undefined) {
     firstName: parts[0] || "Admin",
     lastName: parts.slice(1).join(" ") || null,
   };
+}
+
+function normalizeDate(value: unknown) {
+  if (typeof value !== "string") return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+function parseSalary(value: unknown) {
+  if (value === null || value === undefined || value === "") return 0;
+  const amount = Number.parseFloat(String(value).replace(/[$,\s]/g, ""));
+  return Number.isFinite(amount) ? Math.round(amount) : 0;
 }
 
 export async function POST(req: Request) {
@@ -43,9 +54,6 @@ export async function POST(req: Request) {
         .values({ name: step2?.companyName || "My Company" })
         .returning();
 
-      const parseSalary = (value: unknown) =>
-        value ? Math.round(parseFloat(String(value).replace(/,/g, "")) || 0) : 0;
-
       await tx.insert(employees).values({
         userId: newUser.id,
         companyId: company.id,
@@ -53,24 +61,30 @@ export async function POST(req: Request) {
         lastName: step4?.isAdminEmployee ? (step4.lastName || adminName.lastName) : adminName.lastName,
         email,
         jobTitle: step4?.isAdminEmployee ? (step4.title || "Company Admin") : "Company Admin",
-        startDate: step4?.isAdminEmployee ? (step4.startDate || null) : null,
+        startDate: step4?.isAdminEmployee ? normalizeDate(step4.startDate) : null,
         payType: step4?.isAdminEmployee ? (step4.payType || "salary") : "salary",
         salary: step4?.isAdminEmployee ? parseSalary(step4.payRate) : 0,
         status: "active",
       });
 
       if (!step4?.skip && step4?.firstName && !step4?.isAdminEmployee) {
-        await tx.insert(employees).values({
+        const [firstEmployee] = await tx.insert(employees).values({
           userId: null,
           companyId: company.id,
           firstName: step4.firstName,
           lastName: step4.lastName || "",
-          email: step4.employeeEmail || "",
+          email: step4.employeeEmail?.toLowerCase().trim() || "",
           jobTitle: step4.title || "",
-          startDate: step4.startDate || null,
+          startDate: normalizeDate(step4.startDate),
           payType: step4.payType || "salary",
           salary: parseSalary(step4.payRate),
-          status: "active",
+          status: "onboarding",
+        }).returning();
+
+        await tx.insert(onboardingCases).values({
+          employeeId: firstEmployee.id,
+          status: "Active",
+          startDate: normalizeDate(step4.startDate),
         });
       }
 

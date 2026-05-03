@@ -390,11 +390,7 @@ export default function LoginPage() {
               <p className="text-sm text-gray-500 font-medium">
                 New to CircleWorks?{" "}
                 <Link href="/signup" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
-                  Sign up
-                </Link>
-                {" "}or{" "}
-                <Link href="/signup" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
-                  start free
+                  Start free
                 </Link>
                 .
               </p>

@@ -244,7 +244,7 @@ export default function ProductPage() {
               href="/signup"
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-[16px] font-bold hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-shadow"
             >
-              Start Free Trial
+              Start Free
             </Link>
           </div>
           

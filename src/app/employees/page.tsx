@@ -114,6 +114,7 @@ export default function EmployeesDirectoryPage() {
           if (response.ok) {
             toast.success('Employee deleted successfully');
             queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['onboarding'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
             notifyEmployeeChange();
           } else {

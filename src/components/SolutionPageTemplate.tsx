@@ -286,7 +286,7 @@ export default function SolutionPageTemplate({
             <p className="text-lg lg:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed max-w-2xl">{ctaDescription}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/pricing" className="px-10 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-xl hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300 w-full sm:w-auto text-center">
-                Start Your Free Trial
+                Start Free
               </Link>
               <Link href="/contact" className="px-10 py-4 bg-white/5 text-white border border-white/10 font-bold rounded-xl hover:bg-white/10 transition-colors w-full sm:w-auto text-center">
                 Schedule a Demo
