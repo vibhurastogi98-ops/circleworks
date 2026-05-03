@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { db } from "@/db";
 import { employees, payrolls, ptoRequests, timesheets, users, companies } from "@/db/schema";
-import { desc, count, sum, sql, and, gte, or, eq } from "drizzle-orm";
+import { desc, count, sum, and, gte, or, eq } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -64,7 +64,7 @@ export async function GET() {
         .where(and(
           eq(payrolls.companyId, userEmployee.companyId),
           gte(payrolls.checkDate, thirtyDaysAgoStr),
-          sql`${payrolls.status} = 'paid' OR ${payrolls.status} = 'processed'`
+          or(eq(payrolls.status, 'paid'), eq(payrolls.status, 'processed'))
         )),
 
       // 4. Pending PTO
@@ -73,7 +73,7 @@ export async function GET() {
         .from(ptoRequests)
         .where(and(
           eq(ptoRequests.companyId, userEmployee.companyId),
-          sql`${ptoRequests.status} = 'Pending'`
+          eq(ptoRequests.status, 'Pending')
         )),
 
       // 5. Pending Timesheets
@@ -83,8 +83,8 @@ export async function GET() {
         .where(and(
           eq(timesheets.companyId, userEmployee.companyId),
           or(
-            sql`${timesheets.status} = 'Pending'`,
-            sql`${timesheets.status} = 'Draft'`
+            eq(timesheets.status, 'Pending'),
+            eq(timesheets.status, 'Draft')
           )
         ))
     ]);

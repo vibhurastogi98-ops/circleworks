@@ -659,6 +659,7 @@ export default function SignupWizard() {
     try {
       await fetch("/api/auth/signup/partial", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: d.step1.email, step: s, companyName: d.step2.companyName }),
       });
@@ -697,6 +698,7 @@ export default function SignupWizard() {
     try {
       const res = await fetch("/api/auth/signup/complete", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });

@@ -106,7 +106,7 @@ export default function PayrollChart() {
       {/* Chart */}
       <div className="flex-1 min-h-[300px] w-full relative overflow-hidden" style={{ minWidth: 0 }}>
         {mounted ? (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
             <BarChart data={payrollTrend} barGap={2} barCategoryGap="20%">
               <CartesianGrid
                 strokeDasharray="3 3"

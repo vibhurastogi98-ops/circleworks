@@ -87,7 +87,7 @@ export async function POST(req: Request) {
 
     // 1. VALIDATION
     if (!body.firstName || !body.email) {
-      return Response.json({ error: "First Name and Email are required" }, { status: 400 });
+      return NextResponse.json({ error: "First Name and Email are required" }, { status: 400 });
     }
 
     // 2. GET COMPANY ID FOR THE CURRENT USER
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
     // 2.1 GUARD: Reject if company cannot be resolved
     if (!companyId) {
       console.error("[Employees POST] Could not resolve companyId for user:", userId);
-      return Response.json({ 
+      return NextResponse.json({ 
         error: "Your account is not linked to a company. Please complete company setup first." 
       }, { status: 400 });
     }
