@@ -168,7 +168,7 @@ function Step1Form({ data, onComplete }: { data: WizardData["step1"]; onComplete
         <p className="text-slate-500 text-[15px] leading-relaxed">Set up payroll, HR, onboarding, and compliance in one workspace. No credit card required.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
         {["No credit card", "Cancel anytime", "Secure setup"].map((item) => (
           <div key={item} className="flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 text-center text-[11px] font-bold text-slate-600">
             {item}
@@ -376,7 +376,7 @@ function Step3Form({ data, onComplete, onBack, onSkip }: {
 
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Pay Schedule</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {PAY_SCHEDULES.map((sched) => {
               const active = paySchedule === sched.value;
               return (
@@ -467,7 +467,7 @@ function Step4Form({ data, adminEmail, adminName, onComplete, onBack, onSkip, lo
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">First Name</label>
             <input {...register("firstName")} placeholder="Jane" className={fieldCls} />
@@ -493,7 +493,7 @@ function Step4Form({ data, adminEmail, adminName, onComplete, onBack, onSkip, lo
           <input type="date" {...register("startDate")} className={fieldCls} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pay Type</label>
             <select {...register("payType")}
@@ -586,7 +586,7 @@ function Step5Success({ data }: { data: WizardData }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 mb-5">
         {cards.map(({ label, desc, icon: Icon, href, color }) => (
           <button key={href} onClick={() => router.push(href)}
             className={`border rounded-xl p-3 text-left hover:shadow-md transition-all group ${color}`}>
