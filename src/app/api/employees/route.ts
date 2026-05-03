@@ -29,10 +29,12 @@ export async function GET() {
 
       // IF NOT FOUND IN DB, RETURN MOCK EMPLOYEES (Safety fallback)
       return NextResponse.json([
-        { id: "1", firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15" },
-        { id: "2", firstName: "Michael", lastName: "Chen", email: "m.chen@example.com", jobTitle: "Product Designer", department: "Design", employmentType: "full-time", status: "active", location: "San Francisco, CA", locationType: "Remote", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", startDate: "2023-01-10" },
-        { id: "3", firstName: "Emma", lastName: "Watson", email: "emma.w@example.com", jobTitle: "Marketing Manager", department: "Marketing", employmentType: "full-time", status: "onboarding", location: "London, UK", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", startDate: "2024-04-01" },
-        { id: "4", firstName: "David", lastName: "Lee", email: "d.lee@example.com", jobTitle: "Sales Director", department: "Sales", employmentType: "full-time", status: "active", location: "Austin, TX", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=David&backgroundColor=transparent", startDate: "2021-11-20" },
+        { id: "1", firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15", salary: 150000, phone: "(555) 123-4567" },
+        { id: "2", firstName: "Michael", lastName: "Chen", email: "m.chen@example.com", jobTitle: "Product Designer", department: "Design", employmentType: "full-time", status: "active", location: "San Francisco, CA", locationType: "Remote", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", startDate: "2023-01-10", salary: 125000, phone: "(555) 234-5678" },
+        { id: "3", firstName: "Emma", lastName: "Watson", email: "emma.w@example.com", jobTitle: "Marketing Manager", department: "Marketing", employmentType: "full-time", status: "onboarding", location: "London, UK", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", startDate: "2024-04-01", salary: 110000, phone: "(555) 345-6789" },
+        { id: "4", firstName: "David", lastName: "Lee", email: "d.lee@example.com", jobTitle: "Sales Director", department: "Sales", employmentType: "full-time", status: "active", location: "Austin, TX", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=David&backgroundColor=transparent", startDate: "2021-11-20", salary: 135000, phone: "(555) 456-7890" },
+        { id: "5", firstName: "Jessica", lastName: "Rivera", email: "j.rivera@example.com", jobTitle: "HR Manager", department: "Human Resources", employmentType: "full-time", status: "active", location: "Denver, CO", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Jessica&backgroundColor=transparent", startDate: "2023-06-15", salary: 95000, phone: "(555) 567-8901" },
+        { id: "6", firstName: "James", lastName: "Patterson", email: "j.patterson@example.com", jobTitle: "Finance Manager", department: "Finance", employmentType: "full-time", status: "active", location: "Chicago, IL", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=James&backgroundColor=transparent", startDate: "2022-08-22", salary: 120000, phone: "(555) 678-9012" },
       ]);
     } else {
       // Get employees filtered by company
@@ -153,6 +155,8 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("[Employees POST] Error:", error.message);
-    return Response.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    console.error("[Employees POST] Full Error:", error);
+    const errorMessage = error?.message || "Internal Server Error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

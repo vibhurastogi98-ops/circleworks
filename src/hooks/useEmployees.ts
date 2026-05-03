@@ -37,7 +37,11 @@ export function useEmployees() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newEmployee),
       });
-      if (!response.ok) throw new Error("Failed to add employee");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || "Failed to add employee";
+        throw new Error(errorMessage);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -50,9 +54,10 @@ export function useEmployees() {
       notifyEmployeeChange();
       toast.success("Employee added successfully!");
     },
-    onError: (err) => {
-      console.error("Mutation Error:", err);
-      toast.error("Failed to add employee.");
+    onError: (err: any) => {
+      const errorMessage = err?.message || "Failed to add employee";
+      console.error("[useEmployees] Mutation Error:", errorMessage);
+      toast.error(errorMessage);
     }
   });
 
