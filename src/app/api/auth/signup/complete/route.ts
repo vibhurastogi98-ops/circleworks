@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
 import { users, companies, employees, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -30,7 +30,7 @@ function parseSalary(value: unknown) {
   return Number.isFinite(amount) ? Math.round(amount) : 0;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { step1, step2, step3, step4 } = await req.json();
 
@@ -41,13 +41,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    // Check for duplicate email in our DB
+    // Check for duplicate in our DB
     const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
-    // Create user in Supabase Auth (admin bypass = no email confirmation required)
+    // Create confirmed Supabase user (no email verification required)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     const supabaseUserId = authData.user.id;
     const adminName = splitFullName(step1?.fullName);
 
-    // Persist company + employee records in our DB
+    // Persist company + employee records
     try {
       await db.transaction(async (tx) => {
         const [newUser] = await tx
@@ -114,25 +114,40 @@ export async function POST(req: Request) {
         }
       });
     } catch (dbErr) {
-      // Roll back the Supabase user if DB insert fails
       await supabaseAdmin.auth.admin.deleteUser(supabaseUserId);
       console.error("[Signup Complete] DB error:", dbErr);
       return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
     }
 
-    // Sign in via the SSR client so Supabase sets the session cookies
-    const supabase = await createSupabaseServerClient();
+    // Build the response first, then attach Supabase session cookies to it
+    const response = NextResponse.json({ success: true });
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
-      console.error("[Signup Complete] Sign-in after signup failed:", signInError);
-      // Account was created — tell the user to log in manually rather than failing entirely
-      return NextResponse.json({ success: true, requiresLogin: true });
+      console.error("[Signup Complete] Auto sign-in failed:", signInError.message);
+      // Account created — client will need to log in manually
     }
 
-    return NextResponse.json({ success: true });
+    return response;
   } catch (err) {
     console.error("[Signup Complete]", err);
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: "Failed to create account. Please try again.", _debug: msg }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
   }
 }

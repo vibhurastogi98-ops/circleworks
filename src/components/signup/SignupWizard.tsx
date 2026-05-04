@@ -751,8 +751,14 @@ export default function SignupWizard() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const body = await res.json();
-        setApiError(body.error || "Something went wrong. Please try again.");
+        let message = "Something went wrong. Please try again.";
+        try {
+          const body = await res.json();
+          message = body.error || message;
+        } catch {
+          // Ignore non-JSON error bodies and use fallback message.
+        }
+        setApiError(message);
         setApiLoading(false);
         return;
       }

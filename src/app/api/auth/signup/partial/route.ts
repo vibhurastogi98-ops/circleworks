@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 
+type PartialSignupPayload = {
+  email?: string;
+  step?: number;
+  companyName?: string;
+};
+
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
-    // Simulate auto-save
-    console.log("Auto-saving partial registration for email:", data.email);
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: "Failed to auto-save" }, { status: 500 });
+    const payload = (await req.json()) as PartialSignupPayload;
+
+    if (!payload?.email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      step: typeof payload.step === "number" ? payload.step : null,
+      companyName: payload.companyName ?? null,
+    });
+  } catch {
+    return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 }
