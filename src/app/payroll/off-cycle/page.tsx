@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Play, Search, AlertCircle, ArrowLeft, History, Calculator, CheckCircle2, ChevronDown, DollarSign } from "lucide-react";
 
@@ -11,7 +11,7 @@ function fmtDate(s: string) {
   return new Date(`${s}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function OffCyclePage() {
+function OffCycleContent() {
   const searchParams = useSearchParams();
   const retroMode = searchParams.get("mode") === "retro";
   const paramEmployeeId = searchParams.get("employeeId") ?? "";
@@ -440,5 +440,13 @@ export default function OffCyclePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OffCyclePage() {
+  return (
+    <Suspense fallback={<div className="max-w-4xl mx-auto pb-24 pt-8 text-center text-slate-500">Loading off-cycle payroll...</div>}>
+      <OffCycleContent />
+    </Suspense>
   );
 }

@@ -140,7 +140,7 @@ export default function ACAPage() {
         </div>
         <div className="p-6 h-[300px]">
           {mounted ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={fteMonthlyData} barGap={4}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} />

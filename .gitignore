@@ -4,3 +4,4 @@ node_modules
 dist
 # local antigravity toggle state
 .antigravity-enabled
+.aider*

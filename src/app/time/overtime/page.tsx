@@ -98,7 +98,7 @@ export default function OvertimePage() {
           </h3>
           <div className="h-[300px]">
             {mounted ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <ComposedChart data={mockOtMonthlyTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />

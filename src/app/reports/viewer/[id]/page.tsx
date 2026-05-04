@@ -162,7 +162,7 @@ export default function ReportViewer() {
           </div>
           <div className="p-6 h-[300px]">
             {mounted ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 {chartType === "bar" ? (
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

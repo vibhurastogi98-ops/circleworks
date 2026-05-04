@@ -1,5 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq, or } from "drizzle-orm";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
@@ -34,14 +39,63 @@ export async function verifySessionToken(token: string): Promise<SessionUser | n
   }
 }
 
+async function resolveSessionFromSupabase(req?: NextRequest): Promise<SessionUser | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+
+  const cookieStore = req ? null : await cookies();
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return req ? req.cookies.getAll() : cookieStore?.getAll() ?? [];
+      },
+      setAll() {
+        // No cookie writes needed for read-only session resolution.
+      },
+    },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user?.email) return null;
+
+  const normalizedEmail = user.email.toLowerCase().trim();
+  const [appUser] = await db
+    .select({ id: users.id, email: users.email, role: users.role })
+    .from(users)
+    .where(
+      or(
+        eq(users.clerkUserId, user.id),
+        eq(users.email, normalizedEmail)
+      )
+    );
+
+  if (!appUser) return null;
+
+  return {
+    userId: appUser.id,
+    email: appUser.email,
+    role: appUser.role ?? "employee",
+  };
+}
+
 export async function getSession(req?: NextRequest): Promise<SessionUser | null> {
   let token: string | undefined;
   if (req) {
     token = req.cookies.get(SESSION_COOKIE)?.value;
   } else {
-    const { cookies } = await import("next/headers");
     token = (await cookies()).get(SESSION_COOKIE)?.value;
   }
-  if (!token) return null;
-  return verifySessionToken(token);
+
+  if (token) {
+    const jwtSession = await verifySessionToken(token);
+    if (jwtSession) return jwtSession;
+  }
+
+  // Fallback for flows where only Supabase cookies are present.
+  return resolveSessionFromSupabase(req);
 }

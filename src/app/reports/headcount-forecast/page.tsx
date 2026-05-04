@@ -315,7 +315,7 @@ export default function HeadcountForecastPage() {
               {loading ? (
                 <div className="h-full flex items-center justify-center text-slate-400">Loading forecast...</div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <LineChart data={computedData} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
                     <XAxis 

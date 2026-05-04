@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
 import { users, companies, employees, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -143,6 +144,29 @@ export async function POST(req: NextRequest) {
     if (signInError) {
       console.error("[Signup Complete] Auto sign-in failed:", signInError.message);
       // Account created — client will need to log in manually
+    }
+
+    const [appUser] = await db
+      .select({ id: users.id, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.email, email));
+
+    if (appUser) {
+      const sessionToken = await createSessionToken(
+        {
+          userId: appUser.id,
+          email: appUser.email,
+          role: appUser.role ?? "employee",
+        },
+        false
+      );
+      response.cookies.set(SESSION_COOKIE, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24,
+      });
     }
 
     return response;

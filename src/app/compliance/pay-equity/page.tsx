@@ -244,7 +244,7 @@ export default function PayEquityPage() {
             </div>
             
             <div className="p-6 h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={distData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={40}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />

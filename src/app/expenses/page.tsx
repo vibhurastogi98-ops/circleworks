@@ -116,7 +116,7 @@ export default function ExpensesOverview() {
           </h3>
           <div className="h-[300px] w-full">
             {mounted ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={stats.categoryData}

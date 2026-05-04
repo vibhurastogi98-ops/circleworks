@@ -518,7 +518,7 @@ export default function TaxSetupPage() {
                     <BarChart3 size={14} /> Rate Trend
                   </h3>
                   <div className="h-44">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <BarChart data={[...rateHistory].reverse()}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="taxYear" fontSize={12} />
@@ -569,7 +569,7 @@ export default function TaxSetupPage() {
                 gradient="from-teal-600 to-cyan-700"
               >
                 <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={experienceData.claimsHistory} barGap={4}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="year" fontSize={12} />

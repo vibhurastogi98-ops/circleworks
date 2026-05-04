@@ -8,7 +8,11 @@ import { toast } from "sonner";
 const fetchEmployees = async () => {
   console.log("[useEmployees] Fetching employees from API...");
   const response = await fetch("/api/employees", { credentials: "include" });
-  if (!response.ok) throw new Error("Failed to fetch employees");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.error || errorData.message || "Failed to fetch employees";
+    throw new Error(message);
+  }
   const data = await response.json();
   console.log("[useEmployees] Fetched employees:", data);
   console.log("[useEmployees] Number of employees:", data?.length || 0);
