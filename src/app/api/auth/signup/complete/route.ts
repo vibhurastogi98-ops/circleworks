@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
 import { users, companies, employees, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
 
     const supabaseUserId = authData.user.id;
     const adminName = splitFullName(step1?.fullName);
+    let createdAppUser: { id: number; email: string; role: string | null } | null = null;
 
     // Persist company + employee records
     try {
@@ -73,6 +75,11 @@ export async function POST(req: NextRequest) {
           .insert(users)
           .values({ email, clerkUserId: supabaseUserId, role: "admin" })
           .returning();
+        createdAppUser = {
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+        };
 
         const [company] = await tx
           .insert(companies)
@@ -143,6 +150,24 @@ export async function POST(req: NextRequest) {
     if (signInError) {
       console.error("[Signup Complete] Auto sign-in failed:", signInError.message);
       // Account created — client will need to log in manually
+    }
+
+    if (createdAppUser) {
+      const sessionToken = await createSessionToken(
+        {
+          userId: createdAppUser.id,
+          email: createdAppUser.email,
+          role: createdAppUser.role ?? "employee",
+        },
+        false
+      );
+      response.cookies.set(SESSION_COOKIE, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24,
+      });
     }
 
     return response;
