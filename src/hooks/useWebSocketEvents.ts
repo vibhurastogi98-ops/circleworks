@@ -59,6 +59,25 @@ export const useWebSocketEvents = () => {
       toast.info('Employee termination processed');
     };
 
+    const handleEmployeeTerminationInitiated = (data: { id: number; terminationDate: string; terminationType: string; finalPayDate: string | null; companyId: number | null }) => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', String(data.id)] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['pto-requests'] });
+      toast.warning(`Termination initiated — final pay due ${data.finalPayDate ?? 'next scheduled pay date'}`);
+    };
+
+    const handleEmployeeAccessRevoked = (data: { id: number; terminationDate: string }) => {
+      queryClient.invalidateQueries({ queryKey: ['employee', String(data.id)] });
+      toast.info('Employee platform access revoked');
+    };
+
+    const handleEmployeeCobraTriggered = (data: { id: number; terminationDate: string }) => {
+      queryClient.invalidateQueries({ queryKey: ['benefits'] });
+      queryClient.invalidateQueries({ queryKey: ['cobra'] });
+      toast.info('COBRA eligibility event triggered — notice required within 14 days');
+    };
+
     const handleEmployeeClockedIn = (data: { employeeId: string; timestamp: string }) => {
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       // Update live attendance panel
@@ -106,6 +125,18 @@ export const useWebSocketEvents = () => {
       toast.success('Offer signed! New hire incoming.');
     };
 
+    const handleEmployeeAutoCreatedFromAts = (data: { employeeId: number; candidateId: number; personalEmail?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      toast.success(
+        data.personalEmail
+          ? `Employee created and pre-boarding invitation sent to ${data.personalEmail}`
+          : 'Employee auto-created from ATS hire'
+      );
+    };
+
     // Expense Events
     const handleExpenseSubmitted = (data: { expenseId: string; employeeId: string; amount: number }) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -131,6 +162,38 @@ export const useWebSocketEvents = () => {
 
     const handleNotificationBatchUpdate = (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    };
+
+    // Workflow Automation Events
+    const handleWorkflowActionExecuted = (data: {
+      workflowId: string;
+      workflowName: string;
+      triggeredBy: "automation";
+      actionType: "update_field" | "create_task" | "send_email" | "change_status";
+      entityType: "employee" | "task" | "job" | "onboarding";
+      entityId: string | number;
+      changedFields: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+      timestamp: string;
+    }) => {
+      // Cache invalidation per Section 02 rules
+      if (data.entityType === "employee") {
+        queryClient.invalidateQueries({ queryKey: ["employees", String(data.entityId)] });
+        queryClient.invalidateQueries({ queryKey: ["employees"] });
+      }
+      if (data.entityType === "task") {
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["onboarding-tasks"] });
+      }
+      if (data.actionType === "change_status") {
+        queryClient.invalidateQueries({ queryKey: ["dashboard", data.entityType] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
+
+      const firstField = data.changedFields[0]?.field;
+      const summary = firstField
+        ? `${data.workflowName} automatically updated ${firstField}`
+        : `${data.workflowName} performed ${data.actionType.replace(/_/g, " ")}`;
+      toast.info(summary, { description: "Automated" });
     };
 
     // Compliance Events
@@ -169,6 +232,9 @@ export const useWebSocketEvents = () => {
     on('employee.created', handleEmployeeCreated);
     on('employee.updated', handleEmployeeUpdated);
     on('employee.terminated', handleEmployeeTerminated);
+    on('employee.termination.initiated', handleEmployeeTerminationInitiated);
+    on('employee.access.revoked', handleEmployeeAccessRevoked);
+    on('employee.cobra.triggered', handleEmployeeCobraTriggered);
     on('employee.clocked_in', handleEmployeeClockedIn);
     on('employee.clocked_out', handleEmployeeClockedOut);
 
@@ -180,6 +246,7 @@ export const useWebSocketEvents = () => {
     on('ats.candidate.applied', handleAtsCandidateApplied);
     on('ats.candidate.stage_changed', handleAtsCandidateStageChanged);
     on('ats.offer.signed', handleAtsOfferSigned);
+    on('employee.auto_created_from_ats', handleEmployeeAutoCreatedFromAts);
 
     on('expense.submitted', handleExpenseSubmitted);
     on('expense.approved', handleExpenseApproved);
@@ -192,6 +259,7 @@ export const useWebSocketEvents = () => {
 
     on('system.maintenance.scheduled', handleSystemMaintenanceScheduled);
     on('feature.announcement', handleFeatureAnnouncement);
+    on('workflow.action.executed', handleWorkflowActionExecuted);
 
     // Cleanup function
     return () => {
@@ -203,6 +271,9 @@ export const useWebSocketEvents = () => {
       off('employee.created', handleEmployeeCreated);
       off('employee.updated', handleEmployeeUpdated);
       off('employee.terminated', handleEmployeeTerminated);
+      off('employee.termination.initiated', handleEmployeeTerminationInitiated);
+      off('employee.access.revoked', handleEmployeeAccessRevoked);
+      off('employee.cobra.triggered', handleEmployeeCobraTriggered);
       off('employee.clocked_in', handleEmployeeClockedIn);
       off('employee.clocked_out', handleEmployeeClockedOut);
 
@@ -214,6 +285,7 @@ export const useWebSocketEvents = () => {
       off('ats.candidate.applied', handleAtsCandidateApplied);
       off('ats.candidate.stage_changed', handleAtsCandidateStageChanged);
       off('ats.offer.signed', handleAtsOfferSigned);
+      off('employee.auto_created_from_ats', handleEmployeeAutoCreatedFromAts);
 
       off('expense.submitted', handleExpenseSubmitted);
       off('expense.approved', handleExpenseApproved);
@@ -226,6 +298,7 @@ export const useWebSocketEvents = () => {
 
       off('system.maintenance.scheduled', handleSystemMaintenanceScheduled);
       off('feature.announcement', handleFeatureAnnouncement);
+      off('workflow.action.executed', handleWorkflowActionExecuted);
     };
   }, [queryClient, on, off, addNotification, incrementUnreadCount]);
 };

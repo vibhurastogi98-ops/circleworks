@@ -97,8 +97,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
     const employeeId = parseInt(id);
@@ -138,8 +140,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { id } = await params;
     const employeeId = parseInt(id);

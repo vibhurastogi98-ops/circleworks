@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Heart, Shield, Eye, Clock, Settings, AlertTriangle, ChevronRight } from "lucide-react";
+import { Heart, Shield, Eye, Clock, Settings, AlertTriangle, ChevronRight, DollarSign } from "lucide-react";
 import { mockBenefitPlans } from "@/data/mockBenefits";
 
 export default function BenefitsOverview() {
@@ -15,6 +15,16 @@ export default function BenefitsOverview() {
 
   // Open enrollment countdown (mock: 18 days away)
   const daysToEnrollment = 18;
+
+  // Payroll deduction preview — biweekly schedule
+  const PAY_PERIODS_BIWEEKLY = 2.167;
+  const pretaxTypes = new Set(["Medical", "Dental", "Vision", "FSA", "HSA", "401k"]);
+  const plansWithEePremium = mockBenefitPlans.filter(p => p.status === "Active" && p.employeePremium > 0);
+  const payrollPreviewRows = plansWithEePremium.map(p => ({
+    ...p,
+    perPaycheck: Math.round((p.employeePremium / PAY_PERIODS_BIWEEKLY) * 100) / 100,
+    isPretax: pretaxTypes.has(p.type),
+  }));
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -85,6 +95,75 @@ export default function BenefitsOverview() {
               <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* Payroll Deduction Preview */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+              <DollarSign size={15} className="text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Payroll Deduction Preview</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Per paycheck · Biweekly schedule · Employee share only</p>
+            </div>
+          </div>
+          <Link
+            href="/payroll/run"
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 shrink-0"
+          >
+            View in Payroll Run <ChevronRight size={12} />
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <th className="px-6 py-2.5 text-left text-xs font-semibold text-slate-500">Plan</th>
+                <th className="px-6 py-2.5 text-left text-xs font-semibold text-slate-500">Carrier</th>
+                <th className="px-6 py-2.5 text-right text-xs font-semibold text-slate-500">Monthly EE Premium</th>
+                <th className="px-6 py-2.5 text-right text-xs font-semibold text-slate-500">Per Paycheck</th>
+                <th className="px-6 py-2.5 text-center text-xs font-semibold text-slate-500">Tax Treatment</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {payrollPreviewRows.map(row => (
+                <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                  <td className="px-6 py-3 font-medium text-slate-900 dark:text-white">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{row.type}</span>
+                      {row.name}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-slate-500 dark:text-slate-400">{row.carrier}</td>
+                  <td className="px-6 py-3 text-right font-mono text-slate-700 dark:text-slate-300">${row.employeePremium.toFixed(2)}/mo</td>
+                  <td className="px-6 py-3 text-right font-bold font-mono text-red-600 dark:text-red-400">-${row.perPaycheck.toFixed(2)}</td>
+                  <td className="px-6 py-3 text-center">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      row.isPretax
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                        : "bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400"
+                    }`}>
+                      {row.isPretax ? "Pre-tax" : "Post-tax"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-center justify-between">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Enrollment changes apply to the next scheduled payroll run. 401(k) amounts vary by employee contribution rate.
+          </p>
+          <Link
+            href="/payroll/run"
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 whitespace-nowrap ml-4"
+          >
+            Preview employee deductions <ChevronRight size={11} />
+          </Link>
         </div>
       </div>
 

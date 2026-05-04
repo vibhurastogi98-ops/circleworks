@@ -113,7 +113,7 @@ export default function CompensationTab() {
     const classification = classifyEffectiveDate(effectiveDate, PAY_PERIOD);
     if (classification === "past") {
       toast.message("This effective date is in a past pay period. Redirecting to retro pay.");
-      router.push(`/payroll/off-cycle?mode=retro&employeeId=${emp.id}&effectiveDate=${effectiveDate}&oldRate=${currentSalary}&newRate=${parsedAmount}`);
+      router.push(`/payroll/off-cycle?mode=retro&employeeId=${emp.id}&employeeName=${encodeURIComponent(employeeName)}&effectiveDate=${effectiveDate}&oldRate=${currentSalary}&newRate=${parsedAmount}`);
       return;
     }
 

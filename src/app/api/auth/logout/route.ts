@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/session";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function POST() {
-  const res = NextResponse.json({ success: true });
-  res.cookies.set(SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 0,
-    path: "/",
-  });
-  return res;
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[Auth Logout Error]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

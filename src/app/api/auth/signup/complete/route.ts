@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { db } from "@/db";
 import { users, companies, employees, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { hashPassword } from "@/lib/password";
-import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 function splitFullName(fullName: string | undefined) {
   const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
@@ -35,75 +41,98 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
+    // Check for duplicate email in our DB
     const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
     if (existing) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
-    const adminName = splitFullName(step1?.fullName);
-    const passwordHash = hashPassword(password);
+    // Create user in Supabase Auth (admin bypass = no email confirmation required)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { role: "admin", fullName: step1?.fullName },
+    });
 
-    const { user } = await db.transaction(async (tx) => {
-      const [newUser] = await tx
-        .insert(users)
-        .values({ email, passwordHash, role: "admin" })
-        .returning();
-
-      const [company] = await tx
-        .insert(companies)
-        .values({ name: step2?.companyName || "My Company" })
-        .returning();
-
-      await tx.insert(employees).values({
-        userId: newUser.id,
-        companyId: company.id,
-        firstName: step4?.isAdminEmployee ? (step4.firstName || adminName.firstName) : adminName.firstName,
-        lastName: step4?.isAdminEmployee ? (step4.lastName || adminName.lastName) : adminName.lastName,
-        email,
-        jobTitle: step4?.isAdminEmployee ? (step4.title || "Company Admin") : "Company Admin",
-        startDate: step4?.isAdminEmployee ? normalizeDate(step4.startDate) : null,
-        payType: step4?.isAdminEmployee ? (step4.payType || "salary") : "salary",
-        salary: step4?.isAdminEmployee ? parseSalary(step4.payRate) : 0,
-        status: "active",
-      });
-
-      if (!step4?.skip && step4?.firstName && !step4?.isAdminEmployee) {
-        const [firstEmployee] = await tx.insert(employees).values({
-          userId: null,
-          companyId: company.id,
-          firstName: step4.firstName,
-          lastName: step4.lastName || "",
-          email: step4.employeeEmail?.toLowerCase().trim() || "",
-          jobTitle: step4.title || "",
-          startDate: normalizeDate(step4.startDate),
-          payType: step4.payType || "salary",
-          salary: parseSalary(step4.payRate),
-          status: "onboarding",
-        }).returning();
-
-        await tx.insert(onboardingCases).values({
-          employeeId: firstEmployee.id,
-          status: "Active",
-          startDate: normalizeDate(step4.startDate),
-        });
+    if (authError || !authData.user) {
+      if (authError?.message?.toLowerCase().includes("already registered")) {
+        return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
       }
+      console.error("[Signup Complete] Supabase auth error:", authError);
+      return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
+    }
 
-      return { user: newUser };
-    });
+    const supabaseUserId = authData.user.id;
+    const adminName = splitFullName(step1?.fullName);
 
-    const token = await createSessionToken({ userId: user.id, email: user.email, role: "admin" });
+    // Persist company + employee records in our DB
+    try {
+      await db.transaction(async (tx) => {
+        const [newUser] = await tx
+          .insert(users)
+          .values({ email, clerkUserId: supabaseUserId, role: "admin" })
+          .returning();
 
-    const res = NextResponse.json({ success: true });
-    res.cookies.set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60,
-      path: "/",
-    });
-    return res;
+        const [company] = await tx
+          .insert(companies)
+          .values({ name: step2?.companyName || "My Company" })
+          .returning();
+
+        await tx.insert(employees).values({
+          userId: newUser.id,
+          companyId: company.id,
+          firstName: step4?.isAdminEmployee ? (step4.firstName || adminName.firstName) : adminName.firstName,
+          lastName: step4?.isAdminEmployee ? (step4.lastName || adminName.lastName) : adminName.lastName,
+          email,
+          jobTitle: step4?.isAdminEmployee ? (step4.title || "Company Admin") : "Company Admin",
+          startDate: step4?.isAdminEmployee ? normalizeDate(step4.startDate) : null,
+          payType: step4?.isAdminEmployee ? (step4.payType || "salary") : "salary",
+          salary: step4?.isAdminEmployee ? parseSalary(step4.payRate) : 0,
+          status: "active",
+        });
+
+        if (!step4?.skip && step4?.firstName && !step4?.isAdminEmployee) {
+          const [firstEmployee] = await tx.insert(employees).values({
+            userId: null,
+            companyId: company.id,
+            firstName: step4.firstName,
+            lastName: step4.lastName || "",
+            email: step4.employeeEmail?.toLowerCase().trim() || "",
+            jobTitle: step4.title || "",
+            startDate: normalizeDate(step4.startDate),
+            payType: step4.payType || "salary",
+            salary: parseSalary(step4.payRate),
+            status: "onboarding",
+          }).returning();
+
+          await tx.insert(onboardingCases).values({
+            employeeId: firstEmployee.id,
+            status: "Active",
+            startDate: normalizeDate(step4.startDate),
+          });
+        }
+      });
+    } catch (dbErr) {
+      // Roll back the Supabase user if DB insert fails
+      await supabaseAdmin.auth.admin.deleteUser(supabaseUserId);
+      console.error("[Signup Complete] DB error:", dbErr);
+      return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
+    }
+
+    // Sign in via the SSR client so Supabase sets the session cookies
+    const supabase = await createSupabaseServerClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) {
+      console.error("[Signup Complete] Sign-in after signup failed:", signInError);
+      // Account was created — tell the user to log in manually rather than failing entirely
+      return NextResponse.json({ success: true, requiresLogin: true });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[Signup Complete]", err);
-    return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: "Failed to create account. Please try again.", _debug: msg }, { status: 500 });
   }
 }

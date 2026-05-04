@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { employees, payrolls, timesheets } from "@/db/schema";
+import { employees, payrolls, timesheets, paySchedules } from "@/db/schema";
 import { MOCK_EMPLOYEES, PAY_PERIOD } from "@/data/payrollRunMocks";
 import { and, eq } from "drizzle-orm";
 
@@ -13,6 +13,7 @@ export interface TimesheetHoursDay {
 export interface TimesheetHoursImportLine {
   employeeId: number | string;
   employeeName: string;
+  timesheetId?: number | null;
   source: "timesheet" | "scheduled" | "manual";
   regularHours: number;
   overtimeHours: number;
@@ -61,6 +62,27 @@ function enumerateDays(startDate: string, endDate: string) {
   }
 
   return days;
+}
+
+function daysBetweenInclusive(a: string, b: string): number {
+  const start = new Date(`${a}T00:00:00`);
+  const end = new Date(`${b}T00:00:00`);
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1);
+}
+
+function prorateForPartialPeriod(
+  hours: number,
+  periodStart: string,
+  periodEnd: string,
+  startDate: string | null | undefined,
+  terminationDate: string | null | undefined
+): number {
+  const effectiveStart = startDate && startDate > periodStart ? startDate : periodStart;
+  const effectiveEnd = terminationDate && terminationDate < periodEnd ? terminationDate : periodEnd;
+  const totalDays = daysBetweenInclusive(periodStart, periodEnd);
+  const workedDays = daysBetweenInclusive(effectiveStart, effectiveEnd);
+  if (totalDays === 0) return hours;
+  return roundHours(hours * workedDays / totalDays);
 }
 
 function distributeHours(totalHours: number, periodStart: string, periodEnd: string): TimesheetHoursDay[] {
@@ -156,43 +178,58 @@ export async function getTimesheetHoursImport(
   const [run] = await db.select().from(payrolls).where(eq(payrolls.id, payrollId)).limit(1);
   if (!run) return buildMockTimesheetImport(options.useScheduledHoursForMissing);
 
-  const hourlyEmployees = await db
-    .select({
-      id: employees.id,
-      firstName: employees.firstName,
-      lastName: employees.lastName,
-      startDate: employees.startDate,
-      terminationDate: employees.terminationDate,
-      status: employees.status,
-    })
-    .from(employees)
-    .where(
-      and(
-        eq(employees.companyId, run.companyId as number),
-        eq(employees.payType, "hourly")
-      )
-    );
+  const [hourlyEmployees, approvedTimesheets, defaultSchedule] = await Promise.all([
+    db
+      .select({
+        id: employees.id,
+        firstName: employees.firstName,
+        lastName: employees.lastName,
+        startDate: employees.startDate,
+        terminationDate: employees.terminationDate,
+        status: employees.status,
+      })
+      .from(employees)
+      .where(
+        and(
+          eq(employees.companyId, run.companyId as number),
+          eq(employees.payType, "hourly")
+        )
+      ),
 
-  const approvedTimesheets = await db
-    .select({
-      employeeId: timesheets.employeeId,
-      regularHours: timesheets.totalRegularHours,
-      overtimeHours: timesheets.totalOvertimeHours,
-      doubleTimeHours: timesheets.totalDoubleTimeHours,
-      approvedAt: timesheets.approvedAt,
-    })
-    .from(timesheets)
-    .where(
-      and(
-        eq(timesheets.companyId, run.companyId as number),
-        eq(timesheets.periodEnd, run.payPeriodEnd),
-        eq(timesheets.status, "Approved")
-      )
-    );
+    db
+      .select({
+        id: timesheets.id,
+        employeeId: timesheets.employeeId,
+        regularHours: timesheets.totalRegularHours,
+        overtimeHours: timesheets.totalOvertimeHours,
+        doubleTimeHours: timesheets.totalDoubleTimeHours,
+        approvedAt: timesheets.approvedAt,
+      })
+      .from(timesheets)
+      .where(
+        and(
+          eq(timesheets.companyId, run.companyId as number),
+          eq(timesheets.periodEnd, run.payPeriodEnd),
+          eq(timesheets.status, "Approved")
+        )
+      ),
 
+    db
+      .select({ cutoffHours: paySchedules.cutoffHoursBeforeRun })
+      .from(paySchedules)
+      .where(
+        and(
+          eq(paySchedules.companyId, run.companyId as number),
+          eq(paySchedules.isDefault, true)
+        )
+      )
+      .limit(1),
+  ]);
+
+  const cutoffHours = defaultSchedule[0]?.cutoffHours ?? DEFAULT_CUTOFF_HOURS_BEFORE_RUN;
   const sheetsByEmployee = new Map(approvedTimesheets.map((sheet) => [sheet.employeeId, sheet]));
   const cutoffStart = new Date(run.checkDate);
-  cutoffStart.setHours(cutoffStart.getHours() - DEFAULT_CUTOFF_HOURS_BEFORE_RUN);
+  cutoffStart.setHours(cutoffStart.getHours() - cutoffHours);
   const importedAt = new Date().toISOString();
   const missingEmployees: string[] = [];
 
@@ -205,14 +242,38 @@ export async function getTimesheetHoursImport(
       if (!options.useScheduledHoursForMissing) return [];
     }
 
-    const regularHours = roundHours(sheet?.regularHours || 80);
-    const overtimeHours = roundHours(sheet?.overtimeHours || 0);
-    const doubleTimeHours = roundHours(sheet?.doubleTimeHours || 0);
+    const partialPeriodReason: "new_hire" | "termination" | undefined =
+      employee.startDate && employee.startDate > run.payPeriodStart
+        ? "new_hire"
+        : employee.terminationDate && employee.terminationDate < run.payPeriodEnd
+          ? "termination"
+          : undefined;
+
+    let regularHours = roundHours(sheet?.regularHours || 80);
+    let overtimeHours = roundHours(sheet?.overtimeHours || 0);
+    let doubleTimeHours = roundHours(sheet?.doubleTimeHours || 0);
+
+    // Prorate scheduled hours for partial periods (approved timesheets already reflect actual days).
+    if (!sheet && partialPeriodReason) {
+      const scheduledTotal = roundHours(regularHours + overtimeHours + doubleTimeHours);
+      const prorated = prorateForPartialPeriod(
+        scheduledTotal,
+        run.payPeriodStart,
+        run.payPeriodEnd,
+        employee.startDate,
+        employee.terminationDate
+      );
+      regularHours = prorated;
+      overtimeHours = 0;
+      doubleTimeHours = 0;
+    }
+
     const totalHours = roundHours(regularHours + overtimeHours + doubleTimeHours);
 
     return [{
       employeeId: employee.id,
       employeeName: fullName,
+      timesheetId: sheet?.id ?? null,
       source: sheet ? "timesheet" as const : "scheduled" as const,
       regularHours,
       overtimeHours,
@@ -220,11 +281,7 @@ export async function getTimesheetHoursImport(
       totalHours,
       importedAt,
       lateWithinCutoff: Boolean(sheet?.approvedAt && sheet.approvedAt >= cutoffStart),
-      partialPeriodReason: employee.startDate && employee.startDate > run.payPeriodStart
-        ? "new_hire" as const
-        : employee.terminationDate && employee.terminationDate < run.payPeriodEnd
-          ? "termination" as const
-          : undefined,
+      partialPeriodReason,
       days: distributeHours(totalHours, run.payPeriodStart, run.payPeriodEnd),
     }];
   });
@@ -236,7 +293,7 @@ export async function getTimesheetHoursImport(
       missingCount: missingEmployees.length,
       missingEmployees,
       lateCount: imports.filter((line) => line.lateWithinCutoff).length,
-      cutoffHoursBeforeRun: DEFAULT_CUTOFF_HOURS_BEFORE_RUN,
+      cutoffHoursBeforeRun: cutoffHours,
       periodStart: run.payPeriodStart,
       periodEnd: run.payPeriodEnd,
     },

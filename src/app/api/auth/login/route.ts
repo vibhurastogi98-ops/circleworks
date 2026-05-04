@@ -1,49 +1,52 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
-import { verifyPassword } from "@/lib/password";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, rememberMe } = await req.json();
+    const { email, password } = await req.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase().trim()));
+    const supabase = await createSupabaseServerClient();
 
-    if (!user || !user.passwordHash) {
-      return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
-    }
-
-    const valid = verifyPassword(password, user.passwordHash);
-    if (!valid) {
-      return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
-    }
-
-    const token = await createSessionToken(
-      { userId: user.id, email: user.email, role: user.role || "employee" },
-      !!rememberMe
-    );
-
-    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
-    const res = NextResponse.json({ success: true });
-    res.cookies.set(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge,
-      path: "/",
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
     });
-    return res;
-  } catch (error) {
-    console.error("[Auth Login Error]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    if (error || !data.session) {
+      console.error("[Auth Login Error]", error?.message);
+
+      // Map Supabase error codes to our existing error keys
+      if (
+        error?.message?.toLowerCase().includes("invalid") ||
+        error?.message?.toLowerCase().includes("credentials") ||
+        error?.code === "invalid_credentials"
+      ) {
+        return NextResponse.json(
+          { error: "invalid_credentials" },
+          { status: 401 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: error?.message || "Internal server error" },
+        { status: 500 }
+      );
+    }
+
+    // Supabase SSR automatically sets the session cookies via the server client
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[Auth Login Error]", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

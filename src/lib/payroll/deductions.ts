@@ -85,7 +85,7 @@ function calculatePerPaycheck(monthlyPremium: number, employeeSharePercent: numb
 
 function formatPlanDisplayName(planType: string, planName: string, carrier?: string | null) {
   if (planType === "401k") return "401(k)";
-  if (planType.toLowerCase() === "medical") return `Medical (${planName})`;
+  if (planType.toLowerCase() === "medical") return `Medical (${carrier || planName})`;
   if (planType.toLowerCase() === "dental") return `Dental (${carrier || planName})`;
   if (planType.toLowerCase() === "vision") return `Vision (${carrier || planName})`;
   return carrier ? `${planName} (${carrier})` : planName;

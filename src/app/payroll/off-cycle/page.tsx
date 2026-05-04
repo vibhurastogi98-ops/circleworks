@@ -1,15 +1,46 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Play, Search, AlertCircle, ArrowLeft, History, Calculator, CheckCircle2, ChevronDown, DollarSign } from "lucide-react";
 
+function fmtCurrency(n: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
+function fmtDate(s: string) {
+  return new Date(`${s}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function OffCyclePage() {
-  const [activeTab, setActiveTab] = useState<"standard" | "retro">("standard");
+  const searchParams = useSearchParams();
+  const retroMode = searchParams.get("mode") === "retro";
+  const paramEmployeeId = searchParams.get("employeeId") ?? "";
+  const paramEmployeeName = searchParams.get("employeeName") ?? "";
+  const paramEffectiveDate = searchParams.get("effectiveDate") ?? "";
+  const paramOldRate = Number(searchParams.get("oldRate") ?? 0);
+  const paramNewRate = Number(searchParams.get("newRate") ?? 0);
+
+  const [activeTab, setActiveTab] = useState<"standard" | "retro">(retroMode ? "retro" : "standard");
   const [step, setStep] = useState(1);
   const [showRetroBanner, setShowRetroBanner] = useState(true);
   const [showRetroModal, setShowRetroModal] = useState(false);
   const [retroProcessed, setRetroProcessed] = useState(false);
   const [loadingRetro, setLoadingRetro] = useState(false);
   const [retroData, setRetroData] = useState<any>(null);
+
+  // Sync tab if params change (e.g., browser back/forward)
+  useEffect(() => {
+    if (retroMode) setActiveTab("retro");
+  }, [retroMode]);
+
+  const hasRetroParams = retroMode && paramOldRate > 0 && paramNewRate > 0;
+
+  // Use URL params when available, fall back to demo defaults
+  const retroEmployeeId = hasRetroParams ? paramEmployeeId : "emp-alex-clark";
+  const retroEmployeeName = hasRetroParams ? (paramEmployeeName || "Employee") : "Alex Clark";
+  const retroOldRate = hasRetroParams ? paramOldRate : 85000;
+  const retroNewRate = hasRetroParams ? paramNewRate : 92000;
+  const retroEffectiveDate = hasRetroParams ? paramEffectiveDate : "2026-02-01";
 
   const handleCalculateRetro = async () => {
     setLoadingRetro(true);
@@ -18,16 +49,16 @@ export default function OffCyclePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId: "emp-alex-clark",
-          oldRate: 85000,
-          newRate: 92000,
+          employeeId: retroEmployeeId,
+          oldRate: retroOldRate,
+          newRate: retroNewRate,
           rateType: "salary",
           periods: [
-             { name: "Feb 1 – Feb 15", hoursWorked: 86.67 },
-             { name: "Feb 16 – Feb 28", hoursWorked: 86.67 },
-             { name: "Mar 1 – Mar 15", hoursWorked: 86.67 }
-          ]
-        })
+            { name: "Feb 1 – Feb 15", hoursWorked: 86.67 },
+            { name: "Feb 16 – Feb 28", hoursWorked: 86.67 },
+            { name: "Mar 1 – Mar 15", hoursWorked: 86.67 },
+          ],
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -252,7 +283,7 @@ export default function OffCyclePage() {
                 <div>
                   <h3 className="font-bold text-blue-900 dark:text-blue-100">Backdated change detected</h3>
                   <p className="text-sm text-blue-800 dark:text-blue-200/70 mt-1">
-                    Alex Clark's compensation was changed from $85,000 to $92,000 effective Feb 01, 2026. Calculate retroactive adjustment?
+                    {retroEmployeeName}&apos;s compensation was changed from {fmtCurrency(retroOldRate)} to {fmtCurrency(retroNewRate)} effective {fmtDate(retroEffectiveDate)}. Calculate retroactive adjustment?
                   </p>
                 </div>
               </div>
@@ -312,20 +343,22 @@ export default function OffCyclePage() {
 
             <div className="p-6 overflow-y-auto">
                <div className="flex gap-4 mb-8 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-lg">AC</div>
+                  <div className="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-lg">
+                    {retroEmployeeName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
                   <div>
-                    <h3 className="font-bold text-lg">Alex Clark</h3>
-                    <p className="text-sm text-slate-500">Effective Date: <span className="font-medium text-slate-800">Feb 01, 2026</span></p>
+                    <h3 className="font-bold text-lg">{retroEmployeeName}</h3>
+                    <p className="text-sm text-slate-500">Effective Date: <span className="font-medium text-slate-800">{fmtDate(retroEffectiveDate)}</span></p>
                   </div>
                   <div className="ml-auto flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400">Old Rate</p>
-                      <p className="font-bold text-slate-800">$85,000</p>
+                      <p className="font-bold text-slate-800">{fmtCurrency(retroOldRate)}</p>
                     </div>
                     <ArrowRight size={14} className="text-slate-300" />
                     <div>
                       <p className="text-[10px] uppercase font-bold text-blue-500">New Rate</p>
-                      <p className="font-bold text-slate-900">$92,000</p>
+                      <p className="font-bold text-slate-900">{fmtCurrency(retroNewRate)}</p>
                     </div>
                   </div>
                </div>

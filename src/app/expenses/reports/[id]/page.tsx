@@ -31,10 +31,24 @@ export default function ExpenseReportDetailPage() {
 
   if (!report) return <div className="p-12 text-center text-slate-500">Expense report not found.</div>;
 
-  const handleApprove = () => {
-    approveExpenseReportForPayroll(id as string, "Sarah Chen");
-    toast.success("Expense report approved and queued for payroll!");
-    router.push("/expenses/reports");
+  const handleApprove = async () => {
+    try {
+      const res = await fetch(`/api/expenses/${id}/approve`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.error || "Failed to approve expense report");
+        return;
+      }
+      // Also update local mock state so the UI reflects the change without a full reload
+      approveExpenseReportForPayroll(id as string, "Sarah Chen");
+      toast.success("Expense report approved and queued for payroll!");
+      router.push("/expenses/reports");
+    } catch {
+      toast.error("Network error — please try again.");
+    }
   };
 
   const handleReject = () => {

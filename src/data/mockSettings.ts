@@ -95,11 +95,14 @@ export const mockApiKeys = [
 ];
 
 export const mockAuditLogs = [
-  { id: "al_1", date: "2026-04-05T09:12:00Z", user: "Alex Admin", action: "Updated Settings", resource: "Company Profille", ip: "192.168.1.45" },
-  { id: "al_2", date: "2026-04-04T16:45:00Z", user: "Jamie HR", action: "Created User", resource: "Employee: Michael Chang", ip: "10.0.0.12" },
-  { id: "al_3", date: "2026-04-04T15:20:00Z", user: "Taylor Finance", action: "Approved Payroll", resource: "Pay Schedule: Salaried Bi-Weekly", ip: "172.16.254.1" },
-  { id: "al_4", date: "2026-04-03T11:10:00Z", user: "System", action: "Tax Filing Submitted", resource: "Federal 941", ip: "Internal" },
-  { id: "al_5", date: "2026-04-02T08:05:00Z", user: "Jamie HR", action: "Deactivated User", resource: "Employee: Sarah Connor", ip: "10.0.0.12" },
+  { id: "al_1", date: "2026-04-05T09:12:00Z", user: "Alex Admin", action: "Updated Settings", resource: "Company Profile", ip: "192.168.1.45", isAutomated: false },
+  { id: "al_2", date: "2026-04-04T16:45:00Z", user: "Jamie HR", action: "Created User", resource: "Employee: Michael Chang", ip: "10.0.0.12", isAutomated: false },
+  { id: "al_wf_1", date: "2026-04-05T08:47:00Z", user: "Workflow Automation", action: "update_field", resource: "Employee: Michael Chang — status: onboarding → active", ip: "Automation", isAutomated: true, workflowName: "New Hire Activation" },
+  { id: "al_3", date: "2026-04-04T15:20:00Z", user: "Taylor Finance", action: "Approved Payroll", resource: "Pay Schedule: Salaried Bi-Weekly", ip: "172.16.254.1", isAutomated: false },
+  { id: "al_wf_2", date: "2026-04-04T14:05:00Z", user: "Workflow Automation", action: "create_task", resource: "Onboarding: I-9 Verification — assigned to HR", ip: "Automation", isAutomated: true, workflowName: "Onboarding Checklist" },
+  { id: "al_4", date: "2026-04-03T11:10:00Z", user: "System", action: "Tax Filing Submitted", resource: "Federal 941", ip: "Internal", isAutomated: false },
+  { id: "al_wf_3", date: "2026-04-03T09:30:00Z", user: "Workflow Automation", action: "send_email", resource: "Employee: Sarah Connor — 30-day check-in email sent", ip: "Automation", isAutomated: true, workflowName: "Probation Period Follow-up" },
+  { id: "al_5", date: "2026-04-02T08:05:00Z", user: "Jamie HR", action: "Deactivated User", resource: "Employee: Sarah Connor", ip: "10.0.0.12", isAutomated: false },
 ];
 
 export const mockCustomFields = [

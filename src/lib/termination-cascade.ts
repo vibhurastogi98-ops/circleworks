@@ -15,7 +15,7 @@ import { mockCobraCases } from "@/data/mockBenefits";
 import { getAssetsForEmployee, getAssetsForEmployeeName } from "@/data/mockAssets";
 import { mockOffboardingCases } from "@/data/mockOnboarding";
 import { dispatchWebhook } from "@/lib/webhooks";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 
 export type TerminationType = "voluntary" | "involuntary" | "layoff" | "other";
 
@@ -45,6 +45,7 @@ export interface TerminationCascadeResult {
   };
   payroll: {
     draftRunIds: number[];
+    finalPayRunId: number | null;
     flag: string | null;
     finalPayAmount: number;
     ptoPayoutAmount: number;
@@ -146,6 +147,7 @@ function buildResult(params: {
   companyId?: number | null;
   cancelledPendingRequests: number;
   draftRunIds: number[];
+  finalPayRunId: number | null;
   offboardingCaseId: string | number;
   assetNames: string[];
   finalPayMode: "off_cycle" | "next_run";
@@ -172,7 +174,8 @@ function buildResult(params: {
     },
     payroll: {
       draftRunIds: params.draftRunIds,
-      flag: params.draftRunIds.length > 0 ? "Terminating - verify final pay" : null,
+      finalPayRunId: params.finalPayRunId,
+      flag: params.draftRunIds.length > 0 || params.finalPayRunId ? "Terminating - verify final pay" : null,
       finalPayAmount,
       ptoPayoutAmount: pto.payoutAmount,
       finalPayDate: deadline.date,
@@ -280,6 +283,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
         companyId: mockEmployee.companyId,
         cancelledPendingRequests: 0,
         draftRunIds: ["1", "2", "4"].includes(String(input.employeeId)) ? [0] : [],
+        finalPayRunId: null,
         offboardingCaseId,
         assetNames: assets.map((asset) => asset.assetName),
         finalPayMode,
@@ -292,7 +296,13 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
     const pendingPto = await tx
       .select({ id: ptoRequests.id })
       .from(ptoRequests)
-      .where(and(eq(ptoRequests.employeeId, input.employeeId), eq(ptoRequests.status, "Pending")));
+      .where(
+        and(
+          eq(ptoRequests.employeeId, input.employeeId),
+          inArray(ptoRequests.status, ["Pending", "Approved"]),
+          gte(ptoRequests.startDate, terminationDate)
+        )
+      );
 
     if (pendingPto.length > 0) {
       await tx
@@ -331,6 +341,47 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       .set({ status: `coverage_ends_${endOfMonth(terminationDate)}` })
       .where(eq(benefitEnrollments.employeeId, input.employeeId));
 
+    let finalPayRunId: number | null = null;
+    if (finalPayMode === "off_cycle" && employee.companyId) {
+      const ptoPayoutData = estimatePtoPayout(employee.salary, state);
+      const finalPayAmt = estimateFinalPay(employee.salary, terminationDate);
+      const totalGross = Math.round(finalPayAmt + ptoPayoutData.payoutAmount);
+
+      const [offCycleRun] = await tx
+        .insert(payrolls)
+        .values({
+          companyId: employee.companyId,
+          payPeriodStart: terminationDate,
+          payPeriodEnd: terminationDate,
+          checkDate: terminationDate,
+          totalGross,
+          totalNet: Math.round(totalGross * 0.75),
+          status: "draft",
+          type: "off-cycle",
+        })
+        .returning({ id: payrolls.id });
+
+      finalPayRunId = offCycleRun.id;
+
+      await tx.insert(payrollItems).values({
+        payrollId: offCycleRun.id,
+        employeeId: input.employeeId,
+        gross: Math.round(finalPayAmt),
+        net: Math.round(finalPayAmt * 0.75),
+        type: "final_wages",
+      });
+
+      if (ptoPayoutData.payoutAmount > 0) {
+        await tx.insert(payrollItems).values({
+          payrollId: offCycleRun.id,
+          employeeId: input.employeeId,
+          gross: Math.round(ptoPayoutData.payoutAmount),
+          net: Math.round(ptoPayoutData.payoutAmount * 0.75),
+          type: "pto_payout",
+        });
+      }
+    }
+
     const offboardingTemplate = employee.companyId
       ? await tx.query.onboardingTemplates.findFirst({
           where: and(eq(onboardingTemplates.companyId, employee.companyId), eq(onboardingTemplates.type, "offboarding")),
@@ -363,6 +414,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       companyId: employee.companyId,
       cancelledPendingRequests: pendingPto.length,
       draftRunIds: [...new Set(draftItems.map((entry) => entry.runId))],
+      finalPayRunId,
       offboardingCaseId: offboardingCase.id,
       assetNames: assignedAssets.map((asset) => asset.assetName),
       finalPayMode,

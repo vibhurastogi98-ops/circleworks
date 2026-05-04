@@ -41,6 +41,14 @@ export default function ProcessingOverlay() {
       if (idx >= stepOrder.length - 1) {
         clearInterval(interval);
         setTimeout(() => {
+          const ewaLines = employees.flatMap((employee) =>
+            (employee.ewaRepayments || []).map((line) => ({
+              advanceId: line.advanceId,
+              deductionAmount: line.deductionAmount,
+              deferToNextRun: line.deferToNextRun,
+            }))
+          );
+
           employees.forEach((employee) => {
             (employee.reimbursements || [])
               .filter((line) => line.includeInThisRun && !line.deferToNextRun)
@@ -53,6 +61,17 @@ export default function ProcessingOverlay() {
                 applyEwaRepayment(line.advanceId, "draft-preview", line.deductionAmount);
               });
           });
+
+          // Persist EWA status changes for real (DB-backed) runs. Silently
+          // skipped on mock/draft-preview pages where the run ID is non-numeric.
+          if (ewaLines.length > 0) {
+            fetch("/api/payroll/runs/draft-preview/ewa-repayments/finalize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ repayments: ewaLines }),
+            }).catch(() => {});
+          }
+
           setRunState("complete");
           setShowProcessing(false);
         }, 2000);

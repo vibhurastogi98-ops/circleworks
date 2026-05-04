@@ -355,6 +355,7 @@ interface TimeImportApiResult {
   imports: Array<TimesheetHoursImport & {
     employeeId: string | number;
     employeeName: string;
+    timesheetId?: number | null;
   }>;
 }
 
@@ -366,16 +367,51 @@ interface EwaRepaymentsApiResult {
   ewaRepayments: PayrollEwaRepaymentLine[];
 }
 
+function HoursOverriddenBanner({ count, onRefresh, refreshing }: { count: number; onRefresh: () => void; refreshing: boolean }) {
+  if (count === 0) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-300" />
+          <div>
+            <p className="text-sm font-bold">
+              Hours manually overridden for {count} {count === 1 ? "employee" : "employees"}
+            </p>
+            <p className="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">
+              Manual overrides are logged in the audit trail. Use Import Hours to reset to approved timesheet values.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70 whitespace-nowrap"
+        >
+          {refreshing ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+          {refreshing ? "Importing..." : "Re-import Hours"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 function TimeImportPreflight({
   summary,
   importing,
   onImport,
   onUseScheduledHours,
+  onWait,
 }: {
   summary: TimeImportSummary | null;
   importing: boolean;
   onImport: () => void;
   onUseScheduledHours: () => void;
+  onWait: () => void;
 }) {
   if (!summary) return null;
 
@@ -413,8 +449,9 @@ function TimeImportPreflight({
           {summary.missingCount > 0 && (
             <>
               <button
-                className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50 dark:border-blue-500/30 dark:bg-slate-900 dark:text-blue-200"
+                onClick={onWait}
                 disabled={importing}
+                className="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-60 disabled:cursor-not-allowed dark:border-blue-500/30 dark:bg-slate-900 dark:text-blue-200"
               >
                 Wait for remaining {summary.missingCount}
               </button>
@@ -1095,7 +1132,7 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  EMPLOYEE TABLE                                                           */
 /* ═══════════════════════════════════════════════════════════════════════════ */
-function EmployeeTable() {
+function EmployeeTable({ onImportHours, importingHours }: { onImportHours: () => void; importingHours: boolean }) {
   const { employees, selectedIds, selectAll, deselectAll, searchQuery, filterDepartment, filterPayType, filterStatus, showFlaggedOnly } = usePayrollRunStore();
 
   const filtered = useMemo(() => {
@@ -1124,7 +1161,20 @@ function EmployeeTable() {
               <th className="px-1 py-3 w-8" />
               <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Employee</th>
               <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Type</th>
-              <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 text-center">Hours</th>
+              <th className="px-3 py-3 text-slate-400">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider">Hours</span>
+                  <button
+                    onClick={onImportHours}
+                    disabled={importingHours}
+                    title="Refresh from latest approved timesheets"
+                    className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 ring-1 ring-cyan-200 hover:bg-cyan-100 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-cyan-500/10 dark:text-cyan-300 dark:ring-cyan-500/30 dark:hover:bg-cyan-500/20"
+                  >
+                    {importingHours ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                    {importingHours ? "Importing..." : "Import Hours"}
+                  </button>
+                </div>
+              </th>
               <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Gross Pay</th>
               <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Deductions</th>
               <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Net Pay</th>
@@ -1480,7 +1530,7 @@ function StickyBottomBar() {
 /*  MAIN PAGE                                                                */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 export default function RunPayrollPage() {
-  const { setEmployees, setApprovers, updateEmployee, runState } = usePayrollRunStore();
+  const { setEmployees, setApprovers, updateEmployee, runState, employees: storeEmployees } = usePayrollRunStore();
   const [changedEmployeesCount, setChangedEmployeesCount] = useState(0);
   const [compensationChangedCount, setCompensationChangedCount] = useState(0);
   const [recalculating, setRecalculating] = useState(false);
@@ -1642,7 +1692,7 @@ export default function RunPayrollPage() {
     }
   }, [updateEmployee]);
 
-  const loadTimesheetHours = useCallback(async (missingMode: "skip" | "scheduled" = "skip") => {
+  const loadTimesheetHours = useCallback(async (missingMode: "skip" | "scheduled" = "skip", persist = false) => {
     setImportingHours(true);
     try {
       const suffix = missingMode === "scheduled" ? "?missing=scheduled" : "";
@@ -1650,7 +1700,7 @@ export default function RunPayrollPage() {
       if (!response.ok) throw new Error("Failed to import timesheet hours");
 
       const result: TimeImportApiResult = await response.json();
-      setTimeImportSummary(result.summary);
+      setTimeImportSummary(persist ? null : result.summary);
 
       const importsByEmployeeId = new Map(result.imports.map((line) => [String(line.employeeId), line]));
       const currentEmployees = usePayrollRunStore.getState().employees;
@@ -1678,6 +1728,28 @@ export default function RunPayrollPage() {
           },
         });
       });
+
+      // Persist confirmed import rows back to the run. Silently skipped for non-numeric
+      // run IDs (e.g. draft-preview mock pages) since the POST endpoint requires a real ID.
+      if (persist && result.imports.length > 0) {
+        const persistRows = result.imports.map((line) => ({
+          employeeId: Number(line.employeeId),
+          timesheetId: line.timesheetId ?? null,
+          source: line.source,
+          regularHours: line.regularHours,
+          overtimeHours: line.overtimeHours,
+          doubleTimeHours: line.doubleTimeHours,
+          totalHours: line.totalHours,
+          lateWithinCutoff: line.lateWithinCutoff,
+          partialPeriodReason: line.partialPeriodReason ?? null,
+          days: line.days,
+        }));
+        fetch("/api/payroll/runs/draft-preview/time-import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imports: persistRows }),
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error("[Payroll Run Time Import]", error);
     } finally {
@@ -1830,12 +1902,18 @@ export default function RunPayrollPage() {
         <TimeImportPreflight
           summary={timeImportSummary}
           importing={importingHours}
-          onImport={() => { void loadTimesheetHours(); }}
-          onUseScheduledHours={() => { void loadTimesheetHours("scheduled"); }}
+          onImport={() => { void loadTimesheetHours("skip", true); }}
+          onUseScheduledHours={() => { void loadTimesheetHours("scheduled", true); }}
+          onWait={() => { setTimeImportSummary(null); }}
+        />
+        <HoursOverriddenBanner
+          count={storeEmployees.filter((e) => e.hoursManuallyOverridden).length}
+          onRefresh={() => { void loadTimesheetHours("skip", true); }}
+          refreshing={importingHours}
         />
         <FilterBar />
         <BulkActionsBar />
-        <EmployeeTable />
+        <EmployeeTable onImportHours={() => { void loadTimesheetHours("skip", true); }} importingHours={importingHours} />
         <EwaRepaymentsSection
           onRequestDefer={(employeeId, advanceId) => setEwaDeferTarget({ employeeId, advanceId })}
           onReviewBlocked={(employeeId, advanceId) => setEwaReviewTarget({ employeeId, advanceId })}

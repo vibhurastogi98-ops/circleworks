@@ -1,10 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 export interface AuthUser {
-  userId: number;
+  userId: string;
   email: string;
   role: string;
 }
@@ -25,39 +33,63 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
+function mapSupabaseUser(supabaseUser: User | null): AuthUser | null {
+  if (!supabaseUser) return null;
+  return {
+    userId: supabaseUser.id,
+    email: supabaseUser.email ?? "",
+    role: (supabaseUser.user_metadata?.role as string) ?? "employee",
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
 
+  const supabase = createSupabaseBrowserClient();
+
   const refreshUser = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-      } else {
-        setUser(null);
-      }
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      setUser(mapSupabaseUser(supabaseUser));
     } catch {
       setUser(null);
     } finally {
       setIsLoaded(true);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
+    // Load initial session
     refreshUser();
-  }, [refreshUser]);
 
-  const signOut = useCallback(async (opts?: { redirectUrl?: string }) => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    setUser(null);
-    router.push(opts?.redirectUrl || "/login");
-  }, [router]);
+    // Listen to auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(mapSupabaseUser(session?.user ?? null));
+        setIsLoaded(true);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, refreshUser]);
+
+  const signOut = useCallback(
+    async (opts?: { redirectUrl?: string }) => {
+      await supabase.auth.signOut();
+      setUser(null);
+      router.push(opts?.redirectUrl || "/login");
+    },
+    [supabase, router]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isLoaded, isSignedIn: !!user, signOut, refreshUser }}>
+    <AuthContext.Provider
+      value={{ user, isLoaded, isSignedIn: !!user, signOut, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

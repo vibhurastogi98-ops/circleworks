@@ -1287,6 +1287,26 @@ export const webhookRegistrations = pgTable('webhook_registrations', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+export const ewaAdvances = pgTable('ewa_advances', {
+  id: serial('id').primaryKey(),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  remainingBalance: integer('remaining_balance').notNull(),
+  issueDate: date('issue_date').notNull(),
+  repaymentRunId: integer('repayment_run_id').references(() => payrolls.id, { onDelete: 'set null' }),
+  status: text('status').default('outstanding'),
+  stateMinimumWage: real('state_minimum_wage').default(7.25),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const ewaAdvancesRelations = relations(ewaAdvances, ({ one }) => ({
+  employee: one(employees, { fields: [ewaAdvances.employeeId], references: [employees.id] }),
+  company: one(companies, { fields: [ewaAdvances.companyId], references: [companies.id] }),
+  repaymentRun: one(payrolls, { fields: [ewaAdvances.repaymentRunId], references: [payrolls.id] }),
+}));
+
 export const contactRequests = pgTable('contact_requests', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),

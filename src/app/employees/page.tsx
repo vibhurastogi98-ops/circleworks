@@ -27,7 +27,7 @@ interface Employee {
   locationType?: string;
   startDate?: string | Date;
   salary?: string | number;
-  phone?: string;
+  personalPhone?: string;
 }
 
 export default function EmployeesDirectoryPage() {
@@ -131,7 +131,7 @@ export default function EmployeesDirectoryPage() {
         break;
       case 'call':
         // Make call
-        const phone = employees.find((emp: any) => emp.id === employeeId)?.phone;
+        const phone = employees.find((emp: any) => emp.id === employeeId)?.personalPhone;
         if (phone) {
           window.location.href = `tel:${phone}`;
         } else {

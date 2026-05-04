@@ -1,15 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Receipt, Upload, DollarSign, CheckCircle2, Clock, XCircle, AlertCircle, Plus, X, Camera, Send } from "lucide-react";
+import { Receipt, CheckCircle2, Clock, XCircle, AlertCircle, Plus, X, Camera, Loader2, Send } from "lucide-react";
 import { mockExpenses, mockExpenseReports } from "@/data/mockEmployeePortal";
 import { toast } from "sonner";
+
+interface ApiExpenseReport {
+  id: number;
+  title: string;
+  totalAmount: number;
+  status: string;
+  submittedAt: string | null;
+  payrollRunLabel: string | null;
+}
 
 const statusStyles: Record<string, string> = {
   Draft: "bg-slate-100 dark:bg-slate-700/40 text-slate-600 dark:text-slate-300",
   Submitted: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
   Approved: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
+  pending_payroll: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
   "Pending Payroll": "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
   Processing: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
   Reimbursed: "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400",
@@ -18,13 +28,24 @@ const statusStyles: Record<string, string> = {
 };
 
 const statusIcons: Record<string, React.ElementType> = {
-  Draft: AlertCircle, Submitted: Clock, Approved: CheckCircle2, "Pending Payroll": Clock, Processing: Clock, Reimbursed: CheckCircle2, Paid: CheckCircle2, Rejected: XCircle,
+  Draft: AlertCircle, Submitted: Clock, Approved: CheckCircle2, pending_payroll: Clock, "Pending Payroll": Clock, Processing: Clock, Reimbursed: CheckCircle2, Paid: CheckCircle2, Rejected: XCircle,
 };
 
 export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ amount: "", date: "", merchant: "", category: "Meals", purpose: "" });
   const [activeTab, setActiveTab] = useState<"expenses" | "reports">("expenses");
+  const [apiReports, setApiReports] = useState<ApiExpenseReport[] | null>(null);
+  const [loadingReports, setLoadingReports] = useState(false);
+
+  useEffect(() => {
+    setLoadingReports(true);
+    fetch("/api/me/expenses", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ApiExpenseReport[] | null) => { if (data) setApiReports(data); })
+      .catch(() => {})
+      .finally(() => setLoadingReports(false));
+  }, []);
 
   const handleSubmit = () => {
     if (!formData.amount || !formData.merchant || !formData.purpose) { toast.error("Please fill all required fields"); return; }
@@ -79,31 +100,39 @@ export default function ExpensesPage() {
           })}
         </div>
       ) : (
-        /* Expense Reports */
+        /* Expense Reports — real API data with mock fallback */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mockExpenseReports.map((report, i) => {
-            const StatusIcon = statusIcons[report.status] || Clock;
+          {loadingReports ? (
+            <div className="col-span-full flex items-center justify-center py-12 gap-3 text-slate-500 dark:text-slate-400">
+              <Loader2 size={20} className="animate-spin" />
+              <span className="text-sm font-medium">Loading reports...</span>
+            </div>
+          ) : (apiReports ?? mockExpenseReports).map((report, i) => {
+            const statusKey = report.status;
+            const StatusIcon = statusIcons[statusKey] || Clock;
+            const displayStatus = statusKey === "pending_payroll" ? "Pending Payroll" : statusKey;
+            const submittedStr = "submittedAt" in report ? report.submittedAt : (report as any).submittedDate;
+            const label = "payrollRunLabel" in report ? report.payrollRunLabel : (report as any).payrollRunLabel;
             return (
               <motion.div key={report.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="p-5 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
                     <Receipt size={18} className="text-violet-600 dark:text-violet-400" />
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 ${statusStyles[report.status]}`}>
-                    <StatusIcon size={11} /> {report.status}
+                  <span className={`px-2 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 ${statusStyles[statusKey] ?? statusStyles["Draft"]}`}>
+                    <StatusIcon size={11} /> {displayStatus}
                   </span>
                 </div>
                 <h3 className="text-[14px] font-bold text-slate-900 dark:text-white mb-1">{report.title}</h3>
                 <div className="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
-                  <span>{report.itemCount} items</span>
-                  <span>·</span>
+                  {"itemCount" in report && <><span>{(report as any).itemCount} items</span><span>·</span></>}
                   <span className="font-bold text-slate-900 dark:text-white">${report.totalAmount.toFixed(2)}</span>
                 </div>
-                {report.payrollRunLabel && (
-                  <p className="text-[11px] text-cyan-700 dark:text-cyan-300 mt-2 font-medium">{report.payrollRunLabel}</p>
+                {label && (
+                  <p className="text-[11px] text-cyan-700 dark:text-cyan-300 mt-2 font-medium">{label}</p>
                 )}
-                {report.submittedDate && (
-                  <p className="text-[11px] text-slate-400 mt-2">Submitted {new Date(report.submittedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                {submittedStr && (
+                  <p className="text-[11px] text-slate-400 mt-2">Submitted {new Date(submittedStr).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
                 )}
               </motion.div>
             );
@@ -111,17 +140,19 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Reimbursement Status */}
+      {/* Reimbursement Pipeline */}
       <div>
         <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">Reimbursement Pipeline</h2>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {["Submitted", "Approved", "Processing", "Paid"].map((step, i) => {
-            const count = mockExpenseReports.filter(r => r.status === step).length;
+          {(["Submitted", "Approved", "pending_payroll", "Reimbursed"] as const).map((step, i) => {
+            const source = apiReports ?? mockExpenseReports;
+            const count = source.filter(r => r.status === step).length;
+            const label = step === "pending_payroll" ? "Pending Payroll" : step;
             return (
               <React.Fragment key={step}>
                 {i > 0 && <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />}
                 <div className={`flex-shrink-0 px-4 py-3 rounded-xl border ${count > 0 ? "border-violet-200 dark:border-violet-800/40 bg-violet-50 dark:bg-violet-900/10" : "border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40"}`}>
-                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">{step}</p>
+                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">{label}</p>
                   <p className="text-xl font-black text-slate-900 dark:text-white">{count}</p>
                 </div>
               </React.Fragment>

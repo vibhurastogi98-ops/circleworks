@@ -29,6 +29,20 @@
       "when": 1777536326310,
       "tag": "0003_charming_rocket_racer",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777868344823,
+      "tag": "0004_jazzy_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1746403200000,
+      "tag": "0005_ewa_advances",
+      "breakpoints": true
     }
   ]
 }

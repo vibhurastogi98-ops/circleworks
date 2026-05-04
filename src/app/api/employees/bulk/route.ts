@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees, onboardingCases } from "@/db/schema";
+import { employees, onboardingCases, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
-    // Guest Mode: Authentication disabled
-    const userId = "user_2lI7hKq2Xy4Z6mN8sO1A3ZDRQRD";
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.id, session.userId));
+
+    const companyId = userEmployee?.companyId ?? null;
+    if (!companyId) {
+      return NextResponse.json({ error: "Your account is not linked to a company." }, { status: 400 });
+    }
 
     const body = await req.json();
     const { employees: employeesData } = body;
@@ -24,6 +39,7 @@ export async function POST(req: NextRequest) {
           firstName: emp.firstName,
           lastName: emp.lastName || null,
           email: emp.email,
+          companyId,
           jobTitle: emp.jobTitle || null,
           department: emp.department || null,
           employmentType: emp.employmentType?.toLowerCase() || 'full-time',
