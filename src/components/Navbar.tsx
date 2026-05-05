@@ -167,7 +167,7 @@ const MobileAccordion = ({ label, children, activeLabel, setActiveLabel }: Mobil
   );
 };
 
-export default function Navbar({ forceLight = false }: { forceLight?: boolean }) {
+export default function Navbar({ forceLight = false, transparent = false }: { forceLight?: boolean; transparent?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -243,7 +243,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
     setMobileActiveAccordion(null);
   };
 
-  const isNavWhite = scrolled || forceLight;
+  const isNavWhite = scrolled || forceLight || !transparent;
 
   return (
     <>

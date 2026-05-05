@@ -227,7 +227,7 @@ export default function HomePage() {
 
       <main className="min-h-screen bg-[#0A1628]">
         {/* ── Sticky Navbar ── */}
-        <Navbar />
+        <Navbar transparent />
 
         {/* ── Hero ── */}
         <Suspense fallback={<SectionSkeleton height="h-[100vh]" />}>
