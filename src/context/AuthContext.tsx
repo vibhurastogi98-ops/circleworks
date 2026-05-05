@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
@@ -47,7 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
 
-  const supabase = createSupabaseBrowserClient();
+  const supabaseRef = useRef(createSupabaseBrowserClient());
+  const supabase = supabaseRef.current;
 
   const refreshUser = useCallback(async () => {
     try {

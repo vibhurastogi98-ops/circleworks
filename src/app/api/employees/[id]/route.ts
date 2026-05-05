@@ -10,11 +10,28 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const employeeId = parseInt(id);
 
     if (isNaN(employeeId)) {
       return NextResponse.json({ error: "Invalid employee ID" }, { status: 400 });
+    }
+
+    let requesterRole = 'employee';
+    let requesterEmployeeId: number | null = null;
+
+    const requesterUser = await db.query.users.findFirst({
+      where: eq(users.id, session.userId),
+      with: { employees: true },
+    });
+    if (requesterUser) {
+      requesterRole = requesterUser.role || 'employee';
+      requesterEmployeeId = requesterUser.employees?.[0]?.id ?? null;
     }
 
     const employee = await db.query.employees.findFirst({
@@ -31,32 +48,7 @@ export async function GET(
     });
 
     if (!employee) {
-      // IF NOT FOUND AND MOCK ID, RETURN MOCK DATA (Safety fallback)
-      if (employeeId >= 1 && employeeId <= 4) {
-        const mocks = [
-          { id: 1, firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15", salary: 145000 },
-          { id: 2, firstName: "Michael", lastName: "Chen", email: "m.chen@example.com", jobTitle: "Product Designer", department: "Design", employmentType: "full-time", status: "active", location: "San Francisco, CA", locationType: "Remote", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", startDate: "2023-01-10", salary: 130000 },
-          { id: 3, firstName: "Emma", lastName: "Watson", email: "emma.w@example.com", jobTitle: "Marketing Manager", department: "Marketing", employmentType: "full-time", status: "onboarding", location: "London, UK", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", startDate: "2024-04-01", salary: 95000 },
-          { id: 4, firstName: "David", lastName: "Lee", email: "d.lee@example.com", jobTitle: "Sales Director", department: "Sales", employmentType: "full-time", status: "active", location: "Austin, TX", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=David&backgroundColor=transparent", startDate: "2021-11-20", salary: 160000 },
-        ];
-        return NextResponse.json(mocks.find(m => m.id === employeeId));
-      }
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
-    }
-
-    const session = await getSession();
-    let requesterRole = 'admin';
-    let requesterEmployeeId = null;
-
-    if (session) {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, session.userId),
-        with: { employees: true }
-      });
-      if (user) {
-        requesterRole = user.role || 'admin';
-        requesterEmployeeId = user.employees?.[0]?.id || null;
-      }
     }
 
     const isSelf = requesterEmployeeId === employeeId;
@@ -109,13 +101,22 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid employee ID" }, { status: 400 });
     }
 
-    // Check if employee exists
+    const [requesterEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.id, session.userId));
+
     const employee = await db.query.employees.findFirst({
       where: eq(employees.id, employeeId),
     });
 
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    if (!requesterEmployee || employee.companyId !== requesterEmployee.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Delete related records first (due to foreign key constraints)
@@ -155,13 +156,22 @@ export async function PUT(
     const body = await req.json();
     console.log("[Employee PUT] Request body:", body);
 
-    // Check if employee exists
+    const [requesterEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.id, session.userId));
+
     const employee = await db.query.employees.findFirst({
       where: eq(employees.id, employeeId),
     });
 
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    if (!requesterEmployee || employee.companyId !== requesterEmployee.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Update employee data

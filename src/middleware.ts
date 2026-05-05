@@ -19,7 +19,7 @@ async function hasValidJwtSession(request: NextRequest) {
   }
 }
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
 
@@ -44,7 +44,9 @@ export default async function proxy(request: NextRequest) {
     "/c/",
   ];
 
-  const needsAuth = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix));
+  const needsAuth = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix)
+  );
 
   if (needsAuth) {
     if (await hasValidJwtSession(request)) {

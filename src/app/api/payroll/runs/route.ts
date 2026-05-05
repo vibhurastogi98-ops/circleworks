@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payrolls, payrollTimeImports } from "@/db/schema";
+import { payrolls, payrollTimeImports, employees, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getTimesheetHoursImport } from "@/lib/payroll/timesheet-import";
 import { getSession } from "@/lib/session";
 
@@ -11,12 +12,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const { companyId, payPeriodStart, payPeriodEnd, checkDate, type = "regular" } = body;
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .innerJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.id, session.userId));
 
-    if (!companyId || !payPeriodStart || !payPeriodEnd || !checkDate) {
+    if (!userEmployee?.companyId) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
+    const companyId = userEmployee.companyId;
+
+    const body = await req.json().catch(() => ({}));
+    const { payPeriodStart, payPeriodEnd, checkDate, type = "regular" } = body;
+
+    if (!payPeriodStart || !payPeriodEnd || !checkDate) {
       return NextResponse.json(
-        { error: "companyId, payPeriodStart, payPeriodEnd, and checkDate are required" },
+        { error: "payPeriodStart, payPeriodEnd, and checkDate are required" },
         { status: 400 }
       );
     }

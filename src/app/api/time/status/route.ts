@@ -7,17 +7,21 @@ import { getSession } from "@/lib/session";
 export async function GET() {
   try {
     const session = await getSession();
-    const userId = session?.userId ?? null;
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-    const [userEmployee] = userId
-      ? await db
-          .select({ employeeId: employees.id, companyId: employees.companyId })
-          .from(users)
-          .innerJoin(employees, eq(users.id, employees.userId))
-          .where(eq(users.id, userId))
-      : [];
+    const [userEmployee] = await db
+      .select({ employeeId: employees.id, companyId: employees.companyId })
+      .from(users)
+      .innerJoin(employees, eq(users.id, employees.userId))
+      .where(eq(users.id, session.userId));
 
-    const employeeId = userEmployee?.employeeId ?? 1;
+    if (!userEmployee) {
+      return NextResponse.json({ success: false, error: "Employee record not found" }, { status: 404 });
+    }
+
+    const employeeId = userEmployee.employeeId;
     const now = new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);

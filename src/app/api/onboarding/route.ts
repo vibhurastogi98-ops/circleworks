@@ -1,29 +1,24 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { onboardingCases, employees, users } from "@/db/schema";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getSession } from "@/lib/session";
 
 export async function GET() {
   try {
     const session = await getSession();
-    const userId = session?.userId ?? null;
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const [userEmployee] = userId
-      ? await db
-          .select({ companyId: employees.companyId })
-          .from(employees)
-          .leftJoin(users, eq(employees.userId, users.id))
-          .where(eq(users.id, userId))
-      : [];
+    const [userEmployee] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .leftJoin(users, eq(employees.userId, users.id))
+      .where(eq(users.id, session.userId));
 
-    if (!userEmployee || !userEmployee.companyId) {
-      // IF NOT FOUND IN DB, RETURN MOCK ONBOARDING CASES (Safety fallback)
-      return NextResponse.json([
-        { id: "101", employeeId: 1, employeeName: "Sarah Smith", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", department: "Engineering", startDate: "2024-05-01", phase: "Pre-Hire", tasks: [ { status: "Complete" }, { status: "Pending" } ], onboardingPercent: 50 },
-        { id: "102", employeeId: 2, employeeName: "Michael Chen", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", department: "Design", startDate: "2024-05-15", phase: "Week 1", tasks: [ { status: "Complete" }, { status: "Complete" } ], onboardingPercent: 100 },
-        { id: "103", employeeId: 3, employeeName: "Emma Watson", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", department: "Marketing", startDate: "2024-06-01", phase: "Week 2", tasks: [ { status: "Pending" } ], onboardingPercent: 10 },
-      ]);
+    if (!userEmployee?.companyId) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
     }
 
     const cases = await db
