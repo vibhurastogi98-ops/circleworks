@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users, companies, employees, onboardingCases } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,13 +34,13 @@ function parseSalary(value: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { step1, step2, step3, step4 } = await req.json();
+    const body = await req.json();
+    const { step1, step2, step3, step4, googleAuth } = body;
 
     const email = (step1?.email as string)?.toLowerCase().trim();
-    const password = step1?.password as string;
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Check for duplicate in our DB
@@ -48,23 +49,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 
-    // Create confirmed Supabase user (no email verification required)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { role: "admin", fullName: step1?.fullName },
-    });
+    let supabaseUserId: string;
 
-    if (authError || !authData.user) {
-      if (authError?.message?.toLowerCase().includes("already registered")) {
-        return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
+    if (googleAuth) {
+      // Google OAuth user — already authenticated; get Supabase user from session
+      const supabaseServer = await createSupabaseServerClient();
+      const { data: { user: oauthUser } } = await supabaseServer.auth.getUser();
+
+      if (!oauthUser) {
+        return NextResponse.json({ error: "Google authentication session not found. Please sign in with Google again." }, { status: 401 });
       }
-      console.error("[Signup Complete] Supabase auth error:", authError);
-      return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
-    }
+      if (oauthUser.email?.toLowerCase().trim() !== email) {
+        return NextResponse.json({ error: "Email mismatch with Google account." }, { status: 400 });
+      }
+      supabaseUserId = oauthUser.id;
+    } else {
+      // Email/password signup — create new Supabase user
+      const password = step1?.password as string;
+      if (!password) {
+        return NextResponse.json({ error: "Password is required" }, { status: 400 });
+      }
 
-    const supabaseUserId = authData.user.id;
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { role: "admin", fullName: step1?.fullName },
+      });
+
+      if (authError || !authData.user) {
+        if (authError?.message?.toLowerCase().includes("already registered")) {
+          return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
+        }
+        console.error("[Signup Complete] Supabase auth error:", authError);
+        return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
+      }
+      supabaseUserId = authData.user.id;
+    }
     const adminName = splitFullName(step1?.fullName);
 
     // Persist company + employee records
@@ -115,35 +136,39 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (dbErr) {
-      await supabaseAdmin.auth.admin.deleteUser(supabaseUserId);
+      // Only delete the Supabase user if we created it (not for Google OAuth users)
+      if (!googleAuth) {
+        await supabaseAdmin.auth.admin.deleteUser(supabaseUserId);
+      }
       console.error("[Signup Complete] DB error:", dbErr);
       return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
     }
 
-    // Build the response first, then attach Supabase session cookies to it
     const response = NextResponse.json({ success: true });
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return req.cookies.getAll();
+    if (!googleAuth) {
+      // Email/password flow — auto sign-in to set Supabase session cookies
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return req.cookies.getAll();
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                response.cookies.set(name, value, options)
+              );
+            },
           },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
-          },
-        },
+        }
+      );
+      const password = step1?.password as string;
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        console.error("[Signup Complete] Auto sign-in failed:", signInError.message);
       }
-    );
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) {
-      console.error("[Signup Complete] Auto sign-in failed:", signInError.message);
-      // Account created — client will need to log in manually
     }
 
     const [appUser] = await db
