@@ -44,8 +44,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for duplicate in our DB
-    const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+    const [existing] = await db
+      .select({ id: users.id, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.email, email));
+
     if (existing) {
+      if (googleAuth) {
+        // Google user already has an account — just mint a session and succeed
+        const token = await createSessionToken({
+          userId: existing.id,
+          email: existing.email,
+          role: existing.role ?? "employee",
+        });
+        const res = NextResponse.json({ success: true });
+        res.cookies.set(SESSION_COOKIE, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24,
+        });
+        return res;
+      }
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
     }
 

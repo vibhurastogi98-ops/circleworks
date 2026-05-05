@@ -9,14 +9,14 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
   const next = searchParams.get("next") || "/dashboard";
-  const mode = searchParams.get("mode"); // "signup" | undefined
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
   }
 
-  // Build the response early so we can write Supabase session cookies onto it
-  const response = NextResponse.redirect(`${origin}${next}`);
+  // Collect cookies set during code exchange — applied to the final response
+  // after we know the destination, so they aren't lost on new-user redirects.
+  const pendingCookies: { name: string; value: string; options: Record<string, unknown> }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,9 +27,7 @@ export async function GET(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach((c) => pendingCookies.push(c));
         },
       },
     }
@@ -41,10 +39,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
   }
@@ -56,8 +51,27 @@ export async function GET(request: NextRequest) {
     .from(users)
     .where(eq(users.email, normalizedEmail));
 
+  // Determine destination before building the response
+  let destination: string;
   if (appUser) {
-    // Existing user — mint a JWT session and go to destination
+    destination = `${origin}${next}`;
+  } else {
+    const fullName =
+      (user.user_metadata?.full_name as string) ||
+      (user.user_metadata?.name as string) ||
+      "";
+    const params = new URLSearchParams({ mode: "google", email: normalizedEmail, name: fullName });
+    destination = `${origin}/signup?${params.toString()}`;
+  }
+
+  // Build response with correct destination, then apply all pending cookies
+  const response = NextResponse.redirect(destination);
+  pendingCookies.forEach(({ name, value, options }) =>
+    response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
+  );
+
+  if (appUser) {
+    // Mint a JWT session for existing users
     const token = await createSessionToken({
       userId: appUser.id,
       email: appUser.email,
@@ -70,25 +84,7 @@ export async function GET(request: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24,
     });
-    return response;
   }
 
-  // New user — redirect to signup wizard (step 2: company setup)
-  const fullName =
-    (user.user_metadata?.full_name as string) ||
-    (user.user_metadata?.name as string) ||
-    "";
-
-  const params = new URLSearchParams({
-    mode: "google",
-    email: normalizedEmail,
-    name: fullName,
-  });
-
-  if (mode === "signup") {
-    return NextResponse.redirect(`${origin}/signup?${params.toString()}`);
-  }
-
-  // Came from login but no account exists — send to signup
-  return NextResponse.redirect(`${origin}/signup?${params.toString()}`);
+  return response;
 }

@@ -81,7 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(
     async (opts?: { redirectUrl?: string }) => {
-      await supabase.auth.signOut();
+      await Promise.all([
+        supabase.auth.signOut(),
+        fetch("/api/auth/logout", { method: "POST", credentials: "include" }),
+      ]);
       setUser(null);
       router.push(opts?.redirectUrl || "/login");
     },
