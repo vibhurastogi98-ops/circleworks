@@ -1,8 +1,8 @@
 import { db } from "@/db";
-import { timeEntries, timeBreaks, employees, users, timesheets, shifts } from "@/db/schema";
+import { timeEntries, timeBreaks, employees, timesheets, shifts } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { eq, and, isNull, gte, lt, desc, sql, or } from "drizzle-orm";
-import { getSession } from "@/lib/session";
+import { eq, and, isNull, gte, or } from "drizzle-orm";
+import { getSession, resolveUserContext } from "@/lib/session";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,17 +19,16 @@ export async function GET() {
     weekStart.setHours(0, 0, 0, 0);
 
     const session = await getSession();
-    const userId = session?.userId ?? null;
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-    const [userEmployee] = userId
-      ? await db
-          .select({ companyId: employees.companyId })
-          .from(users)
-          .innerJoin(employees, eq(users.id, employees.userId))
-          .where(eq(users.id, userId))
-      : [];
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ success: false, error: "Employee record not found" }, { status: 404 });
+    }
 
-    const companyId = userEmployee?.companyId ?? 1;
+    const { companyId } = ctx;
 
     // 1. Parallelize data fetching to reduce total latency
     const [allEmployees, weekEntries, pendingTimesheets, todayShifts, activeBreaks] = await Promise.all([

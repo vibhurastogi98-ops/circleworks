@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { announcements, users } from "@/db/schema";
+import { announcements } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { getSession, resolveUserContext } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   try {
-    // Guest Mode: Authentication disabled
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
 
     const searchParams = req.nextUrl.searchParams;
-    const filter = searchParams.get('filter') || 'All'; // All, Active, Scheduled, Expired
+    const filter = searchParams.get('filter') || 'All';
 
-    // For simplicity we just fetch all and let client filter if needed, or filter here
     let items = await db.query.announcements.findMany({
+      where: eq(announcements.companyId, ctx.companyId),
       orderBy: [desc(announcements.createdAt)],
       with: {
         reads: true,
@@ -35,12 +43,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Guest Mode: Authentication disabled
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
 
-    // Usually we check if user is admin, assume yes for settings
     const body = await req.json();
 
     const [announcement] = await db.insert(announcements).values({
+      companyId: ctx.companyId,
       title: body.title,
       body: body.body,
       audience: body.audience || 'All Employees',

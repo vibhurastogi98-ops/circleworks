@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, employees } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
 
 const SECRET = new TextEncoder().encode(
@@ -81,6 +81,21 @@ async function resolveSessionFromSupabase(req?: NextRequest): Promise<SessionUse
     email: appUser.email,
     role: appUser.role ?? "employee",
   };
+}
+
+export interface UserContext {
+  companyId: number;
+  employeeId: number;
+}
+
+export async function resolveUserContext(session: SessionUser): Promise<UserContext | null> {
+  const [row] = await db
+    .select({ companyId: employees.companyId, employeeId: employees.id })
+    .from(employees)
+    .innerJoin(users, eq(employees.userId, users.id))
+    .where(eq(users.id, session.userId));
+  if (!row?.companyId) return null;
+  return { companyId: row.companyId, employeeId: row.employeeId };
 }
 
 export async function getSession(req?: NextRequest): Promise<SessionUser | null> {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { assets, assetAssignments } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/session";
 
 // GET — fetch single asset with full assignment history
 export async function GET(
@@ -47,6 +48,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const assetId = parseInt(id);
     const body = await req.json();
@@ -86,6 +92,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const assetId = parseInt(id);
 

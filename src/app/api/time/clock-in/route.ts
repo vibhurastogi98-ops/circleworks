@@ -1,26 +1,22 @@
 import { db } from "@/db";
-import { timeEntries, employees, users } from "@/db/schema";
+import { timeEntries } from "@/db/schema";
 import { NextResponse } from "next/server";
 import { eq, and, isNull } from "drizzle-orm";
-import { getSession } from "@/lib/session";
+import { getSession, resolveUserContext } from "@/lib/session";
 
 export async function POST() {
   try {
     const session = await getSession();
-    const userId = session?.userId ?? null;
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-    const [userEmployee] = userId
-      ? await db
-          .select({ employeeId: employees.id, companyId: employees.companyId })
-          .from(users)
-          .innerJoin(employees, eq(users.id, employees.userId))
-          .where(eq(users.id, userId))
-      : [];
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ success: false, error: "Employee record not found" }, { status: 404 });
+    }
 
-    console.log("[Clock-In API] Resolved UserEmployee:", userEmployee);
-    const employeeId = userEmployee?.employeeId ?? 1;
-    const companyId = userEmployee?.companyId ?? 1;
-    console.log("[Clock-In API] Using EmployeeId:", employeeId);
+    const { employeeId, companyId } = ctx;
 
     // Prevent double clock-in
     const existingOpen = await db.query.timeEntries.findFirst({

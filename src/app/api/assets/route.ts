@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { assets, assetAssignments, employees } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { assets, assetAssignments } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { getSession, resolveUserContext } from "@/lib/session";
 
-// GET — list all assets (optionally filter by status or type)
+// GET — list assets for the authenticated user's company
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const type = searchParams.get("type");
 
     const allAssets = await db.query.assets.findMany({
+      where: eq(assets.companyId, ctx.companyId),
       with: {
         assignments: {
           with: {
@@ -54,9 +65,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — create new asset
+// POST — create new asset for the authenticated user's company
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
     const body = await req.json();
 
     const [newAsset] = await db
@@ -69,7 +89,7 @@ export async function POST(req: NextRequest) {
         purchaseDate: body.purchaseDate || null,
         value: body.value ? parseInt(body.value) : null,
         notes: body.notes || null,
-        companyId: body.companyId || null,
+        companyId: ctx.companyId,
       })
       .returning();
 
