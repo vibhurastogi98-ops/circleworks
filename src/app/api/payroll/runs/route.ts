@@ -3,14 +3,13 @@ import { db } from "@/db";
 import { payrolls, payrollTimeImports, employees, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getTimesheetHoursImport } from "@/lib/payroll/timesheet-import";
-import { getSession } from "@/lib/session";
+import { requireApiPermission } from "@/lib/apiRbac";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireApiPermission(req, "run_payroll");
+    if (response) return response;
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const [userEmployee] = await db
       .select({ companyId: employees.companyId })

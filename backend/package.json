@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.4",
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",
@@ -44,6 +45,7 @@
     "axios": "^1.6.5",
     "bcrypt": "^5.1.1",
     "bull": "^4.12.2",
+    "bullmq": "^5.58.5",
     "cache-manager": "^7.2.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, employees } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { warmDashboardCacheOnLogin } from "@/lib/cache-warm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,6 +58,15 @@ export async function POST(req: NextRequest) {
 
     if (!appUser) {
       return NextResponse.json({ error: "Account profile not found" }, { status: 404 });
+    }
+
+    const [empRow] = await db
+      .select({ companyId: employees.companyId })
+      .from(employees)
+      .where(eq(employees.userId, appUser.id))
+      .limit(1);
+    if (empRow?.companyId != null) {
+      void warmDashboardCacheOnLogin(appUser.id, empRow.companyId);
     }
 
     const sessionToken = await createSessionToken(

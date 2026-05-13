@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees, employeeBankAccounts, onboardingCases } from "@/db/schema";
+import { employees, employeeBankAccounts, onboardingCases, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { users } from "@/db/schema";
 import { getSession } from "@/lib/session";
+import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
+import { invalidateEmployeeCaches } from "@/lib/redis-cache";
 
 export async function GET(
   req: NextRequest,
@@ -226,6 +227,14 @@ export async function PUT(
     }
 
     console.log("[Employee PUT] Successfully updated employee and related data:", updatedEmployee);
+
+    if (employee.companyId != null) {
+      recordCompanyRealtimeEvent(employee.companyId, "employee.updated", {
+        employeeId: String(employeeId),
+        timestamp: new Date().toISOString(),
+      });
+      void invalidateEmployeeCaches(employee.companyId, employeeId);
+    }
 
     return NextResponse.json(updatedEmployee);
 

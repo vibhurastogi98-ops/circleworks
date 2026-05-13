@@ -14,7 +14,7 @@ This document outlines the complete API backend architecture for CircleWorks pla
 | Database | PostgreSQL | 14+ |
 | ORM | Prisma | 5.8+ |
 | Cache | Redis | 7+ |
-| Queue | BullMQ | 4.12+ |
+| Queue | BullMQ (`bullmq` + `@nestjs/bullmq`) | 5.x |
 | Search | Elasticsearch | 8.10+ |
 | Storage | AWS S3 | - |
 | Auth | JWT + Bcrypt | - |

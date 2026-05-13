@@ -24,6 +24,7 @@ import { SearchModule } from './modules/search/search.module';
 import { AutomationsModule } from './modules/automations/automations.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WebsocketsModule } from './modules/websockets/websockets.module';
+import { QueuesModule } from './queues/queues.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -71,6 +72,7 @@ import { AppService } from './app.service';
     AutomationsModule,
     WebhooksModule,
     WebsocketsModule,
+    QueuesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

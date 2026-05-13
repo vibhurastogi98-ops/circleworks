@@ -6,10 +6,35 @@ import { toast } from 'sonner';
 
 export const useWebSocketEvents = () => {
   const queryClient = useQueryClient();
+  const socket = useSocketStore((s) => s.socket);
   const { on, off } = useSocketStore();
   const { addNotification, incrementUnreadCount } = useNotificationStore();
 
+  /** Sec. 02 — after WS reconnect, REST catch-up then refresh client caches */
   useEffect(() => {
+    if (!socket) return;
+    const onConnect = async () => {
+      const { lastDisconnectIso } = useSocketStore.getState();
+      if (!lastDisconnectIso) return;
+      try {
+        const res = await fetch(`/api/events?since=${encodeURIComponent(lastDisconnectIso)}`);
+        if (res.ok) {
+          await queryClient.invalidateQueries();
+        }
+      } catch (e) {
+        console.warn("[WS catch-up] /api/events failed", e);
+      } finally {
+        useSocketStore.getState().clearLastDisconnectIso();
+      }
+    };
+    socket.on("connect", onConnect);
+    return () => {
+      socket.off("connect", onConnect);
+    };
+  }, [socket, queryClient]);
+
+  useEffect(() => {
+    if (!socket) return;
     // Payroll Events
     const handlePayrollRunStatusUpdate = (data: { runId: string; status: string; progress: number }) => {
       queryClient.setQueryData(['payroll-run', data.runId], (oldData: any) => ({
@@ -300,5 +325,5 @@ export const useWebSocketEvents = () => {
       off('feature.announcement', handleFeatureAnnouncement);
       off('workflow.action.executed', handleWorkflowActionExecuted);
     };
-  }, [queryClient, on, off, addNotification, incrementUnreadCount]);
+  }, [socket, queryClient, on, off, addNotification, incrementUnreadCount]);
 };

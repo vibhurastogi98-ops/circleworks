@@ -6,7 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  useRef,
+  useMemo,
 } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
@@ -48,8 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
 
-  const supabaseRef = useRef(createSupabaseBrowserClient());
-  const supabase = supabaseRef.current;
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const refreshUser = useCallback(async () => {
     try {

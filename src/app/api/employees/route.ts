@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { requireApiPermission } from "@/lib/apiRbac";
 import { db } from "@/db";
 import { employees, employeeBankAccounts, onboardingCases, users, companies } from "@/db/schema";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
 import { desc, sql, eq } from "drizzle-orm";
+import type { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const permissionCheck = await requireApiPermission(req, "view_employees");
+    if (permissionCheck.response) return permissionCheck.response;
+    const session = permissionCheck.session;
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userId = session.userId;
 
@@ -76,13 +76,12 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const permissionCheck = await requireApiPermission(req, "add_employees");
+    if (permissionCheck.response) return permissionCheck.response;
+    const session = permissionCheck.session;
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userId = session.userId;
     const body = await req.json();

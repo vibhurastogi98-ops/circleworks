@@ -37,13 +37,16 @@ This document outlines the complete WebSocket implementation for real-time synch
 
 **Features**:
 - Zustand store for socket instance management
-- Exponential backoff reconnection (1s → 2s → 4s → 8s... max 30s)
-- Automatic TanStack Query refetch on reconnect
+- Sec. 02 reconnection: backoff **1s, 2s, 4s, 8s, 16s, 32s** (max **6** attempts), then **“Real-time sync paused — click to reconnect”** (`SocketProvider`)
+- After reconnect: **`GET /api/events?since={ISO}`** REST catch-up + TanStack Query `invalidateQueries` (`useWebSocketEvents`)
+- If disconnected **>30s**: subtle **“Data may be outdated”** badge (`SocketProvider`)
 - Global socket access
 
 ### Event Handlers
 
 **Location**: `src/hooks/useWebSocketEvents.ts`
+
+**REST fallback (Sec. 02)**: `src/app/api/events/route.ts` — `GET /api/events?since={ISO-8601}` returns company-scoped events from `src/lib/realtime-event-log.ts` (in-process ring buffer; production should use Redis or a durable store).
 
 **Registered Events**:
 - **Payroll**: run status, completion, approval required, direct deposit sent

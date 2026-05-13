@@ -3,17 +3,22 @@ import type { NextRequest } from "next/server";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/session";
+import {
+  getRequiredApiPermission,
+  getRequiredScreenPermission,
+  hasPermission,
+} from "@/lib/rbac";
 
 const SESSION_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
 );
 
-async function hasValidJwtSession(request: NextRequest) {
+async function getJwtSessionRole(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return false;
   try {
-    await jwtVerify(token, SESSION_SECRET);
-    return true;
+    const { payload } = await jwtVerify(token, SESSION_SECRET);
+    return (payload.role as string | undefined) ?? "employee";
   } catch {
     return false;
   }
@@ -22,6 +27,7 @@ async function hasValidJwtSession(request: NextRequest) {
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
+  const apiPermission = getRequiredApiPermission(pathname, request.method);
 
   const protectedPrefixes = [
     "/dashboard",
@@ -44,12 +50,28 @@ export default async function proxy(request: NextRequest) {
     "/c/",
   ];
 
-  const needsAuth = protectedPrefixes.some(
+  const needsAuth = Boolean(apiPermission) || protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix)
   );
 
   if (needsAuth) {
-    if (await hasValidJwtSession(request)) {
+    const jwtRole = await getJwtSessionRole(request);
+    if (jwtRole) {
+      const requiredPermission = apiPermission ?? getRequiredScreenPermission(pathname);
+      if (requiredPermission && !hasPermission(jwtRole, requiredPermission)) {
+        if (apiPermission) {
+          return NextResponse.json(
+            { error: "insufficient_permissions", required: requiredPermission },
+            { status: 403 }
+          );
+        }
+
+        const deniedUrl = new URL("/dashboard", request.url);
+        deniedUrl.searchParams.set("error", "insufficient_permissions");
+        deniedUrl.searchParams.set("required", requiredPermission);
+        return NextResponse.redirect(deniedUrl);
+      }
+
       return response;
     }
 
@@ -59,7 +81,27 @@ export default async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (user) {
+      const role = (user.user_metadata?.role as string | undefined) ?? "employee";
+      const requiredPermission = apiPermission ?? getRequiredScreenPermission(pathname);
+      if (requiredPermission && !hasPermission(role, requiredPermission)) {
+        if (apiPermission) {
+          return NextResponse.json(
+            { error: "insufficient_permissions", required: requiredPermission },
+            { status: 403 }
+          );
+        }
+
+        const deniedUrl = new URL("/dashboard", request.url);
+        deniedUrl.searchParams.set("error", "insufficient_permissions");
+        deniedUrl.searchParams.set("required", requiredPermission);
+        return NextResponse.redirect(deniedUrl);
+      }
+
       return response;
+    }
+
+    if (apiPermission) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const loginUrl = new URL("/login", request.url);

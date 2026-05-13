@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { expenseReports, employees, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/session";
+import { requireApiPermission } from "@/lib/apiRbac";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireApiPermission(_req, "approve_expenses");
+    if (response) return response;
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
     const reportId = parseInt(id);
