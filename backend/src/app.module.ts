@@ -1,8 +1,7 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +27,7 @@ import { QueuesModule } from './queues/queues.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { RateLimitMiddleware } from './common/rate-limits/rate-limit.middleware';
 
 @Module({
   imports: [
@@ -40,12 +40,6 @@ import { AppService } from './app.service';
       isGlobal: true,
       ttl: 300, // 5 minutes
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
     PassportModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
@@ -75,6 +69,10 @@ import { AppService } from './app.service';
     QueuesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, RateLimitMiddleware],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RateLimitMiddleware).forRoutes('*');
+  }
+}
