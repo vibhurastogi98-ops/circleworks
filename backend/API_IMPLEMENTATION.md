@@ -270,6 +270,52 @@ Retry-After: 30
 }
 ```
 
+## Section 25/35 Addendum: PII Masking in Audit Logs
+
+The `/compliance/audit-log` route returns immutable compliance audit events. Audit logs must never persist full SSNs, tax IDs, bank numbers, compensation amounts for non-HR actors, or password values.
+
+### Write-Time Masking
+
+Masking is applied before `audit_logs` insertion through `AuditLogService.createAuditLog`.
+Full sensitive values are never written to PostgreSQL, even in encrypted form.
+
+- Masking service: `maskPIIForAuditLog(fieldName, value, userRole)`
+- Sensitive field registry: `PII_FIELDS`
+- Sensitive fields: `ssn`, `tax_id`, `bank_routing`, `bank_account`, `salary`, `compensation`, `payRate`, `baseSalary`, `password`
+- Encrypted storage: masked audit values are encrypted with AES-256-GCM in `oldValueEncrypted`, `newValueEncrypted`, and `displayValueEncrypted`
+- Production configuration: `AUDIT_LOG_ENCRYPTION_KEY` is required
+
+### Field Masking Rules
+
+| Field type | Stored audit value |
+| --- | --- |
+| SSN / Tax ID | `***-**-1234` with only the last 4 digits visible |
+| Bank routing number | `***6789` with only the last 4 digits visible |
+| Bank account number | `***4821` with only the last 4 digits visible |
+| Salary / compensation, HR/Admin actor | `Updated from $X to $Y` |
+| Salary / compensation, non-HR actor | `Compensation updated` |
+| Password | `Password changed` |
+
+### Audit Log Display
+
+The API performs a second display-time guard for `/compliance/audit-log` responses:
+
+| Viewer role | Sensitive field display |
+| --- | --- |
+| HR/Admin | Masked value only, such as `***-**-1234` |
+| Non-HR | `[Sensitive field — masked]` for SSN, bank, and salary fields |
+
+### Storage Contract
+
+The `audit_logs` table stores audit-safe encrypted text only:
+
+- `oldValueEncrypted`
+- `newValueEncrypted`
+- `displayValueEncrypted`
+- `metadata`
+
+Application code must write audit events through `AuditLogService.createAuditLog` rather than writing directly to `audit_logs`.
+
 ## Webhook Implementation
 
 ### Registration

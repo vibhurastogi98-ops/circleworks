@@ -89,6 +89,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Paid Leave", href: "/compliance/paid-leave" },
       { label: "Handbook", href: "/compliance/handbook" },
       { label: "WOTC", href: "/compliance/wotc" },
+      { label: "Audit Log", href: "/compliance/audit-log" },
     ]
   },
   { 

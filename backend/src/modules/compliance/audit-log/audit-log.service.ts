@@ -1,0 +1,161 @@
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import { PrismaService } from '@/prisma/prisma.service';
+import { AuditLogPiiService } from './audit-log-pii.service';
+
+interface CreateAuditLogInput {
+  companyId: string;
+  actorId?: string;
+  actorName?: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  fieldName?: string;
+  oldValue?: unknown;
+  newValue?: unknown;
+  ipAddress?: string;
+  actorRole?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface ListAuditLogsInput {
+  companyId?: string;
+  viewerId: string;
+  viewerRole?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+const CIPHER_ALGORITHM = 'aes-256-gcm';
+
+@Injectable()
+export class AuditLogService {
+  private readonly encryptionKey: Buffer;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+    private readonly piiService: AuditLogPiiService,
+  ) {
+    const configuredKey = this.configService.get<string>('AUDIT_LOG_ENCRYPTION_KEY');
+    const fallbackKey = this.configService.get<string>('JWT_SECRET') || 'dev-audit-log-key';
+
+    if (!configuredKey && this.configService.get<string>('NODE_ENV') === 'production') {
+      throw new InternalServerErrorException('AUDIT_LOG_ENCRYPTION_KEY is required in production');
+    }
+
+    this.encryptionKey = createHash('sha256').update(configuredKey || fallbackKey).digest();
+  }
+
+  async createAuditLog(input: CreateAuditLogInput) {
+    const maskedChange = input.fieldName
+      ? this.piiService.maskChangeForAuditLog(input.fieldName, input.oldValue, input.newValue, input.actorRole)
+      : {
+          oldValue: this.stringifyForAudit(input.oldValue),
+          newValue: this.stringifyForAudit(input.newValue),
+          displayValue: undefined,
+        };
+
+    const auditLogDelegate = this.getAuditLogDelegate();
+
+    return auditLogDelegate.create({
+      data: {
+        companyId: input.companyId,
+        actorId: input.actorId,
+        actorName: input.actorName,
+        action: input.action,
+        resourceType: input.resourceType,
+        resourceId: input.resourceId,
+        fieldName: input.fieldName,
+        oldValueEncrypted: this.encrypt(maskedChange.oldValue),
+        newValueEncrypted: this.encrypt(maskedChange.newValue),
+        displayValueEncrypted: maskedChange.displayValue ? this.encrypt(maskedChange.displayValue) : null,
+        ipAddress: input.ipAddress,
+        metadata: input.metadata || {},
+      },
+    });
+  }
+
+  async listAuditLogs(input: ListAuditLogsInput) {
+    const viewerRole = await this.resolveViewerRole(input.viewerId, input.companyId, input.viewerRole);
+    const auditLogDelegate = this.getAuditLogDelegate();
+
+    const logs = await auditLogDelegate.findMany({
+      where: input.companyId ? { companyId: input.companyId } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(input.limit || 50, 100),
+      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+    });
+
+    return logs.map((log: any) => this.serializeAuditLog(log, viewerRole));
+  }
+
+  private serializeAuditLog(log: any, viewerRole: string) {
+    const oldValue = this.decrypt(log.oldValueEncrypted);
+    const newValue = this.decrypt(log.newValueEncrypted);
+    const displayValue = log.displayValueEncrypted ? this.decrypt(log.displayValueEncrypted) : undefined;
+
+    return {
+      id: log.id,
+      companyId: log.companyId,
+      actorId: log.actorId,
+      actorName: log.actorName,
+      action: log.action,
+      resourceType: log.resourceType,
+      resourceId: log.resourceId,
+      fieldName: log.fieldName,
+      oldValue: log.fieldName ? this.piiService.maskForAuditLogDisplay(log.fieldName, oldValue, viewerRole) : oldValue,
+      newValue: log.fieldName ? this.piiService.maskForAuditLogDisplay(log.fieldName, newValue, viewerRole) : newValue,
+      displayValue: log.fieldName
+        ? this.piiService.maskForAuditLogDisplay(log.fieldName, displayValue || newValue, viewerRole)
+        : displayValue,
+      ipAddress: log.ipAddress,
+      metadata: log.metadata,
+      createdAt: log.createdAt,
+    };
+  }
+
+  private async resolveViewerRole(userId: string, companyId?: string, requestRole?: string) {
+    if (requestRole === 'ADMIN') return 'admin';
+
+    if (!companyId) return requestRole || 'employee';
+
+    const membership = await this.prisma.userCompany.findFirst({
+      where: { userId, companyId, isActive: true },
+      select: { role: true },
+    });
+
+    return membership?.role || requestRole || 'employee';
+  }
+
+  private encrypt(value: unknown) {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv(CIPHER_ALGORITHM, this.encryptionKey, iv);
+    const ciphertext = Buffer.concat([cipher.update(this.stringifyForAudit(value), 'utf8'), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+
+    return [iv, authTag, ciphertext].map((part) => part.toString('base64')).join(':');
+  }
+
+  private decrypt(value?: string | null) {
+    if (!value) return '';
+
+    const [iv, authTag, ciphertext] = value.split(':').map((part) => Buffer.from(part, 'base64'));
+    const decipher = createDecipheriv(CIPHER_ALGORITHM, this.encryptionKey, iv);
+    decipher.setAuthTag(authTag);
+
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  }
+
+  private stringifyForAudit(value: unknown) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return JSON.stringify(value);
+  }
+
+  private getAuditLogDelegate() {
+    return (this.prisma as any).auditLog;
+  }
+}

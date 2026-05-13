@@ -42,6 +42,7 @@ model User {
   feedback              PerformanceFeedback[]
   approvals             Approval[]
   automations           Automation[]
+  auditLogs             AuditLog[]
 
   @@index([email])
   @@index([clerkId])
@@ -106,6 +107,7 @@ model Company {
   approvals             Approval[]
   automations           Automation[]
   webhooks              Webhook[]
+  auditLogs             AuditLog[]
 
   @@index([ein])
 }
@@ -846,6 +848,33 @@ model Approval {
 
   @@index([companyId])
   @@index([approverId])
+}
+
+// ============== COMPLIANCE AUDIT LOGS ==============
+model AuditLog {
+  id                    String      @id @default(cuid())
+  companyId             String
+  actorId               String?
+  actorName             String?
+  action                String
+  resourceType          String
+  resourceId            String?
+  fieldName             String?
+  oldValueEncrypted     String?
+  newValueEncrypted     String?
+  displayValueEncrypted String?
+  ipAddress             String?
+  metadata              Json?
+  createdAt             DateTime    @default(now())
+
+  company               Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actor                 User?       @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+  @@index([companyId, createdAt])
+  @@index([actorId])
+  @@index([resourceType, resourceId])
+  @@index([fieldName])
 }
 
 // ============== AUTOMATIONS ==============
