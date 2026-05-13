@@ -1,142 +1,240 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Calculator, AlertCircle, FileText, CheckCircle2, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { Calculator, AlertCircle, FileText, CheckCircle2, Loader2 } from "lucide-react";
+
+type QuarterKey = 1 | 2 | 3 | 4;
+
+type TaxLine = {
+  taxType: string;
+  expected: number;
+  actual: number;
+};
+
+const QUARTERS: { key: QuarterKey; label: string; range: string; rows: TaxLine[] }[] = [
+  {
+    key: 1,
+    label: "Q1 2026",
+    range: "Jan 1 – Mar 31, 2026",
+    rows: [
+      { taxType: "Federal income tax withheld", expected: 125_400, actual: 125_400 },
+      { taxType: "Social Security tax", expected: 78_250, actual: 78_250 },
+      { taxType: "Medicare tax", expected: 18_300, actual: 18_300 },
+      { taxType: "State income tax (CA)", expected: 45_600, actual: 45_200 },
+    ],
+  },
+  {
+    key: 2,
+    label: "Q2 2026",
+    range: "Apr 1 – Jun 30, 2026",
+    rows: [
+      { taxType: "Federal income tax withheld", expected: 128_100, actual: 128_100 },
+      { taxType: "Social Security tax", expected: 79_800, actual: 79_800 },
+      { taxType: "Medicare tax", expected: 18_650, actual: 18_650 },
+      { taxType: "State income tax (CA)", expected: 46_200, actual: 46_200 },
+    ],
+  },
+  {
+    key: 3,
+    label: "Q3 2026",
+    range: "Jul 1 – Sep 30, 2026",
+    rows: [
+      { taxType: "Federal income tax withheld", expected: 129_400, actual: 129_400 },
+      { taxType: "Social Security tax", expected: 80_100, actual: 80_050 },
+      { taxType: "Medicare tax", expected: 18_900, actual: 18_900 },
+      { taxType: "State income tax (CA)", expected: 46_500, actual: 46_500 },
+    ],
+  },
+  {
+    key: 4,
+    label: "Q4 2026",
+    range: "Oct 1 – Dec 31, 2026",
+    rows: [
+      { taxType: "Federal income tax withheld", expected: 130_200, actual: 130_200 },
+      { taxType: "Social Security tax", expected: 80_400, actual: 80_400 },
+      { taxType: "Medicare tax", expected: 19_050, actual: 19_050 },
+      { taxType: "State income tax (CA)", expected: 46_800, actual: 46_800 },
+    ],
+  },
+];
+
+function money(n: number) {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
 
 export default function QuarterlyReconciliationPage() {
-  const [generating, setGenerating] = useState(false);
-  const [generated, setGenerated] = useState(false);
+  const [activeQ, setActiveQ] = useState<QuarterKey>(1);
+  const [reconcileBusy, setReconcileBusy] = useState<QuarterKey | null>(null);
+  const [reconciled, setReconciled] = useState<Record<QuarterKey, boolean>>({
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+  });
+  const [worksheetBusy, setWorksheetBusy] = useState(false);
+  const [worksheetDone, setWorksheetDone] = useState(false);
 
-  const [reconciling, setReconciling] = useState(false);
-  const [reconciled, setReconciled] = useState(false);
+  const quarter = QUARTERS.find((q) => q.key === activeQ)!;
 
-  const handleGenerate = () => {
-    setGenerating(true);
+  const handleReconcile = (q: QuarterKey) => {
+    setReconcileBusy(q);
     setTimeout(() => {
-      setGenerating(false);
-      setGenerated(true);
-      setTimeout(() => setGenerated(false), 3000);
-    }, 1500);
+      setReconcileBusy(null);
+      setReconciled((prev) => ({ ...prev, [q]: true }));
+    }, 1600);
   };
 
-  const handleReconcile = () => {
-    setReconciling(true);
+  const handleWorksheet = () => {
+    setWorksheetBusy(true);
     setTimeout(() => {
-      setReconciling(false);
-      setReconciled(true);
-    }, 2000);
+      setWorksheetBusy(false);
+      setWorksheetDone(true);
+      const body = [
+        "Form 941 reconciliation worksheet (stub)",
+        `Quarter: ${quarter.label}`,
+        "",
+        "Totals from CircleWorks liability vs. deposit registers should be reviewed before filing.",
+      ].join("\n");
+      const blob = new Blob([body], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `941-reconciliation-${quarter.label.replace(/\s+/g, "-").toLowerCase()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setTimeout(() => setWorksheetDone(false), 2500);
+    }, 1200);
   };
+
+  const totals = quarter.rows.reduce(
+    (a, r) => ({
+      expected: a.expected + r.expected,
+      actual: a.actual + r.actual,
+    }),
+    { expected: 0, actual: 0 }
+  );
+  const variance = totals.actual - totals.expected;
 
   return (
     <div className="flex flex-col gap-6 pb-24">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <Calculator size={20} className="text-blue-600 dark:text-blue-400" />
             </div>
-            Quarterly Tax Reconciliation
+            Quarterly tax reconciliation
           </h1>
-          <p className="text-sm text-slate-500 mt-1 ml-[52px]">Reconcile expected deposits vs. actual deposits to prepare for Form 941.</p>
+          <p className="text-sm text-slate-500 mt-1 ml-[52px]">
+            Compare expected deposits (from payroll calculations) to actual deposits (from bank / agency records). Discrepancies
+            highlight Form 941 risk.
+          </p>
         </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={handleGenerate}
-            disabled={generating || generated}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleWorksheet}
+            disabled={worksheetBusy || worksheetDone}
             className={`px-5 py-2.5 text-sm font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${
-              generated ? "bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" : "bg-white border border-slate-200 text-slate-700 dark:text-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50"
+              worksheetDone
+                ? "bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+                : "bg-white border border-slate-200 text-slate-700 dark:text-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50"
             }`}
           >
-            {generating ? <Loader2 size={16} className="animate-spin" /> : generated ? <CheckCircle2 size={16} /> : <FileText size={16} />}
-            {generating ? "Generating..." : generated ? "Downloaded!" : "Generate 941 Worksheet"}
-          </button>
-          <button 
-            onClick={handleReconcile}
-            disabled={reconciling || reconciled}
-            className={`px-5 py-2.5 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transition-colors ${
-              reconciled ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {reconciling ? <Loader2 size={16} className="animate-spin" /> : reconciled ? <CheckCircle2 size={16} /> : null}
-            {reconciling ? "Reconciling..." : reconciled ? "Reconciled Q1" : "Reconcile Q1 Taxes"}
+            {worksheetBusy ? <Loader2 size={16} className="animate-spin" /> : worksheetDone ? <CheckCircle2 size={16} /> : <FileText size={16} />}
+            {worksheetBusy ? "Generating…" : worksheetDone ? "Downloaded" : `Generate 941 worksheet (${quarter.label})`}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
-            <h3 className="font-bold text-slate-900 dark:text-white">Q1 2026 Tax Deposits</h3>
-            <span className="text-sm text-slate-500">Jan 1 - Mar 31, 2026</span>
+      <div className="flex flex-wrap gap-2">
+        {QUARTERS.map((q) => (
+          <button
+            key={q.key}
+            type="button"
+            onClick={() => setActiveQ(q.key)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${
+              activeQ === q.key
+                ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+            }`}
+          >
+            {q.label}
+            {reconciled[q.key] ? " · reconciled" : ""}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-white">{quarter.label} tax deposits</h3>
+            <span className="text-sm text-slate-500">{quarter.range}</span>
           </div>
-          <div className="p-0 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
-                  <th className="text-left px-4 py-3 font-semibold">Tax Type</th>
-                  <th className="text-right px-4 py-3 font-semibold">Expected Deposits (Calc)</th>
-                  <th className="text-right px-4 py-3 font-semibold">Actual Deposits (Records)</th>
-                  <th className="text-right px-4 py-3 font-semibold">Variance</th>
-                  <th className="text-center px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-900 dark:text-slate-300">
-                <tr>
-                  <td className="px-4 py-3 font-medium">Federal Income Tax</td>
-                  <td className="px-4 py-3 text-right font-mono">$125,400.00</td>
-                  <td className="px-4 py-3 text-right font-mono">$125,400.00</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-500">$0.00</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
-                      <CheckCircle2 size={12} /> Matched
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-medium">Social Security Tax</td>
-                  <td className="px-4 py-3 text-right font-mono">$78,250.00</td>
-                  <td className="px-4 py-3 text-right font-mono">$78,250.00</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-500">$0.00</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
-                      <CheckCircle2 size={12} /> Matched
-                    </span>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-medium">Medicare Tax</td>
-                  <td className="px-4 py-3 text-right font-mono">$18,300.00</td>
-                  <td className="px-4 py-3 text-right font-mono">$18,300.00</td>
-                  <td className="px-4 py-3 text-right font-mono text-slate-500">$0.00</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
-                      <CheckCircle2 size={12} /> Matched
-                    </span>
-                  </td>
-                </tr>
-                <tr className="bg-red-50/50 dark:bg-red-900/10">
-                  <td className="px-4 py-3 font-medium text-red-900 dark:text-red-400">State Income Tax (CA)</td>
-                  <td className="px-4 py-3 text-right font-mono text-red-900 dark:text-red-400">$45,600.00</td>
-                  <td className="px-4 py-3 text-right font-mono text-red-900 dark:text-red-400">$45,200.00</td>
-                  <td className="px-4 py-3 text-right font-mono text-red-600 font-bold">-$400.00</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 text-red-600 text-xs font-bold bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded">
-                      <AlertCircle size={12} /> Discrepancy
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot className="bg-slate-50 dark:bg-slate-800/80 font-bold border-t-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
-                <tr>
-                  <td className="px-4 py-3">Total</td>
-                  <td className="px-4 py-3 text-right font-mono">$267,550.00</td>
-                  <td className="px-4 py-3 text-right font-mono">$267,150.00</td>
-                  <td className="px-4 py-3 text-right font-mono text-red-600">-$400.00</td>
-                  <td className="px-4 py-3 text-center"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleReconcile(quarter.key)}
+            disabled={reconcileBusy === quarter.key || reconciled[quarter.key]}
+            className={`px-5 py-2.5 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 justify-center disabled:opacity-70 disabled:cursor-not-allowed transition-colors ${
+              reconciled[quarter.key] ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {reconcileBusy === quarter.key ? <Loader2 size={16} className="animate-spin" /> : reconciled[quarter.key] ? <CheckCircle2 size={16} /> : null}
+            {reconcileBusy === quarter.key
+              ? "Reconciling…"
+              : reconciled[quarter.key]
+                ? `Reconciled ${quarter.label}`
+                : `Reconcile ${quarter.label} taxes`}
+          </button>
+        </div>
+        <div className="p-0 overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                <th className="text-left px-4 py-3 font-semibold">Tax type</th>
+                <th className="text-right px-4 py-3 font-semibold">Expected (calc)</th>
+                <th className="text-right px-4 py-3 font-semibold">Actual (records)</th>
+                <th className="text-right px-4 py-3 font-semibold">Variance</th>
+                <th className="text-center px-4 py-3 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-900 dark:text-slate-300">
+              {quarter.rows.map((row) => {
+                const v = row.actual - row.expected;
+                const bad = Math.abs(v) > 0.009;
+                return (
+                  <tr key={row.taxType} className={bad ? "bg-red-50/50 dark:bg-red-900/10" : undefined}>
+                    <td className={`px-4 py-3 font-medium ${bad ? "text-red-900 dark:text-red-400" : ""}`}>{row.taxType}</td>
+                    <td className={`px-4 py-3 text-right font-mono ${bad ? "text-red-900 dark:text-red-400" : ""}`}>{money(row.expected)}</td>
+                    <td className={`px-4 py-3 text-right font-mono ${bad ? "text-red-900 dark:text-red-400" : ""}`}>{money(row.actual)}</td>
+                    <td className={`px-4 py-3 text-right font-mono font-bold ${bad ? "text-red-600" : "text-slate-500"}`}>{money(v)}</td>
+                    <td className="px-4 py-3 text-center">
+                      {bad ? (
+                        <span className="inline-flex items-center gap-1 text-red-600 text-xs font-bold bg-red-50 dark:bg-red-500/10 px-2 py-1 rounded">
+                          <AlertCircle size={12} /> Discrepancy
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
+                          <CheckCircle2 size={12} /> Matched
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="bg-slate-50 dark:bg-slate-800/80 font-bold border-t-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+              <tr>
+                <td className="px-4 py-3">Quarter total</td>
+                <td className="px-4 py-3 text-right font-mono">{money(totals.expected)}</td>
+                <td className="px-4 py-3 text-right font-mono">{money(totals.actual)}</td>
+                <td className={`px-4 py-3 text-right font-mono ${Math.abs(variance) > 0.009 ? "text-red-600" : "text-slate-500"}`}>
+                  {money(variance)}
+                </td>
+                <td className="px-4 py-3 text-center" />
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
     </div>

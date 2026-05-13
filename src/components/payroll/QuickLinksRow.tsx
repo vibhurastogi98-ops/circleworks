@@ -10,7 +10,9 @@ import {
   Building2,
   Scale,
   ArrowUpRight,
-  Map
+  Map,
+  FileSpreadsheet,
+  CalendarRange,
 } from "lucide-react";
 
 interface QuickLink {
@@ -71,6 +73,22 @@ const QUICK_LINKS: QuickLink[] = [
     color: "text-rose-600 dark:text-rose-400",
     bgColor: "bg-rose-50 dark:bg-rose-500/10",
   },
+  {
+    label: "Year-End W-2",
+    description: "Review, file, and W-3",
+    href: "/payroll/year-end",
+    icon: FileSpreadsheet,
+    color: "text-indigo-600 dark:text-indigo-400",
+    bgColor: "bg-indigo-50 dark:bg-indigo-500/10",
+  },
+  {
+    label: "Quarterly 941 recon",
+    description: "Deposits vs. liability",
+    href: "/payroll/quarterly-reconciliation",
+    icon: CalendarRange,
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-50 dark:bg-teal-500/10",
+  },
 ];
 
 export default function QuickLinksRow() {
@@ -88,7 +106,7 @@ export default function QuickLinksRow() {
         Jump to commonly used payroll features
       </p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
         {QUICK_LINKS.map((link, idx) => (
           <Link
             key={link.label}

@@ -148,5 +148,34 @@ export function getVersionContract() {
       deprecation_headers: ["Deprecation: true", "Sunset: <ISO-date>"],
     },
     docs: "https://docs.circleworks.io/api",
+    rate_limits: {
+      package: "rate-limiter-flexible",
+      storage: "Redis",
+      headers: [
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Reset",
+        "Retry-After",
+      ],
+      tiers: [
+        { type: "auth_login_signup", scope: "ip", limit: 5, window: "1 minute" },
+        { type: "password_reset_mfa", scope: "ip", limit: 3, window: "15 minutes" },
+        { type: "general_api", scope: "user", limit: 100, window: "1 minute" },
+        { type: "payroll_processing", scope: "company", limit: 5, window: "1 minute" },
+        { type: "bulk_operations", scope: "company", limit: 10, window: "1 hour" },
+        { type: "report_generation", scope: "user", limit: 20, window: "1 hour" },
+        { type: "company_aggregate", scope: "company", limit: 1000, window: "1 minute" },
+        { type: "public_api", scope: "developer_key", limit: 60, window: "1 minute" },
+      ],
+      error: {
+        status: 429,
+        body: {
+          error: "rate_limit_exceeded",
+          limit: "number",
+          reset_at: "ISO8601",
+          retry_after_seconds: "number",
+        },
+      },
+    },
   };
 }

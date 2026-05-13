@@ -34,7 +34,13 @@ export class EmailDeliveryConsumer extends WorkerHost {
 export class PdfGenerationConsumer extends WorkerHost {
   private readonly logger = new Logger(PdfGenerationConsumer.name);
   async process(job: Job): Promise<void> {
-    this.logger.debug(`pdf-generation ${job.id}`);
+    if (job.name === "payroll-run-report") {
+      this.logger.log(
+        `pdf-generation payroll-run-report job=${job.id} runId=${(job.data as { runId?: string })?.runId} companyId=${(job.data as { companyId?: number })?.companyId}`
+      );
+      return;
+    }
+    this.logger.debug(`pdf-generation ${job.id} name=${job.name}`);
   }
 }
 

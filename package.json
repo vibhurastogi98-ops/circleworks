@@ -26,6 +26,7 @@
     "@types/uuid": "^10.0.0",
     "@xyflow/react": "^12.10.2",
     "antigravity": "^0.0.0",
+    "bullmq": "^5.76.8",
     "canvas-confetti": "^1.9.4",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.1",

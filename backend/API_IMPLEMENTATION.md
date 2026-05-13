@@ -204,9 +204,69 @@ Response format:
 ### Rate Limit (429)
 ```json
 {
-  "statusCode": 429,
-  "message": "Too many requests. Try again in 30 seconds.",
-  "error": "RATE_LIMIT"
+  "error": "rate_limit_exceeded",
+  "limit": 100,
+  "reset_at": "2026-05-13T12:30:00.000Z",
+  "retry_after_seconds": 30
+}
+```
+
+## Section 35: API Rate Limiting
+
+All `api.circleworks.com/v1` endpoints are protected by Redis-backed rate limits using `rate-limiter-flexible`.
+The limiter runs as a global Nest middleware before route handlers and emits rate-limit metadata headers on API responses.
+
+### Storage and Algorithm
+
+- Package: `rate-limiter-flexible`
+- Storage: Redis via `REDIS_URL`
+- Fallback: in-memory limiter for local development when Redis is not configured
+- Window model: Redis-backed sliding-window style counters per endpoint category and identity scope
+
+### Rate Limit Tiers
+
+| Endpoint type | Scope | Limit |
+| --- | --- | --- |
+| Auth endpoints (`/auth/login`, `/auth/signup`, `/auth/register`) | IP | 5 requests / minute |
+| Auth sensitive (`/auth/forgot-password`, `/auth/reset-password`, `/auth/mfa/*`) | IP | 3 requests / 15 minutes |
+| General authenticated API | User | 100 requests / minute |
+| Payroll processing writes | Company | 5 requests / minute |
+| Bulk operations (`/batch`, `/bulk`, `/import`) | Company | 10 requests / hour |
+| Report generation/export writes | User | 20 requests / hour |
+| Company aggregate | Company | 1,000 requests / minute |
+| Public API developer keys (`x-api-key`) | Key | 60 requests / minute |
+
+### Redis Key Patterns
+
+- IP-based: `rl:ip:{ip}:{rule}`
+- User-based: `rl:user:{userId}:{rule}`
+- Company-based: `rl:company:{companyId}:{rule}`
+- Public API key-based: `rl:key:{apiKey}:{rule}`
+
+### Response Headers
+
+Every limited API response includes the most constrained active quota:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 74
+X-RateLimit-Reset: 1778675400
+```
+
+When a request is rejected, the response also includes:
+
+```http
+Retry-After: 30
+```
+
+### 429 Response Body
+
+```json
+{
+  "error": "rate_limit_exceeded",
+  "limit": 100,
+  "reset_at": "2026-05-13T12:30:00.000Z",
+  "retry_after_seconds": 30
 }
 ```
 

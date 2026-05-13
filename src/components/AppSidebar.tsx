@@ -49,6 +49,8 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Supplemental Pay", href: "/payroll/supplemental-payments" },
       { label: "Union Payroll", href: "/payroll/union" },
       { label: "GL Mapping", href: "/payroll/gl-mapping" },
+      { label: "Year-End W-2", href: "/payroll/year-end" },
+      { label: "Quarterly Reconciliation", href: "/payroll/quarterly-reconciliation" },
     ]
   },
   {

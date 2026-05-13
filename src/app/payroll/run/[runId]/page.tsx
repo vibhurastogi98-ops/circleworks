@@ -1,5 +1,5 @@
 import React from "react";
-import { Download, FileText, CheckCircle2, Building2 } from "lucide-react";
+import { FileText, CheckCircle2, Building2 } from "lucide-react";
 import Link from "next/link";
 import RunExportButton from "@/components/payroll/run/RunExportButton";
 import PayrollReportButton from "@/components/payroll/run/PayrollReportButton";
