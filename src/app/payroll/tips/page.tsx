@@ -199,6 +199,7 @@ export default function TipsPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("reporting");
+  const [importProvider, setImportProvider] = useState<TipRecord["source"]>("Square");
   const [poolModalOpen, setPoolModalOpen] = useState(false);
   const [newPool, setNewPool] = useState({
     name: "",
@@ -237,8 +238,8 @@ export default function TipsPage() {
     if (!file) return;
     const text = await file.text();
     const importedRows = parseCsv(text);
-    mutation.mutate({ action: "import_csv", provider: "Square", rows: importedRows });
-    toast.success(`Imported ${importedRows.length} POS tip rows`);
+    mutation.mutate({ action: "import_csv", provider: importProvider, rows: importedRows });
+    toast.success(`Imported ${importedRows.length} ${importProvider} tip rows`);
   };
 
   const download8846 = () => {
@@ -313,6 +314,16 @@ export default function TipsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <select
+            value={importProvider}
+            onChange={(event) => setImportProvider(event.target.value as TipRecord["source"])}
+            className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+            aria-label="POS import source"
+          >
+            <option value="Square">Square</option>
+            <option value="Toast">Toast</option>
+            <option value="Clover">Clover</option>
+          </select>
           <input
             ref={fileInputRef}
             type="file"
@@ -326,7 +337,7 @@ export default function TipsPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
             <Upload size={16} />
-            Import POS CSV
+            Import {importProvider} CSV
           </button>
           <button
             type="button"
@@ -700,6 +711,28 @@ export default function TipsPage() {
                   placeholder="Pool amount"
                   className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">
+                  Pool state
+                </label>
+                <select
+                  value={newPool.state}
+                  onChange={(event) => setNewPool((pool) => ({ ...pool, state: event.target.value }))}
+                  className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                >
+                  {["CA", "NY", "MA", "TX", "CO", "IL"].map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
+                {["CA", "NY", "MA"].includes(newPool.state) && (
+                  <p className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    {newPool.state} has state-specific tip pooling restrictions; exclude owners, managers, and supervisors.
+                  </p>
+                )}
               </div>
               <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
                 <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">Participating Employees</p>
