@@ -569,6 +569,7 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
   { prefix: "/api/payroll/union", permission: "view_union_payroll" },
   { method: "POST", prefix: "/api/payroll/union", permission: "manage_union_payroll" },
   { prefix: "/api/payroll/supplemental-payments", permission: "manage_earnings" },
+  { prefix: "/api/payroll/royalty-schedules", permission: "manage_earnings" },
   { prefix: "/api/payroll/retro-calc", permission: "manage_earnings" },
   { method: "GET", prefix: "/api/payroll/tips", permission: "view_payroll" },
   { prefix: "/api/payroll/tips", permission: "manage_earnings" },

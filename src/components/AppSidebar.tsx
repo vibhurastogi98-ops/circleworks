@@ -57,6 +57,7 @@ const NAV_STRUCTURE: NavItem[] = [
     children: [
       { label: "Run Payroll", href: "/payroll/run" },
       { label: "Pay Schedule", href: "/payroll/schedule" },
+      { label: "Supplemental Pay", href: "/payroll/supplemental-payments" },
       { label: "History", href: "/payroll/history" },
       { label: "GL Mapping", href: "/payroll/gl-mapping" },
       { label: "Contractors", href: "/contractors" },

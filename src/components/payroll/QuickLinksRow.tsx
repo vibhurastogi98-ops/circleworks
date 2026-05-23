@@ -8,6 +8,7 @@ import {
   Briefcase,
   CalendarClock,
   Building2,
+  Music,
   Scale,
   ArrowUpRight,
 } from "lucide-react";
@@ -37,6 +38,14 @@ const QUICK_LINKS: QuickLink[] = [
     icon: Briefcase,
     color: "text-cyan-600 dark:text-cyan-400",
     bgColor: "bg-cyan-50 dark:bg-cyan-500/10",
+  },
+  {
+    label: "Supplemental Pay",
+    description: "Royalties & residuals",
+    href: "/payroll/supplemental-payments",
+    icon: Music,
+    color: "text-fuchsia-600 dark:text-fuchsia-400",
+    bgColor: "bg-fuchsia-50 dark:bg-fuchsia-500/10",
   },
   {
     label: "Pay Schedules",
@@ -79,7 +88,7 @@ export default function QuickLinksRow() {
         Jump to commonly used payroll features
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         {QUICK_LINKS.map((link, idx) => (
           <Link
             key={link.label}

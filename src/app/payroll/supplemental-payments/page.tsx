@@ -30,6 +30,59 @@ const PAYMENT_TYPE_CONFIG: Record<SupplementalPaymentType, { icon: React.Element
   "Signing Bonus": { icon: Gift, color: "text-pink-600", bgColor: "bg-pink-50 dark:bg-pink-900/20" },
 };
 
+const PAYMENT_TYPES = Object.keys(PAYMENT_TYPE_CONFIG) as SupplementalPaymentType[];
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+type NewPaymentForm = {
+  recipientName: string;
+  recipientType: "W-2 Employee" | "1099 Contractor";
+  paymentType: SupplementalPaymentType;
+  projectTitle: string;
+  description: string;
+  amount: string;
+  scheduledDate: string;
+  taxTreatment: string;
+  notes: string;
+};
+
+type NewScheduleForm = {
+  recipientName: string;
+  recipientType: "W-2 Employee" | "1099 Contractor";
+  projectTitle: string;
+  royaltyType: "Percentage" | "Flat Per Unit";
+  rate: string;
+  rateUnit: string;
+  unitsThreshold: string;
+  frequency: "Monthly" | "Quarterly" | "Per Event" | "One-Time";
+  advanceBalance: string;
+  nextPaymentDate: string;
+};
+
+const emptyPaymentForm = (): NewPaymentForm => ({
+  recipientName: "",
+  recipientType: "W-2 Employee",
+  paymentType: "Royalty",
+  projectTitle: "",
+  description: "",
+  amount: "",
+  scheduledDate: todayIso(),
+  taxTreatment: "",
+  notes: "",
+});
+
+const emptyScheduleForm = (): NewScheduleForm => ({
+  recipientName: "",
+  recipientType: "W-2 Employee",
+  projectTitle: "",
+  royaltyType: "Percentage",
+  rate: "",
+  rateUnit: "% of net sales",
+  unitsThreshold: "0",
+  frequency: "Quarterly",
+  advanceBalance: "0",
+  nextPaymentDate: "",
+});
+
 /* ─── Tabs ─────────────────────────────────────────────────────── */
 
 type Tab = "payments" | "schedules" | "residuals" | "tax";
@@ -305,6 +358,185 @@ function ScheduleDrawer({ schedule, onClose }: { schedule: RoyaltySchedule; onCl
   );
 }
 
+function ModalShell({ title, description, children, onClose }: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[210] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-start justify-between border-b border-slate-200 p-6 dark:border-slate-800">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+            <p className="mt-1 text-sm text-slate-500">{description}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <X size={18} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CreatePaymentModal({
+  form,
+  saving,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  form: NewPaymentForm;
+  saving: boolean;
+  onChange: (patch: Partial<NewPaymentForm>) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <ModalShell
+      title="New supplemental payment"
+      description="Add a royalty, residual, advance, commission, or signing bonus earning."
+      onClose={onClose}
+    >
+      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Recipient name
+          <input value={form.recipientName} onChange={(e) => onChange({ recipientName: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Recipient type
+          <select value={form.recipientType} onChange={(e) => onChange({ recipientType: e.target.value as NewPaymentForm["recipientType"] })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            <option>W-2 Employee</option>
+            <option>1099 Contractor</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Payment type
+          <select value={form.paymentType} onChange={(e) => onChange({ paymentType: e.target.value as SupplementalPaymentType })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            {PAYMENT_TYPES.map((type) => <option key={type}>{type}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Amount
+          <input type="number" min="0" step="0.01" value={form.amount} onChange={(e) => onChange({ amount: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Project / title
+          <input value={form.projectTitle} onChange={(e) => onChange({ projectTitle: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Scheduled date
+          <input type="date" value={form.scheduledDate} onChange={(e) => onChange({ scheduledDate: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Description
+          <input value={form.description} onChange={(e) => onChange({ description: e.target.value })} placeholder="Q2 royalties, SAG-AFTRA rerun residual, tiered commission..." className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Tax treatment override
+          <input value={form.taxTreatment} onChange={(e) => onChange({ taxTreatment: e.target.value })} placeholder="Leave blank to auto-apply supplemental rate, 1099-MISC Box 2, or advance treatment" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Notes
+          <textarea value={form.notes} onChange={(e) => onChange({ notes: e.target.value })} rows={3} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+      </div>
+      <div className="flex justify-end gap-3 border-t border-slate-200 p-6 dark:border-slate-800">
+        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
+        <button onClick={onSubmit} disabled={saving} className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60">
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Create payment
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function CreateScheduleModal({
+  form,
+  saving,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  form: NewScheduleForm;
+  saving: boolean;
+  onChange: (patch: Partial<NewScheduleForm>) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <ModalShell
+      title="New royalty schedule"
+      description="Track royalty rate, units threshold, frequency, and advance recoupment."
+      onClose={onClose}
+    >
+      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Recipient name
+          <input value={form.recipientName} onChange={(e) => onChange({ recipientName: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Recipient type
+          <select value={form.recipientType} onChange={(e) => onChange({ recipientType: e.target.value as NewScheduleForm["recipientType"] })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            <option>W-2 Employee</option>
+            <option>1099 Contractor</option>
+          </select>
+        </label>
+        <label className="sm:col-span-2 flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Title / project
+          <input value={form.projectTitle} onChange={(e) => onChange({ projectTitle: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Royalty type
+          <select value={form.royaltyType} onChange={(e) => onChange({ royaltyType: e.target.value as NewScheduleForm["royaltyType"], rateUnit: e.target.value === "Percentage" ? "% of net sales" : "per unit" })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            <option>Percentage</option>
+            <option>Flat Per Unit</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Rate
+          <input type="number" min="0" step="0.001" value={form.rate} onChange={(e) => onChange({ rate: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Rate unit
+          <input value={form.rateUnit} onChange={(e) => onChange({ rateUnit: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Frequency
+          <select value={form.frequency} onChange={(e) => onChange({ frequency: e.target.value as NewScheduleForm["frequency"] })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            <option>Monthly</option>
+            <option>Quarterly</option>
+            <option>Per Event</option>
+            <option>One-Time</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Units threshold
+          <input type="number" min="0" value={form.unitsThreshold} onChange={(e) => onChange({ unitsThreshold: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Advance balance
+          <input type="number" min="0" step="0.01" value={form.advanceBalance} onChange={(e) => onChange({ advanceBalance: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          Next payment date
+          <input type="date" value={form.nextPaymentDate} onChange={(e) => onChange({ nextPaymentDate: e.target.value })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm normal-case tracking-normal text-slate-900 outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+        </label>
+      </div>
+      <div className="flex justify-end gap-3 border-t border-slate-200 p-6 dark:border-slate-800">
+        <button onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
+        <button onClick={onSubmit} disabled={saving} className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60">
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Create schedule
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
 /* ─── Main Page ────────────────────────────────────────────────── */
 
 export default function SupplementalPaymentsPage() {
@@ -315,26 +547,63 @@ export default function SupplementalPaymentsPage() {
   const [selectedSchedule, setSelectedSchedule] = useState<RoyaltySchedule | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [payments, setPayments] = useState<SupplementalPayment[]>(mockSupplementalPayments);
+  const [schedules, setSchedules] = useState<RoyaltySchedule[]>(mockRoyaltySchedules);
   const [loading, setLoading] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState<NewPaymentForm>(emptyPaymentForm);
+  const [scheduleForm, setScheduleForm] = useState<NewScheduleForm>(emptyScheduleForm);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   useEffect(() => {
-    async function fetchPayments() {
+    async function fetchSupplementalData() {
       try {
-        const res = await fetch("/api/payroll/supplemental-payments");
-        const data = await res.json();
-        if (data.success && data.payments?.length > 0) {
-          setPayments(data.payments);
+        const [paymentsRes, schedulesRes] = await Promise.all([
+          fetch("/api/payroll/supplemental-payments"),
+          fetch("/api/payroll/royalty-schedules"),
+        ]);
+        const [paymentsData, schedulesData] = await Promise.all([
+          paymentsRes.json(),
+          schedulesRes.json(),
+        ]);
+
+        if (paymentsData.success && paymentsData.payments?.length > 0) {
+          setPayments(paymentsData.payments);
+        }
+
+        if (schedulesData.success && schedulesData.schedules?.length > 0) {
+          setSchedules(schedulesData.schedules);
         }
       } catch (error) {
-        console.error("Failed to load supplemental payments:", error);
+        console.error("Failed to load supplemental payment data:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchPayments();
+    fetchSupplementalData();
   }, []);
 
-  const stats = getSupplementalStats();
+  const stats = useMemo(() => {
+    const pending = payments.filter(p => p.status === "Pending");
+    const approved = payments.filter(p => p.status === "Approved");
+    const paid = payments.filter(p => p.status === "Paid");
+    const activeSchedules = schedules.filter(s => s.status === "Active");
+    const unrecoupedAdvances = schedules.reduce((sum, s) => sum + Math.max(0, s.advanceBalance - s.totalRecouped), 0);
+
+    return {
+      ...getSupplementalStats(),
+      pendingCount: pending.length,
+      pendingTotal: pending.reduce((s, p) => s + p.amount, 0),
+      approvedCount: approved.length,
+      approvedTotal: approved.reduce((s, p) => s + p.amount, 0),
+      paidCount: paid.length,
+      paidTotal: paid.reduce((s, p) => s + p.amount, 0),
+      activeSchedules: activeSchedules.length,
+      unrecoupedAdvances,
+      residualsPending: mockResidualPayments.filter(r => r.status === "Imported" || r.status === "Verified").length,
+    };
+  }, [payments, schedules]);
   const fmtMoney = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(val);
 
@@ -354,6 +623,72 @@ export default function SupplementalPaymentsPage() {
     setIsImporting(false);
   };
 
+  const createPayment = async () => {
+    if (!paymentForm.recipientName || !paymentForm.amount) {
+      toast.error("Recipient name and amount are required");
+      return;
+    }
+
+    setSavingPayment(true);
+    try {
+      const res = await fetch("/api/payroll/supplemental-payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: 1,
+          ...paymentForm,
+          amount: Number(paymentForm.amount),
+          description: paymentForm.description || `${paymentForm.paymentType} payment for ${paymentForm.recipientName}`,
+          taxTreatment: paymentForm.taxTreatment || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to create payment");
+      setPayments((current) => [data.payment, ...current]);
+      setPaymentForm(emptyPaymentForm());
+      setShowPaymentModal(false);
+      toast.success("Supplemental payment created", { description: `${paymentForm.paymentType} queued for ${paymentForm.recipientName}.` });
+    } catch (error) {
+      toast.error("Could not create payment", { description: error instanceof Error ? error.message : "Try again." });
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const createSchedule = async () => {
+    if (!scheduleForm.recipientName || !scheduleForm.projectTitle || !scheduleForm.rate) {
+      toast.error("Recipient, project, and rate are required");
+      return;
+    }
+
+    setSavingSchedule(true);
+    try {
+      const res = await fetch("/api/payroll/royalty-schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: 1,
+          ...scheduleForm,
+          rate: Number(scheduleForm.rate),
+          unitsThreshold: Number(scheduleForm.unitsThreshold || 0),
+          advanceBalance: Number(scheduleForm.advanceBalance || 0),
+          status: "Active",
+          nextPaymentDate: scheduleForm.nextPaymentDate || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to create schedule");
+      setSchedules((current) => [data.schedule, ...current]);
+      setScheduleForm(emptyScheduleForm());
+      setShowScheduleModal(false);
+      toast.success("Royalty schedule created", { description: `${scheduleForm.projectTitle} will auto-generate payments when thresholds are met.` });
+    } catch (error) {
+      toast.error("Could not create schedule", { description: error instanceof Error ? error.message : "Try again." });
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -370,7 +705,7 @@ export default function SupplementalPaymentsPage() {
           </p>
         </div>
         <button
-          onClick={() => toast.info("New payment form — coming soon")}
+          onClick={() => setShowPaymentModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-violet-600/20"
         >
           <Plus size={16} /> New Payment
@@ -462,11 +797,7 @@ export default function SupplementalPaymentsPage() {
                 className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
               >
                 <option value="All">All Types</option>
-                <option value="Royalty">Royalty</option>
-                <option value="Residual">Residual</option>
-                <option value="Advance">Advance</option>
-                <option value="Commission">Commission</option>
-                <option value="Signing Bonus">Signing Bonus</option>
+                {PAYMENT_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
               </select>
             </div>
           </div>
@@ -549,13 +880,16 @@ export default function SupplementalPaymentsPage() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Active Royalty Schedules</h3>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-violet-600/20">
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-violet-600/20"
+            >
               <Plus size={16} /> New Schedule
             </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {mockRoyaltySchedules.map((s) => {
+            {schedules.map((s) => {
               const hasAdvance = s.advanceBalance > 0;
               const recoupPct = hasAdvance ? Math.min(100, (s.totalRecouped / s.advanceBalance) * 100) : 100;
               return (
@@ -800,6 +1134,24 @@ export default function SupplementalPaymentsPage() {
       )}
 
       {/* Drawers */}
+      {showPaymentModal && (
+        <CreatePaymentModal
+          form={paymentForm}
+          saving={savingPayment}
+          onChange={(patch) => setPaymentForm((current) => ({ ...current, ...patch }))}
+          onClose={() => setShowPaymentModal(false)}
+          onSubmit={createPayment}
+        />
+      )}
+      {showScheduleModal && (
+        <CreateScheduleModal
+          form={scheduleForm}
+          saving={savingSchedule}
+          onChange={(patch) => setScheduleForm((current) => ({ ...current, ...patch }))}
+          onClose={() => setShowScheduleModal(false)}
+          onSubmit={createSchedule}
+        />
+      )}
       {selectedPayment && <PaymentDrawer payment={selectedPayment} onClose={() => setSelectedPayment(null)} />}
       {selectedSchedule && <ScheduleDrawer schedule={selectedSchedule} onClose={() => setSelectedSchedule(null)} />}
     </div>
