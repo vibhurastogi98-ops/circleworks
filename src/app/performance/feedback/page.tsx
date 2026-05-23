@@ -133,6 +133,46 @@ export default function PerformanceFeedbackPage() {
 
         {/* Sidebar: New Interaction / Summary */}
         <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Send New Request</h3>
+                <p className="text-xs text-slate-500">Select a person, add questions, and choose anonymity.</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-300">
+                <PlusCircle size={20} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Person</label>
+              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-purple-500">
+                <option>Select employee...</option>
+                <option>Avery Johnson</option>
+                <option>Maya Patel</option>
+                <option>Noah Williams</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Questions</label>
+              <textarea
+                rows={4}
+                placeholder="What should this person keep doing? Where could they grow? What impact did you see?"
+                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+            <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/40">
+              <span className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-300">
+                <ShieldCheck size={16} />
+                Anonymous feedback
+              </span>
+              <input type="checkbox" defaultChecked className="rounded border-purple-300 text-purple-600 focus:ring-purple-500" />
+            </label>
+            <button className="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">
+              <Send size={18} />
+              Send Feedback Request
+            </button>
+          </div>
+
           {/* Quick Action */}
           <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-6 text-white space-y-6">
             <div className="space-y-1">

@@ -1,13 +1,45 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, User, DollarSign, FileText, Settings, CreditCard, HeartPulse, ShieldAlert, PlayCircle, UserPlus, ExternalLink, File, ChevronRight, CornerDownLeft } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ElementType } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  CalendarClock,
+  CornerDownLeft,
+  File,
+  FileText,
+  LayoutDashboard,
+  Loader2,
+  PlayCircle,
+  ReceiptText,
+  Search,
+  Settings,
+  ShieldCheck,
+  User,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
+
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+type SearchGroup =
+  | "EMPLOYEES"
+  | "RECENT PAYROLL RUNS"
+  | "REPORTS"
+  | "PAGES"
+  | "ACTIONS"
+  | "DOCUMENTS"
+  | "RECENT"
+  | "QUICK ACTIONS";
 
 interface SearchResult {
-  type: string;
+  type: SearchGroup;
   id: string;
   title: string;
   subtitle: string;
@@ -15,318 +47,420 @@ interface SearchResult {
   url: string;
 }
 
-// Icon Mapping
-const getIcon = (name: string, className = "") => {
-  const IconComponent = {
-    User, DollarSign, FileText, Settings, CreditCard, HeartPulse, ShieldAlert, PlayCircle, UserPlus, ExternalLink, File
-  }[name] || FileText;
-  return <IconComponent className={className} size={18} />;
-};
+const GROUP_ORDER: SearchGroup[] = [
+  "EMPLOYEES",
+  "RECENT PAYROLL RUNS",
+  "REPORTS",
+  "PAGES",
+  "ACTIONS",
+  "DOCUMENTS",
+];
+
+const DEFAULT_RECENTS: SearchResult[] = [
+  {
+    type: "RECENT",
+    id: "recent_emp_sarah",
+    title: "Sarah Williams",
+    subtitle: "VP People · Human Resources",
+    icon: "User",
+    url: "/employees/2",
+  },
+  {
+    type: "RECENT",
+    id: "recent_report_headcount",
+    title: "Headcount Summary",
+    subtitle: "Report · HRIS",
+    icon: "FileText",
+    url: "/reports/viewer/rpt-13",
+  },
+  {
+    type: "RECENT",
+    id: "recent_payroll_may",
+    title: "May 1-15 Payroll",
+    subtitle: "Payroll Run · Paid",
+    icon: "ReceiptText",
+    url: "/payroll/run/pr-2026-010",
+  },
+  {
+    type: "RECENT",
+    id: "recent_settings",
+    title: "Payroll Settings",
+    subtitle: "Settings · Payroll",
+    icon: "Settings",
+    url: "/payroll/settings",
+  },
+  {
+    type: "RECENT",
+    id: "recent_report_tax",
+    title: "Tax Liability",
+    subtitle: "Report · Payroll",
+    icon: "FileText",
+    url: "/reports/viewer/rpt-3",
+  },
+];
+
+const QUICK_ACTIONS: SearchResult[] = [
+  {
+    type: "QUICK ACTIONS",
+    id: "action_run_payroll",
+    title: "Run Payroll",
+    subtitle: "Start a new payroll run",
+    icon: "PlayCircle",
+    url: "/payroll/run",
+  },
+  {
+    type: "QUICK ACTIONS",
+    id: "action_add_employee",
+    title: "Add Employee",
+    subtitle: "Create a new employee profile",
+    icon: "UserPlus",
+    url: "/employees/new",
+  },
+  {
+    type: "QUICK ACTIONS",
+    id: "action_compliance",
+    title: "Open Compliance",
+    subtitle: "Review filings, alerts, and audit readiness",
+    icon: "ShieldCheck",
+    url: "/compliance",
+  },
+  {
+    type: "QUICK ACTIONS",
+    id: "action_reports",
+    title: "View Reports",
+    subtitle: "Open the analytics hub",
+    icon: "FileText",
+    url: "/reports",
+  },
+];
+
+function iconFor(name: string) {
+  const icons: Record<string, ElementType> = {
+    BriefcaseBusiness,
+    Building2,
+    CalendarClock,
+    File,
+    FileText,
+    LayoutDashboard,
+    PlayCircle,
+    ReceiptText,
+    Settings,
+    ShieldCheck,
+    User,
+    UserPlus,
+    Users,
+  };
+  return icons[name] ?? FileText;
+}
+
+function groupResults(results: SearchResult[]) {
+  return results.reduce<Record<string, SearchResult[]>>((groups, result) => {
+    groups[result.type] = [...(groups[result.type] ?? []), result];
+    return groups;
+  }, {});
+}
+
+function loadRecentItems() {
+  if (typeof window === "undefined") return DEFAULT_RECENTS;
+
+  try {
+    const stored = window.localStorage.getItem("circleworks:command-recents");
+    if (!stored) return DEFAULT_RECENTS;
+    const parsed = JSON.parse(stored) as SearchResult[];
+    return parsed.length ? parsed.slice(0, 5) : DEFAULT_RECENTS;
+  } catch {
+    return DEFAULT_RECENTS;
+  }
+}
+
+function saveRecentItem(item: SearchResult) {
+  if (typeof window === "undefined") return;
+
+  try {
+    const current = loadRecentItems();
+    const next = [item, ...current.filter((recent) => recent.url !== item.url)].slice(0, 5);
+    window.localStorage.setItem("circleworks:command-recents", JSON.stringify(next));
+  } catch {
+    // Recent history is a convenience, not a blocking feature.
+  }
+}
+
+function ResultRow({
+  item,
+  selected,
+  onSelect,
+  onHover,
+}: {
+  item: SearchResult;
+  selected: boolean;
+  onSelect: () => void;
+  onHover: () => void;
+}) {
+  const Icon = iconFor(item.icon);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      onMouseEnter={onHover}
+      className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition ${
+        selected
+          ? "bg-blue-50 text-blue-950 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-50 dark:ring-blue-900"
+          : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/70"
+      }`}
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+            selected
+              ? "bg-blue-600 text-white"
+              : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+          }`}
+        >
+          <Icon size={17} />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-black">{item.title}</span>
+          <span className="block truncate text-xs font-medium text-slate-500 dark:text-slate-400">{item.subtitle}</span>
+        </span>
+      </span>
+      {selected ? (
+        <CornerDownLeft size={16} className="shrink-0 text-blue-500" />
+      ) : (
+        <ArrowRight size={15} className="shrink-0 text-slate-300" />
+      )}
+    </button>
+  );
+}
 
 export default function CommandPalette() {
   const router = useRouter();
-  const { isCommandPaletteOpen, setCommandPaletteOpen } = usePlatformStore();
+  const { isCommandPaletteOpen, setCommandPaletteOpen, setPayrollRunning } = usePlatformStore();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [recents, setRecents] = useState<SearchResult[]>(DEFAULT_RECENTS);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // All flattened items available for keyboard nav
-  const [flattenedItems, setFlattenedItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Open/Close bindings
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+K or Ctrl+K globally
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCommandPaletteOpen(!isCommandPaletteOpen);
-      }
-      
-      // Escape
-      if (e.key === "Escape" && isCommandPaletteOpen) {
-        setCommandPaletteOpen(false);
-      }
-    };
-    
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isCommandPaletteOpen, setCommandPaletteOpen]);
+  const visibleItems = useMemo(
+    () => (query.trim() ? results : [...recents.slice(0, 5), ...QUICK_ACTIONS]),
+    [query, recents, results],
+  );
 
-  // Focus input when opened
-  useEffect(() => {
-    if (isCommandPaletteOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-      setQuery("");
-      setResults([]);
-      setSelectedIndex(0);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
+  const grouped = useMemo(() => groupResults(results), [results]);
+  const renderedGroups = GROUP_ORDER.filter((group) => grouped[group]?.length);
+
+  const runItem = (item: SearchResult) => {
+    if (item.id === "action_run_payroll") {
+      setPayrollRunning(true);
     }
-    return () => { document.body.style.overflow = "unset"; }
+
+    saveRecentItem(item);
+    setRecents(loadRecentItems());
+    setCommandPaletteOpen(false);
+    router.push(item.url);
+  };
+
+  useEffect(() => {
+    if (!isCommandPaletteOpen) return;
+
+    setQuery("");
+    setResults([]);
+    setSelectedIndex(0);
+    setRecents(loadRecentItems());
+    window.setTimeout(() => inputRef.current?.focus(), 50);
   }, [isCommandPaletteOpen]);
 
-  // Debounced API Search
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
       setIsLoading(false);
+      setSelectedIndex(0);
       return;
     }
 
+    const controller = new AbortController();
     setIsLoading(true);
-    const debounceTimeout = setTimeout(async () => {
+
+    const timeout = window.setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data.results || []);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&companyId=demo-company`, {
+          signal: controller.signal,
+        });
+        const data = (await response.json()) as { results?: SearchResult[] };
+        setResults(data.results ?? []);
         setSelectedIndex(0);
-      } catch (err) {
-        console.error("Search API failed", err);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Search API failed", error);
+          setResults([]);
+        }
       } finally {
         setIsLoading(false);
       }
-    }, 150); // 150ms debounce
+    }, 150);
 
-    return () => clearTimeout(debounceTimeout);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
   }, [query]);
 
-  // Handle Flattening logic to navigate via Keyboard correctly
-  useEffect(() => {
-    if (!query.trim()) {
-      // Empty state items
-      setFlattenedItems([
-        { title: "Run Payroll", url: "/payroll/run" },
-        { title: "Add New Employee", url: "/employees/new" },
-        { title: "Open Compliance", url: "/compliance" },
-        { title: "View Reports", url: "/reports" },
-      ]);
-    } else {
-      setFlattenedItems(results);
-    }
-  }, [query, results]);
-
-  // Keyboard Navigation logic
   useEffect(() => {
     if (!isCommandPaletteOpen) return;
 
-    const navHandler = (e: KeyboardEvent) => {
-      if (flattenedItems.length === 0) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setCommandPaletteOpen(false);
+        return;
+      }
 
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % flattenedItems.length);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + flattenedItems.length) % flattenedItems.length);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        const activeItem = flattenedItems[selectedIndex];
-        if (activeItem && activeItem.url) {
-          setCommandPaletteOpen(false);
-          router.push(activeItem.url);
-        }
+      if (!visibleItems.length) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedIndex((current) => (current + 1) % visibleItems.length);
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedIndex((current) => (current - 1 + visibleItems.length) % visibleItems.length);
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        runItem(visibleItems[selectedIndex]);
       }
     };
 
-    window.addEventListener("keydown", navHandler);
-    return () => window.removeEventListener("keydown", navHandler);
-  }, [isCommandPaletteOpen, flattenedItems, selectedIndex, router, setCommandPaletteOpen]);
-
-
-  // Group Results by Type
-  const groupedResults = results.reduce((acc, curr) => {
-    if (!acc[curr.type]) acc[curr.type] = [];
-    acc[curr.type].push(curr);
-    return acc;
-  }, {} as Record<string, SearchResult[]>);
-
-  // Grouped Keys logic ensuring consistent order
-  const groupOrder = ["EMPLOYEES", "RECENT PAYROLL RUNS", "REPORTS", "PAGES", "ACTIONS", "DOCUMENTS"];
-  const renderedGroups = Object.keys(groupedResults).sort((a,b) => groupOrder.indexOf(a) - groupOrder.indexOf(b));
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isCommandPaletteOpen, selectedIndex, setCommandPaletteOpen, visibleItems]);
 
   return (
     <AnimatePresence>
       {isCommandPaletteOpen && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10dvh]">
-          {/* Backdrop */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setCommandPaletteOpen(false)}
-            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-          />
-
-          {/* Modal Container */}
+        <Dialog
+          open={isCommandPaletteOpen}
+          onOpenChange={setCommandPaletteOpen}
+          overlayClassName="bg-black/50 backdrop-blur-md"
+          contentClassName="mt-[10vh] max-w-[640px] border-0 bg-transparent p-0 shadow-none animate-none"
+        >
+          <DialogContent className="p-0">
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.98 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Global search"
+            initial={{ opacity: 0, y: -18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="relative w-full max-w-[640px] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden m-4"
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="relative flex w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
           >
-            {/* Header / Input */}
-            <div className="flex items-center border-b border-slate-200 dark:border-slate-800 px-4">
-              <Search className="w-5 h-5 text-slate-400 shrink-0" />
-              <input 
+            <div className="flex items-center gap-3 border-b border-slate-200 px-4 dark:border-slate-800">
+              <Search size={20} className="shrink-0 text-slate-400" />
+              <input
                 ref={inputRef}
-                type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search employees, reports, run payroll..."
-                className="flex-1 h-16 bg-transparent border-0 outline-none focus:ring-0 text-slate-900 dark:text-white text-[16px] placeholder:text-slate-400 px-4"
+                className="h-16 min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
               />
-              {isLoading && (
-                <div className="w-5 h-5 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin shrink-0 mr-2" />
-              )}
-              {query.length > 0 && (
-                <button 
-                  onClick={() => { setQuery(""); inputRef.current?.focus(); }}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              {isLoading ? <Loader2 size={18} className="shrink-0 animate-spin text-blue-500" /> : null}
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+                  aria-label="Clear search"
                 >
-                  <X className="w-5 h-5" />
+                  <X size={18} />
                 </button>
+              ) : null}
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-2">
+              {!query.trim() ? (
+                <div className="space-y-3">
+                  <section>
+                    <h3 className="px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Recent</h3>
+                    <div className="space-y-1">
+                      {recents.slice(0, 5).map((item, index) => (
+                        <ResultRow
+                          key={item.id}
+                          item={item}
+                          selected={selectedIndex === index}
+                          onHover={() => setSelectedIndex(index)}
+                          onSelect={() => runItem(item)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Quick Actions</h3>
+                    <div className="space-y-1">
+                      {QUICK_ACTIONS.map((item, actionIndex) => {
+                        const index = recents.slice(0, 5).length + actionIndex;
+                        return (
+                          <ResultRow
+                            key={item.id}
+                            item={item}
+                            selected={selectedIndex === index}
+                            onHover={() => setSelectedIndex(index)}
+                            onSelect={() => runItem(item)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              ) : renderedGroups.length ? (
+                <div className="space-y-3">
+                  {renderedGroups.map((group) => (
+                    <section key={group}>
+                      <h3 className="px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{group}</h3>
+                      <div className="space-y-1">
+                        {grouped[group].map((item) => {
+                          const index = visibleItems.findIndex((visible) => visible.id === item.id);
+                          return (
+                            <ResultRow
+                              key={item.id}
+                              item={item}
+                              selected={selectedIndex === index}
+                              onHover={() => setSelectedIndex(index)}
+                              onSelect={() => runItem(item)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
+                    <Search size={22} />
+                  </div>
+                  <p className="text-sm font-black text-slate-900 dark:text-white">No results found</p>
+                  <p className="mt-1 max-w-sm text-sm text-slate-500">Try searching for an employee, report, payroll run, document, or action.</p>
+                </div>
               )}
             </div>
 
-            {/* Scrollable Content */}
-            <div className="max-h-[60dvh] overflow-y-auto w-full pb-2 no-scrollbar">
-              
-              {/* NO QUERY STATE */}
-              {!query.trim() && (
-                <div className="py-2">
-                  <div className="px-4 py-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Recent
-                  </div>
-                  <div className="px-2">
-                    <button onClick={() => { setCommandPaletteOpen(false); router.push("/employees/john-doe"); }} className="w-full flex items-center justify-between p-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/50 cursor-pointer text-left transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                           <User size={16} />
-                         </div>
-                         <div>
-                           <p className="text-[14px] font-bold text-slate-900 dark:text-white">John Doe</p>
-                           <p className="text-[12px] text-slate-500">Account Executive · Sales</p>
-                         </div>
-                      </div>
-                      <ChevronRight size={16} className="text-slate-400" />
-                    </button>
-                    <button onClick={() => { setCommandPaletteOpen(false); router.push("/reports/headcount"); }} className="w-full flex items-center justify-between p-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/50 cursor-pointer text-left transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                           <FileText size={16} />
-                         </div>
-                         <div>
-                           <p className="text-[14px] font-bold text-slate-900 dark:text-white">Headcount Summary</p>
-                           <p className="text-[12px] text-slate-500">Report · Analytics</p>
-                         </div>
-                      </div>
-                      <ChevronRight size={16} className="text-slate-400" />
-                    </button>
-                    <button onClick={() => { setCommandPaletteOpen(false); router.push("/payroll/run/pr_1"); }} className="w-full flex items-center justify-between p-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/50 cursor-pointer text-left transition-colors">
-                      <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                           <DollarSign size={16} />
-                         </div>
-                         <div>
-                           <p className="text-[14px] font-bold text-slate-900 dark:text-white">Regular Payroll - Apr 1-15</p>
-                           <p className="text-[12px] text-slate-500">Payroll Run · Processed</p>
-                         </div>
-                      </div>
-                      <ChevronRight size={16} className="text-slate-400" />
-                    </button>
-                  </div>
-
-                  <div className="px-4 pt-4 pb-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Quick Actions
-                  </div>
-                  <div className="px-2">
-                    {flattenedItems.map((action, i) => (
-                      <button 
-                        key={action.title}
-                        onClick={() => { setCommandPaletteOpen(false); router.push(action.url); }}
-                        className={`w-full flex items-center justify-between p-3 rounded-md cursor-pointer text-left transition-colors ${selectedIndex === i ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}
-                        onMouseEnter={() => setSelectedIndex(i)}
-                      >
-                        <span className={`text-[14px] font-semibold ${selectedIndex === i ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                          {action.title}
-                        </span>
-                        {selectedIndex === i && <CornerDownLeft size={16} className="text-blue-500" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* QUERY STATE */}
-              {query.trim() && renderedGroups.length === 0 && !isLoading && (
-                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                   <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
-                      <Search className="w-6 h-6 text-slate-400" />
-                   </div>
-                   <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">No results found</h3>
-                   <p className="text-[13px] text-slate-500 mt-1 max-w-[80%]">We couldn't find anything matching "{query}". Try adjusting your search.</p>
-                </div>
-              )}
-
-              {query.trim() && renderedGroups.map((group) => (
-                <div key={group} className="py-2">
-                   <div className="px-4 py-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                     {group}
-                   </div>
-                   <div className="px-2">
-                     {groupedResults[group].map((result) => {
-                       const globalIndex = flattenedItems.findIndex(i => i.id === result.id);
-                       const isSelected = selectedIndex === globalIndex;
-                       
-                       return (
-                         <div 
-                           key={result.id}
-                           onClick={() => { setCommandPaletteOpen(false); router.push(result.url); }}
-                           onMouseEnter={() => setSelectedIndex(globalIndex)}
-                           className={`flex items-center justify-between p-3 rounded-md cursor-pointer text-left transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
-                         >
-                           <div className="flex items-center gap-3">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-                               {getIcon(result.icon)}
-                             </div>
-                             <div>
-                               <p className={`text-[14px] font-bold ${isSelected ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-white'}`}>
-                                 {result.title}
-                               </p>
-                               <p className="text-[12px] text-slate-500">{result.subtitle}</p>
-                             </div>
-                           </div>
-                           {isSelected && <CornerDownLeft size={16} className="text-blue-500 dark:text-blue-400" />}
-                         </div>
-                       )
-                     })}
-                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Footer Hints */}
-            <div className="border-t border-slate-200 dark:border-slate-800 px-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-center gap-6">
-               <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
-                 <kbd className="h-5 px-1.5 rounded border border-slate-300 dark:border-slate-700 font-mono font-bold bg-white dark:bg-slate-800 text-[10px]">↑</kbd>
-                 <kbd className="h-5 px-1.5 rounded border border-slate-300 dark:border-slate-700 font-mono font-bold bg-white dark:bg-slate-800 text-[10px]">↓</kbd>
-                 to navigate
-               </div>
-               <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
-                 <kbd className="h-5 px-1.5 rounded border border-slate-300 dark:border-slate-700 font-mono font-bold bg-white dark:bg-slate-800 text-[10px]">↵</kbd>
-                 to select
-               </div>
-               <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
-                 <kbd className="h-5 px-1.5 rounded border border-slate-300 dark:border-slate-700 font-mono font-bold bg-white dark:bg-slate-800 text-[10px]">ESC</kbd>
-                 to close
-               </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900/80">
+              <span>↑↓ to navigate</span>
+              <span>Enter to select</span>
+              <span>ESC to close</span>
             </div>
           </motion.div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </AnimatePresence>
   );

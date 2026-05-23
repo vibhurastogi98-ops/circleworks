@@ -1,14 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Script from "next/script";
 
-/* ─── Component imports ─── */
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/marketing/Navbar";
 import HeroSection from "@/components/Hero";
 import StatsSection from "@/components/StatsRow";
 import FeaturesSection from "@/components/FeaturesBento";
-import HowItWorks from "@/components/HowItWorks";
-import WhoWeServe from "@/components/WhoWeServe";
 import DemoSection from "@/components/DemoSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import PricingTeaser from "@/components/PricingTeaser";
@@ -17,275 +13,181 @@ import FAQSection from "@/components/FAQSection";
 import CtaSection from "@/components/CtaSection";
 import SiteFooter from "@/components/Footer";
 
-/* ─── Metadata (Next.js App Router) ─── */
-
-// {/* SEO Update */} ── Homepage Metadata ──
 export const metadata: Metadata = {
-  title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
+  metadataBase: new URL("https://circleworks.com"),
+  title: "CircleWorks | USA Payroll & HR Platform",
   description:
-    "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no credit card required.",
-  keywords: [
-    "payroll software USA",
-    "HR platform",
-    "online payroll",
-    "small business payroll software",
-    "all-in-one HR platform",
-    "CircleWorks",
-  ],
+    "CircleWorks is a USA payroll and HR platform for payroll, HRIS, ATS, benefits, time, compliance, and analytics in one source of truth.",
   openGraph: {
-    title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
+    title: "CircleWorks | USA Payroll & HR Platform",
     description:
-      "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform. 30-day free trial, no credit card required.",
+      "Run payroll, HR, hiring, benefits, compliance, and people analytics from one modern platform.",
     type: "website",
     siteName: "CircleWorks",
-    url: "https://circleworks.vercel.app",
+    url: "https://circleworks.com",
     images: [
       {
-        url: "https://circleworks.vercel.app/og-image.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "CircleWorks — USA Payroll & HR Platform",
+        alt: "CircleWorks USA Payroll and HR Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
+    title: "CircleWorks | USA Payroll & HR Platform",
     description:
-      "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
-    images: ["https://circleworks.vercel.app/og-image.png"],
+      "Run payroll, HR, hiring, benefits, compliance, and people analytics from one modern platform.",
+    images: ["/og-image.png"],
   },
   alternates: {
-    canonical: "https://circleworks.vercel.app",
+    canonical: "https://circleworks.com",
   },
 };
 
-// {/* SEO Update */} ── Structured Data ──
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "CircleWorks",
-  "url": "https://circleworks.vercel.app",
-  "logo": "https://circleworks.vercel.app/logo.png",
-  "description": "All-in-one Payroll, HRIS, ATS, and Benefits platform built for US companies.",
-  "contactPoint": {
+  name: "CircleWorks",
+  url: "https://circleworks.com",
+  logo: "https://circleworks.com/logo.png",
+  description:
+    "CircleWorks is a USA payroll and HR platform for modern companies.",
+  contactPoint: {
     "@type": "ContactPoint",
-    "contactType": "Customer Support",
-    "url": "https://circleworks.vercel.app/contact"
+    contactType: "customer support",
+    url: "https://circleworks.com/contact",
   },
-  "address": {
-    "@type": "PostalAddress",
-    "addressCountry": "US"
-  }
+  sameAs: [
+    "https://www.linkedin.com/company/circleworks",
+    "https://twitter.com/circleworks",
+  ],
 };
 
-const webpageSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  "name": "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
-  "url": "https://circleworks.vercel.app",
-  "description": "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
-  "publisher": {
-    "@type": "Organization",
-    "name": "CircleWorks"
-  }
-};
-
-const softwareAppSchema = {
+const softwareApplicationSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "CircleWorks",
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web, iOS, Android",
-  "offers": [
-    {
-      "@type": "Offer",
-      "name": "Starter",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Free base + $8/employee/month"
-    },
-    {
-      "@type": "Offer",
-      "name": "Pro",
-      "price": "79",
-      "priceCurrency": "USD",
-      "description": "$79/mo base + $14/employee/month"
-    }
-  ],
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "reviewCount": "342",
-    "bestRating": "5"
-  }
+  name: "CircleWorks",
+  applicationCategory: "BusinessApplication",
+  applicationSubCategory: "Payroll and HR platform",
+  operatingSystem: "Web",
+  url: "https://circleworks.com",
+  description:
+    "A USA payroll and HR platform with payroll, HRIS, ATS, benefits, time, compliance, and analytics.",
+  offers: {
+    "@type": "Offer",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+    url: "https://circleworks.com/pricing",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "CircleWorks",
+  },
 };
 
-const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Can I pay W-2 employees AND 1099 creators from one platform?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes — this is CircleWorks' core strength. Creators, agencies, and companies can run payroll for staff and contractor talent in the same pay cycle."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can CircleWorks handle multi-state teams and creators?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes — CircleWorks natively supports payroll across all 50 US states, perfect for agencies and companies with distributed creator teams."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Does CircleWorks handle tax filing automatically?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "CircleWorks calculates, withholds, and files federal, state, and local payroll taxes every pay period, including quarterly 941s, W-2s and 1099s."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Does CircleWorks work for 1099 contractors?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. CircleWorks lets you pay W-2 employees and 1099 contractors from the same platform with year-end 1099-NEC filing included."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is CircleWorks HIPAA and SOC 2 compliant?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. CircleWorks maintains full HIPAA compliance and annual SOC 2 Type II audits with AES-256 encryption."
-      }
-    }
-  ]
-};
-
-/* ─── Skeleton Fallbacks ─── */
-
-function SectionSkeleton({ height = "h-96" }: { height?: string }) {
+function JsonLd({
+  id,
+  data,
+}: {
+  id: string;
+  data: Record<string, unknown>;
+}) {
   return (
-    <div className={`w-full ${height} animate-pulse bg-slate-800/30`}>
-      <div className="max-w-[1200px] mx-auto px-6 py-16 flex flex-col items-center gap-4">
-        <div className="w-64 h-8 bg-slate-700/40 rounded-lg" />
-        <div className="w-96 h-4 bg-slate-700/30 rounded" />
-        <div className="w-80 h-4 bg-slate-700/20 rounded" />
+    <script
+      id={id}
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+function SectionSkeleton({
+  height = "h-96",
+  tone = "light",
+}: {
+  height?: string;
+  tone?: "light" | "dark";
+}) {
+  const isDark = tone === "dark";
+
+  return (
+    <div
+      className={`w-full ${height} animate-pulse ${
+        isDark ? "bg-[#0A1628]" : "bg-gray-50"
+      }`}
+      aria-hidden="true"
+    >
+      <div className="mx-auto flex h-full max-w-6xl flex-col items-center justify-center gap-4 px-6">
+        <div
+          className={`h-8 w-64 rounded-lg ${
+            isDark ? "bg-white/15" : "bg-gray-200"
+          }`}
+        />
+        <div
+          className={`h-4 w-full max-w-md rounded ${
+            isDark ? "bg-white/10" : "bg-gray-200/80"
+          }`}
+        />
+        <div
+          className={`h-4 w-full max-w-sm rounded ${
+            isDark ? "bg-white/10" : "bg-gray-200/60"
+          }`}
+        />
       </div>
     </div>
   );
 }
-
-function LightSectionSkeleton({ height = "h-96" }: { height?: string }) {
-  return (
-    <div className={`w-full ${height} animate-pulse bg-gray-100`}>
-      <div className="max-w-[1200px] mx-auto px-6 py-16 flex flex-col items-center gap-4">
-        <div className="w-64 h-8 bg-gray-200 rounded-lg" />
-        <div className="w-96 h-4 bg-gray-200/80 rounded" />
-        <div className="w-80 h-4 bg-gray-200/60 rounded" />
-      </div>
-    </div>
-  );
-}
-
-/* ─── Page Component ─── */
 
 export default function HomePage() {
   return (
     <>
-      {/* SEO Update ── Structured Data ── */}
-      <Script
-        id="org-jsonld"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-        strategy="afterInteractive"
-      />
-      <Script
-        id="webpage-jsonld"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webpageSchema) }}
-        strategy="afterInteractive"
-      />
-      <Script
-        id="software-jsonld"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
-        strategy="afterInteractive"
-      />
-      <Script
-        id="faq-jsonld"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-        strategy="afterInteractive"
-      />
+      <JsonLd id="organization-jsonld" data={organizationSchema} />
+      <JsonLd id="software-application-jsonld" data={softwareApplicationSchema} />
 
-      <main className="min-h-screen bg-[#0A1628]">
-        {/* ── Sticky Navbar ── */}
-        <Navbar transparent />
+      <main id="main-content" className="min-h-screen bg-white">
+        <Suspense fallback={<SectionSkeleton height="h-[72px]" />}>
+          <Navbar />
+        </Suspense>
 
-        {/* ── Hero ── */}
-        <Suspense fallback={<SectionSkeleton height="h-[100vh]" />}>
+        <Suspense fallback={<SectionSkeleton height="h-screen" tone="dark" />}>
           <HeroSection />
         </Suspense>
 
-        {/* ── Stats ── */}
-        <Suspense fallback={<SectionSkeleton height="h-32" />}>
+        <Suspense fallback={<SectionSkeleton height="h-40" tone="dark" />}>
           <StatsSection />
         </Suspense>
 
-        {/* ── Services Section (formerly features) ── */}
-        <Suspense fallback={<SectionSkeleton height="h-[600px]" />}>
+        <Suspense fallback={<SectionSkeleton height="h-[720px]" />}>
           <FeaturesSection />
         </Suspense>
 
-        {/* ── How It Works ── */}
-        <Suspense fallback={<LightSectionSkeleton height="h-[500px]" />}>
-          <HowItWorks />
-        </Suspense>
-
-        {/* ── Who We Serve ── */}
-        <Suspense fallback={<SectionSkeleton height="h-[500px]" />}>
-          <WhoWeServe />
-        </Suspense>
-
-        {/* ── Demo ── */}
-        <Suspense fallback={<SectionSkeleton height="h-[500px]" />}>
+        <Suspense fallback={<SectionSkeleton height="h-[560px]" tone="dark" />}>
           <DemoSection />
         </Suspense>
 
-        {/* ── Testimonials ── */}
-        <Suspense fallback={<LightSectionSkeleton height="h-[600px]" />}>
+        <Suspense fallback={<SectionSkeleton height="h-[640px]" />}>
           <TestimonialsSection />
         </Suspense>
 
-        {/* ── Pricing Teaser ── */}
-        <Suspense fallback={<SectionSkeleton height="h-[500px]" />}>
+        <Suspense fallback={<SectionSkeleton height="h-[560px]" tone="dark" />}>
           <PricingTeaser />
         </Suspense>
 
-        {/* ── Integrations ── */}
-        <Suspense fallback={<LightSectionSkeleton height="h-64" />}>
+        <Suspense fallback={<SectionSkeleton height="h-[360px]" />}>
           <IntegrationsSection />
         </Suspense>
 
-        {/* ── FAQ ── */}
-        <Suspense fallback={<LightSectionSkeleton height="h-[500px]" />}>
+        <Suspense fallback={<SectionSkeleton height="h-[640px]" />}>
           <FAQSection />
         </Suspense>
 
-        {/* ── Final CTA ── */}
-        <Suspense fallback={<SectionSkeleton height="h-96" />}>
+        <Suspense fallback={<SectionSkeleton height="h-96" tone="dark" />}>
           <CtaSection />
         </Suspense>
 
-        {/* ── Footer ── */}
-        <Suspense fallback={<SectionSkeleton height="h-64" />}>
+        <Suspense fallback={<SectionSkeleton height="h-64" tone="dark" />}>
           <SiteFooter />
         </Suspense>
       </main>

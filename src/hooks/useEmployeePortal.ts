@@ -1,6 +1,26 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import {
+  mockAnnouncements,
+  mockBenefitCards,
+  mockCourses,
+  mockDependents,
+  mockEmployeeDocuments,
+  mockEmployeeProfile,
+  mockEwaData,
+  mockExpenseReports,
+  mockExpenses,
+  mockGoals,
+  mockKudos,
+  mockPayStubs,
+  mockPendingTasks,
+  mockPtoBalances,
+  mockPtoRequests,
+  mockReferralData,
+  mockTaxForms,
+  mockTeamCalendar,
+} from "@/data/mockEmployeePortal";
 
 export type EmployeeProfile = {
   id: string;
@@ -69,6 +89,58 @@ export function useEmployeePortal() {
       return response.json();
     },
     staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export type EmployeeSelfServiceData = {
+  profile: typeof mockEmployeeProfile;
+  payStubs: typeof mockPayStubs;
+  taxForms: typeof mockTaxForms;
+  ptoBalances: typeof mockPtoBalances;
+  ptoRequests: typeof mockPtoRequests;
+  teamCalendar: typeof mockTeamCalendar;
+  expenses: typeof mockExpenses;
+  expenseReports: typeof mockExpenseReports;
+  benefits: typeof mockBenefitCards;
+  dependents: typeof mockDependents;
+  documents: typeof mockEmployeeDocuments;
+  courses: typeof mockCourses;
+  goals: typeof mockGoals;
+  ewa: typeof mockEwaData;
+  referrals: typeof mockReferralData;
+  pendingTasks: typeof mockPendingTasks;
+  announcements: typeof mockAnnouncements;
+  kudos: typeof mockKudos;
+};
+
+const employeeSelfServiceData: EmployeeSelfServiceData = {
+  profile: mockEmployeeProfile,
+  payStubs: mockPayStubs,
+  taxForms: mockTaxForms,
+  ptoBalances: mockPtoBalances,
+  ptoRequests: mockPtoRequests,
+  teamCalendar: mockTeamCalendar,
+  expenses: mockExpenses,
+  expenseReports: mockExpenseReports,
+  benefits: mockBenefitCards,
+  dependents: mockDependents,
+  documents: mockEmployeeDocuments,
+  courses: mockCourses,
+  goals: mockGoals,
+  ewa: mockEwaData,
+  referrals: mockReferralData,
+  pendingTasks: mockPendingTasks,
+  announcements: mockAnnouncements,
+  kudos: mockKudos,
+};
+
+export function useEmployeeSelfService() {
+  return useQuery<EmployeeSelfServiceData>({
+    queryKey: ["employee-self-service"],
+    queryFn: async () => employeeSelfServiceData,
+    initialData: employeeSelfServiceData,
+    staleTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
   });
 }

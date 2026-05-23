@@ -31,6 +31,20 @@ export default function TimeTab() {
    const isHourly = emp.employmentType === "hourly";
    const ptoRequests = emp.ptoRequests || [];
    const timesheets = emp.timesheets || [];
+   const upcomingPto = ptoRequests
+      .filter((leave: any) => leave.status === "Approved" || leave.status === "Pending")
+      .slice(0, 3);
+   const fmlaCases = emp.fmlaCases || [
+      {
+         id: "fmla-1",
+         reason: "No active FMLA leave",
+         status: "Clear",
+         entitlementHours: 480,
+         usedHours: 0,
+         startDate: null,
+         endDate: null,
+      },
+   ];
 
    return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
@@ -69,11 +83,34 @@ export default function TimeTab() {
             {/* Upcoming PTO */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <CalendarIcon size={18} className="text-blue-500" /> Time Off Requests
+                  <CalendarIcon size={18} className="text-blue-500" /> Upcoming PTO Calendar
                </h3>
 
+               <div className="grid grid-cols-7 gap-1 mb-4 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
+                     <div key={`${day}-${index}`} className="py-1">{day}</div>
+                  ))}
+                  {Array.from({ length: 28 }).map((_, index) => {
+                     const day = index + 1;
+                     const hasLeave = upcomingPto.some((leave: any) => {
+                        const start = new Date(leave.startDate).getDate();
+                        const end = new Date(leave.endDate).getDate();
+                        return day >= start && day <= end;
+                     });
+
+                     return (
+                        <div
+                           key={day}
+                           className={`rounded-md py-1.5 text-xs ${hasLeave ? "bg-blue-600 font-bold text-white" : "bg-slate-50 text-slate-500 dark:bg-slate-800/60"}`}
+                        >
+                           {day}
+                        </div>
+                     );
+                  })}
+               </div>
+
                <div className="flex flex-col gap-3">
-                  {ptoRequests.length > 0 ? ptoRequests.map((leave: any) => (
+                  {upcomingPto.length > 0 ? upcomingPto.map((leave: any) => (
                      <div key={leave.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg">
                         <div className="flex justify-between mb-1">
                            <span className="font-semibold text-sm">{leave.type}</span>
@@ -91,9 +128,47 @@ export default function TimeTab() {
                      </div>
                   )) : (
                      <div className="text-center py-6">
-                        <p className="text-xs text-slate-500 italic">No PTO requests found.</p>
+                        <p className="text-xs text-slate-500 italic">No upcoming PTO requests found.</p>
                      </div>
                   )}
+               </div>
+            </div>
+
+            {/* FMLA Tracking */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+               <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <CheckCircle2 size={18} className="text-emerald-500" /> FMLA Leave Tracking
+               </h3>
+
+               <div className="space-y-3">
+                  {fmlaCases.map((leave: any) => {
+                     const usedPercent = Math.min(100, Math.round(((leave.usedHours || 0) / (leave.entitlementHours || 480)) * 100));
+
+                     return (
+                        <div key={leave.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                           <div className="flex items-start justify-between gap-3">
+                              <div>
+                                 <p className="text-sm font-semibold text-slate-900 dark:text-white">{leave.reason}</p>
+                                 <p className="text-xs text-slate-500">
+                                    {leave.startDate ? `${formatDate(leave.startDate)} - ${formatDate(leave.endDate)}` : "Eligibility and balances tracked here"}
+                                 </p>
+                              </div>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${leave.status === "Clear" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"}`}>
+                                 {leave.status}
+                              </span>
+                           </div>
+                           <div className="mt-3">
+                              <div className="flex justify-between text-[11px] text-slate-500">
+                                 <span>{leave.usedHours || 0}h used</span>
+                                 <span>{leave.entitlementHours || 480}h entitlement</span>
+                              </div>
+                              <div className="mt-1 h-2 rounded-full bg-white dark:bg-slate-900">
+                                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${usedPercent}%` }} />
+                              </div>
+                           </div>
+                        </div>
+                     );
+                  })}
                </div>
             </div>
          </div>

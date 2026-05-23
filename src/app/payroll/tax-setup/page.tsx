@@ -311,6 +311,14 @@ export default function TaxSetupPage() {
                   Required for all IRS filings and W-2 generation.
                 </p>
               </div>
+              <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-500/30 dark:bg-blue-500/10">
+                <h3 className="text-sm font-black text-blue-900 dark:text-blue-100">EFTPS enrollment guide</h3>
+                <ol className="mt-3 space-y-2 text-sm text-blue-800 dark:text-blue-100/80">
+                  <li>1. Confirm EIN and legal business name match IRS records.</li>
+                  <li>2. Enroll the payroll bank account for federal tax deposits.</li>
+                  <li>3. Verify the PIN letter and enable 941 deposit scheduling.</li>
+                </ol>
+              </div>
             </SectionCard>
           )}
 

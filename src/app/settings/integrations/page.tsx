@@ -1,62 +1,108 @@
 "use client";
 
 import React, { useState } from "react";
-import { Link2, Unlink } from "lucide-react";
+import { Activity, KeyRound, Link2, Unlink, X } from "lucide-react";
 import { mockIntegrations } from "@/data/mockSettings";
 import * as Icons from "lucide-react";
 
+type Integration = (typeof mockIntegrations)[number];
+
 export default function IntegrationsSettingsPage() {
   const [integrations] = useState(mockIntegrations);
+  const [activeIntegration, setActiveIntegration] = useState<Integration | null>(null);
 
   const getIcon = (iconName: string) => {
-    // Basic dynamic icon mapper for demo purposes
-    const IconComponent = (Icons as any)[iconName.split('-').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('')] || Icons.Box;
+    const pascalName = iconName.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join("");
+    const IconComponent = (Icons as Record<string, React.ElementType>)[pascalName] || Icons.Box;
     return <IconComponent size={24} strokeWidth={1.5} />;
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex max-w-5xl animate-in flex-col gap-6 fade-in duration-500">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Integrations</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Connect CircleWorks to your existing tools and platforms.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Connected integrations show live sync health. Available integrations open OAuth or API key setup.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {integrations.map((integration) => (
-          <div key={integration.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col justify-between h-48">
-            <div className="flex justify-between items-start">
-               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${integration.status === "Connected" ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
-                 {getIcon(integration.icon)}
-               </div>
-               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${integration.status === "Connected" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
-                 {integration.status}
-               </span>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {integrations.map((integration) => {
+          const connected = integration.status === "Connected";
+
+          return (
+            <div key={integration.id} className="flex min-h-56 flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-start justify-between">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${connected ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                  {getIcon(integration.icon)}
+                </div>
+                <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${connected ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>
+                  {integration.status}
+                </span>
+              </div>
+
+              <div>
+                <h3 className="mb-1 text-base font-bold text-slate-900 dark:text-white">{integration.name}</h3>
+                <p className="mb-3 text-xs font-medium text-slate-500">{integration.category} integration</p>
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <Activity size={13} className={connected ? "text-emerald-500" : "text-slate-400"} />
+                  <span>{connected ? `Healthy - last sync ${integration.lastSync}` : "Ready to connect"}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {connected ? "OAuth active" : "OAuth / API key"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveIntegration(integration)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                    connected
+                      ? "bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                      : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-300"
+                  }`}
+                >
+                  {connected ? <><Unlink size={12} /> Manage</> : <><Link2 size={12} /> Connect</>}
+                </button>
+              </div>
             </div>
-            
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">{integration.name}</h3>
-              <p className="text-xs text-slate-500 font-medium mb-3">{integration.category} Integration</p>
+          );
+        })}
+      </div>
+
+      {activeIntegration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{activeIntegration.name}</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Configure connection method, credentials, and sync health.</p>
+              </div>
+              <button type="button" onClick={() => setActiveIntegration(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white">
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
-              <span className="text-[10px] text-slate-400 flex flex-col">
-                {integration.status === "Connected" && (
-                   <><span>Last Sync</span><span className="font-bold text-slate-600 dark:text-slate-300">{integration.lastSync}</span></>
-                )}
-              </span>
-              <button className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                integration.status === "Connected" 
-                  ? "bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-red-900/30 dark:hover:text-red-400" 
-                  : "bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 dark:text-blue-400"
-              }`}>
-                {integration.status === "Connected" ? <><Unlink size={12}/> Disconnect</> : <><Link2 size={12}/> Connect</>}
+            <div className="mt-6 grid gap-4">
+              <button className="flex items-center justify-between rounded-xl border border-slate-200 p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800">
+                <span>
+                  <span className="block text-sm font-bold text-slate-900 dark:text-white">OAuth connection</span>
+                  <span className="mt-1 block text-xs text-slate-500">Open secure authorization flow.</span>
+                </span>
+                <Link2 size={18} className="text-blue-600" />
+              </button>
+              <button className="flex items-center justify-between rounded-xl border border-slate-200 p-4 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800">
+                <span>
+                  <span className="block text-sm font-bold text-slate-900 dark:text-white">API key setup</span>
+                  <span className="mt-1 block text-xs text-slate-500">Paste vendor key, workspace ID, and sync scope.</span>
+                </span>
+                <KeyRound size={18} className="text-slate-500" />
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -36,6 +36,41 @@ export default function EWAPage() {
            <button className="mt-4 px-4 py-2 bg-white text-blue-900 text-xs font-bold rounded-lg hover:bg-slate-100">Review EWA Guidelines</button>
          </div>
       </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Employee EWA Balances</h2>
+          <p className="text-sm text-slate-500">Available balances, recent advance requests, and repayments queued for the next payroll run.</p>
+        </div>
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-400">
+            <tr>
+              <th className="px-5 py-3">Employee</th>
+              <th className="px-5 py-3 text-right">Available</th>
+              <th className="px-5 py-3 text-right">Recent Request</th>
+              <th className="px-5 py-3">Request Date</th>
+              <th className="px-5 py-3 text-right">Pending Repayment</th>
+              <th className="px-5 py-3">Next Run Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {outstandingAdvances.map((advance) => (
+              <tr key={advance.id}>
+                <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{advance.employeeName}</td>
+                <td className="px-5 py-4 text-right font-mono">${Math.max(0, 1200 - advance.remainingBalance).toFixed(2)}</td>
+                <td className="px-5 py-4 text-right font-mono">${advance.amount.toFixed(2)}</td>
+                <td className="px-5 py-4 text-slate-500">{advance.issueDate}</td>
+                <td className="px-5 py-4 text-right font-mono font-bold text-slate-900 dark:text-white">${advance.remainingBalance.toFixed(2)}</td>
+                <td className="px-5 py-4">
+                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold uppercase text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                    Deduct next run
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

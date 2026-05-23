@@ -14,9 +14,17 @@ const ACTION_LABELS: Record<string, string> = {
 export default function AuditLogSettingsPage() {
   const [search, setSearch] = useState("");
   const [filterAutomated, setFilterAutomated] = useState<"all" | "manual" | "automated">("all");
+  const [actionType, setActionType] = useState("all");
+  const [dateRange, setDateRange] = useState("90");
+  const [resource, setResource] = useState("all");
+
+  const actionTypes = useMemo(() => Array.from(new Set(mockAuditLogs.map((log) => log.action))), []);
+  const resources = useMemo(() => Array.from(new Set(mockAuditLogs.map((log) => log.resource.split(":")[0]))), []);
 
   const filtered = useMemo(() => {
     return mockAuditLogs.filter((log) => {
+      const logDate = new Date(log.date).getTime();
+      const cutoff = Date.now() - Number(dateRange) * 24 * 60 * 60 * 1000;
       const matchSearch =
         !search ||
         log.user.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,9 +34,12 @@ export default function AuditLogSettingsPage() {
         filterAutomated === "all" ||
         (filterAutomated === "automated" && log.isAutomated) ||
         (filterAutomated === "manual" && !log.isAutomated);
-      return matchSearch && matchFilter;
+      const matchAction = actionType === "all" || log.action === actionType;
+      const matchResource = resource === "all" || log.resource.startsWith(resource);
+      const matchDate = dateRange === "all" || logDate >= cutoff;
+      return matchSearch && matchFilter && matchAction && matchResource && matchDate;
     });
-  }, [search, filterAutomated]);
+  }, [actionType, dateRange, filterAutomated, resource, search]);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -40,7 +51,7 @@ export default function AuditLogSettingsPage() {
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Immutable record of all administrative and automated actions across the platform.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
             <input
@@ -59,8 +70,34 @@ export default function AuditLogSettingsPage() {
             <option value="manual">Manual Only</option>
             <option value="automated">Automated Only</option>
           </select>
+          <select
+            value={actionType}
+            onChange={(e) => setActionType(e.target.value)}
+            className="px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All actions</option>
+            {actionTypes.map((action) => <option key={action} value={action}>{ACTION_LABELS[action] ?? action}</option>)}
+          </select>
+          <select
+            value={resource}
+            onChange={(e) => setResource(e.target.value)}
+            className="px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All resources</option>
+            {resources.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="all">All time</option>
+          </select>
           <button className="flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition-colors shadow-sm">
-            <Download size={16} /> CSV
+            <Download size={16} /> Export filtered
           </button>
         </div>
       </div>

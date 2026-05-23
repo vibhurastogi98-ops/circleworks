@@ -9,6 +9,20 @@ import {
   DollarSign, Users, CalendarDays, Heart, Receipt, Briefcase
 } from "lucide-react";
 import {
+  Bar,
+  BarChart as RechartsBarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart as RechartsLineChart,
+  Pie,
+  PieChart as RechartsPieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   availableFields,
   dataSourceLabels,
   filterOperators,
@@ -178,6 +192,57 @@ function ScheduleModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function PreviewChart({
+  data,
+  type,
+}: {
+  data: Record<string, string | number>[];
+  type: VisualizationType;
+}) {
+  const keys = Object.keys(data[0] ?? {});
+  const labelKey = keys.find((key) => typeof data[0]?.[key] === "string") ?? keys[0];
+  const valueKey = keys.find((key) => typeof data[0]?.[key] === "number") ?? keys[1];
+  const chartData = data.map((row) => ({
+    name: String(row[labelKey] ?? "Sample"),
+    value: Number(row[valueKey] ?? 0),
+  }));
+
+  if (!valueKey || type === "table") return null;
+
+  return (
+    <div className="h-48 border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+        {type === "table_line" ? (
+          <RechartsLineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
+            <Tooltip />
+            <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
+          </RechartsLineChart>
+        ) : type === "table_pie" ? (
+          <RechartsPieChart>
+            <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={70}>
+              {chartData.map((_, index) => (
+                <Cell key={index} fill={["#2563eb", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"][index % 5]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </RechartsPieChart>
+        ) : (
+          <RechartsBarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
+          </RechartsBarChart>
+        )}
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 /* ─── Main Custom Report Builder ──────────────────────────────────── */
 export default function CustomReportBuilder() {
   const [step, setStep] = useState(1);
@@ -189,6 +254,7 @@ export default function CustomReportBuilder() {
   const [showSave, setShowSave] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
 
   const sourceFields = availableFields.filter((f) => f.dataSource === dataSource);
   const fieldGroups = Array.from(new Set(sourceFields.map((f) => f.group)));
@@ -218,6 +284,21 @@ export default function CustomReportBuilder() {
 
   const updateFilter = (id: string, key: keyof FilterRow, value: string) => {
     setFilters((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: value } : f)));
+  };
+
+  const moveSelectedField = (targetFieldId: string) => {
+    if (!draggedFieldId || draggedFieldId === targetFieldId) return;
+
+    setSelectedFields((current) => {
+      const next = [...current];
+      const fromIndex = next.indexOf(draggedFieldId);
+      const toIndex = next.indexOf(targetFieldId);
+      if (fromIndex === -1 || toIndex === -1) return current;
+
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
   };
 
   return (
@@ -331,7 +412,17 @@ export default function CustomReportBuilder() {
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Column Order (drag to reorder)</h4>
                   <div className="flex flex-col gap-1.5">
                     {selectedFieldObjects.map((field, idx) => (
-                      <div key={field.id} className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div
+                        key={field.id}
+                        draggable
+                        onDragStart={() => setDraggedFieldId(field.id)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => moveSelectedField(field.id)}
+                        onDragEnd={() => setDraggedFieldId(null)}
+                        className={`flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg transition ${
+                          draggedFieldId === field.id ? "opacity-50 ring-2 ring-blue-300" : ""
+                        }`}
+                      >
                         <GripVertical size={14} className="text-slate-400 cursor-grab flex-shrink-0" />
                         <span className="w-6 h-6 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</span>
                         <span className="text-sm font-medium text-slate-900 dark:text-white flex-1">{field.name}</span>
@@ -496,6 +587,7 @@ export default function CustomReportBuilder() {
           </div>
           {showPreview && selectedFields.length > 0 && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+              <PreviewChart data={previewData} type={vizType} />
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs whitespace-nowrap">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">

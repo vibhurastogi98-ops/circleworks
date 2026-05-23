@@ -95,7 +95,7 @@ export default function PayrollEmptyState() {
           id="payroll-setup-cta"
           className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 group"
         >
-          Set up your first payroll
+          Set up your first payroll →
           <ArrowRight
             size={16}
             className="group-hover:translate-x-1 transition-transform"

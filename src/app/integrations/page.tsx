@@ -1,267 +1,271 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { categories, generateSlug, integrations } from "@/data/integrations";
-import { 
-  Landmark, MessageSquare, ShieldCheck, Globe, 
-  FileCheck, FileText, Heart, Activity, 
-  CreditCard, Terminal, Zap, ShoppingBag, Clock
+import {
+  Activity,
+  ArrowRight,
+  CreditCard,
+  FileCheck,
+  FileText,
+  Globe,
+  Heart,
+  Landmark,
+  MessageSquare,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import { categories, generateSlug, integrations } from "@/data/integrations";
+import type { Integration } from "@/data/integrations";
 
+const integrationIcons: Record<string, LucideIcon> = {
+  QuickBooks: Landmark,
+  Slack: MessageSquare,
+  Okta: ShieldCheck,
+  Xero: Landmark,
+  "Google Workspace": Globe,
+  "Microsoft Teams": MessageSquare,
+  "Guideline 401(k)": Heart,
+  "Human Interest": Heart,
+  Brex: CreditCard,
+  Ramp: CreditCard,
+  Greenhouse: Activity,
+  Lever: Activity,
+  Checkr: FileCheck,
+  Gusto: Zap,
+  SimplyInsured: ShieldCheck,
+  DocuSign: FileText,
+};
 
-
-
-
-export default function IntegrationsPage() {
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredIntegrations = integrations.filter((int) => {
-    const matchesCat = activeFilter === "All" || int.cat === activeFilter;
-    const matchesSearch = int.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
-
-  const featuredIntegrations = integrations.filter((int) => ["QuickBooks", "Slack", "Okta"].includes(int.name));
+function IntegrationLogo({ integration, className = "h-16 w-16" }: { integration: Integration; className?: string }) {
+  const Icon = integrationIcons[integration.name] ?? Zap;
 
   return (
-    <main className="min-h-screen bg-white font-sans selection:bg-cyan-200 selection:text-navy">
+    <div
+      className={`${className} flex shrink-0 items-center justify-center rounded-2xl border border-white/20 text-white shadow-sm grayscale transition duration-300 group-hover:scale-105 group-hover:grayscale-0`}
+      style={{ backgroundColor: integration.color }}
+      aria-hidden="true"
+    >
+      <Icon className="h-7 w-7" strokeWidth={2.4} />
+    </div>
+  );
+}
+
+export default function IntegrationsPage() {
+  const [activeFilter, setActiveFilter] = useState<(typeof categories)[number]>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredIntegrations = integrations.filter((integration) => {
+    const matchesCategory = activeFilter === "All" || integration.cat === activeFilter;
+    const matchesSearch = integration.name.toLowerCase().includes(normalizedSearch);
+    return matchesCategory && matchesSearch;
+  });
+
+  const featuredIntegrations = integrations.filter((integration) => integration.featured);
+
+  return (
+    <main className="min-h-screen bg-white font-sans selection:bg-cyan-200 selection:text-[#061122]">
       <Navbar />
 
-      {/* SECTION 1 - HERO */}
-      <section className="relative pt-32 pb-24 lg:pt-48 lg:pb-32 bg-[#0A1628] overflow-hidden text-center z-10 border-b border-white/5">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center">
-          
-          <h1 className="text-4xl md:text-5xl lg:text-[64px] font-black text-white leading-[1.1] tracking-tight mb-6 max-w-4xl mx-auto">
+      <section className="relative overflow-hidden bg-[#061122] pt-32 pb-20 text-white lg:pt-44 lg:pb-28">
+        <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.12)_1px,transparent_1px)] [background-size:56px_56px]" />
+        <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 text-center sm:px-6 lg:px-8">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-bold text-cyan-100 backdrop-blur">
+            <Sparkles className="h-4 w-4" />
+            50+ native and API-ready integrations
+          </div>
+          <h1 className="mx-auto max-w-4xl text-4xl font-black leading-[1.05] tracking-tight md:text-6xl lg:text-[72px]">
             Connect CircleWorks to your entire stack
           </h1>
-          
-          <p className="text-lg lg:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed font-medium">
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-relaxed text-slate-300 lg:text-xl">
             50+ integrations. No manual data entry. Zero re-keying.
           </p>
+          <Link
+            href="#integrations-grid"
+            className="mt-10 inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-7 py-4 text-sm font-black text-[#061122] shadow-xl shadow-black/20 transition hover:-translate-y-0.5 hover:bg-cyan-50"
+          >
+            Browse integrations
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-            <a href="#grid" className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all border border-white/10 shadow-lg cursor-pointer">
-              Browse Integrations <span className="ml-2 animate-bounce inline-block">&darr;</span>
-            </a>
+      <section className="border-b border-slate-200 bg-slate-50 py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 flex flex-col gap-3 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">Featured Integrations</p>
+            <h2 className="text-3xl font-black tracking-tight text-[#061122] md:text-4xl">Start with the tools teams use daily</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {featuredIntegrations.map((integration) => (
+              <Link
+                href={`/integrations/${generateSlug(integration.name)}`}
+                key={integration.id}
+                className="group block rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-900/10"
+              >
+                <div className="mb-8 flex items-center justify-between gap-4">
+                  <IntegrationLogo integration={integration} />
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-blue-700">
+                    {integration.cat}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-[#061122]">{integration.name}</h3>
+                <p className="mt-3 text-base font-medium leading-relaxed text-slate-600">{integration.featuredDesc ?? integration.desc}</p>
+                <div className="mt-8 inline-flex items-center gap-2 text-sm font-black text-blue-600">
+                  View setup
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* SECTION 2 - FEATURED INTEGRATIONS */}
-      <section className="py-24 bg-white relative z-20 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-black text-[#0A1628] tracking-tight mb-12 text-center">Featured Integrations</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredIntegrations.map((int) => {
-              const IconMap: Record<string, any> = {
-                QuickBooks: Landmark,
-                Slack: MessageSquare,
-                Okta: ShieldCheck,
-                Xero: Landmark,
-                "Google Workspace": Globe,
-                "Microsoft Teams": MessageSquare,
-                "Guideline 401(k)": Heart,
-                "Human Interest": Heart,
-                Brex: CreditCard,
-                Ramp: CreditCard,
-                Greenhouse: Activity,
-                Lever: Activity,
-                Checkr: FileCheck,
-                Gusto: Zap,
-                SimplyInsured: ShieldCheck,
-                DocuSign: FileText,
-              };
-              const Icon = IconMap[int.name] || Zap;
-              
+      <section id="integrations-grid" className="scroll-mt-24 bg-white py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.24em] text-slate-400">Integration Library</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-[#061122] md:text-4xl">Find your connected workflow</h2>
+            </div>
+
+            <label className="relative w-full max-w-md">
+              <span className="sr-only">Search integrations by name</span>
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search integration name..."
+                className="h-[52px] w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm font-bold text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              />
+            </label>
+          </div>
+
+          <div className="mb-8 flex gap-2 overflow-x-auto pb-3">
+            {categories.map((category) => {
+              const isActive = category === activeFilter;
               return (
-                <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block group">
-                  <div className="bg-gradient-to-br w-full h-full from-blue-50 to-white rounded-3xl p-8 border border-blue-100 hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-2 transition-all duration-300">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div 
-                        className="w-16 h-16 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-white group-hover:scale-110 transition-all"
-                        style={{ backgroundColor: int.color }}
-                      >
-                        <Icon size={32} />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-[#0A1628] leading-tight">{int.name}</h3>
-                        <div className="text-blue-600 text-sm font-bold uppercase tracking-wider">{int.cat}</div>
-                      </div>
-                    </div>
-                    <p className="text-slate-600 font-medium leading-relaxed">
-                      {int.desc}
-                    </p>
-                  </div>
-                </Link>
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveFilter(category)}
+                  className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-black transition ${
+                    isActive
+                      ? "bg-[#061122] text-white shadow-lg shadow-slate-900/15"
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-600"
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  {category}
+                </button>
               );
             })}
           </div>
-        </div>
-      </section>
 
-      {/* SECTION 3 - FILTER + GRID */}
-      <section id="grid" className="py-24 bg-white scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           
-           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-              <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] tracking-tight">All Integrations</h2>
-              <div className="relative max-w-md w-full">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </div>
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name..." 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                />
-              </div>
-           </div>
-           
-           {/* CATEGORY FILTER */}
-           <div className="flex flex-nowrap overflow-x-auto hide-scrollbar gap-2 md:gap-3 pb-4 mb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-              {categories.map(cat => (
-                 <button
-                    key={cat}
-                    onClick={() => setActiveFilter(cat)}
-                    className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-                       activeFilter === cat 
-                       ? "bg-blue-600 text-white shadow-md transform scale-105" 
-                       : "bg-white text-slate-600 border border-slate-200 hover:border-blue-300 hover:text-blue-600"
-                    }`}
-                 >
-                    {cat}
-                 </button>
-              ))}
-           </div>
+          <div className="mb-6 text-sm font-bold text-slate-400">
+            Showing {filteredIntegrations.length} {filteredIntegrations.length === 1 ? "integration" : "integrations"}
+          </div>
 
-           <div className="text-slate-400 font-medium text-sm mb-10">
-             Showing {filteredIntegrations.length} integrations
-           </div>
-
-           {/* INTEGRATION GRID: 4 desktop, 3 tablet, 2 mobile */}
-           <motion.div layout className="grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-4 sm:gap-6">
-              <AnimatePresence mode="popLayout">
-                 {filteredIntegrations.map((int) => {
-                    const IconMap: Record<string, any> = {
-                      QuickBooks: Landmark,
-                      Slack: MessageSquare,
-                      Okta: ShieldCheck,
-                      Xero: Landmark,
-                      "Google Workspace": Globe,
-                      "Microsoft Teams": MessageSquare,
-                      "Guideline 401(k)": Heart,
-                      "Human Interest": Heart,
-                      Brex: CreditCard,
-                      Ramp: CreditCard,
-                      Greenhouse: Activity,
-                      Lever: Activity,
-                      Checkr: FileCheck,
-                      Gusto: Zap,
-                      SimplyInsured: ShieldCheck,
-                      DocuSign: FileText,
-                    };
-                    const Icon = IconMap[int.name] || Zap;
-
-                    return (
-                      <Link href={`/integrations/${generateSlug(int.name)}`} key={int.id} className="block h-full group">
-                      <motion.div
-                         layout
-                         initial={{ opacity: 0, scale: 0.95 }}
-                         animate={{ opacity: 1, scale: 1 }}
-                         exit={{ opacity: 0, scale: 0.95 }}
-                         transition={{ duration: 0.2 }}
-                         className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 h-full"
+          <motion.div layout className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+            <AnimatePresence mode="popLayout">
+              {filteredIntegrations.map((integration) => {
+                const isConnected = integration.status === "Connected";
+                return (
+                  <motion.div
+                    key={integration.id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 12 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <Link
+                      href={`/integrations/${generateSlug(integration.name)}`}
+                      className="group flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-slate-900/10"
+                    >
+                      <IntegrationLogo integration={integration} />
+                      <div className="mt-5 flex-1">
+                        <h3 className="text-lg font-black leading-tight tracking-tight text-[#061122] transition group-hover:text-blue-600">
+                          {integration.name}
+                        </h3>
+                        <span className="mt-3 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                          {integration.cat}
+                        </span>
+                        <p className="mt-4 line-clamp-1 text-sm font-medium leading-relaxed text-slate-500">{integration.desc}</p>
+                      </div>
+                      <span
+                        className={`mt-6 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-black transition ${
+                          isConnected
+                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                            : "bg-blue-600 text-white group-hover:bg-blue-700"
+                        }`}
                       >
-                         <div className="flex items-start justify-between mb-4">
-                            <div 
-                              className="w-[64px] h-[64px] rounded-xl flex items-center justify-center text-white grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-300 shadow-sm border border-slate-100"
-                              style={{ backgroundColor: int.color }}
-                            >
-                               <Icon size={28} />
-                            </div>
-                         </div>
-                         
-                         <h3 className="text-[18px] font-bold text-[#0A1628] leading-snug mb-1.5 group-hover:text-blue-600 transition-colors">
-                            {int.name}
-                         </h3>
-                         
-                         <div className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded w-max mb-3">
-                            {int.cat}
-                         </div>
-                         
-                         <p className="text-slate-500 text-[14px] leading-relaxed mb-6 line-clamp-1 flex-1">
-                            {int.desc}
-                         </p>
-  
-                         <div className="mt-auto pt-4 border-t border-slate-100 w-full">
-                           <button className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all ${
-                              int.status === 'Live' ? 'bg-slate-50 text-slate-700 hover:bg-blue-600 hover:text-white border border-slate-200 group-hover:border-blue-600' : 'bg-slate-50 text-slate-400'
-                           }`}>
-                             {int.status === 'Connected' ? 'Connected' : 'Connect'}
-                           </button>
-                         </div>
-                      </motion.div>
-                      </Link>
-                    );
-                 })}
-              </AnimatePresence>
-           </motion.div>
+                        {integration.status}
+                      </span>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
 
-           {filteredIntegrations.length === 0 && (
-             <div className="text-center py-20 text-slate-500 font-medium bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
-                No integrations found matching your criteria.
-             </div>
-           )}
-
+          {filteredIntegrations.length === 0 && (
+            <div className="mt-8 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+              <h3 className="text-xl font-black text-[#061122]">No integrations found</h3>
+              <p className="mt-2 text-sm font-medium text-slate-500">Try another category or search term.</p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* SECTION 4 - API SECTION */}
-      <section id="api" className="py-24 bg-slate-50 border-y border-slate-200 scroll-mt-10 overflow-hidden">
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col lg:flex-row gap-16 items-center">
-               
-               {/* Left Content */}
-               <div className="lg:w-1/2">
-                  <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] mb-4 tracking-tight">Build your own integration</h2>
-                  <p className="text-lg text-slate-500 mb-10">We provide a full REST API and webhooks to connect any custom tool directly into CircleWorks.</p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-4">
-                     <button className="bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md">
-                        API Documentation &rarr;
-                     </button>
-                     <Link href="https://github.com/circleworks/api" target="_blank" className="bg-white text-slate-600 font-bold px-6 py-3 rounded-xl hover:bg-slate-100 hover:text-slate-900 border border-slate-200 transition-colors shadow-sm flex items-center justify-center gap-2">
-                        <span>GitHub</span>
-                     </Link>
-                  </div>
-               </div>
-
-               {/* Right Content - Code Snippet */}
-               <div className="lg:w-1/2 w-full relative">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 blur-xl rounded-[2rem] -z-10" />
-                  <div className="bg-[#0A1628] rounded-2xl p-6 shadow-2xl border border-slate-800 relative z-10 font-mono text-sm leading-relaxed overflow-x-auto">
-                     <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-4">
-                        <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                        <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <div className="ml-4 text-xs font-sans text-slate-500 font-bold uppercase tracking-widest">fetch_integrations.sh</div>
-                     </div>
-                     <div className="text-blue-400">GET <span className="text-white">/v1/integrations</span></div>
-                     <div className="text-cyan-300">Authorization: <span className="text-emerald-300">Bearer {'{api_key}'}</span></div>
-                     <div className="mt-4 text-slate-500">→ 200 OK</div>
-                  </div>
-               </div>
-               
+      <section className="border-y border-slate-200 bg-[#f8fafc] py-20">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_0.8fr] lg:px-8">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">Developer Platform</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#061122] md:text-5xl">Build your own integration</h2>
+            <p className="mt-5 max-w-2xl text-lg font-medium leading-relaxed text-slate-600">
+              Use CircleWorks APIs and webhooks to sync payroll, employee, document, and compliance data with the custom tools your team already depends on.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/docs" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700">
+                API docs
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="https://github.com/vibhurastogi98-ops/circleworks"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-[#061122]"
+              >
+                GitHub
+              </Link>
             </div>
-         </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-800 bg-[#061122] p-6 font-mono text-sm text-slate-300 shadow-2xl shadow-slate-900/20">
+            <div className="mb-6 flex items-center gap-2 border-b border-white/10 pb-4">
+              <span className="h-3 w-3 rounded-full bg-red-400" />
+              <span className="h-3 w-3 rounded-full bg-amber-300" />
+              <span className="h-3 w-3 rounded-full bg-emerald-400" />
+              <span className="ml-3 text-xs font-black uppercase tracking-widest text-slate-500">custom-sync.ts</span>
+            </div>
+            <div className="space-y-2 leading-relaxed">
+              <div><span className="text-cyan-300">POST</span> <span className="text-white">/v1/webhooks/integrations</span></div>
+              <div><span className="text-blue-300">Authorization:</span> Bearer {'{api_key}'}</div>
+              <div className="pt-3 text-emerald-300">200 OK</div>
+              <div className="text-slate-500">employee.synced, payroll.approved, document.signed</div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <Footer />

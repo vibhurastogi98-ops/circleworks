@@ -21,12 +21,15 @@ export interface AtsCandidate {
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
+  linkedinUrl?: string;
   source: string;
   stage: CandidateStage;
   appliedDate: string;
   aiScore: number;
   rating?: number;
   daysInStage: number;
+  resumeSnippet?: string;
   reviewers: string[];
 }
 
@@ -57,12 +60,12 @@ const INITIAL_JOBS: AtsJob[] = [
 ];
 
 const INITIAL_CANDIDATES: AtsCandidate[] = [
-  { id: 'cand-1', jobId: 'job-1', firstName: 'Sarah', lastName: 'Connor', email: 'sarah.c@example.com', source: 'LinkedIn', stage: 'New', appliedDate: '2024-09-10', aiScore: 92, daysInStage: 2, reviewers: ['https://i.pravatar.cc/150?u=1'] },
-  { id: 'cand-2', jobId: 'job-1', firstName: 'John', lastName: 'Doe', email: 'j.doe@example.com', source: 'Indeed', stage: 'Screening', appliedDate: '2024-09-05', aiScore: 75, rating: 4, daysInStage: 4, reviewers: ['https://i.pravatar.cc/150?u=2'] },
-  { id: 'cand-3', jobId: 'job-1', firstName: 'Jane', lastName: 'Smith', email: 'jane.smith@example.com', source: 'Referral', stage: 'Onsite', appliedDate: '2024-09-02', aiScore: 88, rating: 5, daysInStage: 1, reviewers: ['https://i.pravatar.cc/150?u=1', 'https://i.pravatar.cc/150?u=3'] },
-  { id: 'cand-4', jobId: 'job-1', firstName: 'Alice', lastName: 'Johnson', email: 'alice.j@example.com', source: 'Direct', stage: 'Take-Home', appliedDate: '2024-09-04', aiScore: 65, daysInStage: 6, reviewers: [] },
-  { id: 'cand-5', jobId: 'job-1', firstName: 'Bob', lastName: 'Williams', email: 'bob.w@example.com', source: 'LinkedIn', stage: 'Offer', appliedDate: '2024-08-20', aiScore: 95, rating: 5, daysInStage: 2, reviewers: ['https://i.pravatar.cc/150?u=1'] },
-  { id: 'cand-6', jobId: 'job-2', firstName: 'Charlie', lastName: 'Brown', email: 'charlie.b@example.com', source: 'LinkedIn', stage: 'New', appliedDate: '2024-09-12', aiScore: 55, daysInStage: 1, reviewers: [] },
+  { id: 'cand-1', jobId: 'job-1', firstName: 'Sarah', lastName: 'Connor', email: 'sarah.c@example.com', phone: '+1 (415) 555-0124', linkedinUrl: 'https://linkedin.com/in/sarahconnor', source: 'LinkedIn', stage: 'New', appliedDate: '2024-09-10', aiScore: 92, daysInStage: 2, resumeSnippet: 'Frontend engineer with 7 years building React design systems, payroll dashboards, and high-traffic SaaS workflows.', reviewers: ['https://i.pravatar.cc/150?u=1'] },
+  { id: 'cand-2', jobId: 'job-1', firstName: 'John', lastName: 'Doe', email: 'j.doe@example.com', phone: '+1 (512) 555-0188', linkedinUrl: 'https://linkedin.com/in/johndoe', source: 'Indeed', stage: 'Screening', appliedDate: '2024-09-05', aiScore: 75, rating: 4, daysInStage: 4, resumeSnippet: 'Product-minded engineer focused on TypeScript, accessibility, and component architecture for regulated products.', reviewers: ['https://i.pravatar.cc/150?u=2'] },
+  { id: 'cand-3', jobId: 'job-1', firstName: 'Jane', lastName: 'Smith', email: 'jane.smith@example.com', phone: '+1 (646) 555-0145', linkedinUrl: 'https://linkedin.com/in/janesmith', source: 'Referral', stage: 'Onsite', appliedDate: '2024-09-02', aiScore: 88, rating: 5, daysInStage: 1, resumeSnippet: 'Senior UI engineer with strong hiring-loop feedback and deep experience shipping HRIS and analytics surfaces.', reviewers: ['https://i.pravatar.cc/150?u=1', 'https://i.pravatar.cc/150?u=3'] },
+  { id: 'cand-4', jobId: 'job-1', firstName: 'Alice', lastName: 'Johnson', email: 'alice.j@example.com', phone: '+1 (303) 555-0190', linkedinUrl: 'https://linkedin.com/in/alicejohnson', source: 'Direct', stage: 'Take-Home', appliedDate: '2024-09-04', aiScore: 65, daysInStage: 6, resumeSnippet: 'Full-stack developer with strong API instincts and recent work on React performance and testing infrastructure.', reviewers: [] },
+  { id: 'cand-5', jobId: 'job-1', firstName: 'Bob', lastName: 'Williams', email: 'bob.w@example.com', phone: '+1 (206) 555-0162', linkedinUrl: 'https://linkedin.com/in/bobwilliams', source: 'LinkedIn', stage: 'Offer', appliedDate: '2024-08-20', aiScore: 95, rating: 5, daysInStage: 2, resumeSnippet: 'Staff frontend engineer with payroll-domain experience, strong mentorship notes, and excellent system design feedback.', reviewers: ['https://i.pravatar.cc/150?u=1'] },
+  { id: 'cand-6', jobId: 'job-2', firstName: 'Charlie', lastName: 'Brown', email: 'charlie.b@example.com', phone: '+1 (212) 555-0133', linkedinUrl: 'https://linkedin.com/in/charliebrown', source: 'LinkedIn', stage: 'New', appliedDate: '2024-09-12', aiScore: 55, daysInStage: 1, resumeSnippet: 'Product manager with early-stage B2B experience and exposure to HR workflows, analytics, and customer discovery.', reviewers: [] },
 ];
 
 // --- STORAGE HELPERS ---
@@ -142,4 +145,14 @@ export const addCandidate = (candidate: Omit<AtsCandidate, 'id' | 'appliedDate' 
   saveCandidates(updatedCandidates);
   mockAtsCandidates = updatedCandidates;
   return newCandidate;
+};
+
+export const updateCandidateStage = (id: string, newStage: CandidateStage) => {
+  const currentCandidates = getStoredCandidates();
+  const updatedCandidates = currentCandidates.map(candidate =>
+    candidate.id === id ? { ...candidate, stage: newStage, daysInStage: 0 } : candidate,
+  );
+  saveCandidates(updatedCandidates);
+  mockAtsCandidates = updatedCandidates;
+  return updatedCandidates.find(candidate => candidate.id === id);
 };

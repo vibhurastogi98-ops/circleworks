@@ -1,139 +1,145 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-/**
- * Custom hook and component to animate numeric strings on scroll.
- * Extracts prefixes and suffixes to animate just the number.
- */
-function CountUpNumber({ endString }: { endString: string }) {
-  const elementRef = useRef<HTMLSpanElement>(null);
-  
-  // Set initial default value to 0 with matching prefix/suffix
-  const parseMatch = endString.match(/([0-9.,]+)/);
-  const initialDisplay = parseMatch 
-    ? endString.replace(parseMatch[0], "0")
-    : "0";
+type CountUpOptions = {
+  end: number;
+  decimals?: number;
+  duration?: number;
+  formatter: (value: number) => string;
+};
 
-  const [displayValue, setDisplayValue] = useState(initialDisplay);
+function useCountUp({ end, decimals = 0, duration = 1600, formatter }: CountUpOptions) {
+  const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
+  const [displayValue, setDisplayValue] = useState(formatter(0));
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      // Trigger animation exclusively once when 30% of the element hits viewport
-      if (entry.isIntersecting && !hasAnimated.current) {
-        hasAnimated.current = true;
+    const element = ref.current;
+    let animationFrame = 0;
 
-        const match = endString.match(/[0-9.]+/);
-        if (!match) {
-          setDisplayValue(endString);
-          return;
+    if (!element) {
+      return;
+    }
+
+    const animate = () => {
+      if (hasAnimated.current) {
+        return;
+      }
+
+      hasAnimated.current = true;
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setDisplayValue(formatter(end));
+        return;
+      }
+
+      let startTime: number | null = null;
+
+      const step = (timestamp: number) => {
+        if (startTime === null) {
+          startTime = timestamp;
         }
 
-        const numStr = match[0];
-        const isFloat = numStr.includes('.');
-        const targetNumber = parseFloat(numStr);
-        const prefix = endString.substring(0, match.index);
-        const suffix = endString.substring(match.index! + numStr.length);
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+        const nextValue = Number((easedProgress * end).toFixed(decimals));
 
-        let startTimestamp: number | null = null;
-        const duration = 2000; // 2 seconds
+        setDisplayValue(formatter(nextValue));
 
-        const step = (timestamp: number) => {
-          if (!startTimestamp) startTimestamp = timestamp;
-          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-          
-          // easeOutCubic easing curve for smooth deceleration
-          const easeOut = 1 - Math.pow(1 - progress, 3);
-          let currentNum: number | string = easeOut * targetNumber;
-          
-          if (isFloat) {
-            currentNum = currentNum.toFixed(2);
-          } else {
-            currentNum = Math.floor(currentNum);
-          }
+        if (progress < 1) {
+          animationFrame = requestAnimationFrame(step);
+        } else {
+          setDisplayValue(formatter(end));
+        }
+      };
 
-          setDisplayValue(`${prefix}${currentNum}${suffix}`);
+      animationFrame = requestAnimationFrame(step);
+    };
 
-          if (progress < 1) {
-            requestAnimationFrame(step);
-          } else {
-            // Guarantee exact final value string
-            setDisplayValue(endString);
-          }
-        };
-        requestAnimationFrame(step);
-      }
-    }, { threshold: 0.3 });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          animate();
+          observer.unobserve(element);
+        }
+      },
+      { threshold: 0.35 },
+    );
 
-    if (elementRef.current) {
-      observer.observe(elementRef.current);
-    }
-    
-    return () => observer.disconnect();
-  }, [endString]);
+    observer.observe(element);
 
-  return <span ref={elementRef}>{displayValue}</span>;
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [decimals, duration, end, formatter]);
+
+  return { ref, displayValue };
 }
 
-const STATS_DATA = [
-  { 
-    top: "50", 
-    middle: "States", 
-    bottom: "Full USA Payroll Coverage" 
+const stats = [
+  {
+    end: 50,
+    number: (value: number) => `${Math.round(value)} States`,
+    label: "Full USA Payroll Coverage",
+    subLabel: "+ DC, no extra charge",
   },
-  { 
-    top: "$2B+", 
-    middle: "", 
-    bottom: "Payroll Processed for Creators & Agencies" 
+  {
+    end: 2,
+    number: (value: number) => `$${Math.round(value)}B+`,
+    label: "Payroll Processed",
+    subLabel: "By US companies on CircleWorks",
   },
-  { 
-    top: "99.99%", 
-    middle: "", 
-    bottom: "Platform Uptime, SOC 2 Certified" 
+  {
+    end: 99.97,
+    decimals: 2,
+    number: (value: number) => `${value.toFixed(2)}%`,
+    label: "Platform Uptime",
+    subLabel: "SLA-guaranteed, SOC 2 certified",
   },
-  { 
-    top: "<24", 
-    middle: "Hrs", 
-    bottom: "Average First Payroll Setup" 
+  {
+    end: 5,
+    number: (value: number) => `<${Math.round(value)} Min`,
+    label: "Average First Payroll Setup",
+    subLabel: "From signup to first run",
   },
 ];
 
-export default function StatsSection() {
-  return (
-    <section className="bg-white py-16 w-full">
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
-        
-        {/* Responsive Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-16 lg:gap-y-0">
-          {STATS_DATA.map((stat, idx) => {
-            const isLast = idx === STATS_DATA.length - 1;
-            const dividerClasses = !isLast ? "lg:border-r lg:border-slate-100" : "";
+function StatCard({ stat, isLast }: { stat: (typeof stats)[number]; isLast: boolean }) {
+  const { ref, displayValue } = useCountUp({
+    end: stat.end,
+    decimals: stat.decimals,
+    formatter: stat.number,
+  });
 
-            return (
-              <div 
-                key={idx} 
-                className={`flex flex-col items-center text-center px-6 ${dividerClasses}`}
-              >
-                {/* Responsive Gradient Statistic Wrapper */}
-                <div className="flex flex-col items-center justify-center min-h-[120px]">
-                  {/* SEO Update ── 20% font size reduction ── */}
-                  <div className="text-[42px] md:text-[52px] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500 leading-[0.85] tracking-tight flex flex-col items-center">
-                    {stat.top && <CountUpNumber endString={stat.top} />}
-                    {stat.middle && <span className="mt-[-2px]">{stat.middle}</span>}
-                  </div>
-                </div>
-                
-                {/* Slate Label with Refined Font Size */}
-                <div className="text-[13px] md:text-[15px] font-bold text-[#0F172A] mt-5 max-w-[150px] leading-snug">
-                  {stat.bottom}
-                </div>
-              </div>
-            );
-          })}
+  return (
+    <div className={`flex flex-col items-center px-6 text-center ${isLast ? "" : "lg:border-r lg:border-gray-200"}`}>
+      <div
+        ref={ref}
+        className="min-h-[78px] bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 bg-clip-text text-[64px] font-black leading-none text-transparent"
+      >
+        {displayValue}
+      </div>
+      <div className="mt-5 text-[20px] font-semibold leading-tight text-gray-900">{stat.label}</div>
+      <div className="mt-2 text-[14px] leading-6 text-gray-500">{stat.subLabel}</div>
+    </div>
+  );
+}
+
+export function StatsSection() {
+  return (
+    <section className="w-full bg-white py-16">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-y-12 md:grid-cols-2 md:gap-y-14 lg:grid-cols-4 lg:gap-y-0">
+          {stats.map((stat, index) => (
+            <StatCard key={stat.label} stat={stat} isLast={index === stats.length - 1} />
+          ))}
         </div>
       </div>
     </section>
   );
 }
+
+export default StatsSection;

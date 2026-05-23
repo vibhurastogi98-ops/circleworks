@@ -2,13 +2,15 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSocketStore } from '@/store/useSocketStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
+import { useDashboardRealtimeStore } from '@/store/useDashboardRealtimeStore';
 import { toast } from 'sonner';
 
 export const useWebSocketEvents = () => {
   const queryClient = useQueryClient();
   const socket = useSocketStore((s) => s.socket);
   const { on, off } = useSocketStore();
-  const { addNotification, incrementUnreadCount } = useNotificationStore();
+  const { addNotification } = useNotificationStore();
+  const { setPayrollStatus, incrementEmployeeDelta, incrementNotificationDelta } = useDashboardRealtimeStore();
 
   /** Sec. 02 — after WS reconnect, REST catch-up then refresh client caches */
   useEffect(() => {
@@ -50,6 +52,16 @@ export const useWebSocketEvents = () => {
       }
     };
 
+    const handlePayrollStatusChanged = (data: { status: string; employeeCount?: number }) => {
+      const normalizedStatus = data.status.toLowerCase();
+      setPayrollStatus({
+        isRunning: ["processing", "running", "in_progress"].includes(normalizedStatus),
+        employeeCount: data.employeeCount ?? 47,
+      });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    };
+
     const handlePayrollRunCompleted = (data: { runId: string; totalGross: number; employeeCount: number }) => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
       toast.success(`Payroll run completed: $${data.totalGross.toLocaleString()} for ${data.employeeCount} employees`);
@@ -75,9 +87,13 @@ export const useWebSocketEvents = () => {
     };
 
     // Employee Events
-    const handleEmployeeCreated = (data: { employee: any }) => {
+    const handleEmployeeCreated = (data: { employee?: any; firstName?: string; lastName?: string }) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast.success(`New employee added: ${data.employee.firstName} ${data.employee.lastName}`);
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      incrementEmployeeDelta();
+      const firstName = data.employee?.firstName ?? data.firstName ?? "New";
+      const lastName = data.employee?.lastName ?? data.lastName ?? "employee";
+      toast.success(`New employee added: ${firstName} ${lastName}`);
     };
 
     const handleEmployeeUpdated = (data: { employeeId: string; changedFields: string[] }) => {
@@ -185,10 +201,16 @@ export const useWebSocketEvents = () => {
     };
 
     // Notification Events
-    const handleNotificationNew = (data: { notification: any }) => {
-      addNotification(data.notification);
-      incrementUnreadCount();
-      toast.info(data.notification.title);
+    const handleNotificationNew = (data: { notification?: any; title?: string; description?: string }) => {
+      const notification = data.notification ?? {
+        type: "INFO",
+        title: data.title ?? "New notification",
+        description: data.description ?? "A new dashboard notification was received.",
+      };
+      addNotification(notification);
+      incrementNotificationDelta();
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      toast.info(notification.title);
     };
 
     const handleNotificationBatchUpdate = (data: any) => {
@@ -274,6 +296,7 @@ export const useWebSocketEvents = () => {
 
     // Register all event handlers
     on('payroll.run.status_update', handlePayrollRunStatusUpdate);
+    on('payroll.status_changed', handlePayrollStatusChanged);
     on('payroll.run.completed', handlePayrollRunCompleted);
     on('payroll.approval.required', handlePayrollApprovalRequired);
     on('payroll.direct_deposit.sent', handlePayrollDirectDepositSent);
@@ -315,6 +338,7 @@ export const useWebSocketEvents = () => {
     // Cleanup function
     return () => {
       off('payroll.run.status_update', handlePayrollRunStatusUpdate);
+      off('payroll.status_changed', handlePayrollStatusChanged);
       off('payroll.run.completed', handlePayrollRunCompleted);
       off('payroll.approval.required', handlePayrollApprovalRequired);
       off('payroll.direct_deposit.sent', handlePayrollDirectDepositSent);
@@ -353,5 +377,14 @@ export const useWebSocketEvents = () => {
       off('announcement.published', handleAnnouncementPublished);
       off('workflow.action.executed', handleWorkflowActionExecuted);
     };
-  }, [socket, queryClient, on, off, addNotification, incrementUnreadCount]);
+  }, [
+    socket,
+    queryClient,
+    on,
+    off,
+    addNotification,
+    setPayrollStatus,
+    incrementEmployeeDelta,
+    incrementNotificationDelta,
+  ]);
 };

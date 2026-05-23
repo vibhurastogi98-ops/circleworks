@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
-import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus } from "lucide-react";
+import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { ASSET_TYPE_ICONS, type AssetType, type Asset, type AssetAssignment } from "@/data/mockAssets";
 import { formatDate } from "@/utils/formatDate";
@@ -251,6 +251,35 @@ export default function EmployeeOverviewTab() {
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400 italic">No direct reports.</p>
             )}
+         </div>
+
+         {/* Recent Activity */}
+         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Activity size={18} className="text-blue-500" /> Recent Activity
+               </h3>
+               <Link href={`/employees/${id}/activity`} className="text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700">
+                  View all
+               </Link>
+            </div>
+
+            <div className="space-y-3">
+               {[
+                  { label: "Profile reviewed", detail: "HR verified personal details", date: emp.updatedAt || emp.createdAt },
+                  { label: "Compensation synced", detail: "Current rate available to payroll", date: emp.updatedAt || emp.startDate },
+                  { label: "Document status checked", detail: "I-9 and onboarding files monitored", date: emp.createdAt },
+               ].map((item) => (
+                  <div key={item.label} className="flex gap-3">
+                     <div className="mt-1 h-2 w-2 rounded-full bg-blue-500" />
+                     <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</p>
+                        <p className="text-xs text-slate-500">{item.detail}</p>
+                        <p className="mt-0.5 text-[11px] text-slate-400">{item.date ? formatDate(item.date) : "Recently"}</p>
+                     </div>
+                  </div>
+               ))}
+            </div>
          </div>
 
          {/* ── Assigned Equipment Widget ─────────────────────────── */}

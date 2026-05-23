@@ -2,11 +2,31 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import AppSidebar from "@/components/AppSidebar";
 import AppTopBar from "@/components/AppTopBar";
 
+const settingsTabs = [
+  { label: "Company", href: "/settings/company" },
+  { label: "Locations", href: "/settings/locations" },
+  { label: "Departments", href: "/settings/departments" },
+  { label: "Users", href: "/settings/users" },
+  { label: "Roles", href: "/settings/roles" },
+  { label: "Pay Schedules", href: "/settings/pay-schedules" },
+  { label: "Bank", href: "/settings/bank" },
+  { label: "Integrations", href: "/settings/integrations" },
+  { label: "Notifications", href: "/settings/notifications" },
+  { label: "Billing", href: "/settings/billing" },
+  { label: "SSO", href: "/settings/sso" },
+  { label: "API", href: "/settings/api" },
+  { label: "Audit Log", href: "/settings/audit-log" },
+  { label: "Import", href: "/settings/import" },
+  { label: "Custom Fields", href: "/settings/custom-fields" },
+];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() || "/settings/company";
+
   return (
     
       <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
@@ -26,43 +46,25 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
               <div className="flex flex-col md:flex-row gap-8">
                 {/* Internal Settings Nav */}
                 <aside className="w-full md:w-64 flex-shrink-0">
-                  <div className="sticky top-8 flex flex-col gap-1">
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2 px-3">Organization</h2>
-                    <Link href="/settings/company" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Company Profile</Link>
-                    <Link href="/settings/locations" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Locations</Link>
-                    <Link href="/settings/departments" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Departments</Link>
-                    
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Access & Security</h2>
-                    <Link href="/settings/users" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Admin Users</Link>
-                    <Link href="/settings/roles" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Roles & Permissions</Link>
-                    <Link href="/settings/security/devices" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Devices & Sessions</Link>
-                    <Link href="/settings/sso" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">SSO & Provisioning</Link>
+                  <div className="sticky top-8 flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                    <h2 className="px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-400">Settings</h2>
+                    {settingsTabs.map((tab) => {
+                      const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Finance</h2>
-                    <Link href="/settings/pay-schedules" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Pay Schedules</Link>
-                    <Link href="/settings/bank" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Bank Accounts</Link>
-                    <Link href="/settings/billing" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Billing & Plans</Link>
-                    
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Agency</h2>
-                    <Link href="/agency/clients" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Client Billing Setup</Link>
-
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Operations</h2>
-                    <Link href="/settings/assets" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Equipment & Assets</Link>
-                    <Link href="/settings/time" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Time & Projects</Link>
-
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Communication</h2>
-                    <Link href="/settings/announcements" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Announcements</Link>
-
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">System</h2>
-                    <Link href="/settings/integrations" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Integrations</Link>
-                    <Link href="/settings/workflows" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Workflows</Link>
-                    <Link href="/settings/notifications" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Notifications</Link>
-                    <Link href="/settings/api" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">API & Webhooks</Link>
-                    
-                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Data</h2>
-                    <Link href="/settings/import" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Import Data</Link>
-                    <Link href="/settings/custom-fields" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Custom Fields</Link>
-                    <Link href="/settings/audit-log" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Audit Log</Link>
+                      return (
+                        <Link
+                          key={tab.href}
+                          href={tab.href}
+                          className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+                              : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {tab.label}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </aside>
 

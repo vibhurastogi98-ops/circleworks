@@ -1,23 +1,36 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  LayoutDashboard, DollarSign, Users, Briefcase, UserPlus, Heart, 
-  Clock, Receipt, Target, Shield, BarChart2, Settings, HelpCircle, 
-  LogOut, ChevronDown, ChevronRight, CheckCircle2, Building2
+import {
+  BarChart2,
+  Briefcase,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  DollarSign,
+  Heart,
+  HelpCircle,
+  LayoutDashboard,
+  LogOut,
+  Receipt,
+  Settings,
+  Shield,
+  Target,
+  UserPlus,
+  Users,
 } from "lucide-react";
 
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { usePlatformStore } from "@/store/usePlatformStore";
-import { useSidebarStore } from "@/store/useSidebarStore";
 import { useCompanyStore } from "@/store/useCompanyStore";
+import { usePlatformStore } from "@/store/usePlatformStore";
+import { usePayrollRunStore } from "@/store/usePayrollRunStore";
+import { useSidebarStore } from "@/store/useSidebarStore";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type SubItem = {
+type NavChild = {
   label: string;
   href: string;
 };
@@ -26,45 +39,27 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   href?: string;
-  badge?: string;
-  badgeCount?: number;
-  badgeCritical?: number;
-  subItems?: SubItem[];
-  isDivider?: boolean;
+  children?: NavChild[];
+  badge?: {
+    text?: string;
+    count?: number;
+    tone?: "default" | "critical" | "draft";
+  };
+  divider?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
+const NAV_STRUCTURE: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { 
-    label: "Payroll", 
-    icon: DollarSign, 
+  {
+    label: "Payroll",
+    icon: DollarSign,
     href: "/payroll",
-    subItems: [
-      { label: "Overview", href: "/payroll" },
+    children: [
       { label: "Run Payroll", href: "/payroll/run" },
-      { label: "Off-Cycle Run", href: "/payroll/off-cycle" },
       { label: "Pay Schedule", href: "/payroll/schedule" },
       { label: "History", href: "/payroll/history" },
-      { label: "Tips & FICA", href: "/payroll/tips" },
-      { label: "Supplemental Pay", href: "/payroll/supplemental-payments" },
-      { label: "Union Payroll", href: "/payroll/union" },
-      { label: "GL Mapping", href: "/payroll/gl-mapping" },
-      { label: "Year-End W-2", href: "/payroll/year-end" },
-      { label: "Quarterly Reconciliation", href: "/payroll/quarterly-reconciliation" },
-    ]
-  },
-  {
-    label: "Contractors",
-    icon: Building2,
-    href: "/contractors",
-    subItems: [
-      { label: "Dashboard", href: "/contractors" },
-      { label: "Onboarding", href: "/contractors/onboarding" },
-      { label: "Contracts", href: "/contractors/contracts" },
-      { label: "Payments", href: "/contractors/payments" },
-      { label: "1099s", href: "/contractors/1099s" },
-      { label: "Contractor Portal", href: "/contractors/portal" },
-    ]
+      { label: "Contractors", href: "/contractors" },
+    ],
   },
   { label: "Employees", icon: Users, href: "/employees" },
   { label: "Hiring", icon: Briefcase, href: "/hiring" },
@@ -73,364 +68,309 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Time", icon: Clock, href: "/time" },
   { label: "Expenses", icon: Receipt, href: "/expenses" },
   { label: "Performance", icon: Target, href: "/performance" },
-  { 
-    label: "Compliance", 
-    icon: Shield, 
-    href: "/compliance/dashboard",
-    subItems: [
-      { label: "Dashboard", href: "/compliance/dashboard" },
-      { label: "Pay Equity", href: "/compliance/pay-equity" },
-      { label: "Tax Filings", href: "/compliance/tax-filings" },
-      { label: "Federal Filings", href: "/compliance/federal-filings" },
-      { label: "I-9 Verification", href: "/compliance/i9" },
-      { label: "ACA", href: "/compliance/aca" },
-      { label: "EEO-1", href: "/compliance/eeo" },
-      { label: "Labor Posters", href: "/compliance/posters" },
-      { label: "Paid Leave", href: "/compliance/paid-leave" },
-      { label: "Handbook", href: "/compliance/handbook" },
-      { label: "WOTC", href: "/compliance/wotc" },
-      { label: "Audit Log", href: "/compliance/audit-log" },
-    ]
-  },
-  { 
-    label: "Reports", 
-    icon: BarChart2, 
-    href: "/reports",
-    subItems: [
-      { label: "All Reports", href: "/reports" },
-      { label: "Project Profitability", href: "/reports/project-profitability" },
-      { label: "Custom Builder", href: "/reports/custom" },
-    ]
-  },
-  {
-    label: "Agency",
-    icon: Building2,
-    href: "/agency/billing",
-    subItems: [
-      { label: "Client Invoicing", href: "/agency/billing" },
-      { label: "Client Setup", href: "/agency/clients" },
-      { label: "Profitability", href: "/agency/profitability" },
-    ]
-  },
-  { label: "DIVIDER", icon: LayoutDashboard, isDivider: true },
+  { label: "Compliance", icon: Shield, href: "/compliance/dashboard" },
+  { label: "Reports", icon: BarChart2, href: "/reports" },
+  { label: "Divider", icon: LayoutDashboard, divider: true },
   { label: "Settings", icon: Settings, href: "/settings/company" },
   { label: "Help", icon: HelpCircle, href: "/help" },
 ];
 
-export default function AppSidebar() {
-  const pathname = usePathname();
-  const { isSidebarOpen, setSidebarOpen } = useSidebarStore();
-  const { user } = useAuth();
-  const { currentCompany } = useCompanyStore();
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
-  const { currentUser, isNewUser } = useDashboardData();
-  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
-    "Payroll": false
-  });
-  const [mounted, setMounted] = useState(false);
+function Badge({ text, count, tone = "default" }: { text?: string; count?: number; tone?: "default" | "critical" | "draft" }) {
+  if (!text && !count) return null;
+
+  const classes = tone === "critical"
+    ? "border border-red-200 bg-red-100 text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300"
+    : tone === "draft"
+      ? "border border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300"
+      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
+
+  return (
+    <span className={`inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${classes}`}>
+      {text ?? count}
+    </span>
+  );
+}
+
+export default function AppSidebar() {
+  const pathname = usePathname() ?? "/dashboard";
+  const activeRoute = pathname;
+  const { user, signOut } = useAuth();
+  const { currentUser, alerts } = useDashboardData();
+  const { currentCompany, companies, setCurrentCompany } = useCompanyStore();
+  const { sidebarOpen, setSidebarOpen } = useSidebarStore();
+  const { isPayrollRunning } = usePlatformStore();
+  const { runState } = usePayrollRunStore();
+
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    const nextOpenGroups = NAV_STRUCTURE.reduce<Record<string, boolean>>((acc, item) => {
+      if (!item.children?.length) return acc;
+      acc[item.label] = item.children.some((child) => activeRoute.startsWith(child.href)) || activeRoute.startsWith(item.href ?? "");
+      return acc;
+    }, {});
+    setOpenGroups(nextOpenGroups);
+  }, [activeRoute]);
 
   const displayName = user?.email?.split("@")[0] || "User";
   const displayEmail = user?.email || "";
   const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(displayEmail)}&backgroundColor=transparent`;
+  const companyName = currentCompany?.name || currentUser.companyName || "CircleWorks";
+  const companyLogo = currentCompany?.logo || currentUser.logoUrl || "";
+  const canSwitchCompanies = user?.role === "accountant" || companies.length > 1;
 
-  const { notificationCount, incrementNotificationCount } = usePlatformStore();
+  const navItems = useMemo<NavItem[]>(() => {
+    const pendingApprovals = 3;
+    const criticalAlerts = alerts.filter((alert) => alert.severity === "critical").length || 2;
 
-  // Check if current user is also an employee
-  const { data: userProfile } = useQuery({
-    queryKey: ["user-me"],
-    queryFn: async () => {
-      const res = await fetch("/api/users/me", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000,
-    retry: false
-  });
-  const isAssignedEmployee = !!userProfile?.profile?.id;
+    return NAV_STRUCTURE.map((item) => {
+      if (item.divider) return item;
+      if (item.label === "Payroll") {
+        return {
+          ...item,
+          badge: isPayrollRunning || runState === "draft" ? { text: "DRAFT", tone: "draft" } : undefined,
+        };
+      }
+      if (item.label === "Hiring") {
+        return { ...item, badge: { count: 6 } };
+      }
+      if (item.label === "Onboarding") {
+        return { ...item, badge: { count: 4 } };
+      }
+      if (item.label === "Time") {
+        return { ...item, badge: { count: pendingApprovals } };
+      }
+      if (item.label === "Expenses") {
+        return { ...item, badge: { count: pendingApprovals } };
+      }
+      if (item.label === "Compliance") {
+        return { ...item, badge: { count: criticalAlerts, tone: "critical" } };
+      }
+      return item;
+    });
+  }, [alerts, isPayrollRunning, runState]);
 
-  // Rule 6: Sidebar notification badge — handled globally in useWebSocketEvents hook
-  // No need for local event listener as notifications are managed centrally
-
-  const toggleAccordion = (label: string) => {
-    setOpenAccordions(prev => ({ ...prev, [label]: !prev[label] }));
+  const isItemActive = (item: NavItem) => {
+    if (item.href && activeRoute.startsWith(item.href)) return true;
+    return item.children?.some((child) => activeRoute.startsWith(child.href)) ?? false;
   };
 
-  const isRouteActive = (href?: string, subItems?: SubItem[]) => {
-    if (href && pathname?.startsWith(href)) return true;
-    if (subItems && subItems.some(sub => pathname?.startsWith(sub.href))) return true;
-    return false;
+  const toggleGroup = (label: string) => {
+    setOpenGroups((current) => ({ ...current, [label]: !current[label] }));
+  };
+
+  const handleCompanySwitch = (companyId: string) => {
+    const nextCompany = companies.find((company) => company.id === companyId);
+    if (!nextCompany) return;
+    setCurrentCompany(nextCompany);
+    setSwitcherOpen(false);
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar Container */}
-      <aside 
+      <aside
         id="tour-sidebar"
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-[#0F172A] border-r border-slate-200 dark:border-slate-800 transition-all duration-300 shadow-2xl lg:shadow-none 
-          w-[240px] lg:w-[72px] xl:w-[240px]
-          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-        `}
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-300 dark:border-slate-800 dark:bg-[#0F172A] lg:w-[72px] lg:translate-x-0 lg:shadow-none xl:w-[240px] ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } w-[240px]`}
       >
-        {/* HEADER */}
-        <div className="h-[72px] min-h-[72px] flex items-center px-4 border-b border-slate-200 dark:border-slate-800 relative group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 dark:border-slate-700">
-             {mounted && currentUser?.logoUrl ? (
-               <img src={currentUser.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-             ) : (
-               <div className="w-full h-full bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-sm flex items-center justify-center">
-                 <div className="w-3 h-3 bg-white rounded-full opacity-90" />
-               </div>
-             )}
+        <button
+          type="button"
+          onClick={() => setSwitcherOpen(true)}
+          className="group relative flex h-[72px] items-center gap-3 border-b border-slate-200 px-4 text-left transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-blue-100 dark:border-slate-700 dark:bg-blue-900/30">
+            {companyLogo ? (
+              <img src={companyLogo} alt={companyName} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-blue-700 dark:text-blue-200">{getInitials(companyName)}</span>
+            )}
           </div>
-          
-          <div className="ml-3 flex-1 flex flex-col justify-center overflow-hidden lg:hidden xl:flex transition-opacity duration-300">
-             <span className="text-[14px] font-bold text-slate-900 dark:text-white truncate">
-                {currentCompany?.name || "CircleWorks"}
-             </span>
-             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-               Switch company
-               <ChevronDown size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-             </span>
+          <div className="min-w-0 flex-1 overflow-hidden lg:hidden xl:block">
+            <div className="truncate text-sm font-bold text-slate-900 dark:text-white">{companyName}</div>
+            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              Switch company
+              <ChevronDown size={12} className="transition-transform group-hover:translate-y-0.5" />
+            </div>
           </div>
+          <div className="pointer-events-none absolute left-[78px] rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
+            {companyName}
+          </div>
+        </button>
 
-          {/* Tooltip for 72px state */}
-          <div className="absolute left-[78px] px-2 py-1 bg-slate-800 text-white text-[12px] font-medium rounded opacity-0 invisible lg:group-hover:opacity-100 lg:group-hover:visible xl:hidden z-50 whitespace-nowrap shadow-lg whitespace-nowrap">
-             {currentCompany?.name || "CircleWorks"}
-          </div>
-        </div>
-
-        {/* NAV ITEMS */}
-        <div className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
-          <nav className="flex flex-col gap-1 px-3">
-            {NAV_ITEMS.map((item, idx) => {
-              if (item.isDivider) {
-                return <div key={`div-${idx}`} className="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-2 lg:mx-0 xl:mx-2" />;
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <div className="flex flex-col gap-1">
+            {navItems.map((item) => {
+              if (item.divider) {
+                return <div key="divider" className="my-2 h-px bg-slate-200 dark:bg-slate-800" />;
               }
 
-                    const active = isRouteActive(item.href, item.subItems);
-                    const hasSubItems = !!item.subItems?.length;
-                    const isAccordionOpen = openAccordions[item.label];
+              const active = isItemActive(item);
+              const expanded = !!openGroups[item.label];
+              const hasChildren = !!item.children?.length;
+              const tourTargetId =
+                item.label === "Payroll"
+                  ? "tour-payroll"
+                  : item.label === "Employees"
+                    ? "tour-employees"
+                    : undefined;
+              const sharedClasses = `group relative flex min-h-[44px] w-full items-center rounded-r-xl px-3 transition-colors ${
+                active
+                  ? "bg-[#EFF6FF] text-blue-600 dark:bg-[#1E293B] dark:text-blue-400"
+                  : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
+              }`;
 
-                    // Inject real-time notification count for specific items
-                    // Clean up: Hide badges if user is new
-                    const currentBadgeCount = (isNewUser || item.label === "Dashboard") && notificationCount > 0 
-                      ? notificationCount 
-                      : (isNewUser ? 0 : item.badgeCount);
-                    
-                    const displayBadge = isNewUser ? null : item.badge;
-                    const displayCritical = isNewUser ? 0 : item.badgeCritical;
-
-                    // Base item content inside a sub-component to reuse for link/button
-                    const ItemContent = () => (
-                      <div className="flex items-center w-full relative group/item">
-                        <item.icon 
-                          size={20} 
-                          className={`flex-shrink-0 lg:mx-auto xl:mx-0 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 group-hover/btn:text-slate-700 dark:group-hover/btn:text-slate-200"}`} 
-                          strokeWidth={active ? 2.5 : 2}
-                        />
-                        
-                        {/* Tooltip for 72px state */}
-                        <div className="absolute left-[56px] px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/item:opacity-100 lg:group-hover/item:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
-                          {item.label}
-                        </div>
-                        
-                        <div className="ml-3 flex-1 flex items-center justify-between overflow-hidden lg:hidden xl:flex">
-                           <span className={`text-[14px] font-semibold truncate ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
-                             {item.label}
-                           </span>
-                           
-                           <div className="flex items-center gap-1.5">
-                             {/* Badges */}
-                             {displayBadge && (
-                               <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase text-amber-700 bg-amber-100 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 tracking-wider">
-                                 {displayBadge}
-                               </span>
-                             )}
-                             {currentBadgeCount ? (
-                               <span className={`min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1 ${
-                                 item.label === "Dashboard" && notificationCount > 0
-                                   ? "bg-blue-600 text-white animate-pulse"
-                                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                               }`}>
-                                 {currentBadgeCount}
-                               </span>
-                             ) : null}
-                       {displayCritical ? (
-                         <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold px-1 border border-red-200 dark:border-red-500/30">
-                           {displayCritical}
-                         </span>
-                       ) : null}
-
-                       {/* Accordion Chevron */}
-                       {hasSubItems && (
-                         <ChevronDown 
-                           size={14} 
-                           className={`text-slate-400 transition-transform duration-200 ${isAccordionOpen ? "rotate-180" : ""}`} 
-                         />
-                       )}
-                     </div>
+              const content = (
+                <>
+                  {active && <span className="absolute left-0 top-1 bottom-1 w-1 rounded-r-full bg-blue-600 dark:bg-blue-400" />}
+                  <item.icon size={20} className={`shrink-0 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"}`} />
+                  <div className="ml-3 hidden min-w-0 flex-1 items-center justify-between gap-3 lg:hidden xl:flex">
+                    <span className={`truncate text-sm font-medium ${active ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}>
+                      {item.label}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Badge {...item.badge} />
+                      {hasChildren && (
+                        <ChevronRight size={14} className={`text-slate-400 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                      )}
+                    </div>
                   </div>
-                </div>
+                  <div className="pointer-events-none absolute left-[56px] rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
+                    {item.label}
+                  </div>
+                </>
               );
 
               return (
-                <div key={item.label} className="flex flex-col">
-                  {hasSubItems ? (
-                    <button
-                      id={
-                        item.label === "Payroll" 
-                          ? "tour-payroll" 
-                          : item.label === "Employees" 
-                            ? "tour-employees" 
-                            : item.label === "Compliance"
-                              ? "tour-compliance"
-                              : undefined
-                      }
-                      onClick={() => toggleAccordion(item.label)}
-                      className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
-                        ${active 
-                          ? "bg-[#EFF6FF] dark:bg-[#1E293B]" 
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        }
-                      `}
-                    >
-                      {active && (
-                        <div className="absolute left-0 top-1.5 bottom-1.5 w-[4px] bg-blue-600 dark:bg-blue-500 rounded-r-full" />
-                      )}
-                      <ItemContent />
-                    </button>
-                  ) : item.label === "Help" ? (
-                    <button
-                      onClick={() => window.dispatchEvent(new Event("circleworks:start-tour"))}
-                      className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
-                        ${active 
-                          ? "bg-[#EFF6FF] dark:bg-[#1E293B]" 
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        }
-                      `}
-                    >
-                      <ItemContent />
+                <div key={item.label}>
+                  {hasChildren ? (
+                    <button type="button" id={tourTargetId} onClick={() => toggleGroup(item.label)} className={sharedClasses}>
+                      {content}
                     </button>
                   ) : (
-                    <Link
-                      id={
-                        item.label === "Payroll" 
-                          ? "tour-payroll" 
-                          : item.label === "Employees" 
-                            ? "tour-employees" 
-                            : item.label === "Compliance"
-                              ? "tour-compliance"
-                              : undefined
-                      }
-                      href={item.href || "#"}
-                      className={`relative flex items-center w-full min-h-[40px] rounded-lg px-2 group/btn transition-colors overflow-visible
-                        ${active 
-                          ? "bg-[#EFF6FF] dark:bg-[#1E293B]" 
-                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        }
-                      `}
-                    >
-                      {active && (
-                        <div className="absolute left-0 top-1.5 bottom-1.5 w-[4px] bg-blue-600 dark:bg-blue-500 rounded-r-full" />
-                      )}
-                      <ItemContent />
+                    <Link id={tourTargetId} href={item.href || "#"} className={sharedClasses} onClick={() => setSidebarOpen(false)}>
+                      {content}
                     </Link>
                   )}
 
-                  {/* Accordion Content */}
-                  {hasSubItems && (
-                    <AnimatePresence>
-                      {isAccordionOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden lg:hidden xl:block"
-                        >
-                          <div className="flex flex-col gap-0.5 pt-1 pb-2 pl-[42px] pr-2">
-                            {item.subItems!.map((sub) => {
-                              const isSubActive = pathname === sub.href;
-                              return (
-                                <Link
-                                  key={sub.label}
-                                  href={sub.href}
-                                  className={`text-[13px] py-1.5 px-2 rounded-md font-medium transition-colors ${
-                                    isSubActive 
-                                      ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10" 
-                                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30"
-                                  }`}
-                                >
-                                  {sub.label}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  {hasChildren && expanded && (
+                    <div className="hidden pb-2 pl-11 pt-1 lg:hidden xl:block">
+                      <div className="flex flex-col gap-1">
+                        {item.children!.map((child) => {
+                          const childActive = activeRoute.startsWith(child.href);
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setSidebarOpen(false)}
+                              className={`rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                                childActive
+                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/40 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               );
             })}
-          </nav>
-
-          {/* New Rule: Conditional Employee Panel Access */}
-          {isAssignedEmployee && (
-            <div className="px-3 mt-4 lg:hidden xl:block">
-              <Link 
-                 href="/me"
-                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/50 hover:bg-violet-100 dark:hover:bg-violet-900/40 text-violet-700 dark:text-violet-400 transition-all font-bold group"
-              >
-                 <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                    <UserPlus size={16} className="text-violet-600" />
-                 </div>
-                 <div className="flex-1">
-                    <p className="text-[13px] leading-tight">My Employee Portal</p>
-                    <p className="text-[10px] text-violet-500/80 font-medium">Self-service & Pay</p>
-                 </div>
-                 <ChevronRight size={14} className="opacity-40 group-hover:translate-x-0.5 transition-all" />
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* BOTTOM USER PROFILE */}
-        <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center w-full group/user cursor-pointer rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 -m-2 transition-colors relative">
-             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
-                <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
-             </div>
-
-             {/* Tooltip for 72px state */}
-             <div className="absolute left-[62px] bottom-2 px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/user:opacity-100 lg:group-hover/user:visible xl:hidden z-50 whitespace-nowrap shadow-xl">
-                {displayName}
-             </div>
-
-             <div className="ml-3 flex-1 overflow-hidden lg:hidden xl:block">
-                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">{displayName}</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{displayEmail}</div>
-             </div>
-
-             <div className="ml-auto lg:hidden xl:block">
-               <Settings size={16} className="text-slate-400" />
-             </div>
           </div>
+        </nav>
+
+        <div className="border-t border-slate-200 p-4 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="group relative flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          >
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+              <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+            </div>
+            <div className="hidden min-w-0 flex-1 lg:hidden xl:block">
+              <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{displayName}</div>
+              <div className="truncate text-xs text-slate-500 dark:text-slate-400">{displayEmail}</div>
+            </div>
+            <LogOut size={16} className="hidden text-slate-400 transition-colors group-hover:text-slate-700 dark:group-hover:text-slate-200 lg:hidden xl:block" />
+            <div className="pointer-events-none absolute left-[70px] rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
+              {displayName}
+            </div>
+          </button>
         </div>
       </aside>
+
+      <Dialog open={switcherOpen} onOpenChange={setSwitcherOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Switch company</DialogTitle>
+            <DialogDescription>
+              {canSwitchCompanies
+                ? "Choose the client workspace you want to manage."
+                : "Your current workspace is shown below."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 p-6">
+            {companies.map((company) => {
+              const selected = currentCompany?.id === company.id;
+              return (
+                <button
+                  key={company.id}
+                  type="button"
+                  onClick={() => handleCompanySwitch(company.id)}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+                    selected
+                      ? "border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10"
+                      : "border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                    {company.logo ? (
+                      <img src={company.logo} alt={company.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{getInitials(company.name)}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{company.name}</div>
+                    <div className="truncate text-xs text-slate-500 dark:text-slate-400">{company.domain || "Client workspace"}</div>
+                  </div>
+                  {selected && <span className="text-xs font-bold uppercase tracking-wide text-blue-600 dark:text-blue-300">Current</span>}
+                </button>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setSwitcherOpen(false)}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

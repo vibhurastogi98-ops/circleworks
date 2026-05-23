@@ -39,14 +39,21 @@ const PayrollDemo = () => {
 };
 
 const AtsPipeline = () => (
-  <div className="flex flex-col justify-center mt-6 h-full gap-1">
-    <div className="px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-700 text-[13px] font-bold text-center shadow-sm">Applied</div>
-    <div className="w-[2px] h-3 bg-slate-200 mx-auto" />
-    <div className="px-4 py-2 bg-blue-50 rounded-lg border border-blue-200 text-blue-700 text-[13px] font-bold text-center shadow-sm relative z-10 w-[105%] -ml-[2.5%]">Screened</div>
-    <div className="w-[2px] h-3 bg-slate-200 mx-auto" />
-    <div className="opacity-60 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 text-slate-600 text-[13px] font-bold text-center">Offered</div>
-    <div className="w-[2px] h-3 bg-slate-200 mx-auto" />
-    <div className="opacity-40 px-4 py-2 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-700 text-[13px] font-bold text-center">Hired</div>
+  <div className="mt-6 flex flex-wrap gap-2">
+    {["Applied", "Screened", "Offered", "Hired"].map((stage, index) => (
+      <div
+        key={stage}
+        className={`rounded-full border px-3 py-2 text-[12px] font-bold shadow-sm ${
+          index === 3
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            : index === 1
+              ? "border-blue-200 bg-blue-50 text-blue-700"
+              : "border-slate-200 bg-slate-50 text-slate-700"
+        }`}
+      >
+        {stage}
+      </div>
+    ))}
   </div>
 );
 
@@ -132,7 +139,7 @@ const AnalyticsChart = () => {
       <div className="absolute inset-0">
         <ResponsiveContainer width="100%" height={192} minWidth={1} minHeight={1}>
           <BarChart data={data}>
-            <Bar dataKey="amt" radius={[6, 6, 0, 0]} animationDuration={2000} fill="#1D4ED8" />
+            <Bar dataKey="amt" radius={[6, 6, 0, 0]} animationDuration={2000} fill="#06B6D4" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -143,25 +150,25 @@ const AnalyticsChart = () => {
 
 
 export default function FeaturesSection() {
-  const cardClass = "rounded-2xl border border-gray-200 p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-300 hover:scale-[1.01] flex flex-col bg-white overflow-hidden";
+  const cardClass = "rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:scale-[1.01] flex flex-col bg-white overflow-hidden";
 
   return (
-    <section className="bg-slate-50 py-24 w-full">
-      <div className="max-w-[1200px] mx-auto px-6 lg:px-8">
+    <section className="bg-gray-50 py-24 w-full">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
         
         {/* SECTION HEADER */}
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
-          <span className="text-blue-600 text-[13px] font-black uppercase tracking-[0.2em] mb-4">THE PLATFORM</span>
-          <h2 className="text-[36px] md:text-[48px] font-black text-slate-900 leading-tight mb-5 tracking-tight">
-            Everything Creators, Agencies & Companies Need — One Platform.
+          <span className="text-blue-600 text-[13px] font-bold uppercase tracking-wider mb-4">THE PLATFORM</span>
+          <h2 className="text-[36px] md:text-[48px] font-bold text-gray-900 leading-tight mb-5">
+            Everything your HR team needs — one platform.
           </h2>
-          <p className="text-[18px] md:text-[20px] text-slate-500 font-medium">
-            Replace 7 tools. One login. One source of truth for your entire team.
+          <p className="text-[20px] text-gray-500 font-medium">
+            Replace 7 tools. One login. One source of truth.
           </p>
         </div>
 
         {/* BENTO GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 relative z-10">
           
           {/* Row 1: Card A (col-span-2) */}
           <div className={`${cardClass} lg:col-span-2 bg-[#0A1628] hover:border-blue-500 border-slate-800`}>
@@ -169,11 +176,11 @@ export default function FeaturesSection() {
               <div className="p-3 bg-cyan-500/20 rounded-xl text-cyan-400">
                 <DollarSign size={24} />
               </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-black tracking-wider uppercase border border-emerald-500/30">Managed Payroll</span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-black tracking-wider uppercase border border-emerald-500/30">P0 Core</span>
             </div>
             <h3 className="text-white text-[24px] font-bold mt-6">Run Payroll in 3 Clicks</h3>
             <p className="text-slate-400 text-[15px] mt-2 mb-2 leading-relaxed">
-              Pay W-2 employees, 1099 creators, and agency talent together. Auto tax filing. Direct deposit. All 50 states handled.
+              All 50 states. Auto tax filing. Direct deposit in minutes.
             </p>
             <PayrollDemo />
           </div>
@@ -183,9 +190,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-blue-50 rounded-xl text-blue-600 w-fit">
               <UserPlus size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Hire Talent Fast</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Hire to First Day</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Integrated ATS and onboarding for creators, agency staff, and company teams — from offer to first day in hours.
+              Move candidates from pipeline to onboarding without handing work across tools.
             </p>
             <AtsPipeline />
           </div>
@@ -195,9 +202,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-rose-50 rounded-xl text-rose-500 w-fit">
               <Heart size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Benefits That Attract Talent</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Benefits That Compete</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Enterprise-tier health, dental, vision, and 401k for creators, agencies, and growing companies — without the complexity.
+              Health, dental, vision, and 401k administration built into the same employee record.
             </p>
             <Benefits2x2 />
           </div>
@@ -209,7 +216,7 @@ export default function FeaturesSection() {
             </div>
             <h3 className="text-slate-900 text-[20px] font-bold mt-6">Time & Attendance</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Project and campaign-based time tracking for creators and agency teams. Syncs natively to payroll — no errors, no manual entry.
+              Clock-in, approvals, schedules, and payroll-ready hours in one place.
             </p>
             <ClockDemo />
           </div>
@@ -219,9 +226,9 @@ export default function FeaturesSection() {
             <div className="p-3 bg-emerald-50 rounded-xl text-emerald-500 w-fit">
               <Shield size={24} />
             </div>
-            <h3 className="text-slate-900 text-[20px] font-bold mt-6">1099 & W-2 Compliance</h3>
+            <h3 className="text-slate-900 text-[20px] font-bold mt-6">Tax & Compliance</h3>
             <p className="text-slate-500 text-[14px] mt-2 leading-relaxed">
-              Creators, agencies, and companies all run on a mix of contractors and staff. We auto-file 1099-NECs, handle state registrations, and flag risks before they become problems.
+              50-state rules, filings, audit trails, and alerts before risk becomes work.
             </p>
             <ShieldDemo />
           </div>
@@ -235,7 +242,7 @@ export default function FeaturesSection() {
             </div>
             <h3 className="text-slate-900 text-[24px] font-bold mt-6 relative z-10">People Analytics</h3>
             <p className="text-slate-500 text-[15px] mt-2 mb-2 leading-relaxed relative z-10 max-w-md">
-              Track labor costs by creator, campaign, client, or department. Built for agencies and companies that need real data to make smarter decisions.
+              Payroll trends, headcount movement, and people costs surfaced in clean dashboards.
             </p>
             <AnalyticsChart />
           </div>

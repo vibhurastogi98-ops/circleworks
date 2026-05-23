@@ -7,9 +7,11 @@ interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  contentClassName?: string;
+  overlayClassName?: string;
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, contentClassName = "", overlayClassName = "" }: DialogProps) {
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -32,10 +34,10 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+        className={`absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 ${overlayClassName}`}
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 w-full max-w-lg animate-in zoom-in-95 fade-in duration-200 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className={`relative z-10 w-full max-w-lg animate-in zoom-in-95 fade-in duration-200 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden ${contentClassName}`}>
         {children}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Calendar, Eye, Play, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { useDashboardRealtimeStore } from "@/store/useDashboardRealtimeStore";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 function getGreeting(): string {
@@ -15,7 +16,10 @@ function getGreeting(): string {
 
 export default function GreetingRow() {
   const { isPayrollRunning, setPayrollRunning } = usePlatformStore();
+  const { payrollStatus, setPayrollStatus } = useDashboardRealtimeStore();
   const { currentUser, nextPayroll } = useDashboardData();
+  const payrollIsRunning = isPayrollRunning || payrollStatus.isRunning;
+  const processingEmployeeCount = payrollStatus.employeeCount || nextPayroll.employeeCount;
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-start gap-4">
@@ -30,7 +34,7 @@ export default function GreetingRow() {
       </div>
 
       {/* Next Payroll Card / Processing Card */}
-      {isPayrollRunning ? (
+      {payrollIsRunning ? (
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -44,11 +48,10 @@ export default function GreetingRow() {
             </div>
             <div>
               <p className="text-sm font-bold text-blue-700 dark:text-blue-300">
-                Payroll Processing
+                Payroll Processing — {processingEmployeeCount} employees
               </p>
               <p className="text-xs text-blue-600/80 dark:text-blue-400/70">
-                {nextPayroll.employeeCount} employees &middot; Est.{" "}
-                ${nextPayroll.estimatedTotal.toLocaleString()}
+                Est. ${nextPayroll.estimatedTotal.toLocaleString()} &middot; Live status
               </p>
             </div>
           </div>
@@ -77,7 +80,10 @@ export default function GreetingRow() {
               Preview
             </Link>
             <button
-              onClick={() => setPayrollRunning(true)}
+              onClick={() => {
+                setPayrollRunning(true);
+                setPayrollStatus({ isRunning: true, employeeCount: nextPayroll.employeeCount });
+              }}
               className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all hover:shadow-md"
             >
               <Play size={12} />

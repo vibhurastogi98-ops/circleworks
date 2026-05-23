@@ -1,177 +1,321 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MonitorPlay, Calendar, Users, Star, ArrowRight, CheckCircle2 } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  Phone,
+  PlayCircle,
+  Users,
+} from "lucide-react";
+
+import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import SiteFooter from "@/components/Footer";
+
+const demoBullets = [
+  "A walkthrough mapped to your payroll, HR, and compliance setup.",
+  "A look at real workflows for admins, managers, and employees.",
+  "Clear next steps, pricing fit, and migration guidance if CircleWorks is useful.",
+];
+
+const salesTeam = [
+  {
+    name: "Maya",
+    role: "Payroll specialist",
+    image: "https://i.pravatar.cc/160?img=47",
+  },
+  {
+    name: "Jordan",
+    role: "HR systems lead",
+    image: "https://i.pravatar.cc/160?img=12",
+  },
+  {
+    name: "Priya",
+    role: "Compliance advisor",
+    image: "https://i.pravatar.cc/160?img=32",
+  },
+];
+
+const timeSlots = ["9:30 AM", "11:00 AM", "1:30 PM", "3:00 PM"];
+const companySizes = [
+  "1-20",
+  "21-50",
+  "51-200",
+  "201-500",
+  "501-1,000",
+  "1,000+",
+];
+
+function getDefaultDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 2);
+  return date.toISOString().split("T")[0];
+}
 
 export default function DemoPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(timeSlots[1]);
+  const [selectedDate, setSelectedDate] = useState(getDefaultDate());
+
+  const selectedSlot = useMemo(
+    () => `${selectedDate} at ${selectedTime} ET`,
+    [selectedDate, selectedTime],
+  );
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const name = String(formData.get("name") || "");
+    const email = String(formData.get("email") || "");
+    const company = String(formData.get("company") || "");
+    const size = String(formData.get("companySize") || "");
+    const currentTool = String(formData.get("currentTool") || "");
+    const phone = String(formData.get("phone") || "");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestType: "demo",
+          name,
+          email,
+          company,
+          companySize: size,
+          phone,
+          currentTool,
+          demoSlot: selectedSlot,
+          message: `Demo request for ${selectedSlot}. Current tool: ${currentTool || "Not provided"}. Phone: ${phone || "Not provided"}.`,
+        }),
+      });
+      const result = (await response.json()) as {
+        success?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Unable to book demo");
+      }
+
+      toast.success(
+        "Demo request sent. Sales will confirm the calendar invite shortly.",
+      );
+      form.reset();
+      setSelectedDate(getDefaultDate());
+      setSelectedTime(timeSlots[1]);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Something went wrong",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-[#0A1628] selection:bg-blue-500/30 selection:text-white">
-      <Navbar />
-      
-      {/* Mesh Background */}
-      <div className="absolute top-0 right-0 w-[60vw] h-[60vw] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[50vw] h-[50vw] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <main className="min-h-screen bg-white font-sans text-[#0A1628]">
+      <Navbar forceLight />
 
-      <section className="relative z-10 pt-32 pb-24 lg:pt-48 lg:pb-32 px-6">
-        <div className="max-w-[1240px] mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-            
-            {/* Left Column: Value Prop */}
-            <div>
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[12px] font-bold uppercase tracking-[0.15em] mb-8"
-              >
-                <MonitorPlay size={14} className="animate-pulse" />
-                Live Product Walkthrough
-              </motion.div>
+      <section className="border-b border-slate-200 bg-white px-6 pb-20 pt-28 lg:pb-28 lg:pt-36">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+              <PlayCircle className="h-4 w-4" />
+              No sales pitch
+            </p>
+            <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-6xl">
+              See CircleWorks built for your company.
+            </h1>
+            <p className="mt-5 text-xl leading-8 text-slate-600">
+              No sales pitch. Just a real look at the product, your use case,
+              and whether CircleWorks is a fit.
+            </p>
+          </div>
 
-              <motion.h1 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-4xl md:text-5xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight mb-8"
-              >
-                See <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">CircleWorks</span> in action.
-              </motion.h1>
-
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-lg md:text-xl text-slate-400 max-w-xl leading-relaxed mb-12 font-medium"
-              >
-                Schedule a 15-minute personalized demo with a product specialist. We'll show you how to automate your entire HR stack.
-              </motion.p>
-
-              {/* Social Proof */}
-              <div className="space-y-8">
-                <div className="flex items-center gap-4">
-                  <div className="flex -space-x-3">
-                    {[1,2,3,4].map(i => (
-                      <div key={i} className="w-12 h-12 rounded-full border-4 border-[#0A1628] bg-slate-800 overflow-hidden">
-                        <img src={`https://i.pravatar.cc/150?u=${i+10}`} alt="User" />
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <div className="flex gap-0.5 text-amber-400 mb-1">
-                      {[1,2,3,4,5].map(i => <Star key={i} size={14} fill="currentColor" />)}
-                    </div>
-                    <p className="text-sm text-slate-400 font-bold tracking-wide uppercase">Trusted by 5,000+ Teams</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 max-w-md">
-                  {[
-                    "Native US Payroll + Tax Filing",
-                    "Integrated ATS & Onboarding",
-                    "Multi-state Compliance Automation",
-                    "Board-ready People Analytics"
-                  ].map(feature => (
-                    <div key={feature} className="flex items-center gap-3 text-slate-300 font-medium">
-                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                        <CheckCircle2 size={12} strokeWidth={3} />
-                      </div>
-                      {feature}
+          <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)] lg:gap-14">
+            <aside className="space-y-6">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                <h2 className="text-lg font-black text-slate-950">
+                  What to expect in a 30-min demo
+                </h2>
+                <div className="mt-5 space-y-4">
+                  {demoBullets.map((bullet) => (
+                    <div key={bullet} className="flex gap-3">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+                      <p className="text-sm font-semibold leading-6 text-slate-700">
+                        {bullet}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Right Column: Form */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-[2.5rem] p-8 lg:p-12 shadow-2xl relative overflow-hidden h-fit"
-            >
-              <AnimatePresence mode="wait">
-                {submitted ? (
-                  <motion.div 
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.1 }}
-                    className="py-12 flex flex-col items-center text-center"
-                  >
-                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-4xl mb-8 shadow-sm ring-8 ring-emerald-50">
-                      📅
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-slate-500">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  Sales team
+                </div>
+                <div className="space-y-4">
+                  {salesTeam.map((person) => (
+                    <div key={person.name} className="flex items-center gap-3">
+                      <img
+                        src={person.image}
+                        alt={`${person.name} headshot`}
+                        className="h-12 w-12 rounded-full border-2 border-white bg-slate-200 object-cover shadow-sm"
+                      />
+                      <div>
+                        <div className="font-black text-slate-950">
+                          {person.name}
+                        </div>
+                        <div className="text-sm font-medium text-slate-500">
+                          {person.role}
+                        </div>
+                      </div>
                     </div>
-                    <h2 className="text-3xl font-black text-[#0A1628] mb-4 tracking-tight">Demo Scheduled!</h2>
-                    <p className="text-slate-500 mb-10 max-w-xs font-medium">
-                      Check your email for the calendar invitation and meeting link. We look forward to talking!
-                    </p>
-                    <button 
-                      onClick={() => setSubmitted(false)}
-                      className="px-8 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all hover:scale-[1.02]"
-                    >
-                      Reschedule Demo
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div key="form">
-                    <h2 className="text-2xl font-black text-[#0A1628] mb-8 flex items-center gap-3">
-                      <Calendar className="text-blue-600" />
-                      Pick a demo slot
-                    </h2>
-                    
-                    <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">First Name</label>
-                          <input required type="text" placeholder="Alex" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Last Name</label>
-                          <input required type="text" placeholder="Smith" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" />
-                        </div>
-                      </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
 
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Work Email</label>
-                        <input required type="email" placeholder="alex@company.com" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900" />
-                      </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/70 md:p-8">
+              <div className="grid gap-8 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex items-center gap-2 text-sm font-black text-slate-950">
+                    <CalendarDays className="h-5 w-5 text-blue-600" />
+                    Choose a demo slot
+                  </div>
+                  <label className="mt-5 block text-sm font-bold text-slate-700">
+                    Date
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(event) => setSelectedDate(event.target.value)}
+                      className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-950 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    />
+                  </label>
+                  <div className="mt-5">
+                    <div className="mb-2 text-sm font-bold text-slate-700">
+                      Time
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => setSelectedTime(slot)}
+                          className={`rounded-xl border px-3 py-3 text-sm font-black transition ${selectedTime === slot ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-blue-200"}`}
+                        >
+                          {slot}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-5 rounded-xl bg-white p-4 text-sm font-semibold text-slate-600">
+                    <div className="flex items-center gap-2 text-slate-950">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      30 minutes
+                    </div>
+                    <p className="mt-2">Selected: {selectedSlot}</p>
+                  </div>
+                </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Company Size</label>
-                        <select required defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-medium text-slate-900 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236b7280%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_1rem_center] bg-no-repeat">
-                          <option value="" disabled>Select employees</option>
-                          <option value="1-20">1 - 20</option>
-                          <option value="21-100">21 - 100</option>
-                          <option value="101-500">101 - 500</option>
-                          <option value="501+">501+</option>
-                        </select>
-                      </div>
-
-                      <button type="submit" className="w-full relative py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-2xl overflow-hidden group shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 mt-4">
-                        <div className="absolute inset-0 bg-white/20 w-1/2 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                        <span className="relative z-10 flex items-center justify-center gap-2">
-                          Book Demo <ArrowRight size={20} />
-                        </span>
-                      </button>
-                      
-                      <p className="text-[11px] text-slate-400 text-center font-bold uppercase tracking-widest mt-4">
-                        Available Monday — Friday, 9am - 6pm EST
-                      </p>
-                    </form>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="text-sm font-bold text-slate-700">
+                      Name
+                      <input
+                        name="name"
+                        required
+                        type="text"
+                        placeholder="Alex Rivera"
+                        className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-950 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      />
+                    </label>
+                    <label className="text-sm font-bold text-slate-700">
+                      Email
+                      <input
+                        name="email"
+                        required
+                        type="email"
+                        placeholder="alex@company.com"
+                        className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-950 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      />
+                    </label>
+                  </div>
+                  <label className="block text-sm font-bold text-slate-700">
+                    Company
+                    <input
+                      name="company"
+                      required
+                      type="text"
+                      placeholder="Company name"
+                      className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-950 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    />
+                  </label>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="text-sm font-bold text-slate-700">
+                      Size
+                      <select
+                        name="companySize"
+                        required
+                        defaultValue=""
+                        className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-950 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      >
+                        <option value="" disabled>
+                          Select size
+                        </option>
+                        {companySizes.map((size) => (
+                          <option key={size} value={size}>
+                            {size} employees
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-sm font-bold text-slate-700">
+                      Phone
+                      <input
+                        name="phone"
+                        type="tel"
+                        placeholder="(555) 123-4567"
+                        className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-950 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      />
+                    </label>
+                  </div>
+                  <label className="block text-sm font-bold text-slate-700">
+                    Current tool
+                    <input
+                      name="currentTool"
+                      type="text"
+                      placeholder="Gusto, Rippling, ADP, spreadsheets..."
+                      className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-950 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? "Sending..." : "Request demo"}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <p className="flex items-center justify-center gap-2 text-center text-xs font-bold text-slate-500">
+                    <Phone className="h-3.5 w-3.5" />
+                    Sales notified after submission.
+                  </p>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <SiteFooter />
+      <Footer />
     </main>
   );
 }

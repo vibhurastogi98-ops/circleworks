@@ -16,6 +16,43 @@ const SUGGESTED = [
   "Can you handle California payroll?",
 ];
 
+const MARKETING_PATH_PREFIXES = [
+  "/",
+  "/about",
+  "/accountants",
+  "/blog",
+  "/community",
+  "/compare",
+  "/contact",
+  "/customers",
+  "/demo",
+  "/docs",
+  "/guides",
+  "/integrations",
+  "/partners",
+  "/press",
+  "/pricing",
+  "/privacy",
+  "/product",
+  "/security",
+  "/solutions",
+  "/status",
+  "/switch",
+  "/templates",
+  "/terms",
+  "/trial",
+  "/trust",
+  "/webinars",
+  "/resources",
+];
+
+const AUTH_PATH_PREFIXES = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+];
+
 export default function CirceWidget() {
   const pathname = usePathname();
   const { isCirceOpen: open, toggleCirce, setIsCirceOpen } = usePlatformStore();
@@ -23,7 +60,7 @@ export default function CirceWidget() {
     {
       role: "assistant",
       content:
-        "Hey! 👋 I'm Circe, CircleWorks' AI HR assistant. Ask me anything about payroll, benefits, compliance, or our platform.",
+        "Hi, I’m Circe. Ask me anything about CircleWorks payroll, plans, compliance, or onboarding.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -84,111 +121,123 @@ export default function CirceWidget() {
     sendMessage(input);
   };
 
-  const isAuthPage = ["/login", "/signup", "/forgot-password", "/reset-password"].some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`)
-  );
+  const isMarketingOrAuthPage =
+    MARKETING_PATH_PREFIXES.some((path) =>
+      path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`),
+    ) ||
+    AUTH_PATH_PREFIXES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
-  if (isAuthPage) return null;
+  if (!isMarketingOrAuthPage) return null;
 
   return (
     <>
-      {/* --- FAB Button --- */}
-      <button
-        id="tour-circe"
-        onClick={() => toggleCirce()}
-        aria-label="Ask Circe — AI HR Assistant"
-        title="Ask Circe — AI HR Assistant"
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 group ${
-          open
-            ? "bg-slate-800 rotate-90 scale-90"
-            : "bg-gradient-to-br from-purple-600 to-fuchsia-500 hover:shadow-[0_0_24px_rgba(168,85,247,0.5)] hover:scale-110"
-        }`}
-      >
-        {open ? (
-          <X size={22} className="text-white" />
-        ) : (
-          <Sparkles size={22} className="text-white" />
-        )}
-      </button>
-
-      {/* --- Chat Drawer --- */}
-      <div
-        className={`fixed bottom-24 right-6 z-50 w-[340px] h-[480px] bg-white rounded-2xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.25)] border border-slate-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ${
-          open
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 translate-y-4 pointer-events-none"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white">
-          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-            <Sparkles size={16} className="text-white" />
+      <div className="group fixed bottom-6 right-6 z-50">
+        {!open ? (
+          <div className="pointer-events-none absolute bottom-full right-0 mb-3 translate-y-1 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+            Ask Circe — AI HR Assistant
           </div>
-          <div className="flex-1">
-            <div className="font-bold text-[15px] leading-tight">Circe</div>
-            <div className="text-[11px] text-white/70 font-medium">CircleWorks AI Assistant</div>
+        ) : null}
+
+        <button
+          id="tour-circe"
+          onClick={() => toggleCirce()}
+          aria-label="Ask Circe — AI HR Assistant"
+          title="Ask Circe — AI HR Assistant"
+          className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300 ${
+            open
+              ? "bg-slate-900 text-white"
+              : "bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-500 text-white hover:scale-105 hover:shadow-[0_0_28px_rgba(147,51,234,0.45)]"
+          }`}
+        >
+          {open ? <X size={22} /> : <Sparkles size={22} />}
+        </button>
+      </div>
+
+      <div
+        className={`fixed bottom-24 right-6 z-50 flex h-[480px] w-[320px] origin-bottom-right flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_80px_-20px_rgba(0,0,0,0.35)] transition-all duration-300 dark:border-slate-800 dark:bg-slate-950 ${
+          open
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-5 opacity-0"
+        }`}
+        role="dialog"
+        aria-label="Circe chat drawer"
+        aria-modal="false"
+      >
+        <div className="flex items-center gap-3 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-500 px-5 py-4 text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/15">
+            <Sparkles size={17} className="text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[15px] font-bold leading-tight">Circe — CircleWorks AI</div>
+            <div className="text-[11px] font-medium text-white/75">
+              AI assistant for CircleWorks payroll and HR
+            </div>
           </div>
           <button
             onClick={() => setIsCirceOpen(false)}
-            className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+            aria-label="Close Circe chat"
           >
             <X size={14} />
           </button>
         </div>
 
-        {/* Messages Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 scroll-smooth">
+        <div
+          ref={scrollRef}
+          className="flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-violet-50/60 via-white to-white px-4 py-4 dark:from-slate-900 dark:via-slate-950 dark:to-slate-950"
+        >
           {messages.map((msg, i) => (
             <div
-              key={i}
-              className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed ${
+              key={`${msg.role}-${i}`}
+              className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
                 msg.role === "assistant"
-                  ? "bg-slate-100 text-slate-800 self-start rounded-bl-md"
-                  : "bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white self-end rounded-br-md"
+                  ? "self-start rounded-bl-md bg-white text-slate-800 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-800"
+                  : "ml-auto rounded-br-md bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white"
               }`}
             >
               {msg.content}
             </div>
           ))}
 
-          {loading && (
-            <div className="bg-slate-100 text-slate-500 self-start px-4 py-3 rounded-2xl rounded-bl-md text-[14px] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+          {loading ? (
+            <div className="flex items-center gap-1.5 self-start rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] text-slate-500 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-800">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "150ms" }} />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "300ms" }} />
             </div>
-          )}
+          ) : null}
 
-          {/* Suggested Chips (show only when 1 message) */}
-          {messages.length <= 1 && !loading && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {SUGGESTED.map((q) => (
+          {messages.length <= 1 && !loading ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {SUGGESTED.map((question) => (
                 <button
-                  key={q}
-                  onClick={() => sendMessage(q)}
-                  className="bg-purple-50 text-purple-700 border border-purple-200 px-3 py-1.5 rounded-full text-[12px] font-semibold hover:bg-purple-100 transition-colors"
+                  key={question}
+                  onClick={() => sendMessage(question)}
+                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[12px] font-semibold text-violet-700 transition-colors hover:bg-violet-100 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/40"
                 >
-                  {q}
+                  {question}
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
-        {/* Input Bar */}
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 px-3 py-3 border-t border-slate-200 bg-white">
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-center gap-2 border-t border-slate-200 bg-white px-3 py-3 dark:border-slate-800 dark:bg-slate-950"
+        >
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask me anything..."
             disabled={loading}
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:opacity-50 transition-colors"
+            className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-[14px] text-slate-800 placeholder:text-slate-400 transition-colors focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-400 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white flex items-center justify-center disabled:opacity-40 hover:shadow-md transition-all shrink-0"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white transition-all hover:shadow-md disabled:opacity-40"
           >
             <Send size={16} />
           </button>

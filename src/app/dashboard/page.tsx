@@ -29,12 +29,15 @@ export default function DashboardPage() {
   const { isLoading } = useDashboardData();
   const { user } = useAuth();
 
-  const userRole = user?.role || "admin";
+  const userRole = user?.role?.toLowerCase() || "admin";
   const router = useRouter();
 
   useEffect(() => {
     if (userRole === "accountant") {
       router.push("/accountant-portal");
+    }
+    if (userRole === "employee") {
+      router.push("/me");
     }
   }, [userRole, router]);
 
@@ -67,8 +70,8 @@ export default function DashboardPage() {
         <AppTopBar />
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div id="tour-dashboard" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+        <main id="main-content" className="flex-1 overflow-y-auto">
+          <div id="tour-dashboard" className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-6">
             <OnboardingTour />
 
             {/* Existing Layout */}

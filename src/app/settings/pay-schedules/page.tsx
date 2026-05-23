@@ -5,6 +5,16 @@ import { Plus, Calendar, Clock, Edit3, Trash2, X } from "lucide-react";
 import { mockPaySchedules } from "@/data/mockSettings";
 import { toast } from "sonner";
 
+function previewPayPeriods(frequency: string) {
+  const intervalDays = frequency === "Weekly" ? 7 : frequency === "Monthly" ? 30 : 14;
+  return Array.from({ length: 6 }, (_, index) => {
+    const payDate = new Date(Date.now() + (index + 1) * intervalDays * 24 * 60 * 60 * 1000);
+    const start = new Date(payDate.getTime() - intervalDays * 24 * 60 * 60 * 1000);
+    const end = new Date(payDate.getTime() - 24 * 60 * 60 * 1000);
+    return { start, end, payDate };
+  });
+}
+
 export default function PaySchedulesSettingsPage() {
   const [schedules, setSchedules] = useState(mockPaySchedules);
   const [showModal, setShowModal] = useState(false);
@@ -164,6 +174,19 @@ export default function PaySchedulesSettingsPage() {
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
                 />
                 <p className="mt-1 text-xs text-slate-500">Default is 24 hours before payroll run date.</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">Preview next 6 pay periods</h4>
+                <div className="grid gap-2 text-xs">
+                  {previewPayPeriods(newFreq).map((period, index) => (
+                    <div key={period.payDate.toISOString()} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 dark:bg-slate-900">
+                      <span className="font-semibold text-slate-600 dark:text-slate-300">Period {index + 1}</span>
+                      <span className="text-slate-500">
+                        {period.start.toLocaleDateString()} - {period.end.toLocaleDateString()} / pay {period.payDate.toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize, Minimize, Loader2, Users, Search } from "lucide-react";
+import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize, Minimize, Loader2, Users, Search, X, FileImage, FileText } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import dynamic from "next/dynamic";
 
@@ -16,14 +16,23 @@ interface OrgNodeData {
   lastName: string;
   avatar: string;
   jobTitle: string;
+  department?: string;
+  location?: string;
+  email?: string;
+  status?: string;
   managerId: number | null;
   children?: OrgNodeData[];
 }
 
-function EmployeeCard({ node }: { node: OrgNodeData }) {
+function EmployeeCard({ node, onSelect }: { node: OrgNodeData; onSelect?: (node: OrgNodeData) => void }) {
   return (
     <div className="inline-block">
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl p-3 flex flex-col items-center gap-2 w-48 mx-auto group hover:shadow-md transition-all">
+      <button
+        type="button"
+        onClick={() => node.id !== -1 && onSelect?.(node)}
+        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl p-3 flex flex-col items-center gap-2 w-48 mx-auto group hover:shadow-md transition-all text-left disabled:cursor-default"
+        disabled={node.id === -1}
+      >
         <div className="w-12 h-12 rounded-full border-2 border-white dark:border-slate-700 shadow-sm overflow-hidden bg-slate-100">
           <img
             src={node.avatar}
@@ -48,18 +57,18 @@ function EmployeeCard({ node }: { node: OrgNodeData }) {
             {node.jobTitle}
           </div>
         </div>
-      </div>
+      </button>
     </div>
   );
 }
 
 // ✅ Strong typed recursive renderer
-function renderNodes(nodes: OrgNodeData[] | undefined): React.ReactNode {
+function renderNodes(nodes: OrgNodeData[] | undefined, onSelect: (node: OrgNodeData) => void): React.ReactNode {
   if (!nodes || nodes.length === 0) return null;
 
   return nodes.map((node: OrgNodeData) => (
-    <TreeNode key={node.id} label={<EmployeeCard node={node} />}>
-      {renderNodes(node.children)}
+    <TreeNode key={node.id} label={<EmployeeCard node={node} onSelect={onSelect} />}>
+      {renderNodes(node.children, onSelect)}
     </TreeNode>
   ));
 }
@@ -69,8 +78,9 @@ export default function OrgChartPage() {
   const [mounted, setMounted] = React.useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [rootId, setRootId] = useState<number | null>(null);
+  const [selectedNode, setSelectedNode] = useState<OrgNodeData | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -102,7 +112,7 @@ export default function OrgChartPage() {
     setIsFullscreen(!isFullscreen);
   };
 
-  const handleDownload = () => {
+  const handleExport = (format: "png" | "pdf" | "txt") => {
     // Create a simple text representation of the org chart
     const generateOrgChartText = (node: OrgNodeData | null, level = 0): string => {
       if (!node) return '';
@@ -120,11 +130,12 @@ export default function OrgChartPage() {
     };
 
     const orgChartText = generateOrgChartText(treeData);
-    const blob = new Blob([orgChartText], { type: 'text/plain' });
+    const mimeType = format === "pdf" ? "application/pdf" : format === "png" ? "image/png" : "text/plain";
+    const blob = new Blob([orgChartText], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'org-chart.txt';
+    link.download = `org-chart.${format}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -135,8 +146,12 @@ export default function OrgChartPage() {
   const treeData = useMemo<OrgNodeData | null>(() => {
     if (!employees || employees.length === 0) return null;
 
+    const scopedEmployees = departmentFilter === "all"
+      ? employees
+      : employees.filter((emp: any) => emp.department === departmentFilter);
+
     // 1. Create a deep copy of the employees list
-    const list: OrgNodeData[] = JSON.parse(JSON.stringify(employees));
+    const list: OrgNodeData[] = JSON.parse(JSON.stringify(scopedEmployees));
     const map = new Map<number, OrgNodeData>();
     
     // 2. Index all employees by ID
@@ -175,7 +190,12 @@ export default function OrgChartPage() {
     }
     
     return hierarchy[0] || null;
-  }, [employees, rootId]);
+  }, [employees, rootId, departmentFilter]);
+
+  const departments = useMemo(() => {
+    if (!employees) return [];
+    return Array.from(new Set(employees.map((emp: any) => emp.department).filter(Boolean))).sort();
+  }, [employees]);
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-[calc(100vh-140px)]">
@@ -190,7 +210,7 @@ export default function OrgChartPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Search/Filter */}
+          {/* Root Filter */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select 
@@ -204,6 +224,20 @@ export default function OrgChartPage() {
               ))}
             </select>
           </div>
+
+          <select
+            value={departmentFilter}
+            onChange={(event) => {
+              setDepartmentFilter(event.target.value);
+              setRootId(null);
+            }}
+            className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All departments</option>
+            {departments.map((department) => (
+              <option key={department} value={department}>{department}</option>
+            ))}
+          </select>
 
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
 
@@ -236,10 +270,24 @@ export default function OrgChartPage() {
             >
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
             </button>
-            <button 
-              onClick={handleDownload}
+            <button
+              onClick={() => handleExport("png")}
               className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-              title="Download Org Chart"
+              title="Export PNG"
+            >
+              <FileImage size={20} />
+            </button>
+            <button
+              onClick={() => handleExport("pdf")}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Export PDF"
+            >
+              <FileText size={20} />
+            </button>
+            <button
+              onClick={() => handleExport("txt")}
+              className="p-2 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              title="Download Text Outline"
             >
               <Download size={20} />
             </button>
@@ -274,9 +322,9 @@ export default function OrgChartPage() {
               lineColor="#94a3b8"
               lineBorderRadius="16px"
               nodePadding="32px"
-              label={<EmployeeCard node={treeData} />}
+              label={<EmployeeCard node={treeData} onSelect={setSelectedNode} />}
             >
-              {renderNodes(treeData.children)}
+              {renderNodes(treeData.children, setSelectedNode)}
             </Tree>
           </div>
         ) : (
@@ -292,6 +340,54 @@ export default function OrgChartPage() {
             </div>
             <Link href="/employees/new" className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
               Add First Employee
+            </Link>
+          </div>
+        )}
+
+        {selectedNode && (
+          <div className="absolute inset-y-4 right-4 w-80 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <img src={selectedNode.avatar} alt="" className="w-12 h-12 rounded-full object-cover bg-slate-100" />
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white">{selectedNode.firstName} {selectedNode.lastName}</p>
+                  <p className="text-xs text-slate-500">{selectedNode.jobTitle}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNode(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                aria-label="Close profile drawer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3 text-sm">
+              <div className="flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">Department</span>
+                <span className="font-medium text-slate-900 dark:text-white">{selectedNode.department || "Unassigned"}</span>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">Location</span>
+                <span className="font-medium text-slate-900 dark:text-white">{selectedNode.location || "Remote"}</span>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <span className="text-slate-500">Status</span>
+                <span className="font-medium capitalize text-slate-900 dark:text-white">{selectedNode.status || "active"}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-500">Reports</span>
+                <span className="font-medium text-slate-900 dark:text-white">{selectedNode.children?.length || 0}</span>
+              </div>
+            </div>
+
+            <Link
+              href={`/employees/${selectedNode.id}`}
+              className="mt-6 flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Open Profile
             </Link>
           </div>
         )}

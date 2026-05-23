@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { NEW_HIRES } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { UserPlus } from "lucide-react";
 import Link from "next/link";

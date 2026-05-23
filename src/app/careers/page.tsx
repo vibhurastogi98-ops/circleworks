@@ -1,138 +1,207 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BadgeDollarSign,
+  BookOpen,
+  BriefcaseBusiness,
+  CalendarHeart,
+  HeartPulse,
+  MapPin,
+  MonitorCheck,
+  Mountain,
+  Play,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import Link from "next/link";
+import { getJobsByDepartment, type Role } from "@/data/careers";
 
-const openRoles = [
-  { id: 1, title: "Senior Full Stack Engineer", dept: "Engineering", type: "Remote (US)", href: "/careers" },
-  { id: 2, title: "Product Manager, Payroll", dept: "Product", type: "Remote (US)", href: "/careers" },
-  { id: 3, title: "Enterprise Account Executive", dept: "Sales", type: "San Francisco / Remote", href: "/careers" },
-  { id: 4, title: "Customer Success Manager", dept: "Support", type: "Remote (Global)", href: "/careers" },
-  { id: 5, title: "Staff Product Designer", dept: "Design", type: "Remote (US)", href: "/careers" },
+const culturePhotos = [
+  {
+    src: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80",
+    alt: "CircleWorks teammates planning product work around a conference table",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80",
+    alt: "CircleWorks team members collaborating in a bright office",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=80",
+    alt: "CircleWorks remote-first team workshop",
+  },
 ];
 
 const perks = [
-  { title: "Remote First", desc: "Work from anywhere in the US, plus standard international hubs.", icon: "🌍" },
-  { title: "100% Healthcare Coverage", desc: "We pay 100% of medical, dental, and vision premiums for you and your dependents.", icon: "🏥" },
-  { title: "Unlimited PTO", desc: "Take the time you need. We truly mean it, and managers enforce it.", icon: "🏖️" },
-  { title: "401(k) Matching", desc: "We match 100% of your contributions up to 5% of your salary.", icon: "💰" },
-  { title: "Home Office Stipend", desc: "$1,500 to set up your dream home office on day one.", icon: "🖥️" },
-  { title: "Annual Retreats", desc: "Join the entire company once a year in a fun, exotic location.", icon: "✈️" },
+  { title: "Remote-first", icon: MonitorCheck, description: "Work from where you do your best thinking, with intentional in-person moments." },
+  { title: "Competitive pay + equity", icon: BadgeDollarSign, description: "Strong salary bands and ownership for people building the company." },
+  { title: "Full benefits", icon: HeartPulse, description: "Medical, dental, vision, mental health support, and family-friendly coverage." },
+  { title: "Learning budget", icon: BookOpen, description: "Annual funds for courses, books, conferences, and role-specific growth." },
+  { title: "Unlimited PTO", icon: CalendarHeart, description: "Flexible time away, manager-supported rest, and space for real life." },
+  { title: "Team retreats", icon: Mountain, description: "Company gatherings built around planning, trust, and a little fun." },
 ];
 
+const departmentLabels: Record<Role["department"], string> = {
+  Engineering: "Engineering",
+  Product: "Product",
+  Sales: "Sales",
+  CS: "Customer Success",
+  HR: "HR",
+};
+
 export default function CareersPage() {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const jobsByDepartment = getJobsByDepartment();
+
   return (
-    <main className="min-h-screen bg-white font-sans selection:bg-cyan-200 selection:text-navy">
+    <main className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-[#0A1628]">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-24 lg:pt-48 lg:pb-32 bg-[#0A1628] overflow-hidden text-center z-10 border-b border-white/5">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none opacity-50" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-cyan-400/10 rounded-full blur-[100px] pointer-events-none opacity-50" />
-        
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center">
-          
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-block bg-white/5 text-slate-300 border border-white/10 text-[12px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6"
-          >
-            Careers at CircleWorks
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight mb-6 max-w-4xl mx-auto"
-          >
-            Come build the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">infrastructure</span> of work.
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg lg:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed"
-          >
-            Join a fast-growing team of builders, designers, and operators dedicated to freeing businesses from archaic HR software.
-          </motion.p>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-             <a href="#open-roles" className="px-8 py-4 bg-white text-[#0A1628] font-bold rounded-xl transition-all shadow-lg hover:-translate-y-1">
-                View Open Roles &darr;
-             </a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Perks Section */}
-      <section className="py-24 bg-white relative">
+      <section className="pt-32 pb-20 lg:pt-40 lg:pb-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="text-center mb-16">
-              <h2 className="text-3xl lg:text-4xl font-black text-[#0A1628] mb-4 tracking-tight">Why work at CircleWorks?</h2>
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto">We take care of our own. Besides a competitive salary and equity packages, here is what you can expect.</p>
-           </div>
-           
-           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {perks.map((p, i) => (
-                 <div key={i} className="bg-slate-50 p-8 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
-                    <div className="text-4xl mb-6">{p.icon}</div>
-                    <h4 className="text-lg font-bold text-[#0A1628] mb-3">{p.title}</h4>
-                    <p className="text-slate-500 text-sm leading-relaxed">{p.desc}</p>
-                 </div>
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-12 lg:gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-widest text-blue-700 mb-6">
+                <Sparkles size={14} />
+                Careers at CircleWorks
+              </div>
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-[#0A1628] leading-[1.02] tracking-tight">
+                Build the future of American HR
+              </h1>
+              <p className="mt-6 text-lg text-slate-600 leading-8 max-w-xl">
+                Join a team building payroll, HR, compliance, and workforce tools for the companies that keep America moving.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                <a href="#open-roles" className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition-colors">
+                  View Open Roles
+                  <ArrowRight size={16} />
+                </a>
+                <a href="#culture-video" className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-5 py-3 text-sm font-bold text-[#0A1628] hover:border-blue-200 hover:text-blue-700 transition-colors">
+                  Watch Culture Video
+                  <Play size={16} />
+                </a>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 h-[360px] sm:h-[430px]">
+              {culturePhotos.map((photo, index) => (
+                <div key={photo.src} className={`overflow-hidden rounded-lg border border-slate-200 bg-slate-100 ${index === 1 ? "mt-8 mb-8" : ""}`}>
+                  <img src={photo.src} alt={photo.alt} className="h-full w-full object-cover" />
+                </div>
               ))}
-           </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Open Roles Section */}
-      <section id="open-roles" className="py-24 bg-slate-50 border-t border-slate-200">
+      <section className="py-20 bg-slate-50 border-y border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mb-12">
+            <h2 className="text-3xl lg:text-4xl font-black text-[#0A1628] tracking-tight">Perks Built For Sustainable Work</h2>
+            <p className="mt-4 text-slate-600 leading-7">We care about high standards and humane pacing. The benefits are designed to support both.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {perks.map((perk) => {
+              const Icon = perk.icon;
+              return (
+                <div key={perk.title} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="w-11 h-11 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center mb-5">
+                    <Icon size={22} />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#0A1628]">{perk.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{perk.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section id="open-roles" className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div>
+              <h2 className="text-3xl lg:text-4xl font-black text-[#0A1628] tracking-tight">Open Roles</h2>
+              <p className="mt-3 text-slate-600">Find the team where your work can matter most.</p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600">
+              <BriefcaseBusiness size={16} />
+              {Object.values(jobsByDepartment).flat().length} open roles
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            {(Object.keys(jobsByDepartment) as Role["department"][]).map((department) => {
+              const roles = jobsByDepartment[department];
+              if (!roles.length) return null;
+              return (
+                <div key={department} className="rounded-lg border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 flex items-center gap-2">
+                    <Users size={18} className="text-blue-700" />
+                    <h3 className="text-base font-black text-[#0A1628]">{departmentLabels[department]}</h3>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    {roles.map((role) => (
+                      <div key={role.id} className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white">
+                        <div>
+                          <h4 className="text-xl font-bold text-[#0A1628]">{role.title}</h4>
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-500 font-medium">
+                            <span className="inline-flex items-center gap-1.5">
+                              <MapPin size={14} />
+                              {role.location}
+                            </span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                            <span>{role.type}</span>
+                          </div>
+                        </div>
+                        <Link href={`/careers/${role.slug}`} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-colors">
+                          Apply Now
+                          <ArrowRight size={16} />
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section id="culture-video" className="py-20 bg-slate-50 border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="mb-12 flex items-center justify-between">
-              <div>
-                 <h2 className="text-3xl lg:text-4xl font-black text-[#0A1628] mb-2 tracking-tight">Open Roles</h2>
-                 <p className="text-slate-500">Find where you belong on the rocket ship.</p>
-              </div>
-           </div>
-           
-           <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="divide-y divide-slate-100">
-                 {openRoles.map(role => (
-                    <Link key={role.id} href={role.href} className="group block p-6 sm:px-8 sm:py-6 hover:bg-slate-50 transition-colors">
-                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div>
-                             <h3 className="text-xl font-bold text-[#0A1628] mb-2 group-hover:text-blue-600 transition-colors">{role.title}</h3>
-                             <div className="flex items-center gap-3 text-sm text-slate-500 font-medium font-mono">
-                                <span>{role.dept}</span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                                <span>{role.type}</span>
-                             </div>
-                          </div>
-                          
-                          <div className="shrink-0 flex items-center">
-                             <div className="hidden sm:flex items-center justify-center bg-blue-50 text-blue-600 font-bold px-4 py-2 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                Apply &rarr;
-                             </div>
-                             <div className="sm:hidden text-blue-600 font-bold flex items-center gap-1">
-                                Apply <span>&rarr;</span>
-                             </div>
-                          </div>
-                       </div>
-                    </Link>
-                 ))}
-              </div>
-           </div>
-           
-           <div className="mt-10 text-center text-slate-500 bg-white border border-slate-200 border-dashed rounded-2xl p-8">
-              Don't see your role? Email us at <a href="mailto:careers@circleworks.com" className="text-blue-600 font-bold hover:underline">careers@circleworks.com</a> and tell us why you'd be a great fit.
-           </div>
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-3xl lg:text-4xl font-black text-[#0A1628] tracking-tight">How We Work Together</h2>
+            <p className="mt-4 text-slate-600 leading-7">A short look at the rituals, collaboration style, and customer obsession behind CircleWorks.</p>
+          </div>
+          <div className="aspect-video overflow-hidden rounded-lg border border-slate-200 bg-[#0A1628] shadow-sm">
+            {isVideoOpen ? (
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                title="CircleWorks culture video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <button type="button" onClick={() => setIsVideoOpen(true)} className="relative block w-full h-full group text-left">
+                <img
+                  src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1400&q=80"
+                  alt="CircleWorks team culture video thumbnail"
+                  className="h-full w-full object-cover opacity-85 group-hover:opacity-75 transition-opacity"
+                />
+                <span className="absolute inset-0 bg-[#0A1628]/30" />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-20 h-20 rounded-full bg-white text-blue-700 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                    <Play size={30} fill="currentColor" />
+                  </span>
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       </section>
 

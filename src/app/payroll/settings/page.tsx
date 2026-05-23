@@ -90,6 +90,41 @@ function GeneralSettingsTab() {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-10 animate-in slide-in-from-bottom-4 shadow-sm">
          <section>
+           <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-3 text-slate-800 dark:text-slate-100">Check Date Calculation</h3>
+           <div className="grid gap-4 md:grid-cols-2">
+             <label className="rounded-xl border-2 border-blue-500 bg-blue-50 p-5 dark:bg-blue-900/10">
+               <div className="flex items-center gap-2">
+                 <input type="radio" name="check-date-method" defaultChecked className="text-blue-600" />
+                 <span className="text-sm font-bold text-slate-900 dark:text-white">Use scheduled payday</span>
+               </div>
+               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">If payday lands on a bank holiday or weekend, move to the prior business day.</p>
+             </label>
+             <label className="rounded-xl border border-slate-200 p-5 dark:border-slate-700">
+               <div className="flex items-center gap-2">
+                 <input type="radio" name="check-date-method" className="text-blue-600" />
+                 <span className="text-sm font-bold text-slate-900 dark:text-white">Always pay after period close</span>
+               </div>
+               <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Calculate check dates from pay period end plus configured processing days.</p>
+             </label>
+           </div>
+         </section>
+
+         <section>
+           <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-3 text-slate-800 dark:text-slate-100">Payroll Bank Account</h3>
+           <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800/50">
+             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+               <div>
+                 <p className="text-sm font-black text-slate-900 dark:text-white">Operating Checking •••• 4821</p>
+                 <p className="mt-1 text-sm text-slate-500">ACH debit account used for payroll funding and tax payments.</p>
+               </div>
+               <button className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                 Change account
+               </button>
+             </div>
+           </div>
+         </section>
+
+         <section>
            <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-3 text-slate-800 dark:text-slate-100">Funding Timing</h3>
            <div className="grid grid-cols-2 gap-4">
              <div className="p-5 flex flex-col justify-between border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/10 rounded-xl cursor-pointer">
@@ -145,6 +180,18 @@ function GeneralSettingsTab() {
                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">Automatically batch and run scheduled payroll for designated Autopilot salaried employees 2 days before deadline. You will still receive a preview exception-report email 24 hours prior to funds capture.</p>
              </div>
            </label>
+         </section>
+
+         <section>
+           <h3 className="text-xl font-bold mb-4 border-b border-slate-100 dark:border-slate-800 pb-3 text-slate-800 dark:text-slate-100">Notification Settings</h3>
+           <div className="grid gap-3 md:grid-cols-3">
+             {["Payroll draft ready", "Approval requested", "Payroll processed"].map((label) => (
+               <label key={label} className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                 <input type="checkbox" defaultChecked className="h-5 w-5 rounded border-slate-300 text-blue-600" />
+                 <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{label}</span>
+               </label>
+             ))}
+           </div>
          </section>
     </div>
   );

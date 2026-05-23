@@ -68,6 +68,27 @@ export default function ScheduleBuilderPage() {
         </button>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-2 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-4 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-violet-600 text-white flex items-center justify-center shrink-0">
+            <CalendarDays size={18} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-violet-900 dark:text-violet-100">Drag-and-drop week builder</p>
+            <p className="text-xs text-violet-700 dark:text-violet-300 mt-1">
+              Drag shift blocks between employee rows and day columns, click any block to edit time, role, or location, or use an empty cell to add a new shift.
+            </p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-amber-600 dark:text-amber-300 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold text-amber-900 dark:text-amber-100">OT warning badges</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">Orange at projected &gt;35h, red at &gt;40h.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Schedule Grid */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -121,6 +142,13 @@ export default function ScheduleBuilderPage() {
                       <div className="mt-0.5">
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
                           OT WARNING
+                        </span>
+                      </div>
+                    )}
+                    {emp.totalHours > 35 && emp.totalHours <= 40 && (
+                      <div className="mt-0.5">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                          OT RISK
                         </span>
                       </div>
                     )}

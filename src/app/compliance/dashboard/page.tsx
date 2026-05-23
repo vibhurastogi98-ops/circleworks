@@ -2,11 +2,14 @@
 
 import React, { useState, useRef } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   Shield, AlertTriangle, AlertCircle, Info, ChevronRight,
   FileCheck, HeartPulse, Users, FileText, BookOpen, UserPlus,
   Calendar, ExternalLink, X
 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   complianceAlerts,
   complianceCalendar,
@@ -64,17 +67,11 @@ function HealthScoreGauge({ score }: { score: number }) {
         >
           {score}
         </text>
-        <text
-          x="50%"
-          y="62%"
-          textAnchor="middle"
-          dominantBaseline="central"
-          style={{ fontSize: "14px", fontWeight: 600, fill: color }}
-        >
-          {label}
-        </text>
       </svg>
-      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
+      <p className="text-lg font-black mt-1" style={{ color }}>
+        {label}
+      </p>
+      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
         Compliance Health Score
       </p>
     </div>
@@ -108,9 +105,11 @@ function AlertCard({ alert }: { alert: typeof complianceAlerts[0] }) {
       </div>
       <Link
         href={alert.actionHref || "#"}
-        className={`self-start px-3 py-1.5 rounded-lg text-xs font-bold ${config.btn} transition-colors shadow-sm`}
+        className="self-start"
       >
-        {alert.actionLabel}
+        <Button size="sm" className={config.btn}>
+          {alert.actionLabel}
+        </Button>
       </Link>
     </div>
   );
@@ -314,14 +313,30 @@ function StatusCard({ card }: { card: typeof quickStatusCards[0] }) {
 /* ─── Main Dashboard ──────────────────────────────────────────────── */
 
 export default function ComplianceDashboard() {
-  // Compute health score
-  const criticals = complianceAlerts.filter((a) => a.severity === "critical").length;
-  const warnings = complianceAlerts.filter((a) => a.severity === "warning").length;
-  const score = Math.max(0, Math.min(100, 100 - criticals * 10 - warnings * 3));
+  const { data } = useQuery({
+    queryKey: ["compliance-dashboard"],
+    queryFn: async () => ({
+      alerts: complianceAlerts,
+      calendar: complianceCalendar,
+      quickStatuses: quickStatusCards,
+      positiveFactorCredits: 16,
+    }),
+    initialData: {
+      alerts: complianceAlerts,
+      calendar: complianceCalendar,
+      quickStatuses: quickStatusCards,
+      positiveFactorCredits: 16,
+    },
+  });
 
-  const criticalAlerts = complianceAlerts.filter((a) => a.severity === "critical");
-  const warningAlerts = complianceAlerts.filter((a) => a.severity === "warning");
-  const infoAlerts = complianceAlerts.filter((a) => a.severity === "info");
+  // Health score: 100 - open critical alerts (-10 each) - warnings (-3 each) + positive compliance factors.
+  const criticals = data.alerts.filter((a) => a.severity === "critical").length;
+  const warnings = data.alerts.filter((a) => a.severity === "warning").length;
+  const score = Math.max(0, Math.min(100, 100 - criticals * 10 - warnings * 3 + data.positiveFactorCredits));
+
+  const criticalAlerts = data.alerts.filter((a) => a.severity === "critical");
+  const warningAlerts = data.alerts.filter((a) => a.severity === "warning");
+  const infoAlerts = data.alerts.filter((a) => a.severity === "info");
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -346,15 +361,31 @@ export default function ComplianceDashboard() {
         </div>
       </div>
 
-      {/* Health Score + Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Health Score */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center">
-          <HealthScoreGauge score={score} />
-        </div>
+      {/* Health Score */}
+      <div className="flex justify-center">
+        <Card className="w-full max-w-sm">
+          <CardContent className="flex flex-col items-center justify-center p-6">
+            <HealthScoreGauge score={score} />
+            <div className="mt-4 grid grid-cols-3 gap-2 w-full text-center">
+              <div className="rounded-xl bg-red-50 dark:bg-red-950/30 px-3 py-2">
+                <p className="text-lg font-black text-red-600 dark:text-red-400">{criticals}</p>
+                <p className="text-[10px] font-bold uppercase text-red-500">Critical</p>
+              </div>
+              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+                <p className="text-lg font-black text-amber-600 dark:text-amber-400">{warnings}</p>
+                <p className="text-[10px] font-bold uppercase text-amber-500">Warnings</p>
+              </div>
+              <div className="rounded-xl bg-green-50 dark:bg-green-950/30 px-3 py-2">
+                <p className="text-lg font-black text-green-600 dark:text-green-400">+{data.positiveFactorCredits}</p>
+                <p className="text-[10px] font-bold uppercase text-green-500">Factors</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Alerts by Severity */}
-        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Alerts by Severity */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Critical */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 px-1">
@@ -386,7 +417,6 @@ export default function ComplianceDashboard() {
             {infoAlerts.map((a) => <AlertCard key={a.id} alert={a} />)}
           </div>
         </div>
-      </div>
 
       {/* Calendar */}
       <CalendarTimeline />
@@ -395,7 +425,7 @@ export default function ComplianceDashboard() {
       <div>
         <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Quick Status</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {quickStatusCards.map((card) => (
+          {data.quickStatuses.map((card) => (
             <StatusCard key={card.id} card={card} />
           ))}
         </div>

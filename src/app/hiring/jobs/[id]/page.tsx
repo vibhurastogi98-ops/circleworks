@@ -3,15 +3,18 @@
 import Link from "next/link";
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate, addCandidate } from "@/data/mockAts";
-import { MoreHorizontal, Link as LinkIcon, Plus, Edit, Pause, Play, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle, Briefcase } from "lucide-react";
+import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate, addCandidate, updateCandidateStage } from "@/data/mockAts";
+import { Link as LinkIcon, Plus, Edit, Pause, Play, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle, Briefcase, GripVertical, ExternalLink, Search, UserPlus, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBanTheBoxJurisdiction } from "@/utils/compliance";
 import { formatDate } from "@/utils/formatDate";
 import { toast } from "sonner";
+import { useSocketStore } from "@/store/useSocketStore";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // --- DND KIT COMPONENTS ---
 
@@ -25,16 +28,29 @@ function SortableCandidateCard({ candidate, onClick }: { candidate: AtsCandidate
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={(e) => { e.stopPropagation(); onClick(candidate); }}>
-      <CandidateCard candidate={candidate} />
+    <div ref={setNodeRef} style={style} onClick={(e) => { e.stopPropagation(); onClick(candidate); }}>
+      <CandidateCard candidate={candidate} dragAttributes={attributes} dragListeners={listeners} />
     </div>
   );
 }
 
-function CandidateCard({ candidate }: { candidate: AtsCandidate }) {
+function hashName(name: string) {
+  return name.split("").reduce((hash, char) => hash + char.charCodeAt(0), 0);
+}
+
+const avatarColors = ["bg-blue-500", "bg-indigo-500", "bg-emerald-500", "bg-amber-500", "bg-cyan-500", "bg-rose-500"];
+
+function SourceIcon({ source }: { source: string }) {
+  const normalized = source.toLowerCase();
+  if (normalized.includes("linkedin")) return <LinkIcon size={12} className="text-[#0A66C2]" />;
+  if (normalized.includes("indeed")) return <Search size={12} className="text-blue-500" />;
+  if (normalized.includes("referral")) return <UserPlus size={12} className="text-emerald-500" />;
+  return <Send size={12} className="text-slate-400" />;
+}
+
+function CandidateCard({ candidate, dragAttributes, dragListeners }: { candidate: AtsCandidate; dragAttributes?: any; dragListeners?: any }) {
   const initials = candidate.firstName.charAt(0) + candidate.lastName.charAt(0);
-  const colorMap: Record<string, string> = { 'A': 'bg-blue-500', 'S': 'bg-indigo-500', 'J': 'bg-green-500', 'C': 'bg-amber-500' };
-  const avatarColor = colorMap[candidate.firstName.charAt(0)] || 'bg-slate-500';
+  const avatarColor = avatarColors[hashName(`${candidate.firstName} ${candidate.lastName}`) % avatarColors.length];
 
   const getScoreColor = (score: number) => {
      if (score >= 80) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
@@ -43,9 +59,16 @@ function CandidateCard({ candidate }: { candidate: AtsCandidate }) {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl p-4 cursor-grab hover:shadow-md transition-shadow active:cursor-grabbing flex flex-col gap-3 group relative">
-      {/* Drag handle styling - visual only */}
-      <div className="absolute top-2 right-2 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"><GripIcon /></div>
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl p-4 hover:shadow-md transition-shadow flex flex-col gap-3 group relative">
+      <button
+        type="button"
+        {...dragAttributes}
+        {...dragListeners}
+        className="absolute top-2 right-2 cursor-grab rounded p-1 text-slate-300 opacity-0 transition-opacity hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing group-hover:opacity-100 dark:text-slate-600 dark:hover:bg-slate-700"
+        aria-label={`Drag ${candidate.firstName} ${candidate.lastName}`}
+      >
+        <GripVertical size={15} />
+      </button>
 
       <div className="flex items-start gap-3">
         <div className={`w-10 h-10 rounded-full ${avatarColor} text-white flex items-center justify-center font-bold text-sm shrink-0`}>
@@ -54,6 +77,7 @@ function CandidateCard({ candidate }: { candidate: AtsCandidate }) {
         <div className="flex-1 min-w-0 pr-4">
           <h4 className="font-bold text-slate-900 dark:text-white truncate">{candidate.firstName} {candidate.lastName}</h4>
           <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+             <SourceIcon source={candidate.source} />
              <span className="truncate">{candidate.source}</span>
              <span>•</span>
              <span>Applied {formatDate(candidate.appliedDate)}</span>
@@ -62,7 +86,7 @@ function CandidateCard({ candidate }: { candidate: AtsCandidate }) {
       </div>
 
       <div className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 italic bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-100 dark:border-slate-700/50">
-         "Passionate developer with 5 years building scalable..."
+         &ldquo;{candidate.resumeSnippet || "Experienced candidate with relevant background and strong interest in the role."}&rdquo;
       </div>
 
       <div className="flex items-center justify-between pt-1">
@@ -80,21 +104,51 @@ function CandidateCard({ candidate }: { candidate: AtsCandidate }) {
          <div className="flex items-center">
             {candidate.reviewers.length > 0 ? candidate.reviewers.map((r, i) => (
                <img key={i} src={r} className="w-5 h-5 rounded-full border border-white dark:border-slate-800 -ml-1 first:ml-0" alt="" />
-            )) : <div className="text-[10px] text-slate-400">0 days here</div>}
+            )) : null}
+            <div className="ml-2 text-[10px] font-semibold text-slate-400">{candidate.daysInStage}d here</div>
          </div>
       </div>
     </div>
   );
 }
 
-const GripIcon = () => (
-   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 3C4.5 2.44772 4.94772 2 5.5 2C6.05228 2 6.5 2.44772 6.5 3C6.5 3.55228 6.05228 4 5.5 4C4.94772 4 4.5 3.55228 4.5 3ZM10.5 3C10.5 2.44772 10.9477 2 11.5 2C12.0523 2 12.5 2.44772 12.5 3C12.5 3.55228 12.0523 4 11.5 4C10.9477 4 10.5 3.55228 10.5 3ZM4.5 7.5C4.5 6.94772 4.94772 6.5 5.5 6.5C6.05228 6.5 6.5 6.94772 6.5 7.5C6.5 8.05228 6.05228 8.5 5.5 8.5C4.94772 8.5 4.5 8.05228 4.5 7.5ZM10.5 7.5C10.5 6.94772 10.9477 6.5 11.5 6.5C12.0523 6.5 12.5 6.94772 12.5 7.5C12.5 8.05228 12.0523 8.5 11.5 8.5C10.9477 8.5 10.5 8.05228 10.5 7.5ZM4.5 12C4.5 11.4477 4.94772 11 5.5 11C6.05228 11 6.5 11.4477 6.5 12C6.5 12.5523 6.05228 13 5.5 13C4.94772 13 4.5 12.5523 4.5 12ZM10.5 12C10.5 11.4477 10.9477 11 11.5 11C12.0523 11 12.5 11.4477 12.5 12C12.5 12.5523 12.0523 13 11.5 13C10.9477 13 10.5 12.5523 10.5 12Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
-)
+function StageColumn({ stage, candidates, onCandidateClick }: { stage: (typeof STAGES)[number]; candidates: AtsCandidate[]; onCandidateClick: (candidate: AtsCandidate) => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+
+  return (
+    <div className={`flex flex-col w-[300px] shrink-0 border rounded-xl overflow-hidden h-full transition-colors ${isOver ? "bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-800" : "bg-slate-100/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"}`}>
+      <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${stage.color}`} />
+          <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">{stage.title}</h3>
+        </div>
+        <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 shadow-sm">
+          {candidates.length}
+        </span>
+      </div>
+
+      <div ref={setNodeRef} className="p-3 flex-1 overflow-y-auto space-y-3">
+        <SortableContext items={candidates.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+          {candidates.map(candidate => (
+            <SortableCandidateCard key={candidate.id} candidate={candidate} onClick={onCandidateClick} />
+          ))}
+        </SortableContext>
+        {candidates.length === 0 && (
+          <div className={`h-24 border-2 border-dashed rounded-xl flex items-center justify-center text-xs font-medium transition-colors ${isOver ? "border-blue-300 text-blue-500" : "border-slate-300 dark:border-slate-700 text-slate-400"}`}>
+            Drop candidates here
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // --- MAIN PAGE ---
 
 export default function KanbanBoard() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
+  const { on: onSocketEvent, off: offSocketEvent } = useSocketStore();
   const initialJob = useMemo(() => getJobById(id as string), [id]);
   const initialCandidates = useMemo(() => getCandidatesByJob(id as string), [id]);
 
@@ -109,7 +163,7 @@ export default function KanbanBoard() {
   
   // Drawer State
   const [selectedCandidate, setSelectedCandidate] = useState<AtsCandidate | null>(null);
-  const [drawerTab, setDrawerTab] = useState<'Overview'|'Scorecard'|'Notes'|'Emails'|'Activity'|'Background'>('Overview');
+  const [drawerTab, setDrawerTab] = useState<'Overview'|'Resume'|'Scorecard'|'Notes'|'Emails'|'Activity'|'Background'>('Overview');
   
   // Background Check State
   const [bgStatuses, setBgStatuses] = useState<Record<string, 'Not Started' | 'Pending' | 'Clear' | 'Adverse'>>({});
@@ -118,36 +172,122 @@ export default function KanbanBoard() {
   // Add Candidate Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCandidate, setNewCandidate] = useState({ firstName: "", lastName: "", email: "", source: "Manual" });
+  const [pendingMove, setPendingMove] = useState<{ candidate: AtsCandidate; newStage: CandidateStage; previousStage: CandidateStage } | null>(null);
+  const [disqualificationReason, setDisqualificationReason] = useState("");
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
+  const stageMutation = useMutation({
+    mutationFn: async ({ candidateId, newStage }: { candidateId: string; newStage: CandidateStage }) => {
+      const response = await fetch(`/api/ats/candidates/${candidateId}/stage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newStage }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to update candidate stage");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      updateCandidateStage(variables.candidateId, variables.newStage);
+      queryClient.invalidateQueries({ queryKey: ["ats", "job", id] });
+    },
+  });
+
+  useEffect(() => {
+    const eventName = `ats.candidate.${id}.moved`;
+    const handleCandidateMoved = (payload: { candidateId: string; newStage: CandidateStage; movedBy?: string }) => {
+      setCandidates(prev => prev.map(candidate =>
+        candidate.id === payload.candidateId ? { ...candidate, stage: payload.newStage, daysInStage: 0 } : candidate,
+      ));
+      toast.info("Pipeline updated", {
+        description: `${payload.movedBy || "A teammate"} moved a candidate to ${STAGES.find(stage => stage.id === payload.newStage)?.title || payload.newStage}.`,
+      });
+    };
+
+    onSocketEvent(eventName, handleCandidateMoved);
+    return () => offSocketEvent(eventName, handleCandidateMoved);
+  }, [id, offSocketEvent, onSocketEvent]);
+
+  useEffect(() => {
+    if (!selectedCandidate) return;
+    const updated = candidates.find(candidate => candidate.id === selectedCandidate.id);
+    if (updated) setSelectedCandidate(updated);
+  }, [candidates, selectedCandidate]);
+
+  const persistStageMove = async (candidate: AtsCandidate, newStage: CandidateStage, previousStage: CandidateStage) => {
+    try {
+      await stageMutation.mutateAsync({ candidateId: candidate.id, newStage });
+      toast.success("Stage updated", {
+        description: `${candidate.firstName} moved to ${STAGES.find(stage => stage.id === newStage)?.title}.`,
+      });
+    } catch {
+      setCandidates(prev => prev.map(c => c.id === candidate.id ? { ...c, stage: previousStage } : c));
+      toast.error("Stage update failed", {
+        description: `${candidate.firstName} was moved back to ${STAGES.find(stage => stage.id === previousStage)?.title}.`,
+      });
+    }
   };
 
-  const handleDragEnd = (event: any) => {
+  const moveCandidate = (candidate: AtsCandidate, newStage: CandidateStage) => {
+    const previousStage = candidate.stage;
+    setCandidates(prev => prev.map(c => c.id === candidate.id ? { ...c, stage: newStage, daysInStage: 0 } : c));
+
+    if (newStage === "Withdrawn" || newStage === "Hired") {
+      setPendingMove({ candidate, newStage, previousStage });
+      setDisqualificationReason("");
+      return;
+    }
+
+    void persistStageMove(candidate, newStage, previousStage);
+  };
+
+  const cancelPendingMove = () => {
+    if (pendingMove) {
+      setCandidates(prev => prev.map(c => c.id === pendingMove.candidate.id ? { ...c, stage: pendingMove.previousStage } : c));
+    }
+    setPendingMove(null);
+    setDisqualificationReason("");
+  };
+
+  const confirmPendingMove = () => {
+    if (!pendingMove) return;
+    if (pendingMove.newStage === "Withdrawn" && !disqualificationReason.trim()) {
+      toast.error("Disqualification reason is required");
+      return;
+    }
+
+    if (pendingMove.newStage === "Hired") {
+      toast.success("Onboarding flow queued", {
+        description: `${pendingMove.candidate.firstName} will be converted into a new hire profile.`,
+      });
+    }
+
+    void persistStageMove(pendingMove.candidate, pendingMove.newStage, pendingMove.previousStage);
+    setPendingMove(null);
+    setDisqualificationReason("");
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
     if (!over) return;
-    const candidateId = active.id;
-    const overId = over.id;
+    const candidateId = String(active.id);
+    const overId = String(over.id);
 
     const candidate = candidates.find(c => c.id === candidateId);
     const targetStage = STAGES.find(s => s.id === overId)?.id || candidates.find(c => c.id === overId)?.stage;
 
     if (candidate && targetStage && targetStage !== candidate.stage) {
-       setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, stage: targetStage as CandidateStage } : c));
-       
-       toast.success("Stage updated", {
-         description: `${candidate.firstName} moved to ${STAGES.find(s => s.id === targetStage)?.title}.`
-       });
-
-       if (targetStage === 'Withdrawn') {
-          // In real app: open DQ modal
-       } else if (targetStage === 'Hired') {
-          // In real app: open onboard modal
-       }
+       moveCandidate(candidate, targetStage as CandidateStage);
     }
-    setActiveId(null);
   };
 
   const handleCopyJobLink = () => {
@@ -227,21 +367,22 @@ export default function KanbanBoard() {
             </div>
          </div>
 
-         <div className="flex items-center gap-2">
-            <Link href={`/hiring/jobs/${job?.id}/edit`} className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="Edit Job">
-               <Edit size={16} />
+         <div className="flex flex-wrap items-center gap-2">
+            <Link href={`/hiring/jobs/${job?.id}/edit`} className="flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm font-semibold" title="Edit Job">
+               <Edit size={16} /> Edit Job
             </Link>
             <button 
               onClick={handleTogglePause}
-              className={`p-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-colors ${job?.status === 'Paused' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`} 
+              className={`flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-colors text-sm font-semibold ${job?.status === 'Paused' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`} 
               title={job?.status === 'Paused' ? "Resume Post" : "Pause Post"}
             >
               {job?.status === 'Paused' ? <Play size={16} /> : <Pause size={16} />}
+              {job?.status === 'Paused' ? "Resume Posting" : "Pause Posting"}
             </button>
-            <button onClick={handleCopyJobLink} className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" title="Copy Link"><LinkIcon size={16} /></button>
+            <button onClick={handleCopyJobLink} className="flex items-center gap-2 px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm font-semibold" title="Copy Link"><LinkIcon size={16} /> Share Job Link</button>
             <button 
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm ml-2"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
                <Plus size={16} /> Add Candidate
             </button>
@@ -253,36 +394,14 @@ export default function KanbanBoard() {
          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex gap-4 h-full" style={{ minWidth: `${STAGES.length * 300}px` }}>
                
-               {STAGES.map(stage => {
-                  const stageCandidates = candidates.filter(c => c.stage === stage.id);
-                  return (
-                     <div key={stage.id} className="flex flex-col w-[300px] shrink-0 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden h-full">
-                        <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex items-center justify-between">
-                           <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${stage.color}`} />
-                              <h3 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wider">{stage.title}</h3>
-                           </div>
-                           <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-full text-xs font-bold text-slate-600 dark:text-slate-300 shadow-sm">
-                              {stageCandidates.length}
-                           </span>
-                        </div>
-
-                        {/* Droppable Zone for Empty Columns. Need sortable context for items. */}
-                        <div className="p-3 flex-1 overflow-y-auto space-y-3" id={stage.id}>
-                           <SortableContext items={stageCandidates.map(c=>c.id)} strategy={horizontalListSortingStrategy}>
-                              {stageCandidates.map(candidate => (
-                                 <SortableCandidateCard key={candidate.id} candidate={candidate} onClick={setSelectedCandidate} />
-                              ))}
-                           </SortableContext>
-                           {stageCandidates.length === 0 && (
-                              <div className="h-24 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-400 text-xs font-medium">
-                                 Drop candidates here
-                              </div>
-                           )}
-                        </div>
-                     </div>
-                  );
-               })}
+               {STAGES.map(stage => (
+                  <StageColumn
+                    key={stage.id}
+                    stage={stage}
+                    candidates={candidates.filter(c => c.stage === stage.id)}
+                    onCandidateClick={setSelectedCandidate}
+                  />
+               ))}
 
             </div>
 
@@ -327,7 +446,7 @@ export default function KanbanBoard() {
 
                   {/* Drawer Tabs Navigation */}
                   <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-800 shrink-0 px-6 hide-scrollbar">
-                     {['Overview', 'Scorecard', 'Notes', 'Emails', 'Activity', 'Background'].map(tab => (
+                     {['Overview', 'Resume', 'Scorecard', 'Notes', 'Emails', 'Activity', 'Background'].map(tab => (
                         <button 
                            key={tab}
                            onClick={() => setDrawerTab(tab as any)}
@@ -348,12 +467,20 @@ export default function KanbanBoard() {
                                  <div className="text-sm text-slate-900 dark:text-white font-medium">{selectedCandidate.email}</div>
                               </div>
                               <div>
+                                 <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Phone</span>
+                                 <div className="text-sm text-slate-900 dark:text-white font-medium">{selectedCandidate.phone || "+1 (555) 123-4567"}</div>
+                              </div>
+                              <div>
                                  <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Source</span>
-                                 <div className="text-sm text-slate-900 dark:text-white font-medium">{selectedCandidate.source}</div>
+                                 <div className="text-sm text-slate-900 dark:text-white font-medium flex items-center gap-1"><SourceIcon source={selectedCandidate.source} /> {selectedCandidate.source}</div>
                               </div>
                               <div>
                                  <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Applied Date</span>
                                  <div className="text-sm text-slate-900 dark:text-white font-medium">{formatDate(selectedCandidate.appliedDate)}</div>
+                              </div>
+                              <div>
+                                 <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Current Stage</span>
+                                 <div className="text-sm text-slate-900 dark:text-white font-medium">{STAGES.find(stage => stage.id === selectedCandidate.stage)?.title || selectedCandidate.stage}</div>
                               </div>
                               <div>
                                  <span className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">AI Match Score</span>
@@ -361,12 +488,46 @@ export default function KanbanBoard() {
                               </div>
                            </div>
 
+                           <a
+                              href={selectedCandidate.linkedinUrl || "https://linkedin.com"}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-800"
+                           >
+                              LinkedIn profile <ExternalLink size={14} />
+                           </a>
+
                            <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-blue-50 dark:bg-blue-900/10">
                               <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2"><FileText size={16}/> Resume Preview Extract</h3>
                               <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                                 "Passionate developer with 5 years building scalable web architectures using React, Node.js, and AWS. Proven track record leading multidisciplinary teams to deliver on time."
+                                 &ldquo;{selectedCandidate.resumeSnippet || "Passionate candidate with relevant experience and a strong match for this role."}&rdquo;
                               </p>
-                              <button className="mt-4 text-blue-600 text-sm font-bold flex items-center gap-1 hover:underline">View Full PDF Resume &rarr;</button>
+                              <button onClick={() => setDrawerTab("Resume")} className="mt-4 text-blue-600 text-sm font-bold flex items-center gap-1 hover:underline">View Full PDF Resume &rarr;</button>
+                           </div>
+                        </div>
+                     )}
+
+                     {drawerTab === 'Resume' && (
+                        <div className="flex flex-col gap-4 animate-in fade-in">
+                           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
+                              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-4 py-3">
+                                 <div className="text-sm font-bold text-slate-900 dark:text-white">Resume PDF</div>
+                                 <button className="text-xs font-bold text-blue-600 hover:underline">Download</button>
+                              </div>
+                              <div className="h-[560px] bg-slate-100 dark:bg-slate-800 p-5">
+                                 <div className="mx-auto h-full max-w-[360px] rounded bg-white p-6 shadow-sm">
+                                    <div className="h-5 w-40 rounded bg-slate-900" />
+                                    <div className="mt-2 h-3 w-56 rounded bg-slate-200" />
+                                    <div className="mt-8 space-y-3">
+                                       {[80, 100, 92, 70, 96, 88, 74, 100, 65, 90].map((width, index) => (
+                                          <div key={index} className="h-2 rounded bg-slate-200" style={{ width: `${width}%` }} />
+                                       ))}
+                                    </div>
+                                    <div className="mt-8 rounded-lg border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-slate-600">
+                                       Inline react-pdf viewer placeholder. Connect a candidate resume URL to render the PDF page here.
+                                    </div>
+                                 </div>
+                              </div>
                            </div>
                         </div>
                      )}
@@ -654,6 +815,63 @@ export default function KanbanBoard() {
             </>
          )}
       </AnimatePresence>
+
+      <Dialog open={!!pendingMove} onOpenChange={(open) => { if (!open) cancelPendingMove(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {pendingMove?.newStage === "Withdrawn" ? "Disqualify candidate" : "Start onboarding flow"}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingMove?.newStage === "Withdrawn"
+                ? "A disqualification reason is required before moving this candidate to Withdrawn."
+                : "Confirm this candidate should be marked as hired and queued for employee onboarding creation."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {pendingMove?.newStage === "Withdrawn" ? (
+            <div className="p-6">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                Disqualification reason *
+              </label>
+              <select
+                value={disqualificationReason}
+                onChange={(event) => setDisqualificationReason(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              >
+                <option value="">Select a reason...</option>
+                <option value="skills_mismatch">Skills mismatch</option>
+                <option value="compensation_misalignment">Compensation misalignment</option>
+                <option value="candidate_withdrew">Candidate withdrew</option>
+                <option value="role_closed">Role closed</option>
+              </select>
+            </div>
+          ) : (
+            <div className="p-6">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
+                CircleWorks will create the onboarding case, draft Day 1 tasks, and prepare employee profile creation for {pendingMove?.candidate.firstName} {pendingMove?.candidate.lastName}.
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={cancelPendingMove}
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmPendingMove}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+            >
+              Confirm
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

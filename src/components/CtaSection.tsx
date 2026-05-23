@@ -1,76 +1,96 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, CalendarDays, LockKeyhole } from "lucide-react";
 import Link from "next/link";
 
-const BULLETS = [
-  "30-day free trial — no credit card",
-  "Set up in under 24 hours",
-  "Cancel anytime",
+const AVATARS = [
+  { initials: "AM", bg: "from-cyan-300 to-blue-500" },
+  { initials: "JR", bg: "from-blue-400 to-indigo-500" },
+  { initials: "SK", bg: "from-emerald-300 to-cyan-500" },
+  { initials: "DL", bg: "from-sky-300 to-blue-600" },
+  { initials: "NP", bg: "from-violet-300 to-blue-500" },
 ];
 
 export default function CtaSection() {
   return (
     <section className="relative w-full overflow-hidden bg-[#0A1628] py-24">
-      {/* Animated mesh background */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute -top-20 -left-20 w-[50vw] h-[50vw] rounded-full bg-blue-600/15 blur-[140px]" />
-        <div className="absolute -bottom-20 -right-20 w-[45vw] h-[45vw] rounded-full bg-cyan-600/10 blur-[120px]" />
-      </div>
-
-      {/* Dot grid overlay */}
+      <div className="cta-gradient pointer-events-none absolute inset-0 opacity-80" />
       <div
-        className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none"
+        className="pointer-events-none absolute inset-0 opacity-[0.08]"
         style={{
           backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
+          backgroundSize: "24px 24px",
         }}
       />
 
-      <div className="relative z-10 max-w-3xl mx-auto px-6 lg:px-8 text-center flex flex-col items-center">
-        {/* Eyebrow */}
-        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-cyan-400 text-[12px] font-bold uppercase tracking-[0.15em] mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          Limited-time offer — 30 days free
-        </span>
-
-        <h2 className="text-[32px] sm:text-[40px] md:text-[48px] font-black text-white tracking-tight leading-[1.1] mb-6">
-          Ready to Run Your Creator Business, Agency, or Company on One Platform?
+      <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 text-center lg:px-8">
+        <h2 className="text-[38px] font-black leading-[1.05] text-white sm:text-[48px] md:text-[56px]">
+          Ready to simplify your HR?
         </h2>
 
-        {/* Subheadline */}
-        <p className="text-[17px] md:text-[19px] text-slate-300 max-w-xl leading-relaxed mb-8 font-medium">
-          Join 500+ creators, agencies, and companies that trust CircleWorks for Payroll & HR — so they can focus on building, not admin.
+        <p className="mt-5 max-w-2xl text-[20px] leading-relaxed text-slate-300">
+          Join 5,000+ US companies using CircleWorks. Start free today.
         </p>
 
-        {/* CTA buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center mb-8">
+        <div className="mt-8 flex w-full flex-col items-center justify-center gap-4 sm:w-auto sm:flex-row">
           <Link
             href="/signup"
-            className="h-[56px] px-8 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-8 text-base font-semibold text-white shadow-[0_18px_45px_rgba(29,78,216,0.28)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_0_34px_rgba(59,130,246,0.5)] sm:w-auto"
           >
-            Start Free
+            Start Free Trial
             <ArrowRight size={18} />
           </Link>
           <Link
             href="/demo"
-            className="h-[56px] px-8 rounded-full bg-white/10 border border-white/20 text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-white hover:text-[#0A1628] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white/30 px-8 text-base font-semibold text-white transition duration-300 hover:bg-white hover:text-[#0A1628] sm:w-auto"
           >
-            Book a Demo
+            <CalendarDays size={18} />
+            Schedule a Demo
           </Link>
         </div>
 
-        {/* Trust bullets */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[14px] text-slate-400 font-medium">
-          {BULLETS.map((b) => (
-            <span key={b} className="flex items-center gap-1.5">
-              <Check size={14} className="text-cyan-400" />
-              {b}
-            </span>
-          ))}
+        <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="flex -space-x-3">
+            {AVATARS.map((avatar) => (
+              <div
+                key={avatar.initials}
+                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#0A1628] bg-gradient-to-br ${avatar.bg} text-xs font-black text-white shadow-lg`}
+              >
+                {avatar.initials}
+              </div>
+            ))}
+          </div>
+          <p className="text-sm font-medium text-slate-300">
+            Rated 4.9/5 by HR teams across America
+          </p>
+        </div>
+
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-400">
+          <LockKeyhole size={16} className="text-cyan-400" />
+          <span>SOC 2 Certified · Bank-grade encryption · CCPA compliant</span>
         </div>
       </div>
+
+      <style jsx>{`
+        .cta-gradient {
+          background:
+            linear-gradient(115deg, rgba(29, 78, 216, 0.24), transparent 34%),
+            linear-gradient(245deg, rgba(6, 182, 212, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(99, 102, 241, 0.14), rgba(10, 22, 40, 0) 68%);
+          background-size: 180% 180%;
+          animation: ctaGradientShift 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes ctaGradientShift {
+          0% {
+            background-position: 0% 40%;
+          }
+          100% {
+            background-position: 100% 60%;
+          }
+        }
+      `}</style>
     </section>
   );
 }

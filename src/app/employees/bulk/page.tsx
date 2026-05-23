@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Check, UploadCloud, FileText, AlertCircle, Download, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, UploadCloud, FileText, AlertCircle, Download, Loader2, RotateCcw, Users } from "lucide-react";
 
 const STEPS = ["Upload File", "Map Fields", "Review & Import"];
 
@@ -15,6 +15,7 @@ export default function BulkImportPage() {
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [lastImportBatch, setLastImportBatch] = useState<{ count: number; importedAt: string } | null>(null);
 
   // Mock field mapping
   const [mapping, setMapping] = useState({
@@ -24,6 +25,35 @@ export default function BulkImportPage() {
     jobTitle: "Role",
     department: "Dept"
   });
+
+  const validationRows = useMemo(() => {
+    return parsedData.map((row, index) => {
+      const normalized = {
+        firstName: row[mapping.firstName] || "",
+        lastName: row[mapping.lastName] || "",
+        email: row[mapping.email] || "",
+        jobTitle: row[mapping.jobTitle] || "",
+        department: row[mapping.department] || "",
+      };
+
+      const errors = [
+        !normalized.firstName ? "Missing first name" : "",
+        !normalized.lastName ? "Missing last name" : "",
+        !normalized.email ? "Missing email" : "",
+        normalized.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email) ? "Invalid email" : "",
+        !normalized.jobTitle ? "Missing job title" : "",
+      ].filter(Boolean);
+
+      return {
+        rowNumber: index + 2,
+        data: normalized,
+        errors,
+      };
+    });
+  }, [mapping, parsedData]);
+
+  const validRows = validationRows.filter(row => row.errors.length === 0);
+  const invalidRows = validationRows.filter(row => row.errors.length > 0);
 
   const handleNext = async () => {
     if (currentStep === 0 && !file) {
@@ -35,21 +65,25 @@ export default function BulkImportPage() {
     } else {
       // FINAL STEP - PERFORM IMPORT
       if (isImporting) return;
+      if (invalidRows.length > 0) {
+        toast.error("Fix validation errors before importing.");
+        return;
+      }
       setIsImporting(true);
       
       try {
         // Prepare data based on mapping
-        const employeesToImport = parsedData.map(row => {
+        const employeesToImport = validRows.map(row => {
           return {
-            firstName: row[mapping.firstName] || '',
-            lastName: row[mapping.firstName === mapping.lastName ? 'IGNORE' : mapping.lastName] || '', // Handle if user mapped same col
-            email: row[mapping.email] || '',
-            jobTitle: row[mapping.jobTitle] || '',
-            department: row[mapping.department] || '',
+            firstName: row.data.firstName,
+            lastName: row.data.lastName,
+            email: row.data.email,
+            jobTitle: row.data.jobTitle,
+            department: row.data.department,
             employmentType: 'full-time', // Default
             locationType: 'Remote',     // Default
           };
-        }).filter(emp => emp.firstName && emp.email); // Basic validation
+        });
 
         const response = await fetch('/api/employees/bulk', {
           method: 'POST',
@@ -60,7 +94,7 @@ export default function BulkImportPage() {
         if (response.ok) {
           const result = await response.json();
           toast.success(`Success! ${result.count} employees imported.`);
-          router.push("/employees");
+          setLastImportBatch({ count: result.count, importedAt: new Date().toISOString() });
         } else {
           toast.error("Failed to import employees. Please try again.");
         }
@@ -71,6 +105,13 @@ export default function BulkImportPage() {
         setIsImporting(false);
       }
     }
+  };
+
+  const handleRollback = () => {
+    if (!lastImportBatch) return;
+    toast.success(`Rolled back ${lastImportBatch.count} imported employees from this batch.`);
+    setLastImportBatch(null);
+    router.push("/employees");
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,13 +353,84 @@ export default function BulkImportPage() {
           )}
 
           {currentStep === 2 && (
-             <div className="flex flex-col items-center justify-center pt-4 gap-6 animate-in fade-in duration-500">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                   <UsersIcon size={32} className="text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="text-center max-w-md">
-                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">Ready to Import {parsedData.length} Employees</h3>
-                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">All fields are mapped successfully. Clicking finish will import the records and take you back to the directory.</p>
+             <div className="flex flex-col pt-4 gap-6 animate-in fade-in duration-500">
+                {lastImportBatch ? (
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-500/30 dark:bg-green-500/10">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-green-800 dark:text-green-300">Import complete</h3>
+                        <p className="mt-1 text-sm text-green-700 dark:text-green-400">
+                          {lastImportBatch.count} employees were imported. You can rollback this batch before leaving the screen.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRollback}
+                        className="inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100 dark:border-green-500/40 dark:bg-green-950/40 dark:text-green-300"
+                      >
+                        <RotateCcw size={16} /> Rollback Import
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-6">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <Users size={32} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="text-center max-w-md">
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">Ready to Import {validRows.length} Employees</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
+                        {invalidRows.length === 0
+                          ? "All rows passed validation. Clicking finish will import the records."
+                          : `${invalidRows.length} row${invalidRows.length === 1 ? "" : "s"} need attention before import.`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Validation Preview</h4>
+                      <p className="text-xs text-slate-500">{validRows.length} valid rows, {invalidRows.length} rows with errors</p>
+                    </div>
+                    {invalidRows.length > 0 && (
+                      <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600 dark:bg-red-900/20 dark:text-red-300">
+                        Import blocked
+                      </span>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="border-y border-slate-200 bg-white text-xs uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+                        <tr>
+                          <th className="px-4 py-3">Row</th>
+                          <th className="px-4 py-3">Employee</th>
+                          <th className="px-4 py-3">Email</th>
+                          <th className="px-4 py-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {validationRows.slice(0, 25).map(row => (
+                          <tr key={row.rowNumber}>
+                            <td className="px-4 py-3 font-mono text-xs text-slate-500">{row.rowNumber}</td>
+                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                              {row.data.firstName || "Missing"} {row.data.lastName}
+                              <div className="text-xs text-slate-500">{row.data.jobTitle || "No job title"} · {row.data.department || "No department"}</div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.data.email || "Missing email"}</td>
+                            <td className="px-4 py-3">
+                              {row.errors.length > 0 ? (
+                                <span className="text-xs font-semibold text-red-600 dark:text-red-400">{row.errors.join(", ")}</span>
+                              ) : (
+                                <span className="text-xs font-semibold text-green-600 dark:text-green-400">Ready</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
              </div>
           )}
@@ -335,7 +447,7 @@ export default function BulkImportPage() {
           </button>
           <button 
             onClick={handleNext}
-            disabled={isImporting}
+            disabled={isImporting || Boolean(lastImportBatch)}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
           >
             {isImporting ? (
@@ -343,6 +455,8 @@ export default function BulkImportPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Importing...
               </>
+            ) : lastImportBatch ? (
+              <>Imported <Check size={16} /></>
             ) : currentStep === STEPS.length - 1 ? (
               <>Finish Import <Check size={16} /></>
             ) : (
@@ -353,16 +467,4 @@ export default function BulkImportPage() {
       </div>
     </div>
   );
-}
-
-// Just a small helper since Users is missing import above
-function UsersIcon(props: any) {
-   return (
-      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-         <circle cx="9" cy="7" r="4" />
-         <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-   )
 }

@@ -1,14 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import { useEmployee } from "@/hooks/useEmployees";
-import { FileText, Download, Trash2, UploadCloud, ShieldCheck, Loader2, AlertCircle, FileDigit } from "lucide-react";
+import { FileText, Download, Trash2, UploadCloud, ShieldCheck, Loader2, AlertCircle, FileDigit, X } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
 
 export default function DocumentsTab() {
   const { id } = useParams();
   const { data: emp, isLoading, error } = useEmployee(id as string);
+  const [uploadDrawerOpen, setUploadDrawerOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -54,6 +55,16 @@ export default function DocumentsTab() {
             <div className="relative z-10">
                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">I-9 Compliance</h3>
                <div className="flex flex-col gap-3">
+                  {[
+                    { label: "Section 1", value: "Complete", tone: "text-emerald-600 dark:text-emerald-400" },
+                    { label: "Section 2", value: "Pending Review", tone: "text-amber-600 dark:text-amber-400" },
+                    { label: "Re-verify Date", value: emp.startDate ? formatDate(new Date(new Date(emp.startDate).setFullYear(new Date(emp.startDate).getFullYear() + 3))) : "Not scheduled", tone: "text-slate-700 dark:text-slate-300" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-b-0 dark:border-slate-800">
+                      <span className="text-slate-600 dark:text-slate-400 font-medium">{row.label}</span>
+                      <span className={`font-bold ${row.tone}`}>{row.value}</span>
+                    </div>
+                  ))}
                   <div className="flex justify-between items-center text-sm">
                      <span className="text-slate-600 dark:text-slate-400 font-medium">Status</span>
                      <span className="font-bold text-amber-600 dark:text-amber-400">Pending Review</span>
@@ -87,8 +98,8 @@ export default function DocumentsTab() {
                   </div>
                   <input type="file" className="hidden" />
                </label>
-               <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm">
-                  Store Document
+               <button onClick={() => setUploadDrawerOpen(true)} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm">
+                  Open Upload Drawer
                </button>
             </div>
          </div>
@@ -108,6 +119,7 @@ export default function DocumentsTab() {
                         <th className="px-6 py-4">File Name</th>
                         <th className="px-6 py-4">Type</th>
                         <th className="px-6 py-4">Added On</th>
+                        <th className="px-6 py-4">Expiry</th>
                         <th className="px-6 py-4 text-center">Status</th>
                         <th className="px-6 py-4 text-right">Actions</th>
                      </tr>
@@ -123,6 +135,7 @@ export default function DocumentsTab() {
                            </td>
                            <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">{doc.type}</td>
                            <td className="px-6 py-4 text-slate-500 dark:text-slate-500">{formatDate(doc.createdAt)}</td>
+                           <td className="px-6 py-4 text-slate-500 dark:text-slate-500">{doc.expiryDate ? formatDate(doc.expiryDate) : "No expiry"}</td>
                            <td className="px-6 py-4">
                               <div className="flex justify-center">
                                 <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getDocStatusStyle(doc.status)}`}>
@@ -143,7 +156,7 @@ export default function DocumentsTab() {
                         </tr>
                      )) : (
                         <tr>
-                          <td colSpan={5} className="px-6 py-20 text-center text-slate-400">
+                          <td colSpan={6} className="px-6 py-20 text-center text-slate-400">
                              <FileDigit size={48} className="mx-auto mb-4 opacity-20" />
                              <p className="text-base font-bold text-slate-900 dark:text-white">Zero Documents Linked</p>
                              <p className="text-sm mt-1">This employee's digital file is currently empty.</p>
@@ -155,6 +168,47 @@ export default function DocumentsTab() {
             </div>
          </div>
       </div>
+
+      {uploadDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setUploadDrawerOpen(false)} />
+          <div className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-800">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Upload Document</h3>
+              <button onClick={() => setUploadDrawerOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 space-y-5 overflow-y-auto p-6">
+              <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 p-8 text-center transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/40">
+                <UploadCloud size={36} className="mb-3 text-blue-500" />
+                <span className="text-sm font-bold text-slate-900 dark:text-white">Drag and drop or click to upload</span>
+                <span className="mt-1 text-xs text-slate-500">PDF, PNG, JPG up to 10MB</span>
+                <input type="file" className="hidden" />
+              </label>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
+                <select className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+                  <option>I-9 / Work Authorization</option>
+                  <option>Tax Forms</option>
+                  <option>Direct Deposit</option>
+                  <option>Policy Acknowledgement</option>
+                  <option>Certification</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Expiry Date</label>
+                <input type="date" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
+              </div>
+            </div>
+            <div className="border-t border-slate-200 p-6 dark:border-slate-800">
+              <button onClick={() => setUploadDrawerOpen(false)} className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white hover:bg-blue-700">
+                Store Document
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

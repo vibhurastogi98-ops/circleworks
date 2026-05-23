@@ -14,7 +14,6 @@ import {
 } from "recharts";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { PAYROLL_TREND } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 const DATE_RANGES = ["3 months", "6 months", "12 months"] as const;

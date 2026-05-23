@@ -168,6 +168,81 @@ export default function PerformanceGoalsPage() {
         </button>
       </div>
 
+      {/* Goal Builder */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add Goal</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Create company, team, or individual goals with measurable key results and privacy controls.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold uppercase tracking-wider">Builder</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Goal Type</label>
+              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500">
+                <option>Company</option>
+                <option>Team</option>
+                <option>Individual</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Owner</label>
+              <div className="relative mt-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input placeholder="Search employee or team..." className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Title</label>
+              <input placeholder="Increase enterprise implementation speed" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Key Results</label>
+              <textarea rows={3} placeholder="1. Reduce time-to-launch by 20%&#10;2. Maintain NPS above 60&#10;3. Complete 12 customer migrations" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</label>
+              <div className="relative mt-1">
+                <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input type="date" className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Privacy</label>
+              <div className="relative mt-1">
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <select className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500">
+                  <option>Visible to company</option>
+                  <option>Visible to department</option>
+                  <option>Private to owner and manager</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold">Progress Check-in</h2>
+            <TrendingUp size={20} className="text-emerald-100" />
+          </div>
+          <p className="text-sm text-emerald-50 mt-1">Update progress with a note so managers can track momentum over time.</p>
+          <div className="mt-5 space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-emerald-100">Progress %</label>
+              <input type="number" placeholder="65" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-white/10 border border-white/20 text-sm text-white placeholder:text-emerald-100 focus:ring-2 focus:ring-white/40" />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-emerald-100">Check-in Note</label>
+              <textarea rows={4} placeholder="Shipped phase one and waiting on finance validation." className="mt-1 w-full px-3 py-2.5 rounded-xl bg-white/10 border border-white/20 text-sm text-white placeholder:text-emerald-100 focus:ring-2 focus:ring-white/40" />
+            </div>
+            <button className="w-full px-4 py-2.5 rounded-xl bg-white text-emerald-700 text-sm font-black shadow-lg active:scale-95 transition-transform">Save Check-in</button>
+          </div>
+        </div>
+      </div>
+
       {/* OKR Workspace */}
       <div className="space-y-12 pb-24">
         {mockGoals.map(goal => (

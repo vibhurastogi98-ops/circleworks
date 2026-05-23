@@ -24,6 +24,7 @@ export const users = pgTable('users', {
   email: text('email').notNull(),
   passwordHash: text('password_hash'),
   role: text('role').default('employee'), // admin, hr, employee
+  hasCompletedTour: boolean('has_completed_tour').default(false),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

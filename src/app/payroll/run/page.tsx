@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
   Clock,
@@ -32,12 +33,13 @@ import {
   Edit3,
   Wallet,
 } from "lucide-react";
-import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type PayrollEwaRepaymentLine, type PayrollReimbursementLine, type TimesheetHoursImport, type VerifyStatus } from "@/store/usePayrollRunStore";
+import { usePayrollRunStore, type BenefitDeductionLine, type PayrollEmployee, type PayrollEwaRepaymentLine, type PayrollReimbursementLine, type ProcessingStep, type RunState, type TimesheetHoursImport, type VerifyStatus } from "@/store/usePayrollRunStore";
 import { MOCK_EMPLOYEES, MOCK_APPROVERS, PAY_PERIOD } from "@/data/payrollRunMocks";
 import ProcessingOverlay from "@/components/payroll/run/ProcessingOverlay";
 import ApprovalModal from "@/components/payroll/run/ApprovalModal";
 import { applyGrossToTaxes, ensureDraftCreatedAt, getCompensationChangesSinceDraft } from "@/lib/payroll/compensation-sync";
 import { deferEwaAdvanceToNextRun } from "@/data/mockEwa";
+import { useSocketStore } from "@/store/useSocketStore";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  HELPERS                                                                  */
@@ -488,7 +490,6 @@ function SummaryCards() {
     { key: "taxes", label: "Total Taxes", value: totalTaxes, icon: Building2, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10" },
     { key: "net", label: "Total Net", value: totalNet, icon: Receipt, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
     { key: "employer", label: "Employer Cost", value: totalEmployerCost, icon: Users, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-500/10" },
-    { key: "reimbursements", label: "Reimbursements", value: totalReimbursements, icon: Wallet, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-500/10" },
   ];
 
   return (
@@ -1160,7 +1161,7 @@ function EmployeeTable({ onImportHours, importingHours }: { onImportHours: () =>
               </th>
               <th className="px-1 py-3 w-8" />
               <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Employee</th>
-              <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Type</th>
+              <th className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Pay Type</th>
               <th className="px-3 py-3 text-slate-400">
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider">Hours</span>
@@ -1531,6 +1532,8 @@ function StickyBottomBar() {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 export default function RunPayrollPage() {
   const { setEmployees, setApprovers, updateEmployee, runState, employees: storeEmployees } = usePayrollRunStore();
+  const queryClient = useQueryClient();
+  const { on: onSocketEvent, off: offSocketEvent } = useSocketStore();
   const [changedEmployeesCount, setChangedEmployeesCount] = useState(0);
   const [compensationChangedCount, setCompensationChangedCount] = useState(0);
   const [recalculating, setRecalculating] = useState(false);
@@ -1541,6 +1544,16 @@ export default function RunPayrollPage() {
   const [ewaBlockedCount, setEwaBlockedCount] = useState(0);
   const [ewaReviewTarget, setEwaReviewTarget] = useState<{ employeeId: string; advanceId: string } | null>(null);
   const [ewaDeferTarget, setEwaDeferTarget] = useState<{ employeeId: string; advanceId: string } | null>(null);
+
+  const payrollRunQuery = useQuery({
+    queryKey: ["payroll-run", "draft-preview"],
+    queryFn: async () => ({
+      runId: "draft-preview",
+      payPeriod: PAY_PERIOD,
+      status: usePayrollRunStore.getState().runState,
+    }),
+    staleTime: 30_000,
+  });
 
   const recalculateCompensationChanges = useCallback(() => {
     setRecalculatingCompensation(true);
@@ -1866,6 +1879,18 @@ export default function RunPayrollPage() {
     const { count } = getCompensationChangesSinceDraft(MOCK_EMPLOYEES, PAY_PERIOD);
     setCompensationChangedCount(count);
   }, []);
+
+  useEffect(() => {
+    const eventName = `payroll.run.${payrollRunQuery.data?.runId ?? "draft-preview"}.status`;
+    const handleRunStatus = (payload: { status?: RunState; step?: ProcessingStep }) => {
+      if (payload.status) usePayrollRunStore.getState().setRunState(payload.status);
+      if (payload.step) usePayrollRunStore.getState().setProcessingStep(payload.step);
+      void queryClient.invalidateQueries({ queryKey: ["payroll-run"] });
+    };
+
+    onSocketEvent(eventName, handleRunStatus);
+    return () => offSocketEvent(eventName, handleRunStatus);
+  }, [offSocketEvent, onSocketEvent, payrollRunQuery.data?.runId, queryClient]);
 
   return (
     <>

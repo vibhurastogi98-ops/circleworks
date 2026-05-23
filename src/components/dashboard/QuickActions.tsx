@@ -10,7 +10,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { QUICK_ACTIONS, QuickAction } from "@/data/dashboard";
+import { type QuickAction } from "@/data/dashboard";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   UserPlus,
@@ -28,7 +29,7 @@ const ICON_COLORS: Record<string, string> = {
   BarChart3: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
 };
 
-function ActionButton({ action, index }: { action: QuickAction; index: number }) {
+function ActionButton({ action }: { action: QuickAction }) {
   const Icon = ICON_MAP[action.icon] || UserPlus;
 
   return (
@@ -58,6 +59,8 @@ function ActionButton({ action, index }: { action: QuickAction; index: number })
 }
 
 export default function QuickActions() {
+  const { quickActions } = useDashboardData();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -69,8 +72,8 @@ export default function QuickActions() {
         Quick Actions
       </h3>
       <div className="flex flex-col gap-1 flex-1">
-        {QUICK_ACTIONS.map((action, i) => (
-          <ActionButton key={action.id} action={action} index={i} />
+        {quickActions.map((action) => (
+          <ActionButton key={action.id} action={action} />
         ))}
       </div>
     </motion.div>

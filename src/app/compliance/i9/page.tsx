@@ -30,7 +30,11 @@ export default function I9Page() {
 
   const sorted = [...i9Records].sort((a, b) => {
     const order: Record<I9Status, number> = { expired: 0, expiring: 1, pending: 2, complete: 3 };
-    return order[a.i9Status] - order[b.i9Status];
+    const statusDiff = order[a.i9Status] - order[b.i9Status];
+    if (statusDiff !== 0) return statusDiff;
+    const aExpiry = a.expirationDate ? new Date(a.expirationDate).getTime() : Number.POSITIVE_INFINITY;
+    const bExpiry = b.expirationDate ? new Date(b.expirationDate).getTime() : Number.POSITIVE_INFINITY;
+    return aExpiry - bExpiry;
   });
 
   const filtered = sorted.filter((r) => {
@@ -94,7 +98,7 @@ export default function I9Page() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -105,6 +109,9 @@ export default function I9Page() {
             className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
           />
         </div>
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          Sorted by expiry date within each I-9 status bucket.
+        </span>
         {(statusFilter !== "all" || search) && (
           <button onClick={() => { setStatusFilter("all"); setSearch(""); }} className="text-xs font-bold text-blue-600 dark:text-blue-400">
             Clear Filters

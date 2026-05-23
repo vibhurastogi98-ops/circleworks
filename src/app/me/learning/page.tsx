@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap, Play, FileText, CheckCircle2, Clock, Award, ChevronRight, X, Video, File, HelpCircle } from "lucide-react";
-import { mockCourses, type Course } from "@/data/mockEmployeePortal";
+import { type Course } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
@@ -17,10 +18,11 @@ const moduleIcons: Record<string, React.ElementType> = {
 };
 
 export default function LearningPage() {
+  const { data } = useEmployeeSelfService();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const mandatory = mockCourses.filter(c => c.isMandatory);
-  const optional = mockCourses.filter(c => !c.isMandatory);
-  const completed = mockCourses.filter(c => c.status === "Completed" && c.certificateUrl);
+  const mandatory = data.courses.filter(c => c.isMandatory);
+  const optional = data.courses.filter(c => !c.isMandatory);
+  const completed = data.courses.filter(c => c.status === "Completed" && c.certificateUrl);
 
   return (
     <>
@@ -32,9 +34,9 @@ export default function LearningPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Courses", value: mockCourses.length, icon: GraduationCap, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/20" },
-          { label: "In Progress", value: mockCourses.filter(c => c.status === "In Progress").length, icon: Play, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
-          { label: "Completed", value: mockCourses.filter(c => c.status === "Completed").length, icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+          { label: "Total Courses", value: data.courses.length, icon: GraduationCap, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/20" },
+          { label: "In Progress", value: data.courses.filter(c => c.status === "In Progress").length, icon: Play, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
+          { label: "Completed", value: data.courses.filter(c => c.status === "Completed").length, icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
           { label: "Certificates", value: completed.length, icon: Award, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
         ].map(stat => (
           <div key={stat.label} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40">

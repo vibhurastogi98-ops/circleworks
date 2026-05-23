@@ -402,22 +402,22 @@ export const mockEwaData = {
 
 // ── Referrals ──
 export type Referral = {
-  id: string; candidateName: string; position: string; status: 'Applied' | 'Interviewing' | 'Hired' | 'Rejected';
+  id: string; companyName: string; status: 'Invited' | 'Signed Up' | 'First Payroll Pending' | 'Credit Earned';
   referredAt: string; earned: number;
 };
 
 export const mockReferralData = {
-  referralLink: 'https://circleworks.io/refer/alex-rivera-CW2026',
-  totalEarned: 3000,
-  totalPending: 1500,
-  totalRedeemed: 1500,
-  bonusPerHire: 1500,
+  referralLink: 'https://circleworks.io/referral/alex-rivera-CW2026',
+  totalEarned: 600,
+  totalPending: 300,
+  totalRedeemed: 0,
+  bonusPerReferral: 300,
   referrals: [
-    { id: 'REF-001', candidateName: 'Taylor Brooks', position: 'Frontend Engineer', status: 'Hired' as const, referredAt: '2025-11-10', earned: 1500 },
-    { id: 'REF-002', candidateName: 'Jamie Wong', position: 'UX Researcher', status: 'Interviewing' as const, referredAt: '2026-03-15', earned: 0 },
-    { id: 'REF-003', candidateName: 'Casey Martin', position: 'Product Manager', status: 'Hired' as const, referredAt: '2026-01-20', earned: 1500 },
-    { id: 'REF-004', candidateName: 'Drew Patterson', position: 'Backend Engineer', status: 'Applied' as const, referredAt: '2026-04-01', earned: 0 },
-    { id: 'REF-005', candidateName: 'Morgan Ellis', position: 'Design Lead', status: 'Rejected' as const, referredAt: '2025-09-05', earned: 0 },
+    { id: 'REF-001', companyName: 'Northstar Creative Co.', status: 'Credit Earned' as const, referredAt: '2026-01-10', earned: 300 },
+    { id: 'REF-002', companyName: 'Bluebird Dental Group', status: 'Credit Earned' as const, referredAt: '2026-02-02', earned: 300 },
+    { id: 'REF-003', companyName: 'Mosaic Events LLC', status: 'First Payroll Pending' as const, referredAt: '2026-04-05', earned: 0 },
+    { id: 'REF-004', companyName: 'Lighthouse Foods', status: 'Signed Up' as const, referredAt: '2026-04-16', earned: 0 },
+    { id: 'REF-005', companyName: 'Peak Studio Ops', status: 'Invited' as const, referredAt: '2026-04-21', earned: 0 },
   ] as Referral[],
 };
 

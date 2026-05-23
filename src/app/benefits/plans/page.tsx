@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Edit, Trash2, Upload, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Search, FileText, Users } from "lucide-react";
 import { mockBenefitPlans } from "@/data/mockBenefits";
 
 export default function PlansPage() {
@@ -30,6 +30,94 @@ export default function PlansPage() {
         <div className="relative w-full sm:w-64">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" placeholder="Search plans..." className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add / Edit Plan</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Capture carrier, plan type, contribution split, effective dates, eligibility, and plan documents in one workflow.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold uppercase tracking-wider">
+              Draft
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { label: "Carrier", placeholder: "BCBS, Delta Dental, VSP..." },
+              { label: "Plan Name", placeholder: "PPO Gold 500" },
+              { label: "Employee Share %", placeholder: "25" },
+              { label: "Employer Share %", placeholder: "75" },
+              { label: "Effective Start", placeholder: "2026-01-01", type: "date" },
+              { label: "Effective End", placeholder: "2026-12-31", type: "date" },
+            ].map(field => (
+              <div key={field.label}>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{field.label}</label>
+                <input
+                  type={field.type || "text"}
+                  placeholder={field.placeholder}
+                  className="mt-1 w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            ))}
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Plan Type</label>
+              <select className="mt-1 w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>Medical</option>
+                <option>Dental</option>
+                <option>Vision</option>
+                <option>Life</option>
+                <option>Disability</option>
+                <option>Retirement</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Eligible Employees</label>
+              <select className="mt-1 w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option>All employees</option>
+                <option>Full-time only</option>
+                <option>After 30 days</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                <FileText size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">Summary Plan Description PDF</p>
+                <p className="text-xs text-slate-500">Upload SPD and attach it to enrollment screens.</p>
+              </div>
+            </div>
+            <button className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold flex items-center justify-center gap-2">
+              <Upload size={14} /> Upload PDF
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-xl p-5 text-white shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+            <Users size={20} />
+          </div>
+          <h2 className="text-lg font-bold">Eligibility Preview</h2>
+          <p className="text-sm text-blue-100 mt-1">Use the rules above to show which employees can enroll before publishing the plan.</p>
+          <div className="mt-5 space-y-3 text-sm">
+            <div className="flex items-center justify-between border border-white/10 rounded-lg p-3">
+              <span className="text-blue-100">All employees</span>
+              <span className="font-black">184</span>
+            </div>
+            <div className="flex items-center justify-between border border-white/10 rounded-lg p-3">
+              <span className="text-blue-100">Full-time only</span>
+              <span className="font-black">156</span>
+            </div>
+            <div className="flex items-center justify-between border border-white/10 rounded-lg p-3">
+              <span className="text-blue-100">After 30 days</span>
+              <span className="font-black">141</span>
+            </div>
+          </div>
         </div>
       </div>
 

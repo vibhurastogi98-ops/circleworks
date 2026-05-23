@@ -1,38 +1,81 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Key, Copy, Trash2, Webhook } from "lucide-react";
+import { CheckCircle2, Copy, Key, Plus, Send, Trash2, Webhook } from "lucide-react";
 import { mockApiKeys } from "@/data/mockSettings";
+
+const scopeOptions = ["employees:read", "employees:write", "payroll:read", "payroll:write", "documents:send", "webhooks:write"];
+const webhookEvents = ["employee.created", "employee.terminated", "payroll.completed", "document.signed", "candidate.hired"];
 
 export default function APISettingsPage() {
   const [keys] = useState(mockApiKeys);
+  const [showCreateKey, setShowCreateKey] = useState(false);
+  const [showNewSecret, setShowNewSecret] = useState(false);
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in duration-500 max-w-5xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex max-w-5xl animate-in flex-col gap-8 fade-in duration-500">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">API & Webhooks</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Manage programmable access to your CircleWorks data.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Create scoped API keys, configure webhook endpoints, and test signed payload delivery.</p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-800">
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">API Keys</h2>
-            <p className="text-xs text-slate-500 mt-1">Authenticate requests to the CircleWorks REST API.</p>
+            <p className="mt-1 text-xs text-slate-500">Keys are shown once on creation. Store them in a secure secret manager.</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 dark:text-slate-900 text-white rounded-lg text-sm font-bold transition-colors">
-            <Plus size={16} /> Generate Key
+          <button
+            type="button"
+            onClick={() => {
+              setShowCreateKey(true);
+              setShowNewSecret(false);
+            }}
+            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+          >
+            <Plus size={16} /> Create key
           </button>
         </div>
+
+        {showCreateKey && (
+          <div className="border-b border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-950">
+            <div className="grid gap-4 lg:grid-cols-[1fr_180px]">
+              <input className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900" placeholder="Key name, e.g. Payroll warehouse sync" />
+              <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
+                <option>90 day expiry</option>
+                <option>180 day expiry</option>
+                <option>1 year expiry</option>
+                <option>No expiry</option>
+              </select>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {scopeOptions.map((scope) => (
+                <label key={scope} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                  <input type="checkbox" defaultChecked={scope.endsWith(":read")} /> {scope}
+                </label>
+              ))}
+            </div>
+            <button type="button" onClick={() => setShowNewSecret(true)} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
+              Generate
+            </button>
+            {showNewSecret && (
+              <div className="mt-4 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                <span className="font-mono text-emerald-900 dark:text-emerald-200">cw_live_shown_once_6PkV8nZy2m9...</span>
+                <button className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-300"><Copy size={14} /> Copy once</button>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-medium">
+          <table className="w-full whitespace-nowrap text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
                 <th className="px-6 py-3">Key Name & Prefix</th>
-                <th className="px-6 py-3">Scopes (Perms)</th>
-                <th className="px-6 py-3">Created</th>
+                <th className="px-6 py-3">Scopes</th>
+                <th className="px-6 py-3">Created / Expiry</th>
                 <th className="px-6 py-3">Last Used</th>
                 <th className="px-6 py-3 text-right">Revoke</th>
               </tr>
@@ -41,30 +84,17 @@ export default function APISettingsPage() {
               {keys.map((key) => (
                 <tr key={key.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <td className="px-6 py-4">
-                    <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1">
-                      <Key size={14} className="text-slate-400" /> {key.name}
-                    </div>
-                    <div className="font-mono text-xs text-slate-500 flex items-center gap-2">
-                       {key.prefix} <button className="hover:text-blue-500"><Copy size={12}/></button>
-                    </div>
+                    <div className="mb-1 flex items-center gap-2 font-bold text-slate-900 dark:text-white"><Key size={14} className="text-slate-400" /> {key.name}</div>
+                    <div className="font-mono text-xs text-slate-500">{key.prefix}</div>
                   </td>
                   <td className="px-6 py-4">
-                     <div className="flex gap-1 flex-wrap max-w-[200px]">
-                        {key.scopes.map(s => (
-                           <span key={s} className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{s}</span>
-                        ))}
-                     </div>
+                    <div className="flex max-w-[240px] flex-wrap gap-1">
+                      {key.scopes.map((scope) => <span key={scope} className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">{scope}</span>)}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">
-                    <div className="font-medium">{key.createdBy}</div>
-                    <div>{key.createdAt}</div>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400 font-medium">{key.lastUsed}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-colors">
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
+                  <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400"><div>{key.createdAt}</div><div>Expires: {key.expiresAt}</div></td>
+                  <td className="px-6 py-4 text-xs font-medium text-slate-600 dark:text-slate-400">{key.lastUsed}</td>
+                  <td className="px-6 py-4 text-right"><button className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"><Trash2 size={16} /></button></td>
                 </tr>
               ))}
             </tbody>
@@ -72,27 +102,27 @@ export default function APISettingsPage() {
         </div>
       </div>
 
-       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-800">
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Webhooks</h2>
-            <p className="text-xs text-slate-500 mt-1">Receive real-time HTTP pushes on platform events.</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Webhook configuration</h2>
+            <p className="mt-1 text-xs text-slate-500">POST signed events to your URL with HMAC-SHA256 signing secrets.</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition-colors">
-            <Plus size={16} /> Add Endpoint
+          <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+            <Plus size={16} /> Add endpoint
           </button>
         </div>
-        <div className="p-6 flex flex-col items-center justify-center text-center py-12">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
-               <Webhook size={32} />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">No Webhooks Configured</h3>
-            <p className="text-sm text-slate-500 max-w-sm mb-6">Create an endpoint to receive JSON payloads whenever an employee is hired, payroll is run, or taxes are paid.</p>
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm">
-               Read Documentation
-            </button>
+        <div className="grid gap-4 p-6 lg:grid-cols-[1fr_220px]">
+          <input className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950" defaultValue="https://api.customer.com/circleworks/webhooks" />
+          <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"><Send size={15} /> Send test payload</button>
         </div>
-       </div>
+        <div className="flex flex-wrap gap-2 px-6 pb-6">
+          {webhookEvents.map((event) => <span key={event} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"><CheckCircle2 size={13} /> {event}</span>)}
+        </div>
+        <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950">
+          Signing secret: <span className="font-mono text-slate-700 dark:text-slate-300">whsec_...3f91</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,8 +9,10 @@ import ResourceCTA from "@/components/ResourceCTA";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
+import statesJson from "../../../data/states.json";
 
 const categories = ["All", "Onboarding", "Payroll", "Compliance", "Hiring", "Benefits", "Templates", "Checklists"];
+const statePayrollGuides = statesJson as Array<{ name: string; abbreviation: string; slug: string }>;
 
 const allGuides = [
   { id: 1, format: "DOCX", cat: "Onboarding", title: "New Hire Offer Letter Template", desc: "Attorney-reviewed standard offer letter compliant across all 50 states.", downloads: "12,450", color: "blue" },
@@ -195,6 +197,33 @@ function GuidesContent() {
                 No templates found in this category right now.
              </div>
            )}
+        </div>
+      </section>
+
+      <section className="py-24 bg-slate-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mb-10">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 mb-3">State Payroll Guides</p>
+            <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] tracking-tight">
+              2025 payroll rules for all 50 states
+            </h2>
+            <p className="mt-4 text-slate-500 font-medium leading-relaxed">
+              Browse state-specific payroll tax, wage, leave, final pay, and agency setup guides.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {statePayrollGuides.map((state) => (
+              <Link
+                key={state.slug}
+                href={`/guides/${state.slug}`}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 hover:shadow-sm"
+              >
+                <span>{state.name}</span>
+                <span className="text-[10px] font-black text-slate-400">{state.abbreviation}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

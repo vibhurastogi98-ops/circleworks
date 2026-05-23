@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDataSync } from "@/hooks/useDataSync";
@@ -36,10 +36,15 @@ export default function EmployeesDirectoryPage() {
   const queryClient = useQueryClient();
   const { notifyEmployeeChange } = useDataSync();
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grid" | "org">("list");
   const [deptFilter, setDeptFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [typeFilter, setTypeFilter] = useState<string>("All");
+  const [locationFilter, setLocationFilter] = useState<string>("All");
+  const [managerFilter, setManagerFilter] = useState<string>("All");
   const [activeDropdown, setActiveDropdown] = useState<string | number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [activeRowIndex, setActiveRowIndex] = useState(0);
 
 
 
@@ -50,16 +55,55 @@ export default function EmployeesDirectoryPage() {
     const filtered = (employees as Employee[]).filter((emp: Employee) => {
       const matchSearch = (`${emp.firstName} ${emp.lastName || ""} ${emp.jobTitle || ""}`).toLowerCase().includes(search.toLowerCase());
       const matchDept = deptFilter === "All" || emp.department === deptFilter;
+      const matchType = typeFilter === "All" || emp.employmentType === typeFilter;
+      const matchLocation = locationFilter === "All" || emp.location === locationFilter || emp.locationType === locationFilter;
+      const matchManager = managerFilter === "All" || String((emp as any).managerId || "Unassigned") === managerFilter;
 
       // Case-insensitive status matching to handle "onboarding" vs "Onboarding"
       const matchStatus = statusFilter === "All" ||
         emp.status?.toLowerCase() === statusFilter.toLowerCase();
 
-      return matchSearch && matchDept && matchStatus;
+      return matchSearch && matchDept && matchStatus && matchType && matchLocation && matchManager;
     });
     
     return filtered;
-  }, [employees, search, deptFilter, statusFilter]);
+  }, [employees, search, deptFilter, statusFilter, typeFilter, locationFilter, managerFilter]);
+
+  useEffect(() => {
+    setActiveRowIndex(0);
+    setSelectedIds(new Set());
+  }, [search, deptFilter, statusFilter, typeFilter, locationFilter, managerFilter, viewMode]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingField = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.tagName === "SELECT";
+      if (isTypingField && event.key.length === 1) return;
+
+      if (event.key === "/" && !isTypingField) {
+        event.preventDefault();
+        document.getElementById("employee-directory-search")?.focus();
+      }
+
+      if (viewMode !== "list" || filteredEmployees.length === 0) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveRowIndex((current) => Math.min(filteredEmployees.length - 1, current + 1));
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveRowIndex((current) => Math.max(0, current - 1));
+      }
+      if (event.key === "Enter" && !isTypingField) {
+        const employee = filteredEmployees[activeRowIndex] as Employee | undefined;
+        if (employee) router.push(`/employees/${employee.id}`);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeRowIndex, filteredEmployees, router, viewMode]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -79,6 +123,16 @@ export default function EmployeesDirectoryPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [activeDropdown]);
+
+  const departments = ["All", "Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Finance", "Executive"];
+  const statuses = ["All", "Active", "On Leave", "Terminated", "Onboarding"];
+  const employmentTypes = useMemo(() => ["All", ...Array.from(new Set((employees as Employee[]).map((emp) => emp.employmentType).filter(Boolean) as string[]))], [employees]);
+  const locations = useMemo(() => ["All", ...Array.from(new Set((employees as Employee[]).flatMap((emp) => [emp.location, emp.locationType]).filter(Boolean) as string[]))], [employees]);
+  const managers = useMemo(() => {
+    const byId = new Map((employees as Employee[]).map((emp: any) => [String(emp.id), `${emp.firstName} ${emp.lastName || ""}`.trim()]));
+    const managerIds = Array.from(new Set((employees as any[]).map((emp) => emp.managerId).filter(Boolean).map(String)));
+    return [{ id: "All", label: "All Managers" }, { id: "Unassigned", label: "Unassigned" }, ...managerIds.map((managerId) => ({ id: managerId, label: byId.get(managerId) || `Manager ${managerId}` }))];
+  }, [employees]);
 
   // Show error state if there's an error (Moved after hooks to avoid "fewer hooks" error)
   if (error) {
@@ -146,7 +200,7 @@ export default function EmployeesDirectoryPage() {
     }
   };
 
-  const handleDownloadCSV = () => {
+  const handleDownloadCSV = (employeesToExport: Employee[] = filteredEmployees as Employee[]) => {
     console.log("CSV download button clicked!");
     
     // Create CSV headers
@@ -166,7 +220,7 @@ export default function EmployeesDirectoryPage() {
     let csvContent;
     let filename;
     
-    if (filteredEmployees.length === 0) {
+    if (employeesToExport.length === 0) {
       // Create template with sample data
       const sampleData = [
         'John',
@@ -189,7 +243,7 @@ export default function EmployeesDirectoryPage() {
       toast.success('CSV template downloaded successfully');
     } else {
       // Export current employee data
-      const employeeRows = (filteredEmployees as Employee[]).map((emp: Employee) => [
+      const employeeRows = employeesToExport.map((emp: Employee) => [
         emp.firstName || '',
         emp.lastName || '',
         emp.email || '',
@@ -207,7 +261,7 @@ export default function EmployeesDirectoryPage() {
         ...employeeRows.map((row: any[]) => row.join(','))
       ].join('\n');
       filename = `employees_export_${new Date().toISOString().split('T')[0]}.csv`;
-      toast.success(`Exported ${filteredEmployees.length} employees to CSV`);
+      toast.success(`Exported ${employeesToExport.length} employees to CSV`);
     }
     
     // Create blob and download
@@ -225,8 +279,24 @@ export default function EmployeesDirectoryPage() {
   };
 
 
-  const departments = ["All", "Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Finance", "Executive"];
-  const statuses = ["All", "Active", "On Leave", "Terminated", "Onboarding"];
+  const toggleSelected = (employeeId: string | number) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const key = String(employeeId);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((current) => {
+      if (current.size === filteredEmployees.length) return new Set();
+      return new Set(filteredEmployees.map((emp: any) => String(emp.id)));
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase();
@@ -266,8 +336,9 @@ export default function EmployeesDirectoryPage() {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
+              id="employee-directory-search"
               type="text"
-              placeholder="Search people..."
+              placeholder="Search people...  /"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"
@@ -294,6 +365,36 @@ export default function EmployeesDirectoryPage() {
             >
               <optgroup label="Status">
                 {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+            </select>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white flex-1 sm:flex-none cursor-pointer"
+            >
+              <optgroup label="Type">
+                {employmentTypes.map(type => <option key={type} value={type}>{type}</option>)}
+              </optgroup>
+            </select>
+
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white flex-1 sm:flex-none cursor-pointer"
+            >
+              <optgroup label="Location">
+                {locations.map(location => <option key={location} value={location}>{location}</option>)}
+              </optgroup>
+            </select>
+
+            <select
+              value={managerFilter}
+              onChange={(e) => setManagerFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white flex-1 sm:flex-none cursor-pointer"
+            >
+              <optgroup label="Manager">
+                {managers.map(manager => <option key={manager.id} value={manager.id}>{manager.label}</option>)}
               </optgroup>
             </select>
           </div>
@@ -323,6 +424,14 @@ export default function EmployeesDirectoryPage() {
               <Grid size={18} />
               <span className="sr-only">Grid</span>
             </button>
+            <button
+              onClick={() => setViewMode("org")}
+              className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === "org" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+              title="Org Chart View"
+            >
+              <Network size={18} />
+              <span className="sr-only">Org Chart</span>
+            </button>
           </div>
           <Link href="/employees/org-chart" className="p-2 ml-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50" title="View Org Chart">
             <Network size={20} />
@@ -347,10 +456,35 @@ export default function EmployeesDirectoryPage() {
       </div>
 
       {/* Directory Content */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-950 shadow-sm dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm font-bold">{selectedIds.size} employee{selectedIds.size === 1 ? "" : "s"} selected</div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => toast.success("Invite email queued for selected employees")} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700">Send Invite</button>
+            <button
+              onClick={() => handleDownloadCSV((filteredEmployees as Employee[]).filter((employee) => selectedIds.has(String(employee.id))))}
+              className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 dark:bg-slate-900"
+            >
+              Export Selected
+            </button>
+            <button onClick={clearSelection} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 dark:text-blue-200">Clear</button>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
           <p className="text-slate-500 font-medium">Loading employees...</p>
+        </div>
+      ) : viewMode === "org" ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <Network size={40} className="mx-auto mb-4 text-blue-500" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Org chart view</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">Open the dedicated org chart to zoom, pan, filter by department, inspect profiles, and export the chart.</p>
+          <Link href="/employees/org-chart" className="mt-5 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
+            Open Org Chart
+          </Link>
         </div>
       ) : viewMode === "list" ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
@@ -358,6 +492,15 @@ export default function EmployeesDirectoryPage() {
             <table className="w-full text-left border-collapse" id="employee-table">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+                  <th scope="col" className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={filteredEmployees.length > 0 && selectedIds.size === filteredEmployees.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      aria-label="Select all employees"
+                    />
+                  </th>
                   <th scope="col" className="px-6 py-4 whitespace-nowrap">Employee</th>
                   <th scope="col" className="px-6 py-4 whitespace-nowrap">Role</th>
                   <th scope="col" className="px-6 py-4 whitespace-nowrap">Location</th>
@@ -367,8 +510,17 @@ export default function EmployeesDirectoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {(filteredEmployees as Employee[]).map((emp: Employee) => (
-                  <tr key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 focus-within:bg-slate-50/50 dark:focus-within:bg-slate-800/20 transition-colors group">
+                {(filteredEmployees as Employee[]).map((emp: Employee, rowIndex) => (
+                  <tr key={emp.id} className={`${rowIndex === activeRowIndex ? "bg-blue-50/70 dark:bg-blue-900/10" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/20"} focus-within:bg-slate-50/50 dark:focus-within:bg-slate-800/20 transition-colors group`}>
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(String(emp.id))}
+                        onChange={() => toggleSelected(emp.id)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        aria-label={`Select ${emp.firstName} ${emp.lastName || ""}`}
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1 -m-1">
                         <img src={emp.avatar} alt="" className="w-10 h-10 rounded-full bg-slate-200 border border-slate-200 dark:border-slate-700 object-cover" />

@@ -26,6 +26,9 @@ export default function GarnishmentsPage() {
                <th className="px-5 py-4">Type</th>
                <th className="px-5 py-4">Agency / Court Ref</th>
                <th className="px-5 py-4">Amount / Rule</th>
+               <th className="px-5 py-4">Priority</th>
+               <th className="px-5 py-4">Effective Date</th>
+               <th className="px-5 py-4">Court Order #</th>
                <th className="px-5 py-4">Status</th>
              </tr>
            </thead>
@@ -35,6 +38,9 @@ export default function GarnishmentsPage() {
                <td className="px-5 py-4"><span className="px-2 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded">Child Support</span></td>
                <td className="px-5 py-4 text-sm text-slate-500">TX-AAG-99812</td>
                <td className="px-5 py-4 font-mono text-sm">$350.00 / check</td>
+               <td className="px-5 py-4 text-sm font-bold">1</td>
+               <td className="px-5 py-4 text-sm">Mar 1, 2026</td>
+               <td className="px-5 py-4 font-mono text-xs">CS-2026-1182</td>
                <td className="px-5 py-4"><span className="text-emerald-600 font-bold text-sm">Active</span></td>
              </tr>
              <tr>
@@ -42,6 +48,9 @@ export default function GarnishmentsPage() {
                <td className="px-5 py-4"><span className="px-2 py-1 bg-red-50 text-red-700 text-xs font-bold rounded">IRS Levy</span></td>
                <td className="px-5 py-4 text-sm text-slate-500">IRS-2024-XX</td>
                <td className="px-5 py-4 font-mono text-sm">15% disposable</td>
+               <td className="px-5 py-4 text-sm font-bold">2</td>
+               <td className="px-5 py-4 text-sm">Jan 15, 2026</td>
+               <td className="px-5 py-4 font-mono text-xs">LEVY-44890</td>
                <td className="px-5 py-4"><span className="text-emerald-600 font-bold text-sm">Active</span></td>
              </tr>
            </tbody>

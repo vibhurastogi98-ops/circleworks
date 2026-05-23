@@ -6,6 +6,17 @@ import { mockLocations } from "@/data/mockSettings";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { toast } from "sonner";
 
+const stateTimezone: Record<string, string> = {
+  CA: "America/Los_Angeles (PST)",
+  OR: "America/Los_Angeles (PST)",
+  WA: "America/Los_Angeles (PST)",
+  CO: "America/Denver (MST)",
+  TX: "America/Chicago (CST)",
+  IL: "America/Chicago (CST)",
+  NY: "America/New_York (EST)",
+  FL: "America/New_York (EST)",
+};
+
 export default function LocationsSettingsPage() {
   const { isNewUser } = useDashboardData();
   const [locations, setLocations] = useState(mockLocations);
@@ -182,7 +193,11 @@ export default function LocationsSettingsPage() {
                   />
                   <input 
                     value={newState}
-                    onChange={(e) => setNewState(e.target.value)}
+                    onChange={(e) => {
+                      const nextState = e.target.value.toUpperCase();
+                      setNewState(nextState);
+                      if (stateTimezone[nextState]) setNewTz(stateTimezone[nextState]);
+                    }}
                     placeholder="State (e.g. IL)" 
                     className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white font-mono" 
                   />
@@ -203,10 +218,12 @@ export default function LocationsSettingsPage() {
               </div>
               <div className="h-28 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center mt-2 overflow-hidden opacity-60">
                 <Map className="text-slate-400 mb-1" size={20} />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Mapbox Preview Placeholder</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Mapbox static API preview</p>
+                <p className="mt-1 text-[10px] text-slate-400">{newAddress || "Address"}, {newCity || "City"} {newState || "ST"}</p>
               </div>
             </div>
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              <button className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Assign Employees</button>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
               <button 
                 onClick={handleSave}

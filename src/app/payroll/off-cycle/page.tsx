@@ -132,7 +132,7 @@ function OffCycleContent() {
         <>
           {/* Progress Steps */}
           <div className="flex items-center justify-center gap-4 mb-8">
-            {[1, 2, 3].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div key={s} className="flex items-center gap-4">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -198,18 +198,40 @@ function OffCycleContent() {
                     </div>
                   </div>
                 </div>
-                <button
+                  <button
                   onClick={() => setStep(2)}
                   className="w-full flex justify-center items-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
                 >
-                  Continue to Reasons <ArrowRight size={18} />
+                  Continue to Pay Reason <ArrowRight size={18} />
                 </button>
               </div>
             )}
 
             {step === 2 && (
               <div className="animate-in fade-in slide-in-from-right-4">
-                <h2 className="text-xl font-bold mb-4">Payment Details</h2>
+                <h2 className="text-xl font-bold mb-4">Pay Reason</h2>
+                <div className="grid gap-3 mb-8">
+                  {["Bonus", "Correction", "Termination"].map((reason) => (
+                    <label key={reason} className="flex items-center justify-between rounded-xl border border-slate-200 p-4 hover:border-blue-300">
+                      <span className="font-bold text-slate-900">{reason}</span>
+                      <input type="radio" name="off-cycle-reason" defaultChecked={reason === "Bonus"} className="text-blue-600" />
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setStep(1)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">
+                    Back
+                  </button>
+                  <button onClick={() => setStep(3)} className="flex-[2] flex justify-center items-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">
+                    Enter Amounts <ArrowRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="animate-in fade-in slide-in-from-right-4">
+                <h2 className="text-xl font-bold mb-4">Enter Amounts</h2>
                 <div className="p-5 border border-slate-200 rounded-xl mb-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-slate-200 rounded-full" />
@@ -242,19 +264,19 @@ function OffCycleContent() {
                   <p>Taxes will be withheld at the supplemental rate of 22% for Federal Income Tax on bonuses.</p>
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setStep(1)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">
+                  <button onClick={() => setStep(2)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">
                     Back
                   </button>
-                  <button onClick={() => setStep(3)} className="flex-[2] flex justify-center items-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">
-                    Review Taxes <ArrowRight size={18} />
+                  <button onClick={() => setStep(4)} className="flex-[2] flex justify-center items-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">
+                    Tax Preview <ArrowRight size={18} />
                   </button>
                 </div>
               </div>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <div className="animate-in fade-in slide-in-from-right-4">
-                <h2 className="text-xl font-bold mb-4">Review & Submit</h2>
+                <h2 className="text-xl font-bold mb-4">Tax Preview</h2>
                 <div className="bg-slate-50 rounded-xl p-6 mb-8 border border-slate-200">
                   <div className="flex justify-between items-center mb-6">
                     <span className="font-bold text-slate-600">Total Gross</span>
@@ -284,7 +306,25 @@ function OffCycleContent() {
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setStep(2)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">
+                  <button onClick={() => setStep(3)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">
+                    Back
+                  </button>
+                  <button onClick={() => setStep(5)} className="flex-[2] flex justify-center items-center gap-2 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">
+                    Approve Run <ArrowRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 5 && (
+              <div className="animate-in fade-in slide-in-from-right-4">
+                <h2 className="text-xl font-bold mb-4">Approve & Process</h2>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 mb-8">
+                  <p className="font-bold text-emerald-900">Ready to process off-cycle payroll</p>
+                  <p className="mt-2 text-sm text-emerald-700">ACH funding, tax withholding, and paystub generation will begin after approval.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setStep(4)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">
                     Back
                   </button>
                   <button className="flex-[2] flex justify-center items-center gap-2 py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-500/20">

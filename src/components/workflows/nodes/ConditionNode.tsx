@@ -4,7 +4,7 @@ import { GitBranch } from 'lucide-react';
 
 export function ConditionNode({ data, isConnectable, selected }: NodeProps) {
   return (
-    <div className={`w-64 bg-white dark:bg-[#1E293B] rounded-xl border-2 transition-all shadow-sm ${
+    <div className={`w-64 bg-white dark:bg-[#1E293B] rounded-xl border-2 transition-all shadow-sm [clip-path:polygon(8%_0,92%_0,100%_50%,92%_100%,8%_100%,0_50%)] ${
       selected 
         ? 'border-amber-500 shadow-amber-500/20' 
         : 'border-amber-200 dark:border-amber-800'
@@ -26,6 +26,9 @@ export function ConditionNode({ data, isConnectable, selected }: NodeProps) {
       <div className="p-4">
         <div className="text-sm font-medium text-slate-900 dark:text-white">
           {typeof data.label === 'string' ? data.label : 'If / Then...'}
+        </div>
+        <div className="mt-2 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+          {typeof data.conditionLogic === "string" ? data.conditionLogic : "IF / THEN"}
         </div>
       </div>
       

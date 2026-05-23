@@ -4,9 +4,9 @@ import { Send, Users, DollarSign } from "lucide-react";
 
 export default function ContractorsPage() {
   const [contractors, setContractors] = useState([
-    { id: 1, name: "Alice Design Studio", email: "alice@design.co", type: "1099-NEC", amount: "3500.00", selected: true },
-    { id: 2, name: "Bob Dev LLC", email: "bob@dev.io", type: "1099-NEC", amount: "0.00", selected: false },
-    { id: 3, name: "Charlie Content", email: "charlie@writer.net", type: "1099-NEC", amount: "750.00", selected: true },
+    { id: 1, name: "Alice Design Studio", email: "alice@design.co", type: "1099-NEC", mode: "one-time", amount: "3500.00", hours: "0", rate: "0", selected: true },
+    { id: 2, name: "Bob Dev LLC", email: "bob@dev.io", type: "1099-NEC", mode: "hours-rate", amount: "0.00", hours: "42", rate: "95", selected: false },
+    { id: 3, name: "Charlie Content", email: "charlie@writer.net", type: "1099-NEC", mode: "one-time", amount: "750.00", hours: "0", rate: "0", selected: true },
   ]);
 
   const toggleSelection = (id: number) => {
@@ -15,6 +15,15 @@ export default function ContractorsPage() {
   
   const updateAmount = (id: number, val: string) => {
     setContractors(prev => prev.map(c => c.id === id ? { ...c, amount: val, selected: Number(val) > 0 } : c));
+  };
+
+  const updateHoursRate = (id: number, field: "hours" | "rate", val: string) => {
+    setContractors(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      const next = { ...c, [field]: val };
+      const amount = Number(next.hours) * Number(next.rate);
+      return { ...next, amount: amount.toFixed(2), selected: amount > 0 };
+    }));
   };
   
   const totalAmount = useMemo(() => {
@@ -45,7 +54,8 @@ export default function ContractorsPage() {
                <th className="px-5 py-4 w-12"><input type="checkbox" className="rounded text-blue-600" defaultChecked/></th>
                <th className="px-5 py-4">Contractor</th>
                <th className="px-5 py-4">Tax Target</th>
-               <th className="px-5 py-4 w-60">Payment Amount</th>
+               <th className="px-5 py-4">Payment Method</th>
+               <th className="px-5 py-4 w-72">Payment Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -67,7 +77,36 @@ export default function ContractorsPage() {
                    <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md font-mono text-xs font-semibold">{c.type}</span>
                  </td>
                  <td className="px-5 py-4">
-                   <div className="relative">
+                   <select
+                     value={c.mode}
+                     onChange={(event) => setContractors(prev => prev.map(item => item.id === c.id ? { ...item, mode: event.target.value } : item))}
+                     className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold dark:border-slate-700 dark:bg-slate-800"
+                   >
+                     <option value="one-time">One-time amount</option>
+                     <option value="hours-rate">Hours x rate</option>
+                   </select>
+                 </td>
+                 <td className="px-5 py-4">
+                   {c.mode === "hours-rate" ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        value={c.hours}
+                        onChange={(e) => updateHoursRate(c.id, "hours", e.target.value)}
+                        className="w-full rounded-lg bg-slate-50 px-3 py-2 font-bold dark:bg-slate-800"
+                        aria-label={`${c.name} hours`}
+                      />
+                      <input
+                        type="number"
+                        value={c.rate}
+                        onChange={(e) => updateHoursRate(c.id, "rate", e.target.value)}
+                        className="w-full rounded-lg bg-slate-50 px-3 py-2 font-bold dark:bg-slate-800"
+                        aria-label={`${c.name} rate`}
+                      />
+                      <span className="col-span-2 text-xs font-bold text-slate-500">{Number(c.hours) || 0}h x ${Number(c.rate) || 0}/hr = ${Number(c.amount).toFixed(2)}</span>
+                    </div>
+                   ) : (
+                    <div className="relative">
                       <span className="absolute left-3 top-2.5 text-slate-500 font-bold">$</span>
                       <input 
                         type="number" 
@@ -75,7 +114,8 @@ export default function ContractorsPage() {
                         onChange={(e) => updateAmount(c.id, e.target.value)}
                         className="w-full font-bold text-lg bg-slate-50 dark:bg-slate-800 border-none rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" 
                       />
-                   </div>
+                    </div>
+                   )}
                  </td>
               </tr>
             ))}

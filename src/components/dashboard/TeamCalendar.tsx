@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TEAM_CALENDAR } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import Link from "next/link";
 import Image from "next/image";

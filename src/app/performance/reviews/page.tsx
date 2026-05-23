@@ -15,7 +15,10 @@ import {
   List,
   CheckCircle2,
   Clock,
-  ExternalLink
+  ExternalLink,
+  ClipboardList,
+  SlidersHorizontal,
+  Shield
 } from "lucide-react";
 import Link from "next/link";
 import { mockReviewCycles } from "@/data/mockPerformance";
@@ -40,6 +43,86 @@ export default function ReviewCyclesPage() {
           <Plus size={20} />
           Create New Cycle
         </button>
+      </div>
+
+      {/* Create Cycle Wizard */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-4">
+        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Create Review Cycle Wizard</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Define participants, questions, rating scale, deadlines, and visibility rules before launching.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold uppercase tracking-wider">Step 1 of 5</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Participants</label>
+              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500">
+                <option>All employees</option>
+                <option>Department group</option>
+                <option>Manager chain</option>
+                <option>Custom employee list</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rating Scale</label>
+              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500">
+                <option>5-point: Needs Support to Exceeds</option>
+                <option>3-point: Below / Meets / Above</option>
+                <option>No rating, written feedback only</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Self Review Deadline</label>
+              <input type="date" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Manager Review Deadline</label>
+              <input type="date" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Questions</label>
+              <textarea
+                rows={3}
+                placeholder="What impact did this person have? What should they continue, start, or stop doing?"
+                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visibility Rules</label>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {["Employee sees after manager sign-off", "HR can view calibration", "Anonymous peer feedback"].map(rule => (
+                  <label key={rule} className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    <input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" defaultChecked={rule !== "Anonymous peer feedback"} />
+                    {rule}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-950 rounded-2xl p-5 text-white">
+          <h2 className="text-lg font-bold">Launch Checklist</h2>
+          <p className="text-sm text-slate-400 mt-1">A cycle can launch once all wizard sections are complete.</p>
+          <div className="mt-5 space-y-3">
+            {[
+              { icon: Users, label: "Participants selected", value: "156 employees" },
+              { icon: ClipboardList, label: "Question set", value: "Manager + self" },
+              { icon: SlidersHorizontal, label: "Rating scale", value: "5-point" },
+              { icon: Shield, label: "Visibility", value: "HR + manager" },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-3 rounded-xl border border-white/10 p-3">
+                <item.icon size={16} className="text-blue-300" />
+                <div>
+                  <p className="text-sm font-bold">{item.label}</p>
+                  <p className="text-xs text-slate-400">{item.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Filters & View Toggle */}

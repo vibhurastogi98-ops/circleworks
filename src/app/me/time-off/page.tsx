@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarDays, Plane, Thermometer, User as UserIcon, Plus, X, CheckCircle2, Clock, XCircle, Info } from "lucide-react";
-import { mockPtoBalances, mockPtoRequests, mockTeamCalendar } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 const statusStyles: Record<string, string> = {
@@ -21,6 +21,7 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 export default function TimeOffPage() {
+  const { data } = useEmployeeSelfService();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ type: "Vacation", startDate: "", endDate: "", note: "" });
 
@@ -57,7 +58,7 @@ export default function TimeOffPage() {
 
       {/* PTO Balances */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {mockPtoBalances.map(pto => {
+        {data.ptoBalances.map(pto => {
           const Icon = typeIcons[pto.type] || CalendarDays;
           return (
             <motion.div key={pto.type} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40">
@@ -90,7 +91,7 @@ export default function TimeOffPage() {
             <div className="hidden sm:grid grid-cols-[auto_1fr_1fr_auto_1fr] gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700/40 text-[12px] font-bold text-slate-500 uppercase tracking-wide">
               <span>Type</span><span>Dates</span><span>Days</span><span>Status</span><span>Note</span>
             </div>
-            {mockPtoRequests.map((req, i) => {
+            {data.ptoRequests.map((req, i) => {
               const StatusIcon = statusIcons[req.status] || Clock;
               const TypeIcon = typeIcons[req.type] || CalendarDays;
               return (
@@ -118,10 +119,10 @@ export default function TimeOffPage() {
         <div>
           <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">Team Calendar</h2>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
-            {mockTeamCalendar.length === 0 ? (
+            {data.teamCalendar.length === 0 ? (
               <p className="p-4 text-[13px] text-slate-500">No team members off this period.</p>
             ) : (
-              mockTeamCalendar.map((entry, i) => (
+              data.teamCalendar.map((entry, i) => (
                 <div key={i} className="px-4 py-3">
                   <p className="text-[13px] font-bold text-slate-900 dark:text-white">{entry.name}</p>
                   <p className="text-[11px] text-slate-500">{entry.department} · {entry.type}</p>

@@ -4,6 +4,20 @@ import Link from "next/link";
 import RunExportButton from "@/components/payroll/run/RunExportButton";
 import PayrollReportButton from "@/components/payroll/run/PayrollReportButton";
 
+const lineItems = [
+  { employee: "Jordan Brown", type: "Salary", gross: "$7,083.33", taxes: "$2,091.74", deductions: "$420.00", net: "$4,571.59" },
+  { employee: "Taylor Smith", type: "Hourly", gross: "$6,240.00", taxes: "$1,687.50", deductions: "$238.00", net: "$4,314.50" },
+  { employee: "Alex Clark", type: "Salary", gross: "$4,615.38", taxes: "$1,400.38", deductions: "$325.00", net: "$2,890.00" },
+  { employee: "Morgan Lee", type: "Salary", gross: "$5,769.23", taxes: "$1,665.21", deductions: "$310.00", net: "$3,794.02" },
+];
+
+const auditTrail = [
+  { time: "Apr 3, 2026 09:12 AM", actor: "Sarah Chen", event: "Draft created from approved timesheets" },
+  { time: "Apr 3, 2026 02:46 PM", actor: "Michael Torres", event: "Payroll reviewed and submitted for approval" },
+  { time: "Apr 4, 2026 10:04 AM", actor: "Finance Manager", event: "ACH debit authorized" },
+  { time: "Apr 5, 2026 06:30 AM", actor: "CircleWorks", event: "Pay stubs generated and employees notified" },
+];
+
 export default async function RunDetailPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
   return (
@@ -54,6 +68,71 @@ export default async function RunDetailPage({ params }: { params: Promise<{ runI
               </tbody>
             </table>
          </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+          <h3 className="font-bold text-slate-900 dark:text-white">Employee Line Items</h3>
+          <p className="mt-1 text-xs text-slate-500">Read-only pay, tax, deduction, and net pay lines for this completed run.</p>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400">
+              <th className="px-4 py-3 text-left font-bold uppercase text-[11px]">Employee</th>
+              <th className="px-4 py-3 text-left font-bold uppercase text-[11px]">Pay Type</th>
+              <th className="px-4 py-3 text-right font-bold uppercase text-[11px]">Gross</th>
+              <th className="px-4 py-3 text-right font-bold uppercase text-[11px]">Taxes</th>
+              <th className="px-4 py-3 text-right font-bold uppercase text-[11px]">Deductions</th>
+              <th className="px-4 py-3 text-right font-bold uppercase text-[11px]">Net</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+            {lineItems.map((item) => (
+              <tr key={item.employee}>
+                <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{item.employee}</td>
+                <td className="px-4 py-3">{item.type}</td>
+                <td className="px-4 py-3 text-right font-mono">{item.gross}</td>
+                <td className="px-4 py-3 text-right font-mono text-red-600">{item.taxes}</td>
+                <td className="px-4 py-3 text-right font-mono text-red-600">{item.deductions}</td>
+                <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 dark:text-white">{item.net}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+            <h3 className="font-bold text-slate-900 dark:text-white">Journal Entry Export</h3>
+          </div>
+          <div className="p-5 space-y-3 text-sm">
+            {[
+              ["Debit Payroll Expense", "$230,000.00"],
+              ["Debit Employer Tax Expense", "$18,420.00"],
+              ["Credit Cash / Payroll Clearing", "$278,420.00"],
+              ["Credit Tax Payables", "$80,600.00"],
+            ].map(([label, amount]) => (
+              <div key={label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-800/50">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">{label}</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{amount}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+            <h3 className="font-bold text-slate-900 dark:text-white">Audit Trail</h3>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {auditTrail.map((entry) => (
+              <div key={`${entry.time}-${entry.event}`} className="px-5 py-4">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{entry.event}</p>
+                <p className="mt-1 text-xs text-slate-500">{entry.time} · {entry.actor}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

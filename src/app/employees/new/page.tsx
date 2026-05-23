@@ -13,6 +13,22 @@ import { toast } from "sonner";
 
 const STEPS = ["Personal Info", "Employment", "Compensation", "Tax & Banking"];
 
+function getCompanyEmailDomain(companyName?: string) {
+  const savedProgress = typeof window !== "undefined" ? localStorage.getItem("circleworks_signup_progress") : null;
+  if (savedProgress) {
+    try {
+      const parsed = JSON.parse(savedProgress);
+      if (parsed?.companyDomain) return parsed.companyDomain;
+      if (parsed?.domain) return parsed.domain;
+    } catch {
+      // Fall back to company name below.
+    }
+  }
+
+  const slug = companyName?.toLowerCase().replace(/[^a-z0-9]/g, "") || "company";
+  return `${slug}.com`;
+}
+
 export default function AddEmployeeWizard() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -106,8 +122,8 @@ export default function AddEmployeeWizard() {
         
         // Auto-fill work email based on company domain if moving from personal info step
         if (currentStep === 0 && !formData.workEmail) {
-          const domain = currentUser?.companyName?.toLowerCase().replace(/[^a-z0-9]/g, "") || "company";
-          setFormData(f => ({ ...f, workEmail: `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${domain}.com` }));
+          const domain = getCompanyEmailDomain(currentUser?.companyName);
+          setFormData(f => ({ ...f, workEmail: `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}@${domain}` }));
         }
       } else {
         // Complete wizard - FINAL STEP - REAL API CALL
@@ -135,7 +151,8 @@ export default function AddEmployeeWizard() {
           compensation: {
             salary: formData.salary ? parseInt(formData.salary) : null,
             payFrequency: formData.payFrequency,
-          }
+          },
+          sendInviteEmail: true,
         };
 
         console.log("FORM DATA", payload);
@@ -147,7 +164,7 @@ export default function AddEmployeeWizard() {
           queryClient.invalidateQueries({ queryKey: ['employees'] });
           queryClient.invalidateQueries({ queryKey: ['onboarding'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-          toast.success(`${formData.firstName} ${formData.lastName} has been added!`);
+          toast.success(`${formData.firstName} ${formData.lastName} has been added and invited by email.`);
           router.push("/employees");
         } catch (error) {
           console.error("Save error:", error);

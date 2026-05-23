@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { useSidebarStore } from "@/store/useSidebarStore";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Command, Keyboard } from "lucide-react";
+import { X, Keyboard } from "lucide-react";
 
 export default function KeyboardShortcuts() {
   const router = useRouter();
-  const { isAdmin, setPayrollRunning } = usePlatformStore();
+  const { isAdmin, setCommandPaletteOpen, setPayrollRunning } = usePlatformStore();
   const { setSidebarOpen } = useSidebarStore();
   const { toggleCirce } = usePlatformStore();
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
@@ -40,14 +40,13 @@ export default function KeyboardShortcuts() {
       if (e.key === "Escape") {
         setShowShortcutsModal(false);
         setSidebarOpen(false);
-        // Additional ESC behavior (closing drawers) can be added here or handled by those components directly.
+        window.dispatchEvent(new CustomEvent("circleworks:escape"));
         return;
       }
 
       if (cmdOrCtrl && e.key === "k") {
         e.preventDefault();
-        // Typically handled in AppTopBar.tsx, but we can emit a global event or handle here
-        console.log("Global Search triggered from KeyboardShortcuts (Cmd+K)");
+        setCommandPaletteOpen(true);
         return;
       }
 
@@ -88,7 +87,7 @@ export default function KeyboardShortcuts() {
               router.push("/dashboard");
               break;
             case 'p':
-              router.push("/payroll/run");
+              router.push("/payroll");
               break;
             case 'e':
               router.push("/employees");
@@ -120,11 +119,15 @@ export default function KeyboardShortcuts() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    const handleShowShortcuts = () => setShowShortcutsModal(true);
+    window.addEventListener("circleworks:show-shortcuts", handleShowShortcuts);
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("circleworks:show-shortcuts", handleShowShortcuts);
       clearTimeout(gTimeout);
     };
-  }, [isAdmin, router, setPayrollRunning, gKeyPressed]);
+  }, [gKeyPressed, isAdmin, router, setCommandPaletteOpen, setPayrollRunning, setSidebarOpen, toggleCirce]);
 
   return (
     <AnimatePresence>
@@ -166,36 +169,28 @@ export default function KeyboardShortcuts() {
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4 px-2">Global Actions</h3>
                 <ul className="space-y-3 px-2">
-                  <li className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Open Global Search</span>
+                  <li className="flex items-center justify-between gap-4 text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Open Global Search (Command Palette)</span>
                     <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
-                      <Command size={12} className="opacity-70"/> <span>K</span>
+                      <span>Cmd/Ctrl</span> <span>K</span>
                     </kbd>
                   </li>
-                  <li className="flex items-center justify-between text-sm">
+                  <li className="flex items-center justify-between gap-4 text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Run Payroll (if admin)</span>
+                    <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
+                      <span>Cmd/Ctrl</span> <span>Shift</span> <span>P</span>
+                    </kbd>
+                  </li>
+                  <li className="flex items-center justify-between gap-4 text-sm">
                     <span className="font-medium text-slate-700 dark:text-slate-300">Add New Employee</span>
                     <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
-                      <Command size={12} className="opacity-70"/> <span>N</span>
+                      <span>Cmd/Ctrl</span> <span>N</span>
                     </kbd>
                   </li>
-                  <li className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Open Shortcuts</span>
+                  <li className="flex items-center justify-between gap-4 text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Open keyboard shortcuts reference</span>
                     <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
-                      <Command size={12} className="opacity-70"/> <span>/</span>
-                    </kbd>
-                  </li>
-                  <li className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Run Payroll</span>
-                    <div className="flex gap-1">
-                      <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
-                        <Command size={12} className="opacity-70"/> <span>⇧</span> <span>P</span>
-                      </kbd>
-                    </div>
-                  </li>
-                  <li className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Toggle AI Agent</span>
-                    <kbd className="inline-flex gap-1 items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
-                      <Command size={12} className="opacity-70"/> <span>J</span>
+                      <span>Cmd/Ctrl</span> <span>/</span>
                     </kbd>
                   </li>
                 </ul>
@@ -233,7 +228,41 @@ export default function KeyboardShortcuts() {
                       <kbd className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">T</kbd>
                     </div>
                   </li>
+                  <li className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Go to Hiring</span>
+                    <div className="flex gap-1">
+                      <kbd className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">G</kbd>
+                      <kbd className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">H</kbd>
+                    </div>
+                  </li>
+                  <li className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-700 dark:text-slate-300">Go to Reports</span>
+                    <div className="flex gap-1">
+                      <kbd className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">G</kbd>
+                      <kbd className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">R</kbd>
+                    </div>
+                  </li>
                 </ul>
+              </div>
+
+              {/* Native navigation */}
+              <div className="md:col-span-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4 px-2">Navigation & Interaction</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-2">
+                  {[
+                    ["ESC", "Close modal/drawer/dropdown"],
+                    ["Tab / Shift+Tab", "Navigate between interactive elements"],
+                    ["Enter / Space", "Activate focused button/link"],
+                    ["Arrow keys", "Navigate table rows / dropdown options"],
+                  ].map(([shortcut, action]) => (
+                    <div key={shortcut} className="flex items-center justify-between gap-4 text-sm">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{action}</span>
+                      <kbd className="inline-flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs font-mono font-bold text-slate-600 dark:text-slate-400 shadow-sm">
+                        {shortcut}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

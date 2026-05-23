@@ -41,6 +41,55 @@ export default function BridgePage() {
            Connect Bank Account <ArrowRight size={20} />
          </button>
       </div>
+
+      <div className="w-full rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-2 border-b border-slate-100 pb-5 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Underwriting Snapshot</h2>
+            <p className="text-sm text-slate-500">Based on payroll history, connected Plaid cash-flow data, and Parafin risk scoring.</p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black uppercase text-emerald-700">Pre-qualified</span>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {[
+            ["Payroll history", "18 successful runs"],
+            ["Average run size", "$278,420"],
+            ["Eligible credit line", "$150,000"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+              <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
+              <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-400 dark:bg-slate-800/50">
+              <tr>
+                <th className="px-4 py-3 text-left">Repayment Week</th>
+                <th className="px-4 py-3 text-right">Principal</th>
+                <th className="px-4 py-3 text-right">Flat Fee</th>
+                <th className="px-4 py-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {[
+                ["Week 1", "$18,750", "$750", "$19,500"],
+                ["Week 2", "$18,750", "$750", "$19,500"],
+                ["Week 3", "$18,750", "$750", "$19,500"],
+                ["Week 4", "$18,750", "$750", "$19,500"],
+              ].map(([week, principal, fee, total]) => (
+                <tr key={week}>
+                  <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{week}</td>
+                  <td className="px-4 py-3 text-right font-mono">{principal}</td>
+                  <td className="px-4 py-3 text-right font-mono">{fee}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 dark:text-white">{total}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

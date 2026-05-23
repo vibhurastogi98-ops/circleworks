@@ -9,11 +9,13 @@ const ICONS: Record<string, React.ElementType> = {
   push: Bell,
   webhook: Globe,
   delay: Clock,
+  update: Play,
+  wait: Clock,
   kudos: Play
 };
 
 export function ActionNode({ data, isConnectable, selected }: NodeProps) {
-  const subtype = typeof data.subtype === 'string' ? data.subtype : 'play';
+  const subtype = typeof data.actionType === 'string' ? data.actionType : typeof data.subtype === 'string' ? data.subtype : 'play';
   const Icon = ICONS[subtype] || Play;
 
   return (
@@ -40,6 +42,7 @@ export function ActionNode({ data, isConnectable, selected }: NodeProps) {
         <div className="text-sm font-medium text-slate-900 dark:text-white">
           {typeof data.label === 'string' ? data.label : 'Execute action...'}
         </div>
+        <div className="mt-2 text-[11px] font-medium capitalize text-emerald-700 dark:text-emerald-300">{subtype}</div>
       </div>
       <Handle
         type="source"

@@ -3,13 +3,14 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Banknote, Zap, CheckCircle2, Clock, AlertCircle, X, ArrowRight, ShieldCheck, Info } from "lucide-react";
-import { mockEwaData } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 export default function EwaPage() {
+  const { data: portalData } = useEmployeeSelfService();
   const [showRequest, setShowRequest] = useState(false);
   const [requestAmount, setRequestAmount] = useState(100);
-  const data = mockEwaData;
+  const data = portalData.ewa;
 
   const pctEarned = Math.round((data.availableAmount / data.maxPerPayPeriod) * 100);
 

@@ -1,475 +1,1516 @@
+export type ModuleSlug =
+  | "payroll"
+  | "hris"
+  | "ats"
+  | "onboarding"
+  | "benefits"
+  | "time"
+  | "expenses"
+  | "performance"
+  | "compliance"
+  | "analytics";
+
 export type ModuleData = {
   name: string;
-  accent: "blue" | "emerald" | "purple" | "green" | "orange" | "rose" | "cyan" | "red" | "fuchsia" | "indigo";
+  accent:
+    | "blue"
+    | "emerald"
+    | "purple"
+    | "green"
+    | "orange"
+    | "rose"
+    | "cyan"
+    | "red"
+    | "fuchsia"
+    | "indigo";
+  mockupTab:
+    | "dashboard"
+    | "employees"
+    | "payroll"
+    | "benefits"
+    | "compliance"
+    | "hiring";
   hero: {
     headline: string;
     stat: string;
+    mockupStats: [string, string, string];
   };
-  testimonials: {
-    quote: string;
-    author: string;
-    role: string;
-  }[];
-  howItWorks: {
-    title: string;
-    desc: string;
-  }[];
-  features: {
-    headline: string;
-    description: string;
-    bullets: string[];
-  }[];
-  complianceNote?: string;
+  testimonials: { quote: string; author: string; role: string }[];
+  howItWorks: { title: string; desc: string }[];
+  features: { headline: string; description: string; bullets: string[] }[];
+  complianceNote: string;
   integrations: string[];
-  faqs: {
-    q: string;
-    a: string;
-  }[];
+  faqs: { q: string; a: string }[];
 };
 
-export const MODULE_DATA: Record<string, ModuleData> = {
-  "payroll": {
+export const MODULE_SLUGS: ModuleSlug[] = [
+  "payroll",
+  "hris",
+  "ats",
+  "onboarding",
+  "benefits",
+  "time",
+  "expenses",
+  "performance",
+  "compliance",
+  "analytics",
+];
+
+export const MODULE_DATA: Record<ModuleSlug, ModuleData> = {
+  payroll: {
     name: "Payroll",
     accent: "blue",
+    mockupTab: "payroll",
     hero: {
       headline: "Run payroll for 50 employees in 4 minutes.",
-      stat: "Automated local, state, and federal tax filings across all 50 US states. Guaranteed error-free."
+      stat: "Automated wages, taxes, deductions, and filings for every U.S. state.",
+      mockupStats: [
+        "4 min approval",
+        "50-state tax engine",
+        "2-day direct deposit",
+      ],
     },
     testimonials: [
-      { quote: "CircleWorks cut our payroll processing time by 90%. We used to spend a whole day on it, now it's done before my morning coffee.", author: "Sarah Jenkins", role: "VP of People, Acme Corp" },
-      { quote: "The auto-tax filing feature is a lifesaver. No more worrying about missing state deadlines or miscalculating unemployment taxes.", author: "Michael Chen", role: "Founder, Zenith SaaS" },
-      { quote: "Switching from our legacy provider was seamless. The onboarding team imported everything perfectly.", author: "Emily Roberts", role: "Director of HR, FinTech Solutions" }
+      {
+        quote:
+          "Payroll went from an all-day spreadsheet ritual to one clean approval screen.",
+        author: "Sarah Jenkins",
+        role: "VP People, Northstar Labs",
+      },
+      {
+        quote:
+          "The state filing automation alone paid for CircleWorks in the first quarter.",
+        author: "Michael Chen",
+        role: "Founder, Zenith SaaS",
+      },
+      {
+        quote:
+          "Our finance team trusts the previews before every run. No surprises.",
+        author: "Emily Roberts",
+        role: "HR Director, FinTech Co.",
+      },
     ],
     howItWorks: [
-      { title: "Sync Time", desc: "Hours, PTO, and expenses automatically flow into payroll. No manual data entry." },
-      { title: "Review & Approve", desc: "Review the automated calculations, preview the cash requirements, and click approve." },
-      { title: "Paid & Filed", desc: "Employees get paid via 2-day direct deposit. Taxes are filed and paid automatically." }
+      {
+        title: "Sync inputs",
+        desc: "Hours, PTO, benefits, expenses, and bonuses flow into payroll automatically.",
+      },
+      {
+        title: "Review run",
+        desc: "Preview gross-to-net pay, employer taxes, cash requirements, and exceptions.",
+      },
+      {
+        title: "Pay and file",
+        desc: "Approve once. CircleWorks sends direct deposit and files required payroll taxes.",
+      },
     ],
     features: [
       {
-        headline: "Auto-Pilot Tax Engine",
-        description: "Never calculate a tax bracket again. CircleWorks automatically calculates, files, and pays your local, state, and federal payroll taxes.",
-        bullets: ["W-2 and 1099 generation at year-end", "State unemployment tax handling", "Automatic updates to tax rates", "Error-free guarantee"]
+        headline: "50-state payroll tax engine",
+        description:
+          "Calculate federal, state, and local taxes without chasing rate tables.",
+        bullets: [
+          "FICA, FUTA, SUI, and local tax handling",
+          "Automatic tax rate updates",
+          "Quarterly and annual filing workflows",
+          "Penalty protection for platform errors",
+        ],
       },
       {
-        headline: "Flexible Payment Options",
-        description: "Pay your team the way you want, when you want. From standard 2-day direct deposit to paper checks.",
-        bullets: ["2-Day Direct Deposit standard", "Off-cycle bonuses & reimbursements", "Contractor payments via check or DD", "Support for multiple bank accounts per person"]
+        headline: "Gross-to-net preview",
+        description:
+          "Spot every deduction and employer cost before money leaves your account.",
+        bullets: [
+          "Employee-level pay previews",
+          "Cash requirement summaries",
+          "Exception warnings",
+          "Audit-ready approval history",
+        ],
       },
       {
-        headline: "Deductions & Garnishments",
-        description: "Handle complex post-tax deductions easily. We completely automate child support and tax levies.",
-        bullets: ["Automated 401(k) and health deductions", "Child support garnishment routing", "Custom post-tax deductions", "Charitable contribution mapping"]
-      }
+        headline: "Multi-schedule payroll",
+        description:
+          "Run weekly, biweekly, semimonthly, monthly, and contractor cycles side by side.",
+        bullets: [
+          "Concurrent pay calendars",
+          "Off-cycle checks and bonuses",
+          "Same platform for W-2 and 1099",
+          "Pay group permissions",
+        ],
+      },
+      {
+        headline: "Deductions and garnishments",
+        description:
+          "Automate benefit deductions, retirement contributions, and wage orders.",
+        bullets: [
+          "Pre-tax and post-tax deduction rules",
+          "Child support routing",
+          "401(k) and HSA deductions",
+          "Custom repayment schedules",
+        ],
+      },
+      {
+        headline: "Year-end tax forms",
+        description:
+          "Generate, file, and distribute W-2s and 1099s from the same payroll record.",
+        bullets: [
+          "Electronic employee delivery",
+          "Federal and state copies",
+          "Correction workflows",
+          "Historical archive",
+        ],
+      },
+      {
+        headline: "Payroll accounting sync",
+        description:
+          "Push clean journal entries to your ledger with department and class mapping.",
+        bullets: [
+          "QuickBooks and Xero sync",
+          "GL mapping by earning code",
+          "Employer tax accruals",
+          "Reconciliation reports",
+        ],
+      },
     ],
-    complianceNote: "We handle FICA, FUTA, and all 50-state unemployment filings natively. When compliance laws change, our tax engine updates instantly.",
-    integrations: ["QuickBooks", "Xero", "NetSuite", "Plaid"],
+    complianceNote:
+      "We handle FICA, FUTA, federal withholding, state unemployment, new-hire reporting, and all 50-state payroll filing workflows so U.S. payroll stays current as rules change.",
+    integrations: ["QuickBooks", "Xero", "NetSuite", "Plaid", "Guideline"],
     faqs: [
-       { q: "How long does payroll Implementation take?", a: "Typically under a week! If you use our self-serve importer, you can run your first payroll in less than 24 hours." },
-       { q: "Which states do you support?", a: "CircleWorks natively supports payroll, taxes, and compliance across all 50 U.S. states and Washington D.C." },
-       { q: "Can I pay international contractors?", a: "Yes, our contractor payment engine supports global FX payouts in 150+ currencies." },
-       { q: "What happens if there is a tax error?", a: "If CircleWorks makes a tax filing error, we guarantee to cover the penalties and fines." },
-       { q: "Do you support multiple pay schedules?", a: "Absolutely. You can have weekly, bi-weekly, semi-monthly, or monthly schedules running concurrently." },
-       { q: "Are W-2s filed automatically?", a: "Yes, W-2s and 1099s are generated, filed with the government, and delivered electronically to employees every January." }
-    ]
+      {
+        q: "Which states does payroll support?",
+        a: "CircleWorks supports payroll calculations, tax payments, and filing workflows across all 50 U.S. states and Washington, D.C.",
+      },
+      {
+        q: "Can I run off-cycle payroll?",
+        a: "Yes. You can run bonuses, reimbursements, corrections, and final checks outside the normal schedule.",
+      },
+      {
+        q: "Are W-2s and 1099s automatic?",
+        a: "Yes. Year-end forms are generated from payroll history and can be distributed electronically.",
+      },
+      {
+        q: "Can contractors be paid with employees?",
+        a: "Yes. W-2 employees and 1099 contractors can be paid from the same payroll workspace.",
+      },
+      {
+        q: "Does payroll sync with accounting?",
+        a: "Yes. Journal entries can sync to QuickBooks, Xero, NetSuite, and mapped exports.",
+      },
+      {
+        q: "What happens if a tax rule changes?",
+        a: "CircleWorks updates tax logic and highlights any action you need to take before the next run.",
+      },
+    ],
   },
-  "hris": {
+  hris: {
     name: "HRIS",
     accent: "indigo",
+    mockupTab: "employees",
     hero: {
-      headline: "Your single source of truth.",
-      stat: "Secure employee records, dynamic org charts, and custom fields that adapt to your business."
+      headline: "Keep every employee record audit-ready.",
+      stat: "One secure HR source of truth for profiles, documents, org charts, and workflows.",
+      mockupStats: [
+        "100% profile coverage",
+        "Role-based access",
+        "Instant org updates",
+      ],
     },
     testimonials: [
-      { quote: "Finally, all of our employee data is in one searchable place instead of scattered across 15 spreadsheets.", author: "David Kim", role: "Head of Operations" },
-      { quote: "The dynamic org charts update instantly when someone changes roles. It's beautiful and highly functional.", author: "Jessica Albas", role: "People Ops Mgr" },
-      { quote: "Custom fields allowed us to track unique certifications for our nursing staff right inside their profile.", author: "Dr. L. Thorne", role: "Clinic Director" }
+      {
+        quote:
+          "We finally stopped asking which spreadsheet had the real employee record.",
+        author: "David Kim",
+        role: "Head of Operations",
+      },
+      {
+        quote:
+          "Org changes, documents, and compensation history now live together.",
+        author: "Jessica Alba",
+        role: "People Ops Manager",
+      },
+      {
+        quote:
+          "Custom fields let us track certifications without buying a niche system.",
+        author: "Dr. Lina Thorne",
+        role: "Clinic Director",
+      },
     ],
     howItWorks: [
-      { title: "Import Data", desc: "Easily bulk import your existing team data via CSV or direct API integrations." },
-      { title: "Customize Fields", desc: "Create fields unique to your company—like t-shirt size, dietary restrictions, or specialized skills." },
-      { title: "Empower Employees", desc: "Give employees self-service access to update personal data and download documents." }
+      {
+        title: "Import people",
+        desc: "Load employees, departments, managers, documents, and custom fields.",
+      },
+      {
+        title: "Configure access",
+        desc: "Set role-based visibility for salary, documents, personal data, and approvals.",
+      },
+      {
+        title: "Automate changes",
+        desc: "Trigger tasks when roles, managers, locations, or employment status changes.",
+      },
     ],
     features: [
       {
-        headline: "Dynamic Employee Directory",
-        description: "A beautiful, searchable directory that helps your team put names to faces and understand reporting structures.",
-        bullets: ["Visual, interactive org charts", "Rich employee profiles", "Search by department, skill, or location", "Pronouns and name pronunciation guides"]
+        headline: "Employee system of record",
+        description:
+          "Centralize job, compensation, demographic, and lifecycle data.",
+        bullets: [
+          "Rich employee profiles",
+          "Employment history timelines",
+          "Custom field library",
+          "Bulk import and export",
+        ],
       },
       {
-        headline: "Secure Document Management",
-        description: "Store confidential documents alongside employee profiles. Send, sign, and store securely.",
-        bullets: ["Built-in e-signatures", "Role-based document access", "Audit trails for compliance", "Bulk document requests"]
+        headline: "Dynamic org charts",
+        description:
+          "Keep reporting lines and team structures visible as your company changes.",
+        bullets: [
+          "Manager hierarchy sync",
+          "Department filtering",
+          "Open role placeholders",
+          "Exportable visuals",
+        ],
       },
       {
-        headline: "Automated Workflows",
-        description: "Trigger actions based on HRIS data changes. If an employee is promoted, automatically notify IT and update payroll.",
-        bullets: ["Trigger-based automations", "Promotion workflows", "Role change approvals", "Custom notification routing"]
-      }
+        headline: "Secure document vault",
+        description:
+          "Store signed documents, IDs, tax forms, and HR policies with the right permissions.",
+        bullets: [
+          "Granular document access",
+          "E-signature history",
+          "Expiration alerts",
+          "Employee self-service",
+        ],
+      },
+      {
+        headline: "Lifecycle workflows",
+        description:
+          "Automate promotions, transfers, manager changes, and terminations.",
+        bullets: [
+          "Approval routing",
+          "Task assignment",
+          "Notification rules",
+          "Audit trails",
+        ],
+      },
+      {
+        headline: "Employee self-service",
+        description:
+          "Let employees update personal details, download documents, and find teammates.",
+        bullets: [
+          "Profile updates",
+          "Emergency contacts",
+          "Document downloads",
+          "Directory search",
+        ],
+      },
+      {
+        headline: "Permission controls",
+        description:
+          "Protect sensitive fields while giving managers the context they need.",
+        bullets: [
+          "Role-based access",
+          "Field-level visibility",
+          "Admin audit logs",
+          "Manager scopes",
+        ],
+      },
     ],
-    integrations: ["Okta", "Google Workspace", "Microsoft Entra", "Slack"],
+    complianceNote:
+      "CircleWorks helps U.S. employers retain personnel records, signed policies, tax forms, and access logs in a structured, auditable HR system of record.",
+    integrations: [
+      "Okta",
+      "Google Workspace",
+      "Microsoft Entra",
+      "Slack",
+      "DocuSign",
+    ],
     faqs: [
-      { q: "Is the data encrypted?", a: "Yes, all data is encrypted at rest using AES-256 and in transit via TLS 1.3. We are SOC 2 Type II certified." },
-      { q: "Can I restrict who sees salary info?", a: "Absolutely. Our granular role-based access control (RBAC) ensures only authorized managers or HR can see compensation." },
-      { q: "Do employees get their own login?", a: "Yes, employees get self-serve portal access to view org charts, update personal info, and access paystubs." },
-      { q: "Are org charts exportable?", a: "Yes, org charts can be exported as high-res PDFs or PNGs for board presentations." },
-      { q: "Can we track equipment assigned to employees?", a: "Yes, you can create custom fields for asset tracking, entering laptop serial numbers and software licenses." },
-      { q: "Is there a limit on document storage?", a: "No! All CircleWorks plans include unlimited cloud document storage." }
-    ]
+      {
+        q: "Can employees update their own information?",
+        a: "Yes. Employees can update approved personal fields while HR controls review and visibility rules.",
+      },
+      {
+        q: "Can salary data be restricted?",
+        a: "Yes. Compensation can be hidden from managers or limited to HR, finance, and admins.",
+      },
+      {
+        q: "Does HRIS include org charts?",
+        a: "Yes. Org charts update automatically from manager relationships.",
+      },
+      {
+        q: "Can we add custom fields?",
+        a: "Yes. You can add fields for certifications, equipment, skills, preferences, or internal tracking.",
+      },
+      {
+        q: "Are documents included?",
+        a: "Yes. Employee documents can be stored, signed, and accessed from the employee profile.",
+      },
+      {
+        q: "Does HRIS connect to payroll?",
+        a: "Yes. Employment, compensation, department, and location changes can flow into payroll.",
+      },
+    ],
   },
-  "ats": {
-    name: "Hiring / ATS",
+  ats: {
+    name: "ATS",
     accent: "emerald",
+    mockupTab: "hiring",
     hero: {
-      headline: "Hire the best, faster.",
-      stat: "Cut time-to-hire by 40% with collaborative scorecards and automated interview scheduling."
+      headline: "Move candidates from applied to hired faster.",
+      stat: "Collaborative pipelines, scorecards, scheduling, offers, and handoff to onboarding.",
+      mockupStats: [
+        "40% faster hiring",
+        "100+ job boards",
+        "1-click offer handoff",
+      ],
     },
     testimonials: [
-      { quote: "Our engineering and design teams can finally collaborate on candidate feedback in real-time.", author: "Mark Zuckerberg", role: "Director of Talent" },
-      { quote: "Automated staging moved our candidate pipeline 3x faster than manual email wrangling.", author: "Priya V.", role: "Sr. Recruiter" },
-      { quote: "The branded career page took us 10 minutes to build and looks incredibly professional.", author: "Tom R.", role: "CEO" }
+      {
+        quote:
+          "Hiring managers finally submit feedback while the interview is still fresh.",
+        author: "Priya V.",
+        role: "Senior Recruiter",
+      },
+      {
+        quote: "The offer-to-onboarding handoff removed three manual steps.",
+        author: "Tom Ruiz",
+        role: "COO, StudioWorks",
+      },
+      {
+        quote: "Our careers page looks polished without involving engineering.",
+        author: "Maya Singh",
+        role: "Talent Lead",
+      },
     ],
     howItWorks: [
-      { title: "Publish Postings", desc: "Create a job requisition and push it to 100+ job boards natively." },
-      { title: "Track Pipeline", desc: "Move candidates through customizable drag-and-drop interview stages." },
-      { title: "Send Offer", desc: "Generate a beautiful e-signable offer letter pulling direct from the ATS data." }
+      {
+        title: "Publish roles",
+        desc: "Create requisitions and post jobs to your careers site and job boards.",
+      },
+      {
+        title: "Run pipeline",
+        desc: "Coordinate interviews, scorecards, feedback, and candidate communication.",
+      },
+      {
+        title: "Send offer",
+        desc: "Generate an offer, collect signature, and convert the candidate to onboarding.",
+      },
     ],
     features: [
       {
-        headline: "Branded Career Pages",
-        description: "Attract top talent with a beautiful, mobile-optimized careers page that perfectly matches your company brand.",
-        bullets: ["No-code page builder", "Custom domains supported", "Mobile-optimized forms", "Culture video embeds"]
+        headline: "Branded careers page",
+        description:
+          "Launch a polished, mobile-friendly careers site tied to your open roles.",
+        bullets: [
+          "No-code career pages",
+          "Custom job application fields",
+          "SEO-friendly postings",
+          "Referral links",
+        ],
       },
       {
-        headline: "Collaborative Interviewing",
-        description: "Keep the whole hiring team aligned. Scorecards ensure unbiased, structured interviews.",
-        bullets: ["Standardized rating scales", "Hidden feedback until submitted", "Mention/ping team members", "Automated interview reminders"]
+        headline: "Candidate pipeline boards",
+        description:
+          "Track every candidate through configurable hiring stages.",
+        bullets: [
+          "Drag-and-drop stages",
+          "Stage automation",
+          "Pipeline aging alerts",
+          "Candidate source tracking",
+        ],
       },
       {
-        headline: "Offer Staging & Background Checks",
-        description: "Seamlessly transition from 'Yes' to 'Hired'. Generate offers and kick off background checks in one click.",
-        bullets: ["Dynamic offer templates", "E-signatures built-in", "Integrated background checks via Checkr", "One-click conversion to HRIS"]
-      }
+        headline: "Structured scorecards",
+        description:
+          "Standardize interview feedback and reduce bias in hiring decisions.",
+        bullets: [
+          "Role-specific criteria",
+          "Hidden feedback until submitted",
+          "Rating scales",
+          "Debrief summaries",
+        ],
+      },
+      {
+        headline: "Interview scheduling",
+        description:
+          "Find availability across candidates and interviewers without email loops.",
+        bullets: [
+          "Calendar sync",
+          "Self-scheduling links",
+          "Panel interview support",
+          "Reminder emails",
+        ],
+      },
+      {
+        headline: "Offer management",
+        description:
+          "Create approved offers from templates and compensation bands.",
+        bullets: [
+          "Offer approvals",
+          "E-signature support",
+          "Compensation fields",
+          "Expiration tracking",
+        ],
+      },
+      {
+        headline: "New hire handoff",
+        description:
+          "Convert accepted candidates into HRIS and onboarding records instantly.",
+        bullets: [
+          "Profile creation",
+          "Manager assignment",
+          "Onboarding workflow trigger",
+          "Document carryover",
+        ],
+      },
     ],
-    integrations: ["LinkedIn", "Indeed", "Checkr", "Google Calendar"],
+    complianceNote:
+      "CircleWorks supports structured hiring records, consistent scorecards, background-check workflows, and offer approvals to help U.S. teams maintain fair hiring documentation.",
+    integrations: ["LinkedIn", "Indeed", "Checkr", "Google Calendar", "Slack"],
     faqs: [
-      { q: "Does the ATS post to external job boards?", a: "Yes, we syndicate to Indeed, LinkedIn, ZipRecruiter, and Glassdoor automatically." },
-      { q: "Can candidates apply via mobile?", a: "Yes, our application flows are fully responsive and allow resume parsing from mobile devices." },
-      { q: "How do interviewers sync calendars?", a: "We integrate directly with Google Workspace and Microsoft 365 to pull real-time availability." },
-      { q: "Can I customize the interview stages?", a: "Absolutely. You can build unique pipelines for Engineering vs. Sales vs. Support." },
-      { q: "Are background checks included?", a: "The integration is native, but background check processing fees are billed directly via our partner Checkr." },
-      { q: "How does an applicant become an employee?", a: "Once the offer is e-signed, click 'Hire' and their ATS profile automatically ports into the HRIS and Payroll systems." }
-    ]
+      {
+        q: "Can we customize hiring stages?",
+        a: "Yes. Each role can have its own pipeline, interview stages, and scorecards.",
+      },
+      {
+        q: "Does ATS post to job boards?",
+        a: "Yes. Jobs can be distributed to major boards and your branded careers page.",
+      },
+      {
+        q: "Are scorecards required?",
+        a: "They are configurable, but structured scorecards are recommended for consistent evaluation.",
+      },
+      {
+        q: "Can candidates self-schedule?",
+        a: "Yes. Candidates can choose available times from connected calendars.",
+      },
+      {
+        q: "Does ATS connect to onboarding?",
+        a: "Yes. Accepted offers can launch onboarding automatically.",
+      },
+      {
+        q: "Do you support background checks?",
+        a: "Yes. CircleWorks integrates with Checkr for background screening workflows.",
+      },
+    ],
   },
-  "onboarding": {
+  onboarding: {
     name: "Onboarding",
     accent: "purple",
+    mockupTab: "employees",
     hero: {
-      headline: "A flawless day one.",
-      stat: "Automate IT provisioning, W-4 collection, and welcome tasks so new hires hit the ground running."
+      headline: "Make every first day feel prepared.",
+      stat: "Automate paperwork, provisioning, tax forms, and manager tasks before day one.",
+      mockupStats: ["Day-one ready", "I-9 and W-4 flows", "Task automation"],
     },
     testimonials: [
-      { quote: "Our new engineers used to wait 3 days for laptop access. Now it's ready before they walk in the door.", author: "IT Manager", role: "Tech Innovators" },
-      { quote: "The automated intro emails make everyone feel so welcome. It shifted our whole culture.", author: "HR Director", role: "Retail Co." },
-      { quote: "I no longer have to chase people for their I-9 documents. The system does it for me.", author: "Compliance Officer", role: "Banking Corp" }
+      {
+        quote:
+          "New hires show up with accounts, forms, and equipment already handled.",
+        author: "Nina Patel",
+        role: "People Partner",
+      },
+      {
+        quote: "The checklist view tells every department exactly what is due.",
+        author: "Marcus Lee",
+        role: "IT Manager",
+      },
+      {
+        quote: "I stopped chasing I-9s and direct deposit forms over email.",
+        author: "Rachel Gomez",
+        role: "HR Generalist",
+      },
     ],
     howItWorks: [
-      { title: "Trigger Onboarding", desc: "Once hired in the ATS, the onboarding workflow automatically kicks off." },
-      { title: "Tasks Assigned", desc: "IT, HR, and Managers get automated checklists to prepare for the new hire." },
-      { title: "Self-Serve Welcome", desc: "The new hire logs in to complete tax forms, read handbooks, and learn about the company." }
+      {
+        title: "Trigger workflow",
+        desc: "Start onboarding from ATS, HRIS, or a manual hire record.",
+      },
+      {
+        title: "Collect tasks",
+        desc: "New hires, managers, HR, and IT get guided task lists.",
+      },
+      {
+        title: "Launch employee",
+        desc: "Completed data flows to payroll, HRIS, benefits, and documents.",
+      },
     ],
     features: [
       {
-        headline: "Automated Task Checklists",
-        description: "Ensure nothing slips through the cracks. Assign tasks to specific departments when a hire is confirmed.",
-        bullets: ["Role-based task assignment", "Automated email reminders", "IT hardware provisioning workflows", "Manager welcome prompts"]
+        headline: "Guided new-hire portal",
+        description: "Give every new hire a clear path through required tasks.",
+        bullets: [
+          "Mobile-ready task flow",
+          "Welcome content",
+          "Progress tracking",
+          "Automatic reminders",
+        ],
       },
       {
-        headline: "Digital I-9s & W-4s",
-        description: "Ditch the paper. Collect all federal and state-level tax forms digitally before their first day.",
-        bullets: ["Built-in federal W-4", "State-specific withholding forms", "Digital I-9 verification", "Secure SSN collection"]
+        headline: "Digital tax forms",
+        description:
+          "Collect W-4, state withholding, direct deposit, and policy signatures securely.",
+        bullets: [
+          "W-4 wizard",
+          "State forms",
+          "Bank setup",
+          "Signed document storage",
+        ],
       },
       {
-        headline: "Built-in E-Verify",
-        description: "Instantly confirm employment eligibility with the US Department of Homeland Security.",
-        bullets: ["Direct DHS integration", "Instant results", "Compliance audit trails", "Automated photo matching"]
-      }
+        headline: "I-9 workflow",
+        description:
+          "Guide employees and admins through required employment verification steps.",
+        bullets: [
+          "Section 1 collection",
+          "Document review checklist",
+          "Reverification alerts",
+          "Audit trail",
+        ],
+      },
+      {
+        headline: "IT provisioning tasks",
+        description:
+          "Coordinate accounts, equipment, and access before the employee starts.",
+        bullets: [
+          "Device assignment",
+          "App access tasks",
+          "Manager reminders",
+          "Due dates",
+        ],
+      },
+      {
+        headline: "Role-based templates",
+        description:
+          "Use different onboarding plans for departments, locations, or employment types.",
+        bullets: [
+          "Template library",
+          "Conditional tasks",
+          "Reusable packets",
+          "Task owners",
+        ],
+      },
+      {
+        headline: "Payroll-ready handoff",
+        description:
+          "Send complete tax, bank, job, and compensation data to payroll.",
+        bullets: [
+          "Employee profile sync",
+          "Pay schedule assignment",
+          "Document archive",
+          "Completion status",
+        ],
+      },
     ],
-    complianceNote: "CircleWorks securely stores digitized I-9 forms and integrates directly with the DHS E-Verify system to ensure you remain fully compliant with US labor laws.",
-    integrations: ["E-Verify", "Okta", "Kandji", "Slack"],
+    complianceNote:
+      "CircleWorks helps U.S. employers collect and retain onboarding documents such as I-9s, W-4s, policy acknowledgments, and employment eligibility records.",
+    integrations: ["E-Verify", "Okta", "Google Workspace", "Slack", "DocuSign"],
     faqs: [
-      { q: "Can I customize the welcome packet?", a: "Yes, you can embed welcome videos, CEO messages, and company handbooks natively." },
-      { q: "Are IT accounts created automatically?", a: "Yes, via our Okta and Google Workspace integrations, user accounts can be provisioned automatically." },
-      { q: "What is E-Verify?", a: "It's an internet-based system that compares I-9 info to government records to confirm employment eligibility." },
-      { q: "Do employees have an onboarding portal?", a: "Yes, new hires get a secure link to complete their tasks on mobile or desktop." },
-      { q: "Can we have different workflows by department?", a: "Yes! A warehouse worker can have a totally different checklist than a software engineer." },
-      { q: "Are signatures legally binding?", a: "Yes, our e-signatures comply with the US ESIGN Act." }
-    ]
+      {
+        q: "Can onboarding start from the ATS?",
+        a: "Yes. Accepted offers can automatically launch onboarding.",
+      },
+      {
+        q: "Can we customize onboarding by role?",
+        a: "Yes. Templates can vary by department, location, worker type, or manager.",
+      },
+      {
+        q: "Does it include W-4 collection?",
+        a: "Yes. New hires can complete a guided W-4 flow inside the portal.",
+      },
+      {
+        q: "Can IT tasks be assigned automatically?",
+        a: "Yes. IT, facilities, HR, and manager tasks can be assigned from templates.",
+      },
+      {
+        q: "Are signatures legally captured?",
+        a: "Yes. Signed acknowledgments are stored with timestamped records.",
+      },
+      {
+        q: "Does onboarding show admin completion status?",
+        a: "Yes. HR can see each task, owner, due date, and completion state.",
+      },
+    ],
   },
-  "benefits": {
+  benefits: {
     name: "Benefits",
     accent: "green",
+    mockupTab: "benefits",
     hero: {
-      headline: "World-class health and wealth.",
-      stat: "Offer Fortune 500 benefits to your team effortlessly with built-in broker administration."
+      headline: "Run open enrollment without the chaos.",
+      stat: "Plan shopping, dependent tracking, payroll deductions, and ACA-ready records.",
+      mockupStats: [
+        "15-min enrollment",
+        "ACA tracking",
+        "Payroll deduction sync",
+      ],
     },
     testimonials: [
-       { quote: "Open enrollment used to be a month of hell. Now our employees do it themselves in 15 minutes.", author: "Rebecca T.", role: "HR Consultant" },
-       { quote: "We finally afford competitive 401(k) matching thanks to the streamlined integrations.", author: "Stan P.", role: "CFO" },
-       { quote: "The benefits dashboard is so clear, my team actually understands what they're enrolled in.", author: "L. Knope", role: "Gov Official" }
+      {
+        quote:
+          "Open enrollment finally feels self-service for employees and controlled for HR.",
+        author: "Rebecca Turner",
+        role: "Benefits Consultant",
+      },
+      {
+        quote:
+          "Deductions sync cleanly to payroll after employees make elections.",
+        author: "Stan Park",
+        role: "CFO",
+      },
+      {
+        quote:
+          "Employees understand their plans because the comparison view is so clear.",
+        author: "Leslie K.",
+        role: "HR Director",
+      },
     ],
     howItWorks: [
-       { title: "Build Packages", desc: "Work with our brokers (or bring yours) to select medical, dental, and retirement plans." },
-       { title: "Employee Selection", desc: "Employees log in, compare plans, and enroll via an intuitive shopping-cart experience." },
-       { title: "Auto-Deductions", desc: "Premiums and 401(k) contributions automatically map to payroll deductions instantly." }
+      {
+        title: "Build plans",
+        desc: "Configure medical, dental, vision, retirement, HSA, FSA, and voluntary plans.",
+      },
+      {
+        title: "Enroll employees",
+        desc: "Employees compare options, add dependents, and submit elections.",
+      },
+      {
+        title: "Sync deductions",
+        desc: "Approved elections create payroll deductions and admin records.",
+      },
     ],
     features: [
-       {
-          headline: "Painless Open Enrollment",
-          description: "A beautiful, step-by-step wizard helps employees choose the best plans for their families.",
-          bullets: ["Side-by-side plan comparisons", "Dependent tracking", "E-signature collection", "Mobile-friendly enrollment"]
-       },
-       {
-          headline: "Bring Your Own Broker (BYOB)",
-          description: "Use CircleWorks brokers, or grant your existing broker access to manage your platform.",
-          bullets: ["Broker dashboard access", "Carrier feed integrations", "ACA compliance tracking", "Custom plan building"]
-       },
-       {
-          headline: "HSA, FSA, & Commuter",
-          description: "Easily administer tax-advantaged accounts directly through the platform.",
-          bullets: ["Pre-tax transit benefits", "Flexible Spending Accounts", "Health Savings Accounts integration", "Automated compliance checks"]
-       }
+      {
+        headline: "Open enrollment wizard",
+        description: "Guide employees through plan comparisons and elections.",
+        bullets: [
+          "Side-by-side plan cards",
+          "Dependent collection",
+          "Election review",
+          "Mobile-friendly enrollment",
+        ],
+      },
+      {
+        headline: "Payroll deduction sync",
+        description:
+          "Turn approved benefits elections into accurate payroll deductions.",
+        bullets: [
+          "Pre-tax deductions",
+          "Employer contributions",
+          "Effective-date handling",
+          "Change tracking",
+        ],
+      },
+      {
+        headline: "Broker collaboration",
+        description:
+          "Invite brokers to manage plans without exposing unrelated HR data.",
+        bullets: [
+          "Broker access",
+          "Plan setup permissions",
+          "Carrier docs",
+          "Renewal tracking",
+        ],
+      },
+      {
+        headline: "Life event workflows",
+        description:
+          "Handle qualifying life events with structured approvals and documentation.",
+        bullets: [
+          "Marriage and birth events",
+          "Document requests",
+          "Election windows",
+          "Admin approvals",
+        ],
+      },
+      {
+        headline: "ACA tracking",
+        description:
+          "Monitor eligibility, measurement periods, and required reporting data.",
+        bullets: [
+          "Full-time equivalent tracking",
+          "Eligibility alerts",
+          "1094-C and 1095-C data",
+          "Audit records",
+        ],
+      },
+      {
+        headline: "Retirement and savings",
+        description:
+          "Administer 401(k), HSA, FSA, commuter, and voluntary benefit deductions.",
+        bullets: [
+          "Contribution changes",
+          "Annual limits",
+          "Provider sync",
+          "Employee self-service",
+        ],
+      },
     ],
-    complianceNote: "We handle the heavy lifting for Affordable Care Act (ACA) compliance, automatically generating and filing 1094-C and 1095-C forms at year-end.",
-    integrations: ["Guideline 401k", "Human Interest", "BlueCross", "Kaiser Permanente"],
+    complianceNote:
+      "CircleWorks tracks ACA eligibility, benefit election records, payroll deductions, COBRA-relevant changes, and year-end 1094-C/1095-C reporting data for U.S. employers.",
+    integrations: [
+      "Guideline",
+      "Human Interest",
+      "Kaiser Permanente",
+      "BlueCross",
+      "Aetna",
+    ],
     faqs: [
-       { q: "Do I have to use your brokers?", a: "No, you can bring your own broker. We provide them a partner portal to administer your plans." },
-       { q: "Does benefits billing map to payroll?", a: "Yes, whatever an employee selects during enrollment perfectly maps to a pre-tax or post-tax deduction in payroll." },
-       { q: "Can we offer an HSA?", a: "Yes, HSAs and FSAs are fully supported." },
-       { q: "How is ACA compliance handled?", a: "We monitor your full-time equivalent (FTE) count and automatically generate the necessary 1094/1095 forms for the IRS." },
-       { q: "Do you support life insurance?", a: "Yes, both employer-sponsored and voluntary supplementary life insurance plans are supported." },
-       { q: "Can employees access their ID cards?", a: "Yes, employees can upload photos of their digital ID cards directly into their self-serve wallet." }
-    ]
+      {
+        q: "Can we bring our own broker?",
+        a: "Yes. Your broker can be invited into CircleWorks with scoped permissions.",
+      },
+      {
+        q: "Do benefits sync with payroll?",
+        a: "Yes. Employee elections create payroll deductions based on effective dates.",
+      },
+      {
+        q: "Can employees compare plans?",
+        a: "Yes. Employees can review plan costs, coverage details, and dependents before enrolling.",
+      },
+      {
+        q: "Does CircleWorks track ACA?",
+        a: "Yes. Eligibility and reporting data can be tracked for ACA workflows.",
+      },
+      {
+        q: "Are life events supported?",
+        a: "Yes. Qualifying life event workflows can request documents and route approvals.",
+      },
+      {
+        q: "Do you support retirement benefits?",
+        a: "Yes. 401(k), HSA, FSA, commuter, and voluntary benefits can be administered.",
+      },
+    ],
   },
-  "time-tracking": {
-    name: "Time & Scheduling",
+  time: {
+    name: "Time",
     accent: "orange",
+    mockupTab: "dashboard",
     hero: {
-      headline: "Track every hour precisely.",
-      stat: "Eliminate buddy-punching and timesheet math errors with geo-fenced mobile clock-ins."
+      headline: "Track time, PTO, and overtime before payroll runs.",
+      stat: "Clock-ins, schedules, approvals, and PTO accruals that sync directly to payroll.",
+      mockupStats: [
+        "Geo-fenced punches",
+        "Overtime alerts",
+        "PTO accrual engine",
+      ],
     },
     testimonials: [
-       { quote: "The geo-fencing feature ensured our contractors were actually on the job site when they clocked in.", author: "Foreman Dan", role: "Construction Inc." },
-       { quote: "Timesheets route directly to payroll. It saved us thousands in manual entry errors.", author: "Retail Manager", role: "Coffee Shop" },
-       { quote: "Employees love the app. Requesting time off takes two taps.", author: "Sarah W.", role: "Operations" }
+      {
+        quote:
+          "Managers approve timesheets once and payroll gets the clean data.",
+        author: "Dana Brooks",
+        role: "Retail Operations",
+      },
+      {
+        quote: "Geo-fenced punches solved our field-team time disputes.",
+        author: "Omar Diaz",
+        role: "Construction Controller",
+      },
+      {
+        quote: "PTO balances finally match what employees see in the portal.",
+        author: "Sarah Wu",
+        role: "People Ops",
+      },
     ],
     howItWorks: [
-       { title: "Schedule Shifts", desc: "Drag and drop shifts for your team. Publish instantly to their mobile apps." },
-       { title: "Clock In/Out", desc: "Employees use their phone, a kiosk, or Slack to punch in." },
-       { title: "Sync to Pay", desc: "Managers approve timesheets, and hours sync to payroll automatically." }
+      {
+        title: "Schedule shifts",
+        desc: "Build schedules, publish shifts, and alert employees.",
+      },
+      {
+        title: "Capture time",
+        desc: "Employees clock in by mobile, kiosk, or web with location rules.",
+      },
+      {
+        title: "Approve payroll",
+        desc: "Managers approve timesheets and hours flow into payroll.",
+      },
     ],
     features: [
-       {
-          headline: "Geo-Fenced Clock Ins",
-          description: "Ensure employees are securely at the job site before they can punch the clock.",
-          bullets: ["GPS location stamping", "IP address restrictions", "Photo capture on clock-in (Kiosk Mode)", "Hardware terminal integrations"]
-       },
-       {
-          headline: "Drag & Drop Scheduling",
-          description: "Visually build out weekly shifts. Get alerts for overlapping schedules and overtime risks.",
-          bullets: ["Shift swapping by employees", "Labor cost forecasting", "Overtime risk alerts", "Publish shifts via SMS"]
-       },
-       {
-          headline: "Time Off (PTO) Engine",
-          description: "Create unlimited custom policies. Accruals calculate automatically every pay period.",
-          bullets: ["Tenure-based accrual rules", "Manager approval workflows", "Shared company out-of-office calendar", "Negative balance limits"]
-       }
+      {
+        headline: "Mobile time clock",
+        description:
+          "Capture accurate punches from the field, office, or kiosk.",
+        bullets: [
+          "Mobile clock-in",
+          "Kiosk mode",
+          "Photo capture options",
+          "Offline-friendly flows",
+        ],
+      },
+      {
+        headline: "Geo-fencing and rules",
+        description: "Control where and when employees can clock in.",
+        bullets: [
+          "Location boundaries",
+          "IP restrictions",
+          "Missed punch alerts",
+          "Manager overrides",
+        ],
+      },
+      {
+        headline: "Scheduling",
+        description: "Plan shifts while watching coverage and labor cost.",
+        bullets: [
+          "Drag-and-drop shifts",
+          "Shift swaps",
+          "Publish notifications",
+          "Coverage warnings",
+        ],
+      },
+      {
+        headline: "Overtime detection",
+        description: "Spot overtime risk before it becomes a payroll surprise.",
+        bullets: [
+          "FLSA overtime",
+          "Daily overtime rules",
+          "Break compliance prompts",
+          "Cost forecasting",
+        ],
+      },
+      {
+        headline: "PTO accrual engine",
+        description: "Create policies that calculate balances automatically.",
+        bullets: [
+          "Tenure-based accruals",
+          "Caps and carryover",
+          "Approval routing",
+          "Shared calendars",
+        ],
+      },
+      {
+        headline: "Payroll sync",
+        description:
+          "Approved hours, PTO, and job codes transfer directly into payroll.",
+        bullets: [
+          "Earnings code mapping",
+          "Project and job costing",
+          "Manager approval locks",
+          "Exception reports",
+        ],
+      },
     ],
-    integrations: ["Slack", "Google Calendar", "Square Point of Sale", "Linear"],
+    complianceNote:
+      "CircleWorks supports U.S. wage-and-hour workflows, including FLSA overtime calculations, break prompts, timesheet approvals, and auditable punch history.",
+    integrations: [
+      "Slack",
+      "Google Calendar",
+      "Square",
+      "QuickBooks",
+      "Microsoft Teams",
+    ],
     faqs: [
-       { q: "Can employees clock in via SMS?", a: "Yes, employees without smartphones can clock in/out via simple SMS codes." },
-       { q: "How do PTO accruals work?", a: "You define the policy (e.g., 4 hours per pay period, capping at 80). The system does the math silently." },
-       { q: "Can we track time to specific projects?", a: "Yes, employees can select a specific Job or Project code when clocking in for detailed cost reporting." },
-       { q: "Is overtime calculated automatically?", a: "Yes. The system automatically adheres to FLSA standards and state-specific daily overtime laws (like California's)." },
-       { q: "Can we use a physical time clock?", a: "Yes, you can run our 'Kiosk' app on any iPad mounted to a wall to act as a physical punch clock." },
-       { q: "Do managers get alerts for missed punches?", a: "Yes, managers get push notifications if someone is late or forgets to clock out." }
-    ]
+      {
+        q: "Can employees clock in from phones?",
+        a: "Yes. Employees can clock in from mobile, web, or kiosk depending on your rules.",
+      },
+      {
+        q: "Does Time sync to payroll?",
+        a: "Yes. Approved hours and PTO flow directly into payroll runs.",
+      },
+      {
+        q: "Can we prevent off-site clock-ins?",
+        a: "Yes. Geo-fencing and IP rules can restrict punches.",
+      },
+      {
+        q: "Does it calculate overtime?",
+        a: "Yes. Overtime alerts and calculations can be configured for federal and state rules.",
+      },
+      {
+        q: "Are PTO policies customizable?",
+        a: "Yes. Accruals, caps, waiting periods, and approvals are configurable.",
+      },
+      {
+        q: "Can time be tracked by job?",
+        a: "Yes. Employees can select job, project, department, or location codes.",
+      },
+    ],
   },
-  "expenses": {
+  expenses: {
     name: "Expenses",
     accent: "rose",
+    mockupTab: "dashboard",
     hero: {
-      headline: "Reimburse faster than ever.",
-      stat: "Cut expense processing time by 80% with OCR receipt scanning and direct-to-payroll repayment."
+      headline: "Reimburse approved expenses on the next paycheck.",
+      stat: "Receipt capture, policy checks, approvals, and payroll reimbursement in one workflow.",
+      mockupStats: [
+        "OCR receipts",
+        "Policy guardrails",
+        "Payroll reimbursement",
+      ],
     },
     testimonials: [
-       { quote: "Expense reports used to be a nightmare of stapled receipts. Now it's a quick photo on a phone.", author: "Sales Rep", role: "Field Ops" },
-       { quote: "Paying reimbursements directly on the paycheck is brilliant. Employees get money faster, accounting does less work.", author: "CFO", role: "Logistics LLC" },
-       { quote: "The policy enforcement meant I didn't have to argue over a $100 dinner that breached our $50 limit.", author: "Finance Mgr", role: "Tech Co" }
+      {
+        quote:
+          "Employees submit receipts from their phone and finance gets clean categories.",
+        author: "Maya Lee",
+        role: "Finance Manager",
+      },
+      {
+        quote:
+          "Payroll reimbursement removed a separate check run every month.",
+        author: "Chris Nolan",
+        role: "Controller",
+      },
+      {
+        quote: "Policy alerts made expense conversations much easier.",
+        author: "Elena Park",
+        role: "COO",
+      },
     ],
     howItWorks: [
-       { title: "Snap a Photo", desc: "Employees take a picture of their receipt using the CircleWorks mobile app." },
-       { title: "AI Extraction", desc: "Our OCR instantly extracts the merchant, date, amount, and suggests a category." },
-       { title: "Manager Approval", desc: "Managers approve the expense, and it's automatically added to the next payroll run." }
+      {
+        title: "Capture receipt",
+        desc: "Employees upload a receipt and CircleWorks extracts the key details.",
+      },
+      {
+        title: "Approve expense",
+        desc: "Policies flag issues and route expenses to the right manager.",
+      },
+      {
+        title: "Reimburse",
+        desc: "Approved reimbursements sync to payroll and accounting.",
+      },
     ],
     features: [
-       {
-          headline: "OCR Receipt Scanning",
-          description: "No more manual data entry. Our AI reads the receipt and fills out the expense line accurately.",
-          bullets: ["Multi-currency support", "Itemized receipt splitting", "Auto-category matching", "Mobile app native flow"]
-       },
-       {
-          headline: "Automated Policy Rules",
-          description: "Set hard limits to prevent out-of-policy spending before it even reaches a manager.",
-          bullets: ["Per diem limits", "Category-specific hard caps", "Required receipt thresholds", "Flagged duplicate detection"]
-       },
-       {
-          headline: "Payroll Integration",
-          description: "Forget cutting separate checks for expenses. Approved totals are automatically added to the employee's next direct deposit as non-taxable income.",
-          bullets: ["Non-taxable addition to payroll", "Instant ledger syncing via Xero/QBO", "Fast-track immediate reimbursement option", "Clean audit trails"]
-       }
+      {
+        headline: "Receipt OCR",
+        description:
+          "Extract merchant, date, amount, and category from uploaded receipts.",
+        bullets: [
+          "Mobile receipt capture",
+          "Auto-filled fields",
+          "Duplicate detection",
+          "Multi-currency support",
+        ],
+      },
+      {
+        headline: "Policy enforcement",
+        description:
+          "Flag spending issues before they become reimbursement problems.",
+        bullets: [
+          "Category limits",
+          "Receipt thresholds",
+          "Per diem rules",
+          "Duplicate warnings",
+        ],
+      },
+      {
+        headline: "Approval routing",
+        description:
+          "Route expenses by employee, department, project, or amount.",
+        bullets: [
+          "Manager approvals",
+          "Finance review",
+          "Escalation rules",
+          "Comment history",
+        ],
+      },
+      {
+        headline: "Payroll reimbursement",
+        description:
+          "Add approved reimbursements to payroll as non-taxable payments.",
+        bullets: [
+          "Non-taxable earning codes",
+          "Next-run inclusion",
+          "Immediate payout option",
+          "Employee visibility",
+        ],
+      },
+      {
+        headline: "Corporate card sync",
+        description:
+          "Match card transactions to submitted receipts and approvals.",
+        bullets: [
+          "Ramp and Brex sync",
+          "Missing receipt reminders",
+          "Merchant matching",
+          "Cardholder summaries",
+        ],
+      },
+      {
+        headline: "Accounting exports",
+        description:
+          "Send approved expenses to your accounting system with clean coding.",
+        bullets: [
+          "GL categories",
+          "Department coding",
+          "Project coding",
+          "Audit reports",
+        ],
+      },
     ],
-    integrations: ["Ramp", "Brex", "Expensify", "QuickBooks"],
+    complianceNote:
+      "CircleWorks keeps receipt records, approval history, reimbursement classification, and accountable-plan documentation organized for U.S. expense substantiation.",
+    integrations: ["Ramp", "Brex", "Expensify", "QuickBooks", "Xero"],
     faqs: [
-       { q: "Do expenses affect payroll taxes?", a: "No, approved reimbursements map directly to a non-taxable addition code in the payroll engine." },
-       { q: "Can we issue corporate cards?", a: "While we don't issue cards natively, we integrate directly with Ramp and Brex to sync corporate card swiping." },
-       { q: "Does the system catch duplicate receipts?", a: "Yes, our OCR compares date, merchant, and amount to flag potential duplicate submissions." },
-       { q: "Can approvals be routed by department?", a: "Yes, you can set rules so Marketing expenses go to the CMO, and Engineering to the CTO." },
-       { q: "What currencies are supported?", a: "Receipts can be scanned in over 150 currencies and will auto-convert based on the day's exchange rate." },
-       { q: "Do employees have to wait for the payroll cycle?", a: "Managers can optionally flag an expense for 'Immediate Payout' which initiates an ACH transfer right away." }
-    ]
+      {
+        q: "Are reimbursements taxable?",
+        a: "Approved business reimbursements can be mapped as non-taxable payroll payments when they meet accountable-plan rules.",
+      },
+      {
+        q: "Can expenses be approved by managers?",
+        a: "Yes. Approvals can route by department, amount, project, or employee.",
+      },
+      {
+        q: "Does OCR read receipts?",
+        a: "Yes. Receipt OCR extracts common fields and flags missing details.",
+      },
+      {
+        q: "Can expenses sync to accounting?",
+        a: "Yes. Approved expenses can export to accounting with GL and department coding.",
+      },
+      {
+        q: "Can we enforce spending limits?",
+        a: "Yes. Policy rules can flag or block out-of-policy submissions.",
+      },
+      {
+        q: "Do you support corporate cards?",
+        a: "CircleWorks integrates with card platforms such as Ramp and Brex.",
+      },
+    ],
   },
-  "performance": {
-    name: "Performance & Learning",
+  performance: {
+    name: "Performance",
     accent: "cyan",
+    mockupTab: "dashboard",
     hero: {
-      headline: "Scale growth and feedback.",
-      stat: "Build a high-performance culture with continuous 1-on-1s, 360° reviews, and goal tracking."
+      headline: "Turn feedback into measurable growth.",
+      stat: "Goals, reviews, 1:1s, learning, and compensation context in one performance system.",
+      mockupStats: ["360 reviews", "OKR tracking", "Learning assignments"],
     },
     testimonials: [
-       { quote: "Performance reviews are actually meaningful now, not just a stressful annual checklist.", author: "VP Engineering", role: "SaaS Firm" },
-       { quote: "OKRs are finally visible to the whole company. Alignment has never been better.", author: "CEO", role: "Growth Stage Startup" },
-       { quote: "The LMS helps us ensure every rep is certified on our new products automatically.", author: "Sales Enablement", role: "B2B Corp" }
+      {
+        quote:
+          "Managers now have a rhythm for feedback instead of scrambling once a year.",
+        author: "Amara Hill",
+        role: "VP Engineering",
+      },
+      {
+        quote:
+          "OKR visibility helped every department see what mattered this quarter.",
+        author: "Jon Bell",
+        role: "CEO",
+      },
+      {
+        quote:
+          "Training completion and reviews finally connect to the same employee profile.",
+        author: "Clara Evans",
+        role: "Enablement Lead",
+      },
     ],
     howItWorks: [
-       { title: "Set Goals", desc: "Establish company OKRs and cascade them down to department and individual levels." },
-       { title: "Track Continuously", desc: "Managers and direct reports use shared agendas for weekly 1-on-1 check-ins." },
-       { title: "Review & Reward", desc: "Run bi-annual 360° reviews that tie directly into compensation modeling." }
+      {
+        title: "Set goals",
+        desc: "Create company, team, and individual goals with measurable outcomes.",
+      },
+      {
+        title: "Coach often",
+        desc: "Use 1:1s, feedback, learning assignments, and check-ins throughout the cycle.",
+      },
+      {
+        title: "Review fairly",
+        desc: "Run structured reviews with calibration and compensation context.",
+      },
     ],
     features: [
-       {
-          headline: "Strategic OKRs & Goals",
-          description: "Everyone knows what they are working toward. Track qualitative and quantitative goals transparently.",
-          bullets: ["Company, Department, & Individual goals", "Visual progress tracking", "Integrates with Slack for updates", "Status risk flags"]
-       },
-       {
-          headline: "Dynamic 360° Reviews",
-          description: "Run comprehensive performance cycles without the administrative headache. Collect peer, manager, and self-reviews.",
-          bullets: ["Customizable questionnaires", "Automated reviewer nomination", "Calibration 9-box grids", "Manager summary reports"]
-       },
-       {
-          headline: "Integrated LMS",
-          description: "Upload videos, SCORM files, and quizzes to ensure continuous upskilling.",
-          bullets: ["Course builder", "Compliance training tracking", "Certification expirations", "Reporting on course completion"]
-       }
+      {
+        headline: "OKRs and goals",
+        description: "Connect individual work to company priorities.",
+        bullets: [
+          "Company OKRs",
+          "Team goals",
+          "Progress updates",
+          "Risk indicators",
+        ],
+      },
+      {
+        headline: "1:1 workspaces",
+        description:
+          "Give managers and employees shared agendas and follow-ups.",
+        bullets: [
+          "Recurring agendas",
+          "Action items",
+          "Private notes",
+          "Manager prompts",
+        ],
+      },
+      {
+        headline: "360 review cycles",
+        description:
+          "Collect structured feedback from managers, peers, and employees.",
+        bullets: [
+          "Custom templates",
+          "Reviewer nominations",
+          "Rating scales",
+          "Submission tracking",
+        ],
+      },
+      {
+        headline: "Calibration",
+        description:
+          "Compare review outcomes and reduce bias before decisions are final.",
+        bullets: [
+          "9-box views",
+          "Score distributions",
+          "Manager summaries",
+          "Calibration notes",
+        ],
+      },
+      {
+        headline: "Learning assignments",
+        description:
+          "Assign training based on role, compliance requirements, or growth goals.",
+        bullets: [
+          "Course library",
+          "Due dates",
+          "Completion tracking",
+          "Certification records",
+        ],
+      },
+      {
+        headline: "Compensation context",
+        description:
+          "Connect performance outcomes to raise and bonus planning.",
+        bullets: [
+          "Review history",
+          "Goal completion",
+          "Compensation bands",
+          "Promotion notes",
+        ],
+      },
     ],
-    integrations: ["Lattice", "CultureAmp", "Slack", "Microsoft Teams"],
+    complianceNote:
+      "CircleWorks keeps performance decisions, training completion, feedback records, and compensation context documented for consistent U.S. employment practices.",
+    integrations: [
+      "Slack",
+      "Microsoft Teams",
+      "Google Calendar",
+      "CultureAmp",
+      "Lattice",
+    ],
     faqs: [
-       { q: "Can we customize the review questions?", a: "Yes, you can build entirely custom templates using rating scales, short answers, or multiple choice." },
-       { q: "Are reviews anonymous?", a: "You can configure peer reviews to be fully attributed, completely anonymous, or visible only to the manager." },
-       { q: "How do 1-on-1s work?", a: "Managers and employees get a shared digital notepad to collaboratively build an agenda before the meeting." },
-       { q: "Can we tie performance to pay?", a: "Yes, performance scores flow directly into our Compensation Modeling tool to help calculate raises and bonuses." },
-       { q: "Does the LMS support video?", a: "Yes, you can natively host MP4s or embed YouTube/Vimeo links for training courses." },
-       { q: "Do you provide anti-harassment training?", a: "Yes, our Compliance module includes pre-built, state-certified anti-harassment training courses." }
-    ]
+      {
+        q: "Can review templates be customized?",
+        a: "Yes. You can build custom templates with ratings, questions, and manager summaries.",
+      },
+      {
+        q: "Are peer reviews anonymous?",
+        a: "They can be anonymous, attributed, or manager-visible depending on the cycle settings.",
+      },
+      {
+        q: "Can goals cascade by department?",
+        a: "Yes. Company OKRs can cascade to departments, teams, and individuals.",
+      },
+      {
+        q: "Does Performance include learning?",
+        a: "Yes. Courses and certifications can be assigned and tracked.",
+      },
+      {
+        q: "Can reviews inform compensation?",
+        a: "Yes. Performance data can be referenced in compensation planning.",
+      },
+      {
+        q: "Do managers get reminders?",
+        a: "Yes. CircleWorks reminds managers about check-ins, review deadlines, and overdue actions.",
+      },
+    ],
   },
-  "compliance": {
+  compliance: {
     name: "Compliance",
     accent: "red",
+    mockupTab: "compliance",
     hero: {
-      headline: "Stay entirely legal in all 50 states.",
-      stat: "Prevent costly fines with automatic labor law updates, state registrations, and proactive alerts."
+      headline: "Stay compliant across every U.S. state.",
+      stat: "Labor law alerts, payroll registrations, I-9s, ACA, EEO, posters, and audit trails.",
+      mockupStats: [
+        "50-state alerts",
+        "Audit-ready records",
+        "Automated filings",
+      ],
     },
     testimonials: [
-       { quote: "I used to lose sleep over state tax registrations when we opened new offices. Now CircleWorks just handles it.", author: "Founder", role: "Tech Start-up" },
-       { quote: "The automated EEO-1 reporting saved us two weeks of data pulling.", author: "HR Director", role: "Manufacturing" },
-       { quote: "Digital labor law posters mean we don't have to mail physical bulletin boards to our remote workers.", author: "People Ops", role: "Remote-First Agency" }
+      {
+        quote:
+          "The state registration workflow saved us from a painful new-market mistake.",
+        author: "Henry Walsh",
+        role: "Founder",
+      },
+      {
+        quote:
+          "EEO and ACA data is already structured when reporting season arrives.",
+        author: "Monica Reyes",
+        role: "HR Director",
+      },
+      {
+        quote:
+          "Remote labor law posters are finally handled for our distributed team.",
+        author: "Paige Turner",
+        role: "People Ops",
+      },
     ],
     howItWorks: [
-       { title: "We Monitor", desc: "Our internal team of compliance experts and algorithms monitor federal, state, and local law changes." },
-       { title: "You Get Alerted", desc: "If a minimum wage increases in a city where you have an employee, you get an instant dashboard alert." },
-       { title: "Automatic Updates", desc: "Payroll taxes and required filings adjust automatically in the background." }
+      {
+        title: "Monitor rules",
+        desc: "CircleWorks tracks federal, state, and local employment changes.",
+      },
+      {
+        title: "Surface actions",
+        desc: "Admins see alerts, blockers, and required filings in context.",
+      },
+      {
+        title: "Keep records",
+        desc: "Completion evidence and audit trails stay connected to employees and payroll.",
+      },
     ],
     features: [
-       {
-          headline: "State Tax Registration",
-          description: "Hiring in a new state? We automatically file the paperwork to register you with the state's Department of Revenue and Labor.",
-          bullets: ["Automated UI/SUI account creation", "Power of Attorney handling", "Local tax jurisdiction mapping", "Status tracking dashboard"]
-       },
-       {
-          headline: "Automated Reporting (ACA / EEO)",
-          description: "End-of-year compliance forms are stressful. We generate and electronically file them for you.",
-          bullets: ["ACA 1094-C and 1095-C filing", "EEO-1 diversity data reports", "New hire reporting to state agencies", "Workers Comp audit reports"]
-       },
-       {
-          headline: "Minimum Wage & Poster Monitoring",
-          description: "Keep your remote and in-office teams compliant with local labor protections.",
-          bullets: ["City/State minimum wage alerts", "Digital labor law e-posters", "Automated harassment training assignments", "Compliance sign-off tracking"]
-       }
+      {
+        headline: "State registration workflows",
+        description:
+          "Know when hiring in a new state requires tax or labor setup.",
+        bullets: [
+          "UI and SUI tracking",
+          "Agency account status",
+          "POA reminders",
+          "New state alerts",
+        ],
+      },
+      {
+        headline: "I-9 and document retention",
+        description:
+          "Keep employment eligibility records structured and accessible.",
+        bullets: [
+          "I-9 task status",
+          "Document review trail",
+          "Reverification alerts",
+          "Secure storage",
+        ],
+      },
+      {
+        headline: "ACA reporting readiness",
+        description:
+          "Track full-time status, coverage offers, and reporting fields.",
+        bullets: [
+          "FTE calculations",
+          "Eligibility periods",
+          "1094-C/1095-C data",
+          "Coverage records",
+        ],
+      },
+      {
+        headline: "EEO and workforce reports",
+        description:
+          "Prepare workforce demographics and headcount data for required reporting.",
+        bullets: [
+          "Demographic summaries",
+          "Department rollups",
+          "Exportable reports",
+          "Audit notes",
+        ],
+      },
+      {
+        headline: "Labor law posters",
+        description:
+          "Deliver required notices for onsite, hybrid, and remote employees.",
+        bullets: [
+          "Digital poster acknowledgments",
+          "Location-specific notices",
+          "Update alerts",
+          "Employee sign-off",
+        ],
+      },
+      {
+        headline: "Compliance dashboard",
+        description:
+          "Track required actions, overdue items, and risk areas in one place.",
+        bullets: [
+          "Risk severity",
+          "Task owners",
+          "Due dates",
+          "Completion evidence",
+        ],
+      },
     ],
-    complianceNote: "CircleWorks acts as your compliance shield across the United States. We actively monitor the Department of Labor (DOL) and all 50 state agencies.",
-    integrations: ["EEO-1 Portal", "State Agencies", "IRS FIRE System", "E-Verify"],
+    complianceNote:
+      "CircleWorks monitors U.S. employment compliance workflows including payroll registrations, I-9 retention, ACA reporting data, EEO preparation, required notices, and wage-and-hour alerts.",
+    integrations: ["E-Verify", "IRS", "State Agencies", "EEOC", "Slack"],
     faqs: [
-       { q: "Do you automatically register us in new states?", a: "Yes, if you enter an address in a state you aren't registered in, our backend automatically initiates the UI/SUI registration process." },
-       { q: "Do you provide labor law posters?", a: "Yes, we provide digital e-posters for remote workers via the portal, and can ship physical posters to your offices." },
-       { q: "What is EEO-1 reporting?", a: "Firms with 100+ employees must report workforce demographics to the EEOC. We auto-generate the exact data file you need to upload." },
-       { q: "Does the system catch minimum wage violations?", a: "Yes. If an hourly rate falls below a local municipal minimum wage, payroll will flag a hard blocker until corrected." },
-       { q: "Can you handle local / city taxes?", a: "Yes, we support highly complex local taxes including NYC, Yonkers, Ohio localities, and PA locals." },
-       { q: "What if there is a penalty?", a: "If our system calculates a tax wrong or misses an automated filing deadline, we pay the penalty." }
-    ]
+      {
+        q: "Does Compliance replace legal counsel?",
+        a: "No. CircleWorks organizes workflows and alerts, but employers should consult counsel for legal advice.",
+      },
+      {
+        q: "Can CircleWorks help with new state setup?",
+        a: "Yes. It tracks state registration steps and required payroll agency setup.",
+      },
+      {
+        q: "Are labor law posters supported?",
+        a: "Yes. Digital notices and employee acknowledgments can be managed by location.",
+      },
+      {
+        q: "Does it track I-9 status?",
+        a: "Yes. I-9 completion, review, retention, and reverification workflows are supported.",
+      },
+      {
+        q: "Can we prepare ACA reporting?",
+        a: "Yes. CircleWorks tracks the data needed for ACA reporting workflows.",
+      },
+      {
+        q: "Are compliance tasks auditable?",
+        a: "Yes. Task history, owners, due dates, and completion evidence are retained.",
+      },
+    ],
   },
-  "reporting": {
+  analytics: {
     name: "Analytics",
     accent: "fuchsia",
+    mockupTab: "dashboard",
     hero: {
-      headline: "Decisive board-ready insights.",
-      stat: "Turn raw HR and payroll data into clear visualizations, forecasting, and actionable intelligence."
+      headline: "Make workforce decisions with live payroll and HR data.",
+      stat: "Headcount, burn, hiring, diversity, pay equity, overtime, and retention dashboards.",
+      mockupStats: [
+        "Board-ready reports",
+        "Forecasting",
+        "Pay equity insights",
+      ],
     },
     testimonials: [
-       { quote: "For the first time, our CFO and HR teams are looking at the exact same numbers for headcount cost.", author: "President", role: "Financial Services" },
-       { quote: "The attrition prediction model helped us identify a flight risk in engineering before they quit.", author: "Talent Director", role: "Software Inc." },
-       { quote: "Exporting clean, formatted reports directly to PDF for board meetings saves me hours.", author: "COO", role: "Healthcare Network" }
+      {
+        quote:
+          "Finance and HR finally agree on headcount cost because the source data is shared.",
+        author: "Dana Fox",
+        role: "CFO",
+      },
+      {
+        quote: "Our board pack now takes minutes, not a full Friday.",
+        author: "Iris Morgan",
+        role: "Chief of Staff",
+      },
+      {
+        quote:
+          "Pay equity views helped us catch comp drift before review season.",
+        author: "Leo Grant",
+        role: "People Analytics",
+      },
     ],
     howItWorks: [
-       { title: "Data Aggregates", desc: "Payroll, time, performance, and HRIS data perfectly unify in the analytics engine natively." },
-       { title: "Select a Report", desc: "Choose from 40+ pre-built templates or drag-and-drop your own metrics." },
-       { title: "Export & Share", desc: "Schedule reports to hit your inbox weekly, or export directly to CSV and PDF." }
+      {
+        title: "Unify data",
+        desc: "Payroll, HRIS, ATS, time, benefits, and performance data connect automatically.",
+      },
+      {
+        title: "Choose insights",
+        desc: "Use prebuilt dashboards or build custom reports by role.",
+      },
+      {
+        title: "Share action",
+        desc: "Schedule reports, export files, and assign follow-up actions.",
+      },
     ],
     features: [
-       {
-          headline: "Headcount & Burn Forecasting",
-          description: "See exactly how much revenue you are spending on payroll and project costs into the next quarters.",
-          bullets: ["Fully-loaded cost modeling (taxes + benefits)", "Department-level burn rates", "Turnover rate trending", "Hiring plan forecasting"]
-       },
-       {
-          headline: "Custom Dashboard Builder",
-          description: "Don't settle for static charts. Build your own dashboards and pin the metrics that matter most.",
-          bullets: ["Drag-and-drop UI charts", "Cross-module data joining", "Saved custom reports to library", "Role-based Dashboard sharing"]
-       },
-       {
-          headline: "Diversity & Pay Equity",
-          description: "Proactively monitor your workforce fairness. Detect unconscious biases in compensation.",
-          bullets: ["Gender & ethnicity pay parity checks", "Promotion velocity analytics", "EEO-1 demographic breakdowns", "Age distribution visualizations"]
-       }
+      {
+        headline: "Headcount planning",
+        description: "Forecast team growth and fully loaded employee cost.",
+        bullets: [
+          "Open role planning",
+          "Department rollups",
+          "Salary and tax load",
+          "Scenario modeling",
+        ],
+      },
+      {
+        headline: "Payroll cost analytics",
+        description:
+          "Understand payroll spend by department, location, earning type, and trend.",
+        bullets: [
+          "Gross pay trends",
+          "Employer tax views",
+          "Benefits load",
+          "Variance reports",
+        ],
+      },
+      {
+        headline: "Hiring funnel analytics",
+        description:
+          "Measure recruiting speed, bottlenecks, and source quality.",
+        bullets: [
+          "Time-to-hire",
+          "Stage conversion",
+          "Source attribution",
+          "Offer acceptance",
+        ],
+      },
+      {
+        headline: "Pay equity insights",
+        description:
+          "Review compensation consistency across roles, levels, departments, and demographics.",
+        bullets: [
+          "Band comparisons",
+          "Outlier detection",
+          "Promotion velocity",
+          "Exportable findings",
+        ],
+      },
+      {
+        headline: "Retention and engagement",
+        description:
+          "Spot risk patterns using tenure, manager changes, performance, and compensation data.",
+        bullets: [
+          "Attrition trends",
+          "Tenure cohorts",
+          "Manager rollups",
+          "Risk indicators",
+        ],
+      },
+      {
+        headline: "Custom report builder",
+        description:
+          "Create reusable dashboards and exports for executives, finance, and HR.",
+        bullets: [
+          "Drag-and-drop metrics",
+          "Saved views",
+          "Scheduled emails",
+          "CSV and PDF exports",
+        ],
+      },
     ],
-    integrations: ["Tableau", "Snowflake", "PowerBI", "Looker"],
+    complianceNote:
+      "CircleWorks analytics supports U.S. reporting needs by keeping workforce, payroll, demographic, and compensation data structured for audits, pay equity reviews, ACA, and EEO workflows.",
+    integrations: [
+      "Tableau",
+      "Power BI",
+      "Looker",
+      "Snowflake",
+      "Google Sheets",
+    ],
     faqs: [
-       { q: "Can I export reports to Excel?", a: "Yes, every single report can be exported instantly to CSV or a formatted Excel file." },
-       { q: "Can I schedule reports to be emailed?", a: "Absolutely. You can set a \"Weekly Overtime Risk\" report to email department heads every Friday at 8am." },
-       { q: "Can the CEO have a dashboard without payroll access?", a: "Yes, granular permissions allow you to show cost aggregates without revealing individual salaries." },
-       { q: "Do you have an API for data warehouses?", a: "Yes, Enterprise customers can utilize our GraphQL API or direct Snowflake sharing to pipe data internally." },
-       { q: "What kind of 'AI Insights' do you offer?", a: "Our models look for anomalies, such as an unusually high spike in engineering overtime, or predicting flight-risk employees based on tenure and pay freezes." },
-       { q: "Can we track time-to-hire?", a: "Yes, the ATS module feeds directly into Analytics, providing rich insights into recruiting bottlenecks and time-to-hire metrics." }
-    ]
-  }
+      {
+        q: "Can dashboards be customized?",
+        a: "Yes. Admins can build and save custom dashboard views.",
+      },
+      {
+        q: "Can reports be scheduled?",
+        a: "Yes. Reports can be emailed on a recurring schedule.",
+      },
+      {
+        q: "Does Analytics include payroll cost?",
+        a: "Yes. Payroll, employer taxes, benefits, and headcount costs can be analyzed together.",
+      },
+      {
+        q: "Can data export to BI tools?",
+        a: "Yes. Exports and integrations support downstream BI workflows.",
+      },
+      {
+        q: "Can managers have limited dashboards?",
+        a: "Yes. Permissions control which teams and fields a manager can see.",
+      },
+      {
+        q: "Does Analytics support pay equity work?",
+        a: "Yes. Compensation views help identify outliers and prepare review conversations.",
+      },
+    ],
+  },
 };

@@ -26,6 +26,23 @@ export interface NotificationItem {
   metadata?: Record<string, any>;
 }
 
+function getDefaultNotificationLink(type: NotificationCategory) {
+  const links: Record<NotificationCategory, string> = {
+    ALL: "/dashboard",
+    PAYROLL: "/payroll",
+    HR: "/employees",
+    APPROVALS: "/time/approvals",
+    ATS: "/hiring",
+    ONBOARDING: "/onboarding",
+    BENEFITS: "/benefits",
+    COMPLIANCE: "/compliance/dashboard",
+    SYSTEM: "/settings/integrations",
+    INFO: "/dashboard",
+  };
+
+  return links[type] ?? "/dashboard";
+}
+
 interface NotificationState {
   notifications: NotificationItem[];
   unreadCount: number;
@@ -110,7 +127,7 @@ const generateMockNotifications = (): NotificationItem[] => {
     timestamp: subHours(item.h),
     isRead: item.read,
     status: item.status,
-    link: "#"
+    link: getDefaultNotificationLink(item.type as NotificationCategory)
   }));
 
   // Sort them so recent comes first, though h logic already does that.

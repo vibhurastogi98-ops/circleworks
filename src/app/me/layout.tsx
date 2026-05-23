@@ -2,9 +2,32 @@
 import React from "react";
 import EmployeeSidebar from "@/components/EmployeeSidebar";
 import EmployeeTopBar from "@/components/EmployeeTopBar";
+import { useAuth } from "@/context/AuthContext";
 
 
 export default function EmployeePortalLayout({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded } = useAuth();
+  const isBlocked = isLoaded && user && user.role.toLowerCase() !== "employee";
+
+  if (isBlocked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 dark:bg-[#0B1120]">
+        <div className="max-w-md rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            Employee portal
+          </p>
+          <h1 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+            Employee access required
+          </h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            This self-service portal is only available to users with the
+            EMPLOYEE role.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     
       <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">

@@ -26,6 +26,7 @@ function PaystubDownloadButton({ type = "PDF" }: { type?: "PDF" | "ZIP" }) {
 
 export default function PaystubsPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = React.use(params);
+  const [search, setSearch] = useState("");
   const stubs = [
     {
       name: "Jordan Brown",
@@ -49,6 +50,7 @@ export default function PaystubsPage({ params }: { params: Promise<{ runId: stri
       deductions: [{ description: "EWA Repayment", amount: "$325.00" }],
     },
   ];
+  const filteredStubs = stubs.filter((stub) => stub.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="flex flex-col gap-6 pb-24">
@@ -67,11 +69,17 @@ export default function PaystubsPage({ params }: { params: Promise<{ runId: stri
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 shadow-sm p-6 mt-4">
         <div className="relative mb-6 max-w-sm">
            <Search className="absolute left-3 top-3 text-slate-400" size={18}/>
-           <input type="text" placeholder="Search employees..." className="w-full pl-10 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" />
+           <input
+             type="text"
+             placeholder="Search employees..."
+             value={search}
+             onChange={(event) => setSearch(event.target.value)}
+             className="w-full pl-10 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+           />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {stubs.map(s => (
+          {filteredStubs.map(s => (
              <div key={s.name} className="flex flex-col gap-4 p-4 border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-md transition-all group">
                <div className="flex justify-between items-start">
                  <div>

@@ -621,6 +621,7 @@ const publicApiPrefixes = [
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
   "/api/contact",
+  "/api/cookie-consent",
   "/api/templates",
   "/api/webinars",
   "/api/partners/apply",

@@ -10,7 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { ALERTS, AlertItem, AlertSeverity } from "@/data/dashboard";
+import { type AlertItem, type AlertSeverity } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 
 const SEVERITY_STYLES: Record<

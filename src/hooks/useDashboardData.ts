@@ -1,112 +1,131 @@
-
 import { useQuery } from "@tanstack/react-query";
-import { 
-  KPI_CARDS, 
-  ALERTS, 
-  PAYROLL_TREND, 
-  QUICK_ACTIONS, 
-  NEW_HIRES, 
-  TEAM_CALENDAR, 
+import {
   ACTIVITY_FEED,
+  ALERTS,
+  CURRENT_USER,
+  KPI_CARDS,
+  NEW_HIRES,
   NEXT_PAYROLL,
-  NewHire
+  PAYROLL_TREND,
+  QUICK_ACTIONS,
+  TEAM_CALENDAR,
+  type ActivityEvent,
+  type AlertItem,
+  type CalendarDay,
+  type KpiCard,
+  type NewHire,
+  type PayrollMonth,
+  type QuickAction,
 } from "@/data/dashboard";
+import { useDashboardRealtimeStore } from "@/store/useDashboardRealtimeStore";
 
-export function useDashboardData() {
-  // Guest Mode: Hardcoded user data
-  const user = {
-    firstName: "Admin",
-    lastName: "User",
-    publicMetadata: { companyName: "CircleWorks Demo", hasData: true, companyLogoUrl: "" }
+export type DashboardData = {
+  currentUser: {
+    firstName: string;
+    lastName: string;
+    companyName: string;
+    logoUrl?: string;
   };
-  const isLoaded = true;
+  nextPayroll: typeof NEXT_PAYROLL;
+  kpiCards: KpiCard[];
+  alerts: AlertItem[];
+  payrollTrend: PayrollMonth[];
+  quickActions: QuickAction[];
+  newHires: NewHire[];
+  teamCalendar: CalendarDay[];
+  activityFeed: ActivityEvent[];
+  isNewUser: boolean;
+};
 
-  // 1. Fetch Dashboard Stats
-  const { data: liveStats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/dashboard/stats", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    staleTime: 60 * 1000, // Cache for 60 seconds
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    enabled: true,
-  });
+function readSignupProgress() {
+  if (typeof window === "undefined") return null;
 
-  const signupProgress = typeof window !== 'undefined' ? localStorage.getItem("circleworks_signup_progress") : null;
-  const localCompanyName = signupProgress ? JSON.parse(signupProgress)?.companyName : null;
-  const localLogoUrl = signupProgress ? JSON.parse(signupProgress)?.logoUrl : null;
-  const clerkCompanyName = user?.publicMetadata?.companyName as string | undefined;
-  const clerkLogoUrl = user?.publicMetadata?.companyLogoUrl as string | undefined;
-  const displayCompanyName = clerkCompanyName || localCompanyName || "Your Company";
-  const displayLogoUrl = clerkLogoUrl || localLogoUrl;
-
-  if (!isLoaded || statsLoading) {
-    return {
-      isLoading: true,
-      currentUser: { firstName: "...", lastName: "", companyName: displayCompanyName, logoUrl: displayLogoUrl },
-      nextPayroll: { date: "---", daysAway: 0, estimatedTotal: 0, employeeCount: 0 },
-      kpiCards: KPI_CARDS.map(card => ({ ...card, value: "---", trend: 0, trendLabel: "...", sparklineData: [] })),
-      isNewUser: false,
-      alerts: [], payrollTrend: [], quickActions: [], newHires: [], teamCalendar: [], activityFeed: [],
-    };
+  try {
+    const raw = localStorage.getItem("circleworks_signup_progress");
+    return raw ? JSON.parse(raw) as { companyName?: string; logoUrl?: string } : null;
+  } catch {
+    return null;
   }
+}
 
-  const clerkHasData = !!user?.publicMetadata?.hasData;
-  const showMocks = clerkHasData || (typeof window !== 'undefined' && window.location.search.includes("mock=true"));
-  const isEmpty = !showMocks;
+async function fetchDashboardData(): Promise<Partial<DashboardData> | null> {
+  const res = await fetch("/api/dashboard/stats", { credentials: "include" });
+  if (!res.ok) return null;
+  return res.json();
+}
 
-  // 2. DYNAMIC OVERRIDES
-  const liveKpiCards = KPI_CARDS.map(card => {
-    if (card.id === "total-employees" && liveStats?.totalEmployees !== undefined) {
-      return { ...card, value: liveStats.totalEmployees.toString() };
-    }
-    if (card.id === "monthly-payroll" && liveStats?.monthlyPayroll !== undefined) {
-      const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(liveStats.monthlyPayroll);
-      return { ...card, value: formatted };
-    }
-    if (card.id === "pending-approvals" && liveStats?.pendingApprovals !== undefined) {
-      return { ...card, value: liveStats.pendingApprovals.toString() };
-    }
-    return card;
-  });
-
-  const liveNewHires = (clerkHasData && liveStats?.recentHires) ? liveStats.recentHires : (isEmpty ? [] : NEW_HIRES);
+function applyLiveStats(data: DashboardData, liveStats: Partial<DashboardData> | null): DashboardData {
+  if (!liveStats) return data;
 
   return {
-    isLoading: false,
-    isNewUser: isEmpty,
+    ...data,
+    nextPayroll: liveStats.nextPayroll ?? data.nextPayroll,
+    kpiCards: liveStats.kpiCards ?? data.kpiCards,
+    alerts: liveStats.alerts ?? data.alerts,
+    payrollTrend: liveStats.payrollTrend ?? data.payrollTrend,
+    quickActions: liveStats.quickActions ?? data.quickActions,
+    newHires: liveStats.newHires ?? data.newHires,
+    teamCalendar: liveStats.teamCalendar ?? data.teamCalendar,
+    activityFeed: liveStats.activityFeed ?? data.activityFeed,
+  };
+}
+
+export function useDashboardData() {
+  const { employeeDelta, notificationDelta } = useDashboardRealtimeStore();
+
+  const signupProgress = readSignupProgress();
+  const companyName = signupProgress?.companyName || "CircleWorks Demo";
+  const logoUrl = signupProgress?.logoUrl || "";
+
+  const fallbackData: DashboardData = {
     currentUser: {
-      firstName: user?.firstName || "Welcome",
-      lastName: user?.lastName || "",
-      companyName: displayCompanyName,
-      logoUrl: displayLogoUrl,
+      firstName: CURRENT_USER.firstName,
+      lastName: CURRENT_USER.lastName,
+      companyName,
+      logoUrl,
     },
-    nextPayroll: isEmpty ? { date: "Pending Setup", daysAway: 0, estimatedTotal: 0, employeeCount: 0 } : NEXT_PAYROLL,
-    kpiCards: isEmpty ? KPI_CARDS.map(card => ({
-      ...card,
-      value: card.format === "score" ? "100" : (card.format === "currency" ? "$0" : "0"),
-      trend: 0, trendLabel: "No historical data",
-      sparklineData: [0, 0, 0, 0, 0, 0, 0],
-      scoreColor: "green" as const,
-    })) : liveKpiCards,
-    alerts: isEmpty ? [{
-      id: "alert-new-1", severity: "info" as const, title: "Complete your company setup",
-      description: "Add your first employee to run your first payroll.",
-      action: "/employees/new", actionLabel: "Add Employee",
-    }] : ALERTS,
-    payrollTrend: isEmpty ? PAYROLL_TREND.map(p => ({ ...p, gross: 0, taxes: 0, benefits: 0 })) : PAYROLL_TREND,
-    quickActions: isEmpty ? [] : QUICK_ACTIONS,
-    newHires: liveNewHires as NewHire[],
-    teamCalendar: isEmpty ? [
-      { day: "Mon", date: 6, events: [] },
-      { day: "Tue", date: 7, isToday: true, events: [] },
-      { day: "Wed", date: 8, events: [] },
-      { day: "Thu", date: 9, events: [] },
-      { day: "Fri", date: 10, events: [] },
-    ] : TEAM_CALENDAR,
-    activityFeed: isEmpty ? [] : ACTIVITY_FEED,
+    nextPayroll: NEXT_PAYROLL,
+    kpiCards: KPI_CARDS,
+    alerts: ALERTS,
+    payrollTrend: PAYROLL_TREND,
+    quickActions: QUICK_ACTIONS,
+    newHires: NEW_HIRES,
+    teamCalendar: TEAM_CALENDAR,
+    activityFeed: ACTIVITY_FEED,
+    isNewUser: false,
+  };
+
+  const { data: liveStats, isLoading } = useQuery({
+    queryKey: ["dashboard", "admin"],
+    queryFn: fetchDashboardData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const data = applyLiveStats(fallbackData, liveStats ?? null);
+  const totalEmployees = Number(data.kpiCards.find((card) => card.id === "total-employees")?.value ?? 0);
+  const pendingApprovals = Number(data.kpiCards.find((card) => card.id === "pending-approvals")?.value ?? 0);
+
+  return {
+    ...data,
+    isLoading,
+    kpiCards: data.kpiCards.map((card) => {
+      if (card.id === "total-employees") {
+        return {
+          ...card,
+          value: String(totalEmployees + employeeDelta),
+          trendLabel: employeeDelta > 0 ? `+${employeeDelta} live employee update` : card.trendLabel,
+        };
+      }
+      if (card.id === "pending-approvals" && notificationDelta > 0) {
+        return {
+          ...card,
+          value: String(pendingApprovals + notificationDelta),
+          trendLabel: `${pendingApprovals + notificationDelta} open approvals`,
+        };
+      }
+      return card;
+    }),
   };
 }

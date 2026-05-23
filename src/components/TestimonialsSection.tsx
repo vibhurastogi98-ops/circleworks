@@ -1,237 +1,248 @@
 "use client";
 
-import React, { useState } from "react";
-import { Star, Quote, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Quote, Star } from "lucide-react";
 
-// --- Mock Data ---
-
-const FEATURED_QUOTES = [
+const featuredTestimonials = [
   {
-    quote: "We manage 40+ contractors and 12 full-time staff across 6 states. CircleWorks is the first platform that handles both without breaking a sweat.",
+    quote: "CircleWorks gave our HR and finance teams one calm place to run payroll, onboard employees, and stay compliant across multiple states. We went from days of manual work to a clean weekly workflow.",
     name: "Jordan Mills",
-    title: "Head of Ops",
-    company: "Hype House Studios",
+    title: "VP of Operations",
+    company: "Northstar Supply Co.",
+    logo: "N",
   },
   {
-    quote: "Our creator talent payouts used to take 3 days. Now we run the whole thing in 20 minutes. Our creators are happier, and so are we.",
-    name: "Priya Sethi",
-    title: "Founder",
-    company: "Collabs Agency",
+    quote: "The biggest win is confidence. Payroll, direct deposit, tax forms, and onboarding all stay in sync, so our managers can focus on people instead of chasing spreadsheets.",
+    name: "Alyssa Grant",
+    title: "Head of People",
+    company: "Summit Ridge Health",
+    logo: "S",
   },
   {
-    quote: "CircleWorks replaced our payroll service, benefits broker, and HRIS — and costs less than what we paid for just one of those. Perfect for our company.",
-    name: "Marcus Osei",
-    title: "CEO",
-    company: "Creator Co.",
-  }
+    quote: "CircleWorks replaced three separate systems for us. Our employees get a better self-service experience, and our back office finally has reliable reporting.",
+    name: "Marcus Reed",
+    title: "Chief Financial Officer",
+    company: "Harborline Logistics",
+    logo: "H",
+  },
 ];
 
-const GRID_QUOTES = [
+const gridTestimonials = [
   {
-    quote: "1099 compliance for our creator roster was keeping me up at night. CircleWorks flags issues before we run payroll. Total lifesaver for our agency.",
-    name: "Rachel Kim",
+    quote: "We run payroll for hourly and salaried teams in five states. CircleWorks made the entire process faster and much easier to audit.",
+    name: "Priya Shah",
+    role: "Controller",
+    company: "Blue Oak Dental",
+  },
+  {
+    quote: "Employee onboarding used to mean a long checklist across email, payroll, and docs. Now new hires have one clear path from offer to first paycheck.",
+    name: "Daniel Brooks",
+    role: "People Operations Manager",
+    company: "Lakefront Brands",
+  },
+  {
+    quote: "The employee portal is simple enough that our team actually uses it. Time off, documents, payment details, and profile updates are all in one place.",
+    name: "Maya Henderson",
+    role: "HR Director",
+    company: "CedarWorks Manufacturing",
+  },
+  {
+    quote: "CircleWorks gives our leadership team live visibility into payroll cost and headcount without asking finance to pull another custom report.",
+    name: "Owen Parker",
     role: "COO",
-    company: "Talent Lane"
+    company: "BrightPath Services",
   },
   {
-    quote: "We onboard new creator contractors every week across our company. Contracts, payments, tax forms — done in minutes.",
-    name: "Tom Nakamura",
-    role: "Producer",
-    company: "Studio Zero"
+    quote: "We needed something built for a modern distributed company. Multi-state compliance and employee self-service were ready from day one.",
+    name: "Elena Torres",
+    role: "Founder",
+    company: "Mesa Cloud",
   },
   {
-    quote: "Finally a platform that understands creators, agencies, and companies equally. W-2 and 1099 in one place. Absolute game changer.",
-    name: "Sofia Reyes",
-    role: "Talent Director",
-    company: "Reach Collective"
-  }
+    quote: "Implementation was refreshingly direct. We moved employee data, set up payroll, and started onboarding new team members without a huge consulting project.",
+    name: "Ben Caldwell",
+    role: "Finance Lead",
+    company: "Redwood Field Co.",
+  },
 ];
 
-const PLATFORMS = [
-  { name: "G2", color: "text-orange-500", rating: "4.8/5", reviews: 342, desc: "High Performer 2025" },
-  { name: "Capterra", color: "text-blue-500", rating: "4.9/5", reviews: 120, desc: "Best Ease of Use" },
-  { name: "Trustpilot", color: "text-emerald-500", rating: "4.7/5", reviews: 450, desc: "Excellent Rating" }
+const platforms = [
+  { name: "G2", rating: "4.8/5", count: "Based on 342 reviews", color: "bg-orange-500" },
+  { name: "Capterra", rating: "4.9/5", count: "Based on 342 reviews", color: "bg-blue-500" },
+  { name: "Trustpilot", rating: "4.7/5", count: "Based on 342 reviews", color: "bg-emerald-500" },
 ];
 
-// --- Utilities ---
-
-const getCompanyColor = (name: string) => {
+function companyColor(name: string) {
   const colors = [
-    "bg-rose-500", "bg-blue-500", "bg-emerald-500", 
-    "bg-amber-500", "bg-purple-500", "bg-cyan-500", 
-    "bg-indigo-500", "bg-teal-500"
+    "bg-blue-600",
+    "bg-emerald-600",
+    "bg-rose-600",
+    "bg-amber-600",
+    "bg-indigo-600",
+    "bg-cyan-600",
+    "bg-slate-700",
+    "bg-violet-600",
   ];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let index = 0; index < name.length; index += 1) {
+    hash = name.charCodeAt(index) + ((hash << 5) - hash);
   }
   return colors[Math.abs(hash) % colors.length];
-};
+}
 
-const StarRating = () => (
-  <div className="flex items-center gap-1">
-    {[...Array(5)].map((_, i) => (
-      <Star key={i} size={16} fill="currentColor" className="text-yellow-400" />
-    ))}
-  </div>
-);
+function Stars({ size = 16 }: { size?: number }) {
+  return (
+    <div className="flex items-center gap-1" aria-label="5 star rating">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <Star key={index} size={size} className="fill-yellow-400 text-yellow-400" />
+      ))}
+    </div>
+  );
+}
 
-// --- Component ---
-
-export default function TestimonialsSection() {
-  const [featuredIdx, setFeaturedIdx] = useState(0);
-
-  const handleNext = () => {
-    setFeaturedIdx((prev) => (prev + 1) % FEATURED_QUOTES.length);
-  };
-
-  const handlePrev = () => {
-    setFeaturedIdx((prev) => (prev - 1 + FEATURED_QUOTES.length) % FEATURED_QUOTES.length);
-  };
-
-  const currentFeatured = FEATURED_QUOTES[featuredIdx];
+function PersonAvatar({ name, size = "h-12 w-12" }: { name: string; size?: string }) {
+  const initials = name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2);
 
   return (
-    <section className="bg-slate-50 py-24 w-full border-t border-slate-200">
-      <div className="max-w-[1200px] mx-auto px-6 lg:px-8">
-        
-        {/* HEADER */}
-        <div className="text-center mb-16">
-          <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 tracking-tight">
-            What Creators, Agencies & Companies Say
+    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white shadow-sm`}>
+      {initials}
+    </div>
+  );
+}
+
+function CompanyBadge({ company }: { company: string }) {
+  return (
+    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">
+      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white ${companyColor(company)}`}>
+        {company[0]}
+      </span>
+      <span className="truncate text-xs font-bold text-slate-700">{company}</span>
+    </div>
+  );
+}
+
+export function TestimonialsSection() {
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const featured = featuredTestimonials[featuredIndex];
+
+  const featuredAvatar = useMemo(() => (
+    <PersonAvatar name={featured.name} />
+  ), [featured.name]);
+
+  return (
+    <section className="bg-gray-50 py-24">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <header className="mb-14 text-center">
+          <h2 className="text-[40px] font-bold leading-tight tracking-tight text-gray-900">
+            What USA companies say
           </h2>
-        </div>
+        </header>
 
-        {/* FEATURED TESTIMONIAL (No Auto-play) */}
-        <div className="max-w-4xl mx-auto flex flex-col items-center relative z-10 mb-24">
-          
-          {/* Giant Quote Icon Decorator */}
-          <div className="absolute -top-12 -left-4 md:-left-12 z-0">
-            <Quote size={120} className="fill-blue-600/10 text-transparent" />
-          </div>
+        <div className="mx-auto mb-20 max-w-3xl text-center">
+          <div className="relative px-4 py-6">
+            <Quote
+              size={120}
+              className="pointer-events-none absolute -left-5 -top-8 z-0 fill-blue-600 text-blue-600 opacity-20"
+              aria-hidden="true"
+            />
 
-          <div className="relative z-10 flex flex-col items-center text-center px-4 md:px-12 w-full min-h-[220px]">
-            <StarRating />
-
-            {/* Transition Wrapper */}
-            <div key={featuredIdx} className="animate-in fade-in slide-in-from-bottom-2 duration-500 flex flex-col items-center w-full mt-6">
-              
-              <blockquote className="text-[20px] md:text-[24px] text-slate-900 font-medium leading-relaxed max-w-3xl mb-8">
-                &ldquo;{currentFeatured.quote}&rdquo;
+            <div className="relative z-10 flex flex-col items-center">
+              <Stars size={20} />
+              <blockquote className="mt-6 whitespace-pre-line text-[24px] font-medium leading-relaxed text-gray-900">
+                &ldquo;{featured.quote}&rdquo;
               </blockquote>
-              
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-[18px] border-2 border-white shadow-sm overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url('https://ui-avatars.com/api/?name=${currentFeatured.name.replace(" ", "+")}&background=random&color=fff&size=48')` }} />
-                
-                <div className="flex flex-col sm:items-start items-center">
-                  <span className="font-bold text-slate-900">{currentFeatured.name}</span>
-                  <div className="text-[14px] text-slate-500 flex items-center gap-2">
-                    {currentFeatured.title} 
-                    <span className="hidden sm:block">&middot;</span>
-                    <span className="font-semibold text-slate-700 flex items-center gap-1">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white ${getCompanyColor(currentFeatured.company)}`}>
-                        {currentFeatured.company.charAt(0)}
-                      </div>
-                      {currentFeatured.company}
-                    </span>
+
+              <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:text-left">
+                {featuredAvatar}
+                <div>
+                  <div className="text-sm font-bold text-gray-900">{featured.name}</div>
+                  <div className="text-sm text-gray-600">
+                    {featured.title} · {featured.company}
                   </div>
                 </div>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-black text-white ${companyColor(featured.company)}`}>
+                  {featured.logo}
+                </div>
               </div>
-
             </div>
           </div>
 
-          {/* Manual Carousel Controls */}
-          <div className="flex items-center gap-4 mt-10">
-            <button 
-              onClick={handlePrev}
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors"
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setFeaturedIndex((index) => (index - 1 + featuredTestimonials.length) % featuredTestimonials.length)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:text-blue-600"
+              aria-label="Previous testimonial"
             >
               <ChevronLeft size={20} />
             </button>
-            <div className="flex gap-1.5">
-              {FEATURED_QUOTES.map((_, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => setFeaturedIdx(i)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${featuredIdx === i ? "bg-blue-600 w-6" : "bg-slate-300 hover:bg-slate-400"}`}
+            <div className="flex items-center gap-2">
+              {featuredTestimonials.map((item, index) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => setFeaturedIndex(index)}
+                  className={`h-2 rounded-full transition-all ${index === featuredIndex ? "w-7 bg-blue-600" : "w-2 bg-slate-300 hover:bg-slate-400"}`}
+                  aria-label={`Show testimonial ${index + 1}`}
                 />
               ))}
             </div>
-            <button 
-              onClick={handleNext}
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors"
+            <button
+              type="button"
+              onClick={() => setFeaturedIndex((index) => (index + 1) % featuredTestimonials.length)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:text-blue-600"
+              aria-label="Next testimonial"
             >
               <ChevronRight size={20} />
             </button>
           </div>
         </div>
 
-        {/* TESTIMONIAL GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
-          {GRID_QUOTES.map((card, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-              
-              <div className="flex flex-col gap-4">
-                <StarRating />
-                <p className="text-[16px] text-slate-700 leading-relaxed line-clamp-4 min-h-[96px]">
-                  &quot;{card.quote}&quot;
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 mt-8 border-t border-slate-100 pt-5">
-                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-500 text-[14px] border border-white shadow-sm bg-cover bg-center" style={{ backgroundImage: `url('https://ui-avatars.com/api/?name=${card.name.replace(" ", "+")}&background=random&color=fff&size=40')` }} />
-                
-                <div className="flex flex-col flex-1 overflow-hidden">
-                  <span className="font-bold text-slate-900 text-[14px] truncate">{card.name}</span>
-                  <div className="text-[12px] text-slate-500 truncate">{card.role}</div>
-                </div>
-                
-                {/* Company Badge */}
-                <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200 ml-auto whitespace-nowrap">
-                  <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-black text-white ${getCompanyColor(card.company)}`}>
-                    {card.company.charAt(0)}
+        <div className="mb-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {gridTestimonials.map((testimonial) => (
+            <article key={`${testimonial.name}-${testimonial.company}`} className="rounded-xl bg-white p-6 shadow-sm">
+              <Stars />
+              <p className="mt-4 line-clamp-4 min-h-[96px] text-[16px] leading-6 text-gray-700">
+                &ldquo;{testimonial.quote}&rdquo;
+              </p>
+              <div className="mt-6 flex items-center gap-3">
+                <PersonAvatar name={testimonial.name} size="h-10 w-10" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-gray-900">{testimonial.name}</div>
+                  <div className="truncate text-xs text-gray-500">
+                    {testimonial.role} · {testimonial.company}
                   </div>
-                  <span className="text-[11px] font-bold text-slate-600">{card.company}</span>
                 </div>
               </div>
-
-            </div>
+              <div className="mt-4">
+                <CompanyBadge company={testimonial.company} />
+              </div>
+            </article>
           ))}
         </div>
 
-        {/* REVIEW PLATFORMS ROW */}
-        <div className="flex flex-wrap items-center justify-center gap-6 lg:gap-12 pt-12 border-t border-slate-200">
-          {PLATFORMS.map((platform) => (
-            <div key={platform.name} className="flex flex-col items-center sm:flex-row gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm w-full sm:w-auto">
-              
-              {/* Fake Platform Logo Wrapper */}
-              <div className={`text-[24px] font-black tracking-tighter w-[100px] text-center ${platform.color} flex items-center justify-center gap-1`}>
-                <CheckCircle size={20} className="fill-current text-white border border-current rounded-full p-[2px]" />
-                {platform.name}
+        <div className="flex flex-col items-stretch justify-center gap-4 border-t border-slate-200 pt-10 sm:flex-row sm:flex-wrap">
+          {platforms.map((platform) => (
+            <div key={platform.name} className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-black text-white ${platform.color}`}>
+                {platform.name[0]}
               </div>
-
-              <div className="w-px h-10 bg-slate-200 hidden sm:block" />
-
-              <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-slate-900 text-[18px]">{platform.rating}</span>
-                  <div className="flex items-center">
-                     {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={14} fill="currentColor" className={platform.color.replace('text-', 'text-').replace('-500', '-400')} />
-                     ))}
-                  </div>
+              <div>
+                <div className="text-sm font-black text-gray-900">
+                  {platform.name} <span className="font-bold text-slate-600">{platform.rating}</span>
                 </div>
-                <div className="text-[12px] text-slate-500 font-medium mt-0.5">
-                  {platform.desc} &middot; Based on {platform.reviews} reviews
-                </div>
+                <div className="text-xs font-medium text-slate-500">{platform.count}</div>
               </div>
-
             </div>
           ))}
         </div>
-
       </div>
     </section>
   );
 }
+
+export default TestimonialsSection;

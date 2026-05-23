@@ -3,7 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Heart, Shield, Eye as EyeIcon, Wallet, PiggyBank, Umbrella, Users, AlertTriangle } from "lucide-react";
-import { mockBenefitCards, mockDependents } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -20,6 +20,9 @@ const typeColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function BenefitsPage() {
+  const { data } = useEmployeeSelfService();
+  const canMakeChanges = false;
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -29,16 +32,31 @@ export default function BenefitsPage() {
         </div>
         <button
           onClick={() => toast("Open enrollment begins on November 1", { icon: <Heart className="w-4 h-4 text-rose-500" /> })}
-          className="h-10 px-5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[13px] font-bold flex items-center gap-2 cursor-not-allowed opacity-60 w-fit"
-          disabled
+          className={`h-10 px-5 rounded-lg text-[13px] font-bold flex items-center gap-2 w-fit ${
+            canMakeChanges
+              ? "bg-violet-600 text-white hover:bg-violet-700"
+              : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-60"
+          }`}
+          disabled={!canMakeChanges}
         >
           Make Changes (Open Enrollment Only)
         </button>
       </div>
 
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/10">
+        <div className="flex items-start gap-2">
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-[13px] font-medium text-amber-800 dark:text-amber-300">
+            COBRA notice: You are currently active and enrolled. COBRA election
+            materials will appear here if coverage continuation becomes
+            applicable.
+          </p>
+        </div>
+      </div>
+
       {/* Benefit Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {mockBenefitCards.map((card, i) => {
+        {data.benefits.map((card, i) => {
           const Icon = typeIcons[card.type] || Heart;
           const colors = typeColors[card.type] || typeColors.Medical;
           return (
@@ -115,7 +133,7 @@ export default function BenefitsPage() {
           <Users size={16} className="text-violet-500" /> Dependents
         </h2>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
-          {mockDependents.map((dep, i) => (
+          {data.dependents.map((dep, i) => (
             <div key={i} className="px-4 py-3 flex items-center gap-4">
               <div className="w-9 h-9 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-600 dark:text-violet-400 text-[13px] font-bold">
                 {dep.name.charAt(0)}

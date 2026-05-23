@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   DollarSign,
-  Clock,
   Receipt,
   CreditCard,
   FileText,
@@ -14,14 +13,15 @@ import {
   AlertCircle,
   ChevronRight,
   Megaphone,
-  Gift,
   Plane,
   Thermometer,
   User as UserIcon,
-  Timer,
 } from "lucide-react";
 
-import { useEmployeePortal } from "@/hooks/useEmployeePortal";
+import {
+  useEmployeePortal,
+  useEmployeeSelfService,
+} from "@/hooks/useEmployeePortal";
 import {
   mockPtoBalances,
   mockPendingTasks,
@@ -37,21 +37,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
 const quickActions = [
-  {
-    label: "Clock In/Out",
-    icon: Timer,
-    href: "/me/time",
-    color:
-      "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
-  },
   {
     label: "Request Time Off",
     icon: Plane,
@@ -125,6 +111,7 @@ type EmployeeAnnouncement = {
 };
 
 function AnnouncementsWidget() {
+  const { data: portalData } = useEmployeeSelfService();
   const [announcements, setAnnouncements] = useState<EmployeeAnnouncement[]>(
     [],
   );
@@ -201,6 +188,25 @@ function AnnouncementsWidget() {
     setSelectedAnn(announcement);
   };
 
+  const fallbackAnnouncements = useMemo<EmployeeAnnouncement[]>(
+    () =>
+      (portalData?.announcements ?? []).map((announcement, index) => ({
+        id: index + 1,
+        title: announcement.title,
+        body: announcement.preview,
+        createdAt: announcement.date,
+        publishAt: announcement.date,
+        isPinned: index === 0,
+        isRead: true,
+        isUnread: false,
+        priority: "Normal",
+        attachments: [],
+      })),
+    [portalData?.announcements],
+  );
+  const displayAnnouncements =
+    announcements.length > 0 ? announcements : fallbackAnnouncements;
+
   return (
     <>
       <div>
@@ -208,12 +214,12 @@ function AnnouncementsWidget() {
           <Megaphone size={16} className="text-blue-500" /> Recent Announcements
         </h2>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
-          {announcements.length === 0 ? (
+          {displayAnnouncements.length === 0 ? (
             <div className="px-4 py-6 text-center text-slate-500 text-sm">
               No announcements at this time.
             </div>
           ) : (
-            announcements.map((ann) => (
+            displayAnnouncements.map((ann) => (
               <button
                 key={ann.id}
                 onClick={() => handleOpen(ann)}
@@ -339,7 +345,7 @@ export default function EmployeeHomePage() {
   // Guest Mode: Mock user data
   const user = { firstName: "Guest", lastName: "Employee" };
 
-  const { data, isLoading, error } = useEmployeePortal();
+  const { data } = useEmployeePortal();
 
   const profile = data?.profile;
   const payStubs = data?.payStubs?.length ? data.payStubs : mockPayStubs;
@@ -358,9 +364,7 @@ export default function EmployeeHomePage() {
       >
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9zdmc+')] opacity-40" />
         <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            {getGreeting()}, {firstName}! 👋
-          </h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Hi {firstName}!</h1>
           <p className="mt-2 text-white/80 text-[15px]">
             Next paycheck:{" "}
             <span className="font-bold text-white">
@@ -386,7 +390,7 @@ export default function EmployeeHomePage() {
         <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((action, i) => (
             <motion.div
               key={action.label}

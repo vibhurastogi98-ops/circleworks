@@ -82,9 +82,9 @@ export default function PerformanceTab() {
                   <p className="font-bold text-slate-900 dark:text-white">No active goals found</p>
                   <p className="text-xs text-slate-500 mt-1 max-w-[200px]">Strategic objectives for this period haven't been assigned or created yet.</p>
                </div>
-               <button className="mt-2 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-all shadow-sm">
-                  Create First Goal
-               </button>
+               <p className="mt-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Manage goals in Performance
+               </p>
             </div>
 
             <div className="mt-8 pt-4 border-t border-slate-50 dark:border-slate-800 text-[10px] font-bold uppercase tracking-widest text-center text-slate-400">

@@ -1,113 +1,239 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { Users2, Link2, Copy, Share2, DollarSign, Clock, CheckCircle2, XCircle, Briefcase, Gift, ExternalLink } from "lucide-react";
-import { mockReferralData } from "@/data/mockEmployeePortal";
+import {
+  BadgeDollarSign,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Mail,
+  Send,
+  Share2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
-const statusStyles: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
-  Applied: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-600 dark:text-blue-400", icon: Briefcase },
-  Interviewing: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-600 dark:text-amber-400", icon: Clock },
-  Hired: { bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
-  Rejected: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400", icon: XCircle },
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
+
+const statusStyles: Record<
+  string,
+  { classes: string; icon: React.ElementType }
+> = {
+  Invited: {
+    classes:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    icon: Send,
+  },
+  "Signed Up": {
+    classes: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300",
+    icon: CheckCircle2,
+  },
+  "First Payroll Pending": {
+    classes:
+      "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
+    icon: Clock,
+  },
+  "Credit Earned": {
+    classes:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
+    icon: BadgeDollarSign,
+  },
 };
 
-export default function ReferralsPage() {
-  const data = mockReferralData;
+function encode(value: string) {
+  return encodeURIComponent(value);
+}
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(data.referralLink).then(() => {
-      toast.success("Referral link copied to clipboard!");
-    }).catch(() => {
-      toast.success("Referral link copied!");
-    });
+export default function ReferralsPage() {
+  const { data: portalData } = useEmployeeSelfService();
+  const data = portalData.referrals;
+  const shareText = `Try CircleWorks for payroll and HR: ${data.referralLink}`;
+  const emailHref = `mailto:?subject=${encode("Try CircleWorks")}&body=${encode(shareText)}`;
+  const linkedInHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encode(data.referralLink)}`;
+  const twitterHref = `https://twitter.com/intent/tweet?text=${encode(shareText)}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(data.referralLink);
+      toast.success("Referral link copied");
+    } catch {
+      toast.success("Referral link ready to share");
+    }
   };
+
+  const shareButtons = [
+    { label: "Email", icon: Mail, href: emailHref },
+    { label: "LinkedIn", icon: Share2, href: linkedInHref },
+    { label: "Twitter", icon: X, href: twitterHref },
+  ];
 
   return (
     <>
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Referral Program</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Refer talented people and earn ${data.bonusPerHire.toLocaleString()} per hire</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Referral Program
+        </h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Refer a company. Earn ${data.bonusPerReferral.toLocaleString()}{" "}
+          account credit.
+        </p>
       </div>
 
-      {/* Referral Link Card */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 dark:from-violet-900/20 dark:via-slate-800/40 dark:to-fuchsia-900/10 p-6"
+        className="rounded-lg border border-blue-100 bg-blue-50 p-5 dark:border-blue-900/40 dark:bg-blue-950/20"
       >
-        <div className="flex items-center gap-2 mb-3">
-          <Link2 size={18} className="text-violet-600 dark:text-violet-400" />
-          <h2 className="text-[14px] font-bold text-slate-900 dark:text-white">Your Unique Referral Link</h2>
-        </div>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex-1 h-10 px-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center overflow-hidden">
-            <span className="text-[13px] text-slate-600 dark:text-slate-300 truncate font-mono">{data.referralLink}</span>
+        <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Share2 size={18} className="text-blue-600 dark:text-blue-300" />
+              <h2 className="text-[15px] font-bold text-slate-900 dark:text-white">
+                Your unique referral link
+              </h2>
+            </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+              You earn $300 account credit when your referred company completes
+              their first payroll run.
+            </p>
           </div>
-          <button onClick={copyLink} className="h-10 px-4 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold flex items-center gap-2 transition-colors flex-shrink-0">
-            <Copy size={14} /> Copy
+          <div className="rounded-lg bg-white px-4 py-3 text-sm font-bold text-blue-700 shadow-sm dark:bg-slate-900 dark:text-blue-300">
+            No limit on referrals
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex min-h-11 flex-1 items-center overflow-hidden rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900">
+            <span className="truncate font-mono text-[13px] text-slate-700 dark:text-slate-200">
+              {data.referralLink}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+          >
+            <Copy size={15} />
+            Copy
           </button>
         </div>
-        <div className="flex items-center gap-3">
-          {[
-            { label: "Email", icon: "✉️" },
-            { label: "LinkedIn", icon: "🔗" },
-            { label: "Twitter", icon: "🐦" },
-          ].map(channel => (
-            <button key={channel.label} onClick={() => toast.success(`Shared via ${channel.label}`)} className="h-9 px-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[12px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-              <span>{channel.icon}</span> {channel.label}
-            </button>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {shareButtons.map((button) => (
+            <a
+              key={button.label}
+              href={button.href}
+              target={button.label === "Email" ? undefined : "_blank"}
+              rel={button.label === "Email" ? undefined : "noreferrer"}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <button.icon size={15} />
+              {button.label}
+            </a>
           ))}
+          <button
+            type="button"
+            onClick={copyLink}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <Copy size={15} />
+            Copy
+          </button>
         </div>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: "Total Earned", value: data.totalEarned, icon: DollarSign, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-          { label: "Pending", value: data.totalPending, icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
-          { label: "Redeemed", value: data.totalRedeemed, icon: Gift, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/20" },
-        ].map(stat => (
-          <motion.div key={stat.label} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40">
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center`}>
-                <stat.icon size={16} className={stat.color} />
-              </div>
-              <span className="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{stat.label}</span>
-            </div>
-            <p className="text-xl font-black text-slate-900 dark:text-white">${stat.value.toLocaleString()}</p>
+          {
+            label: "Total credits earned",
+            value: data.totalEarned,
+            tone: "text-emerald-600 dark:text-emerald-300",
+          },
+          {
+            label: "Pending credits",
+            value: data.totalPending,
+            tone: "text-amber-600 dark:text-amber-300",
+          },
+          {
+            label: "Redeemed credits",
+            value: data.totalRedeemed,
+            tone: "text-blue-600 dark:text-blue-300",
+          },
+        ].map((stat) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800/40"
+          >
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {stat.label}
+            </p>
+            <p className={`mt-2 text-3xl font-black ${stat.tone}`}>
+              ${stat.value.toLocaleString()}
+            </p>
           </motion.div>
         ))}
       </div>
 
-      {/* Referrals Table */}
-      <div>
-        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">My Referrals</h2>
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 overflow-hidden">
-          <div className="hidden sm:grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700/40 text-[12px] font-bold text-slate-500 uppercase tracking-wide">
-            <span>Candidate</span><span>Position</span><span>Status</span><span>Earned</span>
-          </div>
-          {data.referrals.map((ref, i) => {
-            const status = statusStyles[ref.status];
-            const StatusIcon = status.icon;
-            return (
-              <motion.div key={ref.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-2 sm:gap-4 px-4 py-3 border-b border-slate-100 dark:border-slate-700/30 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors items-center">
-                <div>
-                  <p className="text-[13px] font-bold text-slate-900 dark:text-white">{ref.candidateName}</p>
-                  <p className="text-[11px] text-slate-500">Referred {new Date(ref.referredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-                <span className="text-[13px] text-slate-600 dark:text-slate-300">{ref.position}</span>
-                <span className={`px-2 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${status.bg} ${status.text}`}>
-                  <StatusIcon size={11} /> {ref.status}
-                </span>
-                <span className={`text-[13px] font-bold ${ref.earned > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>
-                  {ref.earned > 0 ? `$${ref.earned.toLocaleString()}` : "—"}
-                </span>
-              </motion.div>
-            );
-          })}
+      <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700/60 dark:bg-slate-800/40">
+        <div className="border-b border-slate-100 px-5 py-4 dark:border-slate-700/40">
+          <h2 className="text-[15px] font-bold text-slate-900 dark:text-white">
+            Referral status
+          </h2>
         </div>
+        <div className="hidden grid-cols-[1fr_180px_120px] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:border-slate-700/40 dark:bg-slate-800/80 sm:grid">
+          <span>Company name</span>
+          <span>Status</span>
+          <span className="text-right">Earned</span>
+        </div>
+        {data.referrals.map((referral, index) => {
+          const status = statusStyles[referral.status];
+          const StatusIcon = status.icon;
+          return (
+            <motion.div
+              key={referral.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
+              className="grid grid-cols-1 gap-2 border-b border-slate-100 px-5 py-4 last:border-b-0 dark:border-slate-700/30 sm:grid-cols-[1fr_180px_120px] sm:items-center"
+            >
+              <div>
+                <p className="text-[13px] font-bold text-slate-900 dark:text-white">
+                  {referral.companyName}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Referred{" "}
+                  {new Date(referral.referredAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <span
+                className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold ${status.classes}`}
+              >
+                <StatusIcon size={12} />
+                {referral.status}
+              </span>
+              <span
+                className={`text-[13px] font-bold sm:text-right ${referral.earned > 0 ? "text-emerald-600 dark:text-emerald-300" : "text-slate-400"}`}
+              >
+                {referral.earned > 0
+                  ? `$${referral.earned.toLocaleString()}`
+                  : "$0"}
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 dark:border-slate-700/60 dark:bg-slate-800/40 dark:text-slate-300">
+        Referral credit applies within 30 days of first payroll run. See full
+        referral terms. Credits apply to your subscription. Cash out after $600
+        accumulated.
       </div>
     </>
   );

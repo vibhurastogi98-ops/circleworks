@@ -41,7 +41,7 @@ export default function EmployeeProfileLayout({ children }: { children: React.Re
     { name: "Overview", href: `/employees/${emp.id}` },
     { name: "Compensation", href: `/employees/${emp.id}/compensation` },
     { name: "Benefits", href: `/employees/${emp.id}/benefits` },
-    { name: "Time & PTO", href: `/employees/${emp.id}/time` },
+    { name: "Time", href: `/employees/${emp.id}/time` },
     { name: "Documents", href: `/employees/${emp.id}/documents` },
     { name: "Payroll", href: `/employees/${emp.id}/payroll` },
     { name: "Performance", href: `/employees/${emp.id}/performance` },

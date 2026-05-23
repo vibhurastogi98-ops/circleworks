@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Target, TrendingUp, AlertTriangle, CheckCircle2, MessageSquare, Plus, X, ChevronDown, Send } from "lucide-react";
-import { mockGoals, type Goal } from "@/data/mockEmployeePortal";
+import { type Goal } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 const statusStyles: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
@@ -14,13 +15,14 @@ const statusStyles: Record<string, { bg: string; text: string; icon: React.Eleme
 };
 
 export default function GoalsPage() {
+  const { data } = useEmployeeSelfService();
   const [expandedGoal, setExpandedGoal] = useState<string | null>(null);
   const [showCheckin, setShowCheckin] = useState<string | null>(null);
   const [checkinNote, setCheckinNote] = useState("");
   const [checkinProgress, setCheckinProgress] = useState(0);
 
-  const individualGoals = mockGoals.filter(g => g.type === "Individual");
-  const teamGoals = mockGoals.filter(g => g.type === "Team");
+  const individualGoals = data.goals.filter(g => g.type === "Individual");
+  const teamGoals = data.goals.filter(g => g.type === "Team");
 
   const handleCheckin = (goalId: string) => {
     if (!checkinNote) { toast.error("Please add a check-in note"); return; }

@@ -13,6 +13,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { mockEmployeeDocuments } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 const statusStyles: Record<
@@ -41,6 +42,7 @@ type PortalDocument = (typeof mockEmployeeDocuments)[number] & {
 };
 
 export default function DocumentsPage() {
+  const { data } = useEmployeeSelfService();
   const [activeTab, setActiveTab] = useState<"company" | "personal">("company");
   const [employeeDocs, setEmployeeDocs] = useState<PortalDocument[]>([]);
 
@@ -66,8 +68,8 @@ export default function DocumentsPage() {
   }, []);
 
   const allDocs = useMemo<PortalDocument[]>(
-    () => [...employeeDocs, ...mockEmployeeDocuments],
-    [employeeDocs],
+    () => [...employeeDocs, ...data.documents],
+    [data.documents, employeeDocs],
   );
   const companyDocs = allDocs.filter(
     (d) => d.type === "Company Policy" || d.type === "Signed Document",

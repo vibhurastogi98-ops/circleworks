@@ -1,392 +1,457 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { 
-  Search, CheckCircle2, Heart, Clock, Loader2, ArrowRight,
-  User, Shield, Activity, DollarSign
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  HeartPulse,
+  Loader2,
+  Search,
+  ShieldCheck,
 } from "lucide-react";
-import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-// --- Tab Apps Components ---
+type DemoTab = "Payroll" | "Employees" | "Benefits" | "Time" | "Reports";
+type PayrollStatus = "ready" | "processing" | "paid";
 
-const TabPayroll = () => {
-  const [status, setStatus] = useState<"draft" | "processing" | "paid">("draft");
-  
-  const employees = [
-    { name: "Sarah Smith", role: "Engineering", amount: "$4,250.00" },
-    { name: "Michael Chen", role: "Design", amount: "$3,800.00" },
-    { name: "Emma Watson", role: "Marketing", amount: "$3,100.00" },
-    { name: "David Lee", role: "Sales", amount: "$4,500.00" },
-    { name: "Alex Johnson", role: "Support", amount: "$2,900.00" },
-  ];
+const tabs: DemoTab[] = ["Payroll", "Employees", "Benefits", "Time", "Reports"];
 
-  const handleRun = () => {
-    if (status !== "draft") return;
-    setStatus("processing");
-    setTimeout(() => {
-      setStatus("paid");
-    }, 2000);
-  };
+const payrollRows = [
+  { name: "Sarah Morgan", team: "Design", amount: "$4,240.00" },
+  { name: "Eli Brooks", team: "Engineering", amount: "$5,880.00" },
+  { name: "Maya Patel", team: "Operations", amount: "$3,950.00" },
+  { name: "Noah Kim", team: "Sales", amount: "$4,610.00" },
+];
+
+const employeeRows = [
+  { name: "Sarah Morgan", role: "Product Designer", location: "Austin, TX" },
+  { name: "Marcus Lee", role: "Payroll Lead", location: "Seattle, WA" },
+  { name: "Priya Shah", role: "People Ops", location: "New York, NY" },
+  { name: "Daniel Park", role: "Benefits Admin", location: "Denver, CO" },
+];
+
+const benefitPlans = [
+  {
+    name: "Core Health",
+    price: "$0/mo",
+    detail: "HSA-ready plan for lean monthly costs.",
+    icon: ShieldCheck,
+  },
+  {
+    name: "Balanced PPO",
+    price: "$49/mo",
+    detail: "Lower deductible with broader provider access.",
+    icon: HeartPulse,
+  },
+  {
+    name: "Family Plus",
+    price: "$119/mo",
+    detail: "Expanded coverage for dependents and care.",
+    icon: CheckCircle2,
+  },
+];
+
+const reportData = [
+  { month: "Jan", value: 96 },
+  { month: "Feb", value: 118 },
+  { month: "Mar", value: 104 },
+  { month: "Apr", value: 142 },
+  { month: "May", value: 158 },
+  { month: "Jun", value: 184 },
+];
+
+function BrowserChrome({ activeTab, children }: { activeTab: DemoTab; children: React.ReactNode }) {
+  return (
+    <div className="w-full overflow-hidden rounded-[28px] border border-white/10 bg-[#0B1220] shadow-[0_34px_90px_rgba(0,0,0,0.45)]">
+      <div className="flex h-14 items-center gap-4 border-b border-white/10 bg-[#07111F] px-5">
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-[#FF5F57]" />
+          <span className="h-3 w-3 rounded-full bg-[#FEBC2E]" />
+          <span className="h-3 w-3 rounded-full bg-[#28C840]" />
+        </div>
+        <div className="hidden min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2 font-mono text-xs text-slate-400 sm:block">
+          circleworks.app/demo/{activeTab.toLowerCase()}
+        </div>
+        <div className="ml-auto rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-300">
+          Live demo
+        </div>
+      </div>
+      <div className="min-h-[560px] bg-[#0F172A] p-4 sm:min-h-[500px] sm:p-6">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PayrollDemo() {
+  const [status, setStatus] = useState<PayrollStatus>("ready");
+
+  useEffect(() => {
+    if (status !== "processing") {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setStatus("paid"), 1300);
+    return () => window.clearTimeout(timer);
+  }, [status]);
 
   return (
-    <div className="flex flex-col h-full bg-[#0F172A] p-6 rounded-b-xl border border-slate-700/50 shadow-inner">
-      <div className="flex items-center justify-between mb-6 border-b border-slate-700/50 pb-4">
+    <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+      <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-white text-[18px] font-bold">Bi-Weekly Run &mdash; Q4-02</h3>
-          <p className="text-slate-400 text-[13px] mt-1">Total est: $18,550.00</p>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">Payroll run</p>
+          <h3 className="mt-2 text-2xl font-black text-white">May 31 regular payroll</h3>
+          <p className="mt-1 text-sm text-slate-400">4 employees &middot; $18,680 gross pay</p>
         </div>
-        <button 
-          onClick={handleRun}
-          disabled={status !== "draft"}
-          className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-[14px] transition-all
-            ${status === "draft" ? "bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:scale-105" : 
-              status === "processing" ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" : 
-              "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 cursor-default"}`}
+        <button
+          type="button"
+          onClick={() => setStatus("processing")}
+          disabled={status !== "ready"}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-black text-white shadow-[0_16px_40px_rgba(37,99,235,0.36)] transition hover:bg-blue-500 disabled:cursor-default disabled:bg-emerald-500/15 disabled:text-emerald-300"
         >
-          {status === "draft" && "Run Payroll"}
-          {status === "processing" && <><Loader2 size={16} className="animate-spin" /> Processing...</>}
-          {status === "paid" && <><CheckCircle2 size={16} /> Paid ✓</>}
+          {status === "ready" && "Run Payroll"}
+          {status === "processing" && (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          )}
+          {status === "paid" && (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              Paid &#10003;
+            </>
+          )}
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col gap-3">
-        {employees.map((emp, i) => (
-          <div key={i} className="flex items-center justify-between bg-slate-800/50 border border-slate-700/50 p-4 rounded-lg">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold">
-                {emp.name.charAt(0)}
+      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+        <div className="grid grid-cols-[1.4fr_0.8fr_0.8fr] bg-white/[0.03] px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+          <span>Employee</span>
+          <span>Gross</span>
+          <span className="text-right">Status</span>
+        </div>
+        {payrollRows.map((row, index) => (
+          <div
+            key={row.name}
+            className="grid grid-cols-[1.4fr_0.8fr_0.8fr] items-center border-t border-white/10 px-4 py-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/15 font-black text-blue-200">
+                {row.name.charAt(0)}
               </div>
               <div>
-                <div className="text-white text-[14px] font-bold">{emp.name}</div>
-                <div className="text-slate-400 text-[12px]">{emp.role}</div>
+                <p className="font-bold text-white">{row.name}</p>
+                <p className="text-xs text-slate-500">{row.team}</p>
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="text-white font-mono text-[14px]">{emp.amount}</div>
-              <div className="w-24 flex justify-end">
-                {status === "draft" && <span className="px-2.5 py-1 bg-slate-700/50 text-slate-400 text-[11px] rounded-md font-bold uppercase">Draft</span>}
-                {status === "processing" && <span className="px-2.5 py-1 bg-amber-500/20 text-amber-400 text-[11px] rounded-md font-bold uppercase animate-pulse">Calculating</span>}
-                {status === "paid" && (
-                   <motion.span 
-                    initial={{ opacity: 0, scale: 0.8 }} 
-                    animate={{ opacity: 1, scale: 1 }} 
-                    transition={{ delay: i * 0.1 }}
-                    className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[11px] rounded-md font-bold uppercase flex items-center gap-1"
-                   >
-                     Paid <CheckCircle2 size={12} />
-                   </motion.span>
-                )}
-              </div>
+            <span className="font-mono text-sm text-slate-200">{row.amount}</span>
+            <div className="flex justify-end">
+              {status === "paid" ? (
+                <motion.span
+                  initial={{ opacity: 0, y: 8, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: index * 0.16, type: "spring", stiffness: 280, damping: 18 }}
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-black text-emerald-300"
+                >
+                  Paid &#10003; <CheckCircle2 className="h-3.5 w-3.5" />
+                </motion.span>
+              ) : (
+                <span className="rounded-full bg-slate-700/60 px-3 py-1 text-xs font-bold text-slate-300">
+                  {status === "processing" ? "Processing" : "Ready"}
+                </span>
+              )}
             </div>
           </div>
         ))}
       </div>
     </div>
   );
-};
+}
 
-const TabEmployees = () => {
-  const [search, setSearch] = useState("");
-  const allEmployees = [
-    { name: "John Doe", role: "CEO", dept: "Executive" },
-    { name: "Sarah Smith", role: "Senior Engineer", dept: "Engineering" },
-    { name: "Michael Chen", role: "Product Designer", dept: "Design" },
-    { name: "Emma Watson", role: "Marketing Director", dept: "Marketing" },
-    { name: "David Lee", role: "Account Executive", dept: "Sales" },
-    { name: "Julia Roberts", role: "HR Manager", dept: "People" },
-  ];
-
-  const filtered = allEmployees.filter(e => e.name.toLowerCase().includes(search.toLowerCase()));
+function EmployeesDemo() {
+  const [query, setQuery] = useState("");
+  const filtered = employeeRows.filter((employee) =>
+    employee.name.toLowerCase().includes(query.toLowerCase()),
+  );
 
   return (
-    <div className="flex flex-col h-full bg-[#0F172A] p-6 rounded-b-xl border border-slate-700/50 shadow-inner">
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-        <input 
-          type="text" 
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search directory (e.g., 'Sarah')..." 
-          className="w-full bg-[#1E293B] border border-slate-700 rounded-lg py-3 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium placeholder-slate-500"
-        />
+    <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+      <div className="flex flex-col gap-2 border-b border-white/10 pb-5">
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">Employee directory</p>
+        <label className="relative mt-2 block">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Type Sarah to filter live"
+            className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.04] pl-11 pr-4 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10"
+          />
+        </label>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-max">
-        <AnimatePresence>
-          {filtered.map((emp) => (
-            <motion.div 
-              key={emp.name}
-              initial={{ opacity: 0, scale: 0.95 }}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <AnimatePresence mode="popLayout">
+          {filtered.map((employee) => (
+            <motion.div
+              key={employee.name}
+              layout
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-4 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition-colors"
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
             >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-black shadow-md">
-                {emp.name.charAt(0)}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white text-[15px] font-bold">{emp.name}</span>
-                <span className="text-slate-400 text-[13px]">{emp.role} &middot; {emp.dept}</span>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 font-black text-white">
+                  {employee.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-black text-white">{employee.name}</p>
+                  <p className="text-sm text-slate-400">{employee.role}</p>
+                  <p className="mt-1 text-xs text-slate-500">{employee.location}</p>
+                </div>
               </div>
             </motion.div>
           ))}
-          {filtered.length === 0 && (
-            <div className="col-span-2 text-center py-12 text-slate-500">
-              No employees found matching &quot;{search}&quot;
-            </div>
-          )}
         </AnimatePresence>
       </div>
     </div>
   );
-};
+}
 
-const TabBenefits = () => {
-  const [selectedPlan, setSelectedPlan] = useState("Premium");
-  const plans = [
-    { title: "Basic HSA", price: "$0 /mo", cover: "80% coverage", desc: "High deductible, HSA eligible", icon: Shield },
-    { title: "Premium", price: "$49 /mo", cover: "90% coverage", desc: "Low deductible PPO network", icon: Heart },
-    { title: "Enterprise", price: "$149 /mo", cover: "100% coverage", desc: "Zero deductible, world-class", icon: Activity },
-  ];
+function BenefitsDemo() {
+  const [selectedPlan, setSelectedPlan] = useState("Balanced PPO");
 
   return (
-    <div className="flex flex-col h-full bg-[#0F172A] p-6 rounded-b-xl border border-slate-700/50 shadow-inner">
-      <div className="mb-6 flex flex-col gap-2 border-b border-slate-700/50 pb-4">
-        <h3 className="text-white text-[18px] font-bold">2026 Open Enrollment</h3>
-        <p className="text-slate-400 text-[13px]">Step 1: Select your primary medical coverage plan.</p>
+    <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+      <div className="border-b border-white/10 pb-5">
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">Benefits enrollment</p>
+        <h3 className="mt-2 text-2xl font-black text-white">Step 1: Choose a health plan</h3>
+        <p className="mt-1 text-sm text-slate-400">Click a card to compare coverage before enrolling.</p>
       </div>
-      
-      <div className="grid grid-cols-3 gap-4 h-[250px]">
-        {plans.map((plan) => {
-          const isSelected = selectedPlan === plan.title;
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        {benefitPlans.map((plan) => {
+          const Icon = plan.icon;
+          const isSelected = selectedPlan === plan.name;
+
           return (
-            <div 
-              key={plan.title}
-              onClick={() => setSelectedPlan(plan.title)}
-              className={`relative rounded-xl p-5 cursor-pointer transition-all duration-300 flex flex-col justify-between
-                ${isSelected 
-                  ? "bg-blue-600/10 border-2 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.2)]" 
-                  : "bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/80"}`}
+            <button
+              key={plan.name}
+              type="button"
+              onClick={() => setSelectedPlan(plan.name)}
+              className={`rounded-3xl border p-5 text-left transition ${
+                isSelected
+                  ? "border-blue-400 bg-blue-500/15 shadow-[0_18px_44px_rgba(37,99,235,0.2)]"
+                  : "border-white/10 bg-white/[0.04] hover:border-blue-400/60 hover:bg-white/[0.07]"
+              }`}
             >
-              <div className="flex flex-col gap-3">
-                <plan.icon size={28} className={isSelected ? "text-blue-400" : "text-slate-400"} />
-                <h4 className="text-white font-bold text-[16px]">{plan.title}</h4>
-                <div className="text-[12px] text-slate-400 border-l-2 border-slate-600 pl-2">{plan.desc}</div>
+              <div className="flex items-start justify-between gap-4">
+                <Icon className={isSelected ? "h-7 w-7 text-blue-300" : "h-7 w-7 text-slate-400"} />
+                {isSelected && <CheckCircle2 className="h-5 w-5 text-blue-300" />}
               </div>
-              <div className="mt-4 pt-4 border-t border-slate-700/50 flex flex-col gap-1">
-                <span className="text-white font-bold text-[18px]">{plan.price}</span>
-                <span className="text-emerald-400 text-[12px] font-medium">{plan.cover}</span>
-              </div>
-              
-              {isSelected && (
-                <div className="absolute top-4 right-4 text-blue-500">
-                  <CheckCircle2 size={24} className="fill-blue-500/20" />
-                </div>
-              )}
-            </div>
+              <h4 className="mt-8 text-lg font-black text-white">{plan.name}</h4>
+              <p className="mt-1 text-2xl font-black text-blue-200">{plan.price}</p>
+              <p className="mt-4 text-sm leading-6 text-slate-400">{plan.detail}</p>
+            </button>
           );
         })}
       </div>
     </div>
   );
-};
+}
 
-const TabTime = () => {
-  const [time, setTime] = useState(0);
-  const [running, setRunning] = useState(false);
+function TimeDemo() {
+  const [seconds, setSeconds] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
-    if(!running) return;
-    const t = setInterval(() => setTime(prev => prev + 1), 1000);
-    return () => clearInterval(t);
-  }, [running]);
+    if (!isRunning) {
+      return undefined;
+    }
 
-  const hrs = Math.floor(time / 3600).toString().padStart(2, '0');
-  const mins = Math.floor((time%3600) / 60).toString().padStart(2, '0');
-  const secs = (time % 60).toString().padStart(2, '0');
+    const interval = window.setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
+
+  const display = new Date(seconds * 1000).toISOString().slice(11, 19);
 
   return (
-    <div className="flex flex-col h-full bg-[#0F172A] p-6 rounded-b-xl border border-slate-700/50 shadow-inner items-center justify-center relative">
-      <div className="absolute w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
-      
-      <div className="bg-[#1E293B] border border-slate-700/80 p-10 rounded-3xl shadow-2xl flex flex-col items-center gap-8 z-10 w-full max-w-sm">
-        <div className="text-center">
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px] mb-2">Current Shift</p>
-          <div className="text-[56px] font-black text-white tracking-widest font-mono">
-            {hrs}:{mins}:{secs}
+    <div className="grid h-full place-items-center rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+      <div className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl">
+        <div className="absolute inset-x-10 top-8 h-40 rounded-full bg-emerald-400/10 blur-3xl" />
+        <div className="relative">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300">
+            <Clock3 className="h-7 w-7" />
           </div>
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.28em] text-slate-400">Current shift</p>
+          <div className="mt-3 font-mono text-5xl font-black tracking-[0.1em] text-white sm:text-6xl">
+            {display}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsRunning((value) => !value)}
+            className={`mt-8 w-full rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.18em] transition ${
+              isRunning
+                ? "bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/40"
+                : "bg-emerald-500 text-white shadow-[0_18px_44px_rgba(16,185,129,0.25)] hover:bg-emerald-400"
+            }`}
+          >
+            {isRunning ? "Clock out" : "Clock in"}
+          </button>
         </div>
-
-        <button 
-          onClick={() => setRunning(!running)} 
-          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 shadow-lg border relative overflow-hidden group
-            ${running ? 'bg-rose-500/20 text-rose-500 border-rose-500/50 shadow-rose-900/20' : 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-900/40 hover:bg-emerald-500'}`}
-        >
-          {running ? 'Clock Out' : 'Clock In Now'}
-          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
-        </button>
       </div>
     </div>
   );
-};
+}
 
-const TabReports = () => {
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-
-  const data = [
-    { month: "Jan", cost: 120 },
-    { month: "Feb", cost: 135 },
-    { month: "Mar", cost: 130 },
-    { month: "Apr", cost: 150 },
-    { month: "May", cost: 165 },
-    { month: "Jun", cost: 180 },
-  ];
-
-  if (!mounted) {
-    return (
-      <div className="flex flex-col h-full bg-[#0F172A] p-6 rounded-b-xl border border-slate-700/50 shadow-inner">
-         <div className="w-48 h-8 bg-slate-700/40 rounded animate-pulse mb-6" />
-         <div className="flex-1 w-full bg-slate-700/20 rounded animate-pulse" />
+function ReportsDemo() {
+  return (
+    <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+      <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">Reports</p>
+          <h3 className="mt-2 text-2xl font-black text-white">Labor cost by month</h3>
+          <p className="mt-1 text-sm text-slate-400">Animated reporting snapshot for leadership.</p>
+        </div>
+        <div className="rounded-2xl bg-cyan-400/10 px-4 py-3 text-right">
+          <p className="text-2xl font-black text-cyan-200">+18.5%</p>
+          <p className="text-xs font-semibold text-slate-500">vs last period</p>
+        </div>
       </div>
-    );
+
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="mt-6 min-h-[300px] flex-1"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={reportData} margin={{ top: 12, right: 8, bottom: 0, left: -18 }}>
+            <CartesianGrid stroke="rgba(148, 163, 184, 0.14)" vertical={false} />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748B", fontSize: 12 }} />
+            <Tooltip
+              cursor={{ fill: "rgba(37, 99, 235, 0.08)" }}
+              contentStyle={{
+                background: "#0F172A",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "14px",
+                color: "#fff",
+              }}
+              formatter={(value) => [`$${value}k`, "Labor cost"]}
+            />
+            <Bar dataKey="value" radius={[12, 12, 4, 4]} animationBegin={120} animationDuration={950}>
+              {reportData.map((entry, index) => (
+                <Cell key={entry.month} fill={index === reportData.length - 1 ? "#22D3EE" : "#2563EB"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </motion.div>
+    </div>
+  );
+}
+
+function DemoContent({ activeTab }: { activeTab: DemoTab }) {
+  if (activeTab === "Payroll") {
+    return <PayrollDemo />;
   }
 
-  return (
-    <div className="flex flex-col h-full bg-[#0F172A] p-6 rounded-b-xl border border-slate-700/50 shadow-inner">
-      <div className="mb-6 border-b border-slate-700/50 pb-4 flex justify-between items-end">
-        <div>
-          <h3 className="text-white text-[18px] font-bold">Labor Expenditures overhead</h3>
-          <p className="text-slate-400 text-[13px] mt-1">Trail 6 Months (in Thousands)</p>
-        </div>
-        <div className="text-cyan-400 font-bold text-[24px]">+18.5% <span className="text-slate-500 text-[12px] font-medium block text-right">vs Last Year</span></div>
-      </div>
-      
-      <div className="flex-1 w-full mt-4 pr-10 relative">
-        <div className="absolute inset-0 w-full h-full">
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            <BarChart data={data}>
-              <Tooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155', borderRadius: '8px', color: '#fff' }}
-                formatter={(value) => [`$${value}k`, "Total Cost"]}
-              />
-              <Bar dataKey="cost" radius={[6, 6, 0, 0]} animationDuration={1000}>
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === data.length - 1 ? "#06B6D4" : "#3B82F6"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
-};
+  if (activeTab === "Employees") {
+    return <EmployeesDemo />;
+  }
 
+  if (activeTab === "Benefits") {
+    return <BenefitsDemo />;
+  }
 
-// --- Main Component ---
+  if (activeTab === "Time") {
+    return <TimeDemo />;
+  }
+
+  return <ReportsDemo />;
+}
 
 export default function DemoSection() {
-  const tabsList = ["Payroll", "Employees", "Benefits", "Time", "Reports"];
-  const [activeTab, setActiveTab] = useState(tabsList[0]);
+  const [activeTab, setActiveTab] = useState<DemoTab>("Payroll");
 
   return (
-    <section className="bg-[#0A1628] py-24 w-full relative overflow-hidden">
-      
-      {/* Background Decoratives */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <section className="relative w-full overflow-hidden bg-[#0A1628] py-24">
+      <div className="absolute left-1/2 top-8 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-blue-600/15 blur-[120px]" />
+      <div className="absolute bottom-0 right-0 h-[360px] w-[360px] rounded-full bg-cyan-400/10 blur-[110px]" />
 
-      <div className="max-w-[1000px] mx-auto px-6 lg:px-8 relative z-10 flex flex-col items-center">
-        
-        {/* HEADER */}
-        <div className="text-center mb-12">
-          <h2 className="text-[36px] md:text-[48px] font-black text-white leading-tight tracking-tight mb-4">
+      <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6">
+        <div className="text-center">
+          <h2 className="text-[40px] font-black leading-[1.05] tracking-[-0.04em] text-white md:text-[48px]">
             See CircleWorks in Action
           </h2>
-          <p className="text-[18px] md:text-[20px] text-slate-400 font-medium">
-            Built for creators, agencies & companies. No signup required. Explore live.
-          </p>
+          <p className="mt-4 text-lg font-medium text-slate-400">No signup required. Explore live.</p>
         </div>
 
-        {/* BROWSER FRAME MOCKUP */}
-        <div className="w-full bg-[#1E293B] rounded-2xl border border-slate-700/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col shadow-blue-900/20">
-          
-          {/* Chrome Top Bar */}
-          <div className="h-12 bg-[#0A1628] border-b border-slate-700/80 flex items-center justify-between px-4 relative z-20 shadow-md">
-            
-            {/* Traffic Lights */}
-            <div className="flex items-center gap-2">
-              <div className="w-3.5 h-3.5 rounded-full bg-rose-500/80 border border-rose-500/50" />
-              <div className="w-3.5 h-3.5 rounded-full bg-amber-500/80 border border-amber-500/50" />
-              <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/80 border border-emerald-500/50" />
-            </div>
+        <div className="mt-10 flex max-w-full flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`relative rounded-full px-5 py-2.5 text-sm font-black transition ${
+                activeTab === tab ? "text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white"
+              }`}
+            >
+              {activeTab === tab && (
+                <motion.span
+                  layoutId="demo-active-tab"
+                  className="absolute inset-0 rounded-full bg-blue-600 shadow-[0_12px_28px_rgba(37,99,235,0.38)]"
+                  transition={{ type: "spring", bounce: 0.18, duration: 0.55 }}
+                />
+              )}
+              <span className="relative z-10">{tab}</span>
+            </button>
+          ))}
+        </div>
 
-            {/* Nav Tabs */}
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center bg-slate-900 border border-slate-700/80 rounded-full p-1 shadow-inner overflow-x-auto w-full md:w-auto max-w-[calc(100%-100px)]">
-              {tabsList.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative px-4 sm:px-6 py-1.5 rounded-full text-[13px] font-bold transition-all duration-300 z-10
-                    ${activeTab === tab ? "text-white" : "text-slate-400 hover:text-slate-200"}`}
-                >
-                  {tab}
-                  {activeTab === tab && (
-                    <motion.div
-                      layoutId="active-pill"
-                      className="absolute inset-0 bg-blue-600 rounded-full -z-10 shadow-md shadow-blue-500/40"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
-            
-            {/* Right Placeholder dummy block to balance traffic lights spacing */}
-            <div className="w-[50px] hidden md:block" /> 
-          </div>
-
-          {/* DYNAMIC CONTENT AREA (Fixed Height Frame) */}
-          <div className="h-[450px] sm:h-[400px] w-full relative bg-[#0F172A]">
+        <div className="mt-8 w-full">
+          <BrowserChrome activeTab={activeTab}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 w-full h-full"
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                className="h-full"
               >
-                {activeTab === "Payroll" && <TabPayroll />}
-                {activeTab === "Employees" && <TabEmployees />}
-                {activeTab === "Benefits" && <TabBenefits />}
-                {activeTab === "Time" && <TabTime />}
-                {activeTab === "Reports" && <TabReports />}
+                <DemoContent activeTab={activeTab} />
               </motion.div>
             </AnimatePresence>
-          </div>
-
+          </BrowserChrome>
         </div>
 
-        {/* CTA FOOTER */}
-        <div className="mt-16 text-center flex flex-col gap-4">
-          <Link 
+        <div className="mt-12 text-center">
+          <Link
             href="/signup"
-            className="h-[56px] px-8 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-[16px] flex items-center justify-center gap-3 hover:shadow-[0_0_24px_rgba(59,130,246,0.6)] hover:scale-[1.02] transition-all duration-300 mx-auto group w-fit"
+            className="group inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-8 py-4 text-base font-black text-white shadow-[0_18px_46px_rgba(37,99,235,0.32)] transition hover:-translate-y-0.5 hover:bg-blue-500"
           >
             Ready to see your data? Start your free trial
-            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
           </Link>
-          <p className="text-[12px] text-slate-500 font-medium tracking-wide">
-            Note: All demo data is fictional. Your real data stays private.
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            All demo data is fictional. Your real data stays private.
           </p>
         </div>
-
       </div>
     </section>
   );

@@ -16,12 +16,21 @@ async function ensureBankAccountColumns() {
   `);
 }
 
+async function ensureUserTourColumn() {
+  await db.execute(sql`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS has_completed_tour boolean DEFAULT false
+  `);
+}
+
 export async function GET() {
   try {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureUserTourColumn();
 
     const [employee] = await db
       .select({
@@ -37,6 +46,7 @@ export async function GET() {
         employmentType: employees.employmentType,
         avatar: employees.avatar,
         status: employees.status,
+        hasCompletedTour: users.hasCompletedTour,
       })
       .from(employees)
       .leftJoin(users, eq(employees.userId, users.id))
@@ -106,6 +116,7 @@ export async function GET() {
         locationType: currentUserEmployee.locationType || "",
         avatarUrl: currentUserEmployee.avatar,
         status: currentUserEmployee.status || "active",
+        hasCompletedTour: currentUserEmployee.hasCompletedTour ?? false,
         bankAccount: bankAccount
           ? {
               bankName: bankAccount.bankName,
@@ -158,6 +169,14 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
+
+    if (typeof body.hasCompletedTour === "boolean") {
+      await ensureUserTourColumn();
+      await db
+        .update(users)
+        .set({ hasCompletedTour: body.hasCompletedTour })
+        .where(eq(users.id, session.userId));
+    }
 
     if (typeof body.companyName === "string") {
       try {

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import ComplianceDashboard from "./dashboard/page";
 
 export default function CompliancePage() {
-  redirect("/compliance/dashboard");
+  return <ComplianceDashboard />;
 }

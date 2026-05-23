@@ -8,11 +8,11 @@ import { markExpenseReportReimbursed } from "@/data/mockExpenses";
 import { applyEwaRepayment } from "@/data/mockEwa";
 
 const STEPS: { key: ProcessingStep; label: string; icon: string }[] = [
-  { key: "calculating", label: "Calculating taxes…", icon: "🧮" },
-  { key: "submitting_ach", label: "Submitting ACH transfers…", icon: "🏦" },
-  { key: "generating_stubs", label: "Generating pay stubs…", icon: "📄" },
-  { key: "notifying", label: "Notifying employees…", icon: "📧" },
-  { key: "complete", label: "Complete!", icon: "🎉" },
+  { key: "calculating", label: "Calculating taxes...", icon: "1" },
+  { key: "submitting_ach", label: "Submitting ACH...", icon: "2" },
+  { key: "generating_stubs", label: "Generating pay stubs...", icon: "3" },
+  { key: "notifying", label: "Notifying employees...", icon: "4" },
+  { key: "complete", label: "Complete!", icon: "5" },
 ];
 
 export default function ProcessingOverlay() {
@@ -160,7 +160,9 @@ export default function ProcessingOverlay() {
                         : ""
                     }`}
                   >
-                    <span className="text-lg">{step.icon}</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white">
+                      {step.icon}
+                    </span>
                     <span
                       className={`text-sm font-semibold flex-1 ${
                         isComplete

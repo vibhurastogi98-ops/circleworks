@@ -1,404 +1,404 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
-import { Play, Check, ChevronRight, LayoutDashboard, Users, CreditCard, Heart, ShieldCheck } from "lucide-react";
+import { motion } from "framer-motion";
+import { Check, Play, Search, Bell, ChevronDown } from "lucide-react";
 
-const logos = [
-  "CircleWorks",
-  "Globex",
-  "Soylent",
-  "Initech",
-  "Umbrella",
-  "Stark Ind",
+const TRUST_LOGOS = [
+  "Northstar",
+  "BluePeak",
+  "SummitOps",
+  "FoundryOne",
+  "Kepler Health",
+  "Union & Co",
 ];
 
-// Double the array for seamless CSS marquee scroll
-const marqueeLogos = [...logos, ...logos];
+const MARQUEE_LOGOS = [...TRUST_LOGOS, ...TRUST_LOGOS];
 
-const MOCK_TABS = [
-  { id: "Dashboard", icon: LayoutDashboard },
-  { id: "Employees", icon: Users },
-  { id: "Payroll", icon: CreditCard },
-  { id: "Benefits", icon: Heart },
-  { id: "Compliance", icon: ShieldCheck },
+const headlineLines = [
+  [
+    { text: "Run", gradient: false },
+    { text: "Payroll", gradient: false },
+    { text: "&", gradient: false },
+    { text: "HR", gradient: false },
+  ],
+  [
+    { text: "The", gradient: false },
+    { text: "American", gradient: true },
+    { text: "Way.", gradient: true },
+  ],
 ];
 
-const heroBlurDataUrl =
-  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNjQwJyBoZWlnaHQ9JzY0MCcgdmlld0JveD0nMCAwIDY0MCA2NDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHJlY3Qgd2lkdGg9JzY0MCcgaGVpZ2h0PSc2NDAnIGZpbGw9JyMwQTE2MjgnLz48Y2lyY2xlIGN4PSc0NjAnIGN5PScxODAnIHI9JzI0MCcgZmlsbD0nIzFENEVEROCcgZmlsbC1vcGFjaXR5PScwLjQnLz48Y2lyY2xlIGN4PScxODAnIGN5PSc0NjAnIHI9JzI0MCcgZmlsbD0nIzA2QjZENScgZmlsbC1vcGFjaXR5PScwLjI1Jy8+PC9zdmc+";
+const payrollRows = [
+  { name: "Olivia Bennett", role: "Engineering", amount: "$4,850.00", status: "Paid" },
+  { name: "Marcus Rivera", role: "Operations", amount: "$3,920.00", status: "Pending" },
+  { name: "Nina Patel", role: "People Ops", amount: "$4,275.00", status: "Approved" },
+  { name: "Daniel Brooks", role: "Sales", amount: "$5,140.00", status: "Paid" },
+  { name: "Sophia Kim", role: "Finance", amount: "$4,460.00", status: "Processing" },
+];
 
-export default function HeroSection() {
-  const [activeMockTab, setActiveMockTab] = React.useState("Dashboard");
+const statusStyles: Record<string, string> = {
+  Paid: "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20",
+  Pending: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20",
+  Approved: "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20",
+  Processing: "bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/20",
+};
 
-
-  const wordAnimation = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: i * 0.05,
-        duration: 0.6,
-        ease: [0.2, 0.65, 0.3, 0.9] as const,
-      },
-    }),
-  };
-
+function PayrollDashboardMockup() {
   return (
-    <div className="relative min-h-screen bg-[#0A1628] overflow-hidden flex flex-col pt-32 pb-20">
+    <div className="hero-float relative mx-auto w-full max-w-[1100px] rounded-[28px] border border-white/10 bg-[#08111f]/90 shadow-[0_32px_120px_rgba(3,10,24,0.85)] backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-[18%] -bottom-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(6,182,212,0.22)_0%,_rgba(29,78,216,0.16)_35%,_rgba(10,22,40,0)_75%)] blur-2xl" />
 
-      {/* --- BACKGROUND LAYERS --- */}
-      {/* 1. Animated Gradient Mesh */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40 mix-blend-screen">
-        <div className="bg-mesh-1 absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/30 blur-[120px]" />
-        <div className="bg-mesh-2 absolute top-[20%] -right-[10%] w-[45vw] h-[45vw] rounded-full bg-cyan-600/20 blur-[100px]" />
-        <div className="bg-mesh-3 absolute -bottom-[10%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-purple-600/20 blur-[120px]" />
+      <div className="flex h-12 items-center gap-3 rounded-t-[28px] border-b border-white/10 bg-[#0d1727] px-4 md:px-5">
+        <div className="flex items-center gap-2">
+          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+          <span className="h-3 w-3 rounded-full bg-[#ffbd2f]" />
+          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+        </div>
+        <div className="mx-auto flex h-8 w-[55%] max-w-[420px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 text-[11px] text-slate-400">
+          <Search className="h-3.5 w-3.5" />
+          <span>app.circleworks.com/payroll/runs/april-us-01</span>
+        </div>
+        <div className="hidden items-center gap-2 text-slate-500 md:flex">
+          <Bell className="h-4 w-4" />
+          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600" />
+        </div>
       </div>
 
-      {/* 2. Dot-Grid Overlay */}
+      <div className="grid min-h-[520px] grid-cols-1 overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="border-b border-white/10 bg-[#0b1423] p-4 lg:border-b-0 lg:border-r">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 shadow-[0_0_35px_rgba(29,78,216,0.35)]">
+              <div className="h-5 w-5 rounded-full border-2 border-white" />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-white">CircleWorks</p>
+              <p className="text-[11px] text-slate-500">Payroll Command Center</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {[
+              "Overview",
+              "Payroll Runs",
+              "Employees",
+              "Benefits",
+              "Time",
+              "Expenses",
+            ].map((item, index) => (
+              <div
+                key={item}
+                className={`flex items-center justify-between rounded-2xl px-3 py-3 text-sm font-semibold transition-colors ${
+                  index === 1
+                    ? "bg-gradient-to-r from-blue-600/20 to-cyan-400/10 text-white ring-1 ring-blue-400/25"
+                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <span>{item}</span>
+                {index === 1 ? <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" /> : null}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 rounded-3xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/10 to-blue-600/10 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-cyan-300">Live</p>
+            <p className="mt-2 text-2xl font-black text-white">$22,645</p>
+            <p className="text-sm text-slate-400">Today's payroll batch total</p>
+          </div>
+        </aside>
+
+        <div className="bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] p-4 md:p-6 lg:p-7">
+          <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">April 30 Payroll Run</p>
+              <h3 className="mt-2 text-2xl font-black text-white md:text-[32px]">US Biweekly Payroll Preview</h3>
+              <p className="mt-2 max-w-xl text-sm text-slate-400 md:text-base">
+                Review earnings, benefits, taxes, and reimbursement changes before funding this run.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300">
+                142 employees
+              </div>
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200">
+                5 pending approvals
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-5 grid gap-4 md:grid-cols-3">
+            {[
+              { label: "Gross Payroll", value: "$84,530", accent: "from-blue-600/30 to-blue-400/5" },
+              { label: "Deductions", value: "$11,264", accent: "from-cyan-500/25 to-cyan-300/5" },
+              { label: "Net Pay", value: "$62,941", accent: "from-indigo-500/25 to-violet-400/5" },
+            ].map((card) => (
+              <div key={card.label} className={`rounded-3xl border border-white/10 bg-gradient-to-br ${card.accent} p-4`}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">{card.label}</p>
+                <p className="mt-3 text-2xl font-black text-white">{card.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#0c1626]/80">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr] gap-3 border-b border-white/10 px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">
+              <span>Employee</span>
+              <span>Department</span>
+              <span>Net Amount</span>
+              <span>Status</span>
+            </div>
+            <div>
+              {payrollRows.map((row) => (
+                <div
+                  key={row.name}
+                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr] items-center gap-3 border-b border-white/6 px-5 py-4 last:border-b-0 hover:bg-white/[0.03]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-400/20 text-sm font-black text-cyan-100 ring-1 ring-white/10">
+                      {row.name
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{row.name}</p>
+                      <p className="text-xs text-slate-500">Biweekly salary</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-300">{row.role}</p>
+                  <p className="text-sm font-semibold text-white">{row.amount}</p>
+                  <span className={`inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-bold ${statusStyles[row.status]}`}>
+                    {row.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.03] px-5 py-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Federal tax filing scheduled</p>
+              <p className="text-xs text-slate-400">ACH debit settles Friday, 9:00 AM EST</p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-emerald-500/12 px-3 py-1.5 text-xs font-bold text-emerald-300">
+              <Check className="h-3.5 w-3.5" /> Ready to fund
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HeroSection() {
+  const flatWords = headlineLines.flat();
+
+  return (
+    <section className="relative flex min-h-screen overflow-hidden bg-[#0A1628] px-6 pb-24 pt-32">
+      <div className="hero-mesh hero-mesh-blue" />
+      <div className="hero-mesh hero-mesh-cyan" />
+      <div className="hero-mesh hero-mesh-purple" />
+
       <div
-        className="absolute inset-0 z-0 opacity-15 pointer-events-none"
+        className="pointer-events-none absolute inset-0 opacity-[0.15]"
         style={{
-          backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='1' cy='1' r='1' fill='white' /%3E%3C/svg%3E\")",
+          backgroundSize: "24px 24px",
         }}
       />
 
-      {/* 3. SVG Noise Texture */}
-      <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.03] z-0">
-        <filter id="noiseFilter">
-          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+      <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.045]" aria-hidden="true">
+        <filter id="heroNoise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch" />
         </filter>
-        <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+        <rect width="100%" height="100%" filter="url(#heroNoise)" />
       </svg>
 
-
-      {/* --- CONTENT --- */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-6 flex flex-col items-center text-center">
-
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-cyan-400 text-[12px] font-bold uppercase tracking-[0.2em] mb-4"
-        >
-          {/* SEO Update */}
-          THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES
-        </motion.div>
-
-        {/* H1 HEADER */}
-        <h1 className="text-[32px] sm:text-[44px] md:text-[52px] font-black text-white leading-[1.1] tracking-tight mb-6">
-          <div className="flex flex-wrap justify-center gap-x-[0.2em] gap-y-1 text-center">
-            {/* SEO Update ── Creators & Agencies Positioning ── */}
-            {["The", "Payroll", "&", "HR", "Platform", "Built", "for"].map((word, i) => (
-              <motion.span
-                key={`h1-w-${i}`}
-                custom={i}
-                initial="hidden"
-                animate="visible"
-                variants={wordAnimation}
-                className="inline-block"
-              >
-                {word}
-              </motion.span>
-            ))}
-            {["Creators,", "Agencies", "&", "Companies."].map((word, i) => (
-              <motion.span
-                key={`h1-g-${i}`}
-                custom={i + 7}
-                initial="hidden"
-                animate="visible"
-                variants={wordAnimation}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4] text-[22px] sm:text-[30px] md:text-[36px]"
-              >
-                {word}
-              </motion.span>
-            ))}
-          </div>
-        </h1>
-
-        {/* SUBHEADLINE */}
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
         <motion.p
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          className="text-[18px] md:text-[20px] text-slate-300 max-w-2xl leading-relaxed mb-8 font-medium"
+          transition={{ duration: 0.65, ease: "easeOut" }}
+          className="text-[12px] font-bold uppercase tracking-[0.2em] text-cyan-400"
         >
-          All-in-one Payroll · HRIS · ATS · Benefits · Time · Expenses. Built for creators, agencies, and companies of every size.
+          THE #1 PAYROLL &amp; HR PLATFORM FOR USA COMPANIES
         </motion.p>
 
-        {/* CTA ROW */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
-          className="flex flex-col items-center w-full"
-        >
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-            {/* Primary Blue Pill */}
-            <Link 
-              href="/signup"
-              className="h-[56px] px-8 rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:shadow-[0_0_24px_rgba(59,130,246,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto"
-            >
-              Start Free
-              <ChevronRight size={18} aria-label="Start free trial — no credit card required" />
-            </Link>
+        <div className="mt-6 space-y-2">
+          {headlineLines.map((line, lineIndex) => {
+            const offset = headlineLines.slice(0, lineIndex).reduce((sum, current) => sum + current.length, 0);
+            return (
+              <h1
+                key={`headline-line-${lineIndex}`}
+                className="flex flex-wrap items-center justify-center gap-x-[0.22em] gap-y-2 text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white sm:text-[56px] lg:text-[72px]"
+              >
+                {line.map((word, wordIndex) => {
+                  const order = offset + wordIndex;
+                  return (
+                    <motion.span
+                      key={`${word.text}-${order}`}
+                      initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.7, delay: order * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                      className={word.gradient ? "bg-gradient-to-r from-[#1D4ED8] to-[#06B6D4] bg-clip-text text-transparent" : ""}
+                    >
+                      {word.text}
+                    </motion.span>
+                  );
+                })}
+              </h1>
+            );
+          })}
+        </div>
 
-            {/* Secondary Outline */}
+        <motion.p
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: flatWords.length * 0.05 + 0.08, ease: "easeOut" }}
+          className="mt-8 max-w-2xl text-[18px] leading-relaxed text-slate-300 md:text-[20px]"
+        >
+          All-in-one: Payroll · HRIS · ATS · Benefits · Time · Expenses. Built for every USA company.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: flatWords.length * 0.05 + 0.18, ease: "easeOut" }}
+          className="mt-8 flex w-full flex-col items-center"
+        >
+          <div className="flex w-full flex-col items-center justify-center gap-4 sm:w-auto sm:flex-row">
+            <Link
+              href="/signup"
+              className="inline-flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-8 text-base font-semibold text-white shadow-[0_0_0_rgba(59,130,246,0)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_0_34px_rgba(59,130,246,0.45)] sm:w-auto"
+            >
+              Start Free - No Credit Card
+            </Link>
             <Link
               href="/demo"
-              className="h-[56px] px-8 rounded-full bg-white/10 border border-white/20 text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-white hover:text-[#0A1628] active:scale-[0.98] transition-all duration-300 w-full sm:w-auto group"
+              className="group inline-flex h-14 w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-8 text-base font-semibold text-white transition duration-300 hover:bg-white hover:text-[#0A1628] sm:w-auto"
             >
-              <Play size={18} className="text-white group-hover:text-[#0A1628] fill-current" />
+              <Play className="h-4 w-4 fill-current" />
               Watch 2-Min Demo
             </Link>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[14px] text-slate-400 font-medium">
-            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> 30-day free trial</span>
-            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> No setup fees</span>
-            <span className="flex items-center gap-1.5"><Check size={14} className="text-cyan-400" /> Cancel anytime</span>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-400">
+            <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> 30-day free trial</span>
+            <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> No setup fees</span>
+            <span className="inline-flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Cancel anytime</span>
           </div>
         </motion.div>
 
-        {/* PRODUCT MOCKUP */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
-          className="mt-16 w-full relative"
+          transition={{ duration: 0.9, delay: flatWords.length * 0.05 + 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mt-16 w-full"
         >
-          {/* Mockup Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-blue-600/20 blur-[100px] rounded-full z-0 pointer-events-none" />
-
-          {/* Browser Frame */}
-          <div className="relative z-10 w-full bg-[#1E293B] border border-slate-700/50 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-            <div className="pointer-events-none absolute -right-6 -top-8 z-20 hidden h-36 w-36 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-2xl shadow-blue-950/40 md:block lg:h-44 lg:w-44">
-              <Image
-                src="/dashboard-mockup.png"
-                alt="CircleWorks dashboard preview"
-                fill
-                priority
-                placeholder="blur"
-                blurDataURL={heroBlurDataUrl}
-                sizes="(min-width: 1280px) 176px, (min-width: 768px) 144px, 0px"
-                className="object-cover"
-              />
-            </div>
-
-            {/* Chrome Bar */}
-            <div className="h-10 bg-[#0F172A] border-b border-slate-700/50 flex items-center px-4 gap-4">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-                <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-              </div>
-              <div className="flex-1 flex justify-center">
-                <div className="w-48 h-5 bg-[#1E293B] rounded-md border border-slate-700/40 flex items-center px-3">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
-                   <div className="text-[10px] text-slate-500 font-mono tracking-tighter">circleworks.app/dashboard</div>
-                </div>
-              </div>
-              <div className="w-[50px]" />
-            </div>
-
-            {/* Dashboard Mock UI Wrapper */}
-            <div className="flex h-auto sm:h-[450px] md:h-[550px] min-h-[400px]">
-
-              {/* Sidebar */}
-              {/* SEO Update ── Ensure sidebar visibility ── */}
-              <div className="flex w-16 sm:w-48 lg:w-56 bg-[#0F172A]/90 border-r border-slate-700/50 p-2 sm:p-4 flex-col gap-5 overflow-hidden">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center p-1.5 text-white">
-                    <div className="w-full h-full border-2 border-white rounded-full" />
-                  </div>
-                  <span className="hidden sm:block text-white text-[14px] font-black tracking-tight">CircleWorks</span>
-                </div>
-                
-                <div className="flex flex-col gap-1">
-                    {MOCK_TABS.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveMockTab(item.id)}
-                        className={`h-10 rounded-lg flex items-center justify-center sm:justify-start gap-0 sm:gap-3 px-0 sm:px-3 transition-all duration-200 cursor-pointer w-full text-left focus:outline-none ${activeMockTab === item.id ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:bg-slate-800'}`}
-                      >
-                         <item.icon size={16} className={`shrink-0 ${activeMockTab === item.id ? 'text-blue-400' : 'text-slate-600'}`} />
-                         <span className="hidden sm:block text-[12px] font-bold truncate">{item.id}</span>
-                      </button>
-                    ))}
-                </div>
-
-                <div className="mt-auto pt-6 border-t border-slate-700/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center text-white text-[10px] font-bold shadow-md">VR</div>
-                    <div className="hidden sm:flex flex-col overflow-hidden">
-                      <div className="text-white text-[12px] font-bold leading-none truncate">Vibhu Rastogi</div>
-                      <div className="text-slate-500 text-[10px] font-medium mt-1 uppercase tracking-tighter truncate">Admin Account</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main Content Area */}
-              <div className="flex-1 bg-[#0A1628] p-4 sm:p-8 flex flex-col gap-6 overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-white text-[16px] md:text-[20px] font-black">Company Snapshot</h4>
-                    <p className="text-slate-500 text-[11px] md:text-[13px] font-medium">Reporting for Q1 2026</p>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-2">
-                    <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-[11px] text-slate-300 font-bold">Last 30 Days</div>
-                    <div className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-transform">+ Invite Admin</div>
-                  </div>
-                </div>
-
-                {/* KPI Cards Row */}
-                {/* SEO Update ── Mobile responsiveness for mockup ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 overflow-hidden shrink-0">
-                   {[
-                     { label: "Active Staff", val: "142", color: "blue" },
-                     { label: "Monthly Gross", val: "$912k", color: "cyan" },
-                     { label: "Tax Liability", val: "$182k", color: "emerald" }
-                   ].map((kpi) => (
-                     <div key={kpi.label} className="bg-[#0F172A] border border-slate-700/30 p-2 sm:p-3 md:p-4 rounded-xl flex flex-col gap-0.5 shadow-sm hover:border-slate-600 transition-colors cursor-default">
-                        <span className="text-slate-500 text-[9px] md:text-[12px] font-bold uppercase tracking-wider">{kpi.label}</span>
-                        <span className="text-white text-[16px] md:text-[24px] font-black tracking-tight">{kpi.val}</span>
-                     </div>
-                   ))}
-                </div>
-
-                {/* Dashboard Chart and List Wrapper */}
-                <div className="flex-1 flex flex-col md:flex-row gap-6 min-h-0 relative">
-                  
-                  {/* Table area */}
-                  <div className="flex-1 bg-[#0F172A] rounded-xl border border-slate-700/30 overflow-hidden flex flex-col shadow-sm">
-                    <div className="h-10 border-b border-slate-700/30 flex items-center px-4 bg-black/10">
-                      <span className="text-slate-400 text-[11px] font-black uppercase tracking-widest">
-                        {activeMockTab === "Dashboard" && "Active Payroll Batches"}
-                        {activeMockTab === "Employees" && "Staff Directory"}
-                        {activeMockTab === "Payroll" && "Payment History"}
-                        {activeMockTab === "Benefits" && "Benefit Enrollments"}
-                        {activeMockTab === "Compliance" && "Regulatory Postings"}
-                      </span>
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                      <div className="flex flex-col divide-y divide-slate-700/20 p-2">
-                        {activeMockTab === "Dashboard" && [
-                          { name: "Sarah Smith", dept: "Engineering", val: "$4,250", status: "Paid" },
-                          { name: "Michael Chen", dept: "Design", val: "$3,800", status: "Paid" },
-                          { name: "Emma Watson", dept: "Marketing", val: "$3,100", status: "Processing" },
-                          { name: "David Lee", dept: "Sales", val: "$4,500", status: "Paid" },
-                          { name: "Alex Johnson", dept: "Support", val: "$2,900", status: "Paid" },
-                          { name: "Julia Roberts", dept: "People", val: "$3,500", status: "Paid" }
-                        ].map((item, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-800/30 transition-colors cursor-default">
-                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-blue-400 border border-slate-700">
-                                  {item.name.charAt(0)}
-                                </div>
-                                <div className="flex flex-col">
-                                   <div className="text-slate-200 text-[13px] font-bold">{item.name}</div>
-                                   <div className="text-slate-500 text-[10px] font-medium">{item.dept}</div>
-                                </div>
-                             </div>
-                             <div className="flex items-center gap-6">
-                                <div className="text-slate-300 text-[12px] font-mono font-bold">{item.val}</div>
-                                <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                                  item.status === 'Paid' 
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
-                                }`}>
-                                  {item.status}
-                                </div>
-                             </div>
-                          </div>
-                        ))}
-
-                        {activeMockTab !== "Dashboard" && [
-                          { name: `Mock Row for ${activeMockTab} A`, desc: "System entry verified", date: "Jan 12, 2026" },
-                          { name: `Mock Row for ${activeMockTab} B`, desc: "Compliance check passed", date: "Jan 14, 2026" },
-                          { name: `Mock Row for ${activeMockTab} C`, desc: "Pending review", date: "Jan 15, 2026" },
-                          { name: `Mock Row for ${activeMockTab} D`, desc: "Archived record", date: "Jan 16, 2026" },
-                        ].map((item, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-800/30 transition-colors cursor-default">
-                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-cyan-400 border border-slate-700">
-                                  {i + 1}
-                                </div>
-                                <div className="flex flex-col">
-                                   <div className="text-slate-200 text-[13px] font-bold">{item.name}</div>
-                                   <div className="text-slate-500 text-[10px] font-medium">{item.desc}</div>
-                                </div>
-                             </div>
-                             <div className="text-slate-400 text-[11px] font-medium">{item.date}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Smaller Chart Area on Side */}
-                  <div className="hidden lg:flex w-48 xl:w-56 flex-col gap-4">
-                    <div className="flex-1 bg-[#0F172A] p-4 rounded-xl border border-slate-700/30 flex flex-col gap-3">
-                       <span className="text-slate-500 text-[10px] font-bold uppercase">Trend Variance</span>
-                       <div className="flex-1 w-full bg-slate-800/10 rounded-lg relative overflow-hidden group">
-                          {/* Animated bars */}
-                          <div className="absolute inset-0 flex items-end justify-around p-2 gap-1.5">
-                             {[40, 70, 55, 90, 65, 80, 45].map((h, i) => (
-                               <div 
-                                key={i} 
-                                className="w-full bg-blue-600/40 border border-blue-500/20 rounded-t-sm transition-all duration-700 hover:bg-blue-400" 
-                                style={{ height: `${h}%` }}
-                               />
-                             ))}
-                          </div>
-                       </div>
-                       <div className="text-[11px] font-bold text-cyan-400">+12.4% MoM</div>
-                    </div>
-                    <div className="h-[120px] bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-xl border border-blue-500/30 flex flex-col justify-end text-white relative overflow-hidden">
-                       <div className="absolute top-2 right-2 w-12 h-12 bg-white/10 rounded-full blur-xl" />
-                       <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Tax Filing</span>
-                       <span className="text-[14px] font-bold leading-tight">SOC 2 Compliance Guaranteed</span>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
-          </div>
+          <PayrollDashboardMockup />
         </motion.div>
 
-        {/* TRUST BAR */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1, ease: "easeOut" }}
-          className="mt-16 sm:mt-20 lg:mt-24 w-full flex flex-col items-center overflow-hidden relative"
+          transition={{ duration: 0.8, delay: flatWords.length * 0.05 + 0.42, ease: "easeOut" }}
+          className="relative mt-12 w-full overflow-hidden"
         >
-          <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wider mb-6 text-center">
-            Trusted by 500+ creators, agencies & companies across the USA
-          </p>
+          <p className="text-center text-sm text-slate-400">Trusted by 5,000+ US companies</p>
 
-          {/* Shadow Edges to blend scrolling logos seamlessly */}
-          <div className="absolute left-0 top-12 bottom-0 w-16 md:w-32 bg-gradient-to-r from-[#0A1628] to-transparent z-10" />
-          <div className="absolute right-0 top-12 bottom-0 w-16 md:w-32 bg-gradient-to-l from-[#0A1628] to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-[#0A1628] to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#0A1628] to-transparent" />
 
-          {/* Marquee Strip */}
-          <div className="flex overflow-hidden w-[200vw] sm:w-[150vw] md:w-full opacity-60 mix-blend-screen">
-            <div className="flex items-center justify-around flex-nowrap min-w-full animate-marquee-css">
-              {marqueeLogos.map((logo, index) => (
-                <div key={index} className="flex-shrink-0 px-8 text-[18px] md:text-[22px] font-black tracking-tight text-slate-600 whitespace-nowrap">
-                  {logo}
+          <div className="mt-6 overflow-hidden">
+            <div className="hero-marquee flex min-w-max items-center gap-14 whitespace-nowrap opacity-60 grayscale">
+              {MARQUEE_LOGOS.map((logo, index) => (
+                <div key={`${logo}-${index}`} className="flex items-center gap-3 text-slate-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-black uppercase tracking-[0.18em]">
+                    {logo.slice(0, 2)}
+                  </div>
+                  <span className="text-lg font-black tracking-tight">{logo}</span>
                 </div>
               ))}
             </div>
           </div>
         </motion.div>
-
       </div>
-    </div>
+
+      <style jsx>{`
+        .hero-mesh {
+          position: absolute;
+          border-radius: 9999px;
+          filter: blur(110px);
+          opacity: 0.9;
+          mix-blend-mode: screen;
+          animation: heroMeshDrift 18s ease-in-out infinite alternate;
+        }
+
+        .hero-mesh-blue {
+          top: -10%;
+          left: -8%;
+          width: 42rem;
+          height: 42rem;
+          background: radial-gradient(circle, rgba(29, 78, 216, 0.55) 0%, rgba(29, 78, 216, 0.12) 45%, rgba(29, 78, 216, 0) 74%);
+          animation-delay: 0s;
+        }
+
+        .hero-mesh-cyan {
+          top: 12%;
+          right: -8%;
+          width: 34rem;
+          height: 34rem;
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.42) 0%, rgba(6, 182, 212, 0.1) 46%, rgba(6, 182, 212, 0) 76%);
+          animation-delay: -5s;
+        }
+
+        .hero-mesh-purple {
+          bottom: -16%;
+          left: 24%;
+          width: 38rem;
+          height: 38rem;
+          background: radial-gradient(circle, rgba(99, 102, 241, 0.32) 0%, rgba(99, 102, 241, 0.08) 42%, rgba(99, 102, 241, 0) 74%);
+          animation-delay: -9s;
+        }
+
+        .hero-float {
+          animation: heroFloat 3s ease-in-out infinite alternate;
+        }
+
+        .hero-marquee {
+          animation: heroMarquee 22s linear infinite;
+        }
+
+        @keyframes heroMeshDrift {
+          0% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+          50% {
+            transform: translate3d(2.5%, -3%, 0) scale(1.05);
+          }
+          100% {
+            transform: translate3d(-3%, 2.5%, 0) scale(0.96);
+          }
+        }
+
+        @keyframes heroFloat {
+          0% {
+            transform: translateY(0px);
+          }
+          100% {
+            transform: translateY(-8px);
+          }
+        }
+
+        @keyframes heroMarquee {
+          0% {
+            transform: translateX(0%);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
+    </section>
   );
 }

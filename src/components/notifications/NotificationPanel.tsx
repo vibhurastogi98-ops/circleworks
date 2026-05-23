@@ -1,378 +1,440 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Bell, X, Check, Settings, MoreVertical, CheckSquare, 
-  DollarSign, ShieldAlert, Users, Info, Trash2, BellOff,
-  CircleDot, Briefcase, GraduationCap, HeartPulse, Activity
-} from "lucide-react";
-import { useNotificationStore, NotificationCategory, NotificationItem } from "@/store/useNotificationStore";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Bell,
+  BellOff,
+  Check,
+  CheckSquare,
+  CircleDot,
+  DollarSign,
+  Info,
+  MoreVertical,
+  Settings,
+  ShieldAlert,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 
-// --- Time Helper ---
-const getRelativeTime = (isoString: string) => {
-  const diffInSeconds = Math.floor((new Date().getTime() - new Date(isoString).getTime()) / 1000);
-  if (diffInSeconds < 60) return "Just now";
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) return `${diffInDays}d ago`;
-  return new Date(isoString).toLocaleDateString("en-US");
-};
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  type NotificationCategory,
+  type NotificationItem,
+  useNotificationStore,
+} from "@/store/useNotificationStore";
 
-const getGroup = (isoString: string): string => {
-  const date = new Date(isoString);
-  const now = new Date();
-  
-  // reset to midnight
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay()); 
-  
-  if (date >= today) return "Today";
-  if (date >= yesterday && date < today) return "Yesterday";
-  if (date >= startOfWeek && date < yesterday) return "Earlier this week";
-  return "Older";
-};
-
-// --- Icons ---
-const getIconForType = (type: NotificationCategory) => {
-  switch(type) {
-    case "APPROVALS": return <CheckSquare size={18} className="text-blue-500" />;
-    case "PAYROLL": return <DollarSign size={18} className="text-emerald-500" />;
-    case "COMPLIANCE": return <ShieldAlert size={18} className="text-amber-500" />;
-    case "HR": return <Users size={18} className="text-indigo-500" />;
-    case "ATS": return <Briefcase size={18} className="text-violet-500" />;
-    case "ONBOARDING": return <GraduationCap size={18} className="text-pink-500" />;
-    case "BENEFITS": return <HeartPulse size={18} className="text-rose-500" />;
-    case "SYSTEM": return <Activity size={18} className="text-slate-500" />;
-    default: return <Info size={18} className="text-slate-500" />;
-  }
-};
-
-const TABS: { label: string, value: NotificationCategory | "ALL" }[] = [
-  { label: "All", value: "ALL" },
-  { label: "Approvals", value: "APPROVALS" },
-  { label: "Payroll", value: "PAYROLL" },
+const TABS: Array<{ label: string; value: NotificationCategory | "ALL" }> = [
+  { label: "ALL", value: "ALL" },
+  { label: "APPROVALS", value: "APPROVALS" },
+  { label: "PAYROLL", value: "PAYROLL" },
+  { label: "COMPLIANCE", value: "COMPLIANCE" },
   { label: "HR", value: "HR" },
-  { label: "ATS", value: "ATS" },
-  { label: "Onboarding", value: "ONBOARDING" },
-  { label: "Benefits", value: "BENEFITS" },
-  { label: "Compliance", value: "COMPLIANCE" },
-  { label: "System", value: "SYSTEM" },
 ];
 
-export default function NotificationPanel({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+const PAGE_SIZE = 12;
+
+const CATEGORY_META: Record<
+  NotificationCategory,
+  {
+    icon: React.ElementType;
+    tone: string;
+    link: string;
+  }
+> = {
+  ALL: { icon: Bell, tone: "bg-slate-100 text-slate-600", link: "/dashboard" },
+  APPROVALS: { icon: CheckSquare, tone: "bg-blue-50 text-blue-600", link: "/time/approvals" },
+  PAYROLL: { icon: DollarSign, tone: "bg-emerald-50 text-emerald-600", link: "/payroll" },
+  COMPLIANCE: { icon: ShieldAlert, tone: "bg-amber-50 text-amber-600", link: "/compliance/dashboard" },
+  HR: { icon: Users, tone: "bg-indigo-50 text-indigo-600", link: "/employees" },
+  ATS: { icon: Info, tone: "bg-violet-50 text-violet-600", link: "/hiring" },
+  ONBOARDING: { icon: Info, tone: "bg-pink-50 text-pink-600", link: "/onboarding" },
+  BENEFITS: { icon: Info, tone: "bg-rose-50 text-rose-600", link: "/benefits" },
+  SYSTEM: { icon: Info, tone: "bg-slate-100 text-slate-600", link: "/settings/integrations" },
+  INFO: { icon: Info, tone: "bg-sky-50 text-sky-600", link: "/dashboard" },
+};
+
+function getRelativeTime(isoString: string) {
+  const diffInSeconds = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
+  if (diffInSeconds < 60) return "Just now";
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+
+  return new Date(isoString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getGroup(isoString: string) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+
+  if (date >= today) return "Today";
+  if (date >= yesterday) return "Yesterday";
+  if (date >= startOfWeek) return "Earlier this week";
+  return "Older";
+}
+
+function getNotificationLink(notification: NotificationItem) {
+  if (notification.link && notification.link !== "#") return notification.link;
+  return CATEGORY_META[notification.type]?.link ?? "/dashboard";
+}
+
+function NotificationIcon({ type }: { type: NotificationCategory }) {
+  const meta = CATEGORY_META[type] ?? CATEGORY_META.INFO;
+  const Icon = meta.icon;
+
+  return (
+    <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.tone}`}>
+      <Icon size={18} />
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+      <div className="relative mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+        <Bell size={34} />
+        <span className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-blue-50" />
+      </div>
+      <h3 className="text-base font-bold text-slate-900 dark:text-white">You&apos;re all caught up!</h3>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">No notifications in this view.</p>
+    </div>
+  );
+}
+
+function NotificationMenu({
+  notification,
+  onClose,
+}: {
+  notification: NotificationItem;
+  onClose: () => void;
+}) {
+  const { markAsRead, muteType, deleteNotification } = useNotificationStore();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+      className="absolute right-0 top-8 z-[120] w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+    >
+      {!notification.isRead && (
+        <button
+          type="button"
+          onClick={() => {
+            markAsRead(notification.id);
+            onClose();
+          }}
+          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          <CircleDot size={13} />
+          Mark as read
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          muteType(notification.type);
+          onClose();
+        }}
+        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        <BellOff size={13} />
+        Mute this type
+      </button>
+      <div className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
+      <button
+        type="button"
+        onClick={() => {
+          deleteNotification(notification.id);
+          onClose();
+        }}
+        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+      >
+        <Trash2 size={13} />
+        Delete
+      </button>
+    </motion.div>
+  );
+}
+
+function NotificationRow({
+  notification,
+  menuOpenId,
+  setMenuOpenId,
+  onNavigate,
+}: {
+  notification: NotificationItem;
+  menuOpenId: string | null;
+  setMenuOpenId: (id: string | null) => void;
+  onNavigate: (notification: NotificationItem) => void;
+}) {
+  const { approveRequest, rejectRequest } = useNotificationStore();
+  const isUnread = !notification.isRead;
+  const isApproval = notification.type === "APPROVALS";
+  const menuIsOpen = menuOpenId === notification.id;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      onClick={() => onNavigate(notification)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        setMenuOpenId(notification.id);
+      }}
+      className={`group relative cursor-pointer rounded-xl border p-3 transition-colors ${
+        isUnread
+          ? "border-blue-200 border-l-4 border-l-blue-600 bg-blue-50/70"
+          : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/70"
+      }`}
+    >
+      <div className="flex gap-3">
+        <NotificationIcon type={notification.type} />
+        <div className="min-w-0 flex-1 pr-7">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="line-clamp-2 text-sm font-bold leading-5 text-slate-900 dark:text-white">
+              {notification.title}
+            </h3>
+            <span className="shrink-0 text-xs font-semibold text-slate-400">
+              {getRelativeTime(notification.timestamp)}
+            </span>
+          </div>
+          <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600 dark:text-slate-400">
+            {notification.description}
+          </p>
+
+          <div className="mt-3 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+            {isApproval && notification.status === "pending" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => approveRequest(notification.id)}
+                  className="rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-slate-900 dark:text-emerald-300"
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  onClick={() => rejectRequest(notification.id)}
+                  className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 dark:border-red-500/30 dark:bg-slate-900 dark:text-red-300"
+                >
+                  Reject
+                </button>
+              </>
+            ) : isApproval && notification.status ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold capitalize text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {notification.status === "approved" ? <Check size={13} /> : <X size={13} />}
+                {notification.status}
+              </span>
+            ) : (
+              <Link
+                href={getNotificationLink(notification)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onNavigate(notification);
+                }}
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              >
+                View
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute right-2 top-2" onClick={(event) => event.stopPropagation()}>
+        <button
+          type="button"
+          aria-label="Open notification menu"
+          onClick={() => setMenuOpenId(menuIsOpen ? null : notification.id)}
+          className={`flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white ${
+            menuIsOpen ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-white" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          }`}
+        >
+          <MoreVertical size={15} />
+        </button>
+        <AnimatePresence>
+          {menuIsOpen && (
+            <NotificationMenu
+              notification={notification}
+              onClose={() => setMenuOpenId(null)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.article>
+  );
+}
+
+export default function NotificationPanel({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
-  const { 
-    notifications, 
-    unreadCount, 
-    markAllAsRead, 
-    markAsRead, 
-    approveRequest, 
-    rejectRequest,
-    deleteNotification,
-    muteType,
-    addNotification
-  } = useNotificationStore();
-  
+  const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotificationStore();
   const [activeTab, setActiveTab] = useState<NotificationCategory | "ALL">("ALL");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
-  // WS Simulation Listener
-  useEffect(() => {
-    const handleNewNotification = (e: any) => {
-      const detail = e.detail;
-      if (detail) {
-        addNotification(detail);
-      }
-    };
-    window.addEventListener("notification.new", handleNewNotification);
-    return () => window.removeEventListener("notification.new", handleNewNotification);
-  }, [addNotification]);
+  const filtered = useMemo(() => {
+    const visibleNotifications = activeTab === "ALL"
+      ? notifications
+      : notifications.filter((notification) => notification.type === activeTab);
+    return visibleNotifications.slice(0, visibleCount);
+  }, [activeTab, notifications, visibleCount]);
 
-  // Click outside to close Item menu
-  useEffect(() => {
-    const closeMenu = () => setMenuOpenId(null);
-    if (menuOpenId) document.addEventListener("click", closeMenu);
-    return () => document.removeEventListener("click", closeMenu);
-  }, [menuOpenId]);
+  const hasMore = activeTab === "ALL"
+    ? notifications.length > visibleCount
+    : notifications.filter((notification) => notification.type === activeTab).length > visibleCount;
 
-  // Prevent scroll when open
-  useEffect(() => {
-    if (isOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = 'unset';
-    return () => { document.body.style.overflow = 'unset'; }
-  }, [isOpen]);
+  const grouped = useMemo(() => {
+    return filtered.reduce<Record<string, NotificationItem[]>>((acc, notification) => {
+      const group = getGroup(notification.timestamp);
+      acc[group] = acc[group] ?? [];
+      acc[group].push(notification);
+      return acc;
+    }, {});
+  }, [filtered]);
 
-  const filtered = activeTab === "ALL" 
-    ? notifications 
-    : notifications.filter(n => n.type === activeTab);
+  const groupOrder = ["Today", "Yesterday", "Earlier this week", "Older"].filter(
+    (group) => grouped[group]?.length
+  );
 
-  const grouped = filtered.reduce((acc, notif) => {
-    const g = getGroup(notif.timestamp);
-    if (!acc[g]) acc[g] = [];
-    acc[g].push(notif);
-    return acc;
-  }, {} as Record<string, NotificationItem[]>);
+  const handleTabChange = (tab: NotificationCategory | "ALL") => {
+    setActiveTab(tab);
+    setVisibleCount(PAGE_SIZE);
+    setMenuOpenId(null);
+  };
 
-  const groups = ["Today", "Yesterday", "Earlier this week", "Older"].filter(g => grouped[g] && grouped[g].length > 0);
-
-  const handleItemClick = (n: NotificationItem) => {
-    if (!n.isRead) markAsRead(n.id);
-    if (n.link) {
-      onClose();
-      router.push(n.link);
-    }
+  const handleNavigate = (notification: NotificationItem) => {
+    markAsRead(notification.id);
+    onClose();
+    router.push(getNotificationLink(notification));
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-slate-900/20 dark:bg-black/40 backdrop-blur-sm z-[100]"
-          />
-          
-          {/* Panel */}
-          <motion.div 
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-            className="fixed top-0 right-0 h-[100dvh] w-full max-w-[280px] bg-white dark:bg-[#0F172A] shadow-2xl z-[101] flex flex-col border-l border-slate-200 dark:border-slate-800"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[14px] font-bold text-slate-900 dark:text-white">Notifications</h2>
-                {unreadCount > 0 && (
-                  <div className="px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-bold">
-                    {unreadCount} new
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                {unreadCount > 0 && (
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      markAllAsRead();
-                    }}
-                    className="p-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                    title="Mark all as read"
-                  >
-                    <Check size={14} />
-                  </button>
-                )}
-                <Link href="/settings/notifications" className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
-                  <Settings size={14} />
-                </Link>
-                <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="flex flex-col border-l border-slate-200 dark:border-slate-800">
+        <header className="shrink-0 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">Notifications</h2>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-black text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                  {unreadCount}
+                </span>
+              )}
             </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 disabled:pointer-events-none disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                disabled={unreadCount === 0}
+              >
+                Mark all read
+              </button>
+              <Link
+                href="/settings/notifications"
+                aria-label="Notification settings"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <Settings size={17} />
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close notifications"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
 
-            {/* Tabs */}
-            <div className="px-4 pt-2 border-b border-slate-200 dark:border-slate-800 shrink-0 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-4">
-                {TABS.map(t => (
-                  <button
-                    key={t.value}
-                    onClick={() => setActiveTab(t.value as any)}
-                    className={`pb-2 text-[11px] font-bold border-b-2 transition-colors whitespace-nowrap ${
-                      activeTab === t.value 
-                        ? "border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400" 
-                        : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
+          <nav className="mt-4 flex gap-1 overflow-x-auto" aria-label="Notification filters">
+            {TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => handleTabChange(tab.value)}
+                className={`rounded-lg px-3 py-2 text-[11px] font-black tracking-wide transition-colors ${
+                  activeTab === tab.value
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-[#0B1120]">
+          {filtered.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="space-y-5">
+              <AnimatePresence initial={false}>
+                {groupOrder.map((group) => (
+                  <section key={group} className="space-y-2">
+                    <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                      {group}
+                    </h3>
+                    <div className="space-y-2">
+                      {grouped[group].map((notification) => (
+                        <NotificationRow
+                          key={notification.id}
+                          notification={notification}
+                          menuOpenId={menuOpenId}
+                          setMenuOpenId={setMenuOpenId}
+                          onNavigate={handleNavigate}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 ))}
-              </div>
-            </div>
+              </AnimatePresence>
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-[#0B1120]">
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3 text-slate-300 dark:text-slate-600">
-                    <Bell size={24} />
-                  </div>
-                  <h3 className="text-[12px] font-bold text-slate-900 dark:text-white mb-1">You're all caught up!</h3>
-                  <p className="text-[11px] text-slate-500">No new notifications in this category.</p>
-                </div>
-              ) : (
-                <div className="pb-8">
-                  <AnimatePresence initial={false}>
-                    {groups.map(group => (
-                      <div key={group} className="pt-3">
-                        <h4 className="px-4 pb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          {group}
-                        </h4>
-                        <div className="flex flex-col">
-                          {grouped[group].map(notif => (
-                            <motion.div
-                              key={notif.id}
-                              layout
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className={`relative group cursor-pointer border-b border-slate-100 dark:border-slate-800/50 p-3 pl-4 ${
-                                !notif.isRead 
-                                  ? "bg-white dark:bg-slate-900 border-l-[2px] border-l-blue-600" 
-                                  : "bg-transparent border-l-[2px] border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-800/20"
-                              }`}
-                              onClick={() => handleItemClick(notif)}
-                            >
-                              <div className="flex items-start gap-2">
-                                <div className={`shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
-                                  {getIconForType(notif.type)}
-                                </div>
-                                <div className="flex-1 min-w-0 pr-5">
-                                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                                    <span className="text-[12px] font-bold text-slate-900 dark:text-gray-100 truncate">
-                                      {notif.title}
-                                    </span>
-                                    <span className="shrink-0 text-[9px] font-medium text-slate-400">
-                                      {getRelativeTime(notif.timestamp)}
-                                    </span>
-                                  </div>
-                                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed max-w-[90%]">
-                                    {notif.description}
-                                  </p>
-
-                                  {/* Actions inline */}
-                                  {notif.type === "APPROVALS" && notif.status === "pending" && (
-                                    <div className="flex items-center gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
-                                      <button 
-                                        onClick={() => approveRequest(notif.id)}
-                                        className="h-6 px-3 rounded-md bg-white border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 dark:hover:bg-emerald-900/30 transition-colors"
-                                      >   
-                                        Approve
-                                      </button>
-                                      <button 
-                                        onClick={() => rejectRequest(notif.id)}
-                                        className="h-6 px-3 rounded-md bg-white border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 dark:hover:bg-red-900/30 transition-colors"
-                                      >
-                                        Reject
-                                      </button>
-                                    </div>
-                                  )}
-                                  
-                                  {notif.type === "APPROVALS" && notif.status !== "pending" && (
-                                    <div className="mt-1.5 text-[10px] font-medium text-slate-500 flex items-center gap-1">
-                                      {notif.status === "approved" ? <Check size={12} className="text-emerald-500"/> : <X size={12} className="text-red-500" />}
-                                      {notif.status === "approved" ? "Approved" : "Rejected"}
-                                    </div>
-                                  )}
-
-                                  {notif.link && notif.type !== "APPROVALS" && (
-                                    <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
-                                      <Link href={notif.link} onClick={onClose} className="text-[10px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                        View details &rarr;
-                                      </Link>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* More Menu */}
-                              <div className="absolute right-2 top-2" onClick={(e) => e.stopPropagation()}>
-                                <button 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setMenuOpenId(menuOpenId === notif.id ? null : notif.id);
-                                  }}
-                                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${menuOpenId === notif.id ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
-                                >
-                                  <MoreVertical size={12} />
-                                </button>
-                                
-                                <AnimatePresence>
-                                  {menuOpenId === notif.id && (
-                                    <motion.div 
-                                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                                      exit={{ opacity: 0, scale: 0.95 }}
-                                      className="absolute right-0 top-8 w-36 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-[110]"
-                                    >
-                                      <div className="p-1 flex flex-col">
-                                        {!notif.isRead && (
-                                          <button onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            markAsRead(notif.id); 
-                                            setMenuOpenId(null);
-                                          }} className="w-full text-left px-2 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-2">
-                                            <CircleDot size={12} className="text-slate-400" /> Mark as read
-                                          </button>
-                                        )}
-                                        <button onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          muteType(notif.type); 
-                                          setMenuOpenId(null);
-                                        }} className="w-full text-left px-2 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded flex items-center gap-2">
-                                          <BellOff size={12} className="text-slate-400" /> Mute this type
-                                        </button>
-                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
-                                        <button onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          deleteNotification(notif.id); 
-                                          setMenuOpenId(null);
-                                        }} className="w-full text-left px-2 py-1.5 text-[11px] font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded flex items-center gap-2">
-                                          <Trash2 size={12}/> Delete
-                                        </button>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </AnimatePresence>
-                  
-                  {filtered.length > 0 && (
-                     <div className="p-4 flex justify-center">
-                        <button className="h-7 px-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-md transition-all">
-                           Load More
-                        </button>
-                     </div>
-                  )}
+              {hasMore && (
+                <div className="flex justify-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    Load more
+                  </button>
                 </div>
               )}
             </div>
-            
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

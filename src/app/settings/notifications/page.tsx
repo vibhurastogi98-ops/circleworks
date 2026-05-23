@@ -6,6 +6,7 @@ import { mockNotifications } from "@/data/mockSettings";
 
 export default function NotificationsSettingsPage() {
   const [notifications, setNotifications] = useState(mockNotifications);
+  const [digest, setDigest] = useState<"real-time" | "daily" | "weekly">("real-time");
 
   const toggleStatus = (id: string, channel: 'email' | 'inApp' | 'slack' | 'sms') => {
     setNotifications(notifications.map(n => 
@@ -20,7 +21,32 @@ export default function NotificationsSettingsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Notifications</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Configure global event alerts and delivery channels.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Configure {notifications.length}+ event alerts across Email, In-app, Slack, and SMS.</p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Notification digest</h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Choose how non-critical notifications are bundled for admins.</p>
+          </div>
+          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950">
+            {(["real-time", "daily", "weekly"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setDigest(option)}
+                className={`rounded-md px-3 py-1.5 text-xs font-bold capitalize transition-colors ${
+                  digest === option
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

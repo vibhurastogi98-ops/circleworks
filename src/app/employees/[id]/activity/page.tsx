@@ -12,6 +12,8 @@ interface ActivityEntry {
   id: string;
   timestamp: string;
   isAutomated: boolean;
+  type?: string;
+  user?: string;
   workflowName?: string;
   actionType?: string;
   summary: string;
@@ -52,12 +54,6 @@ export default function ActivityTab() {
     return () => off("workflow.action.executed", handler);
   }, [id, on, off]);
 
-  const visibleEntries = filter === "Automated"
-    ? workflowEntries
-    : filter === "All"
-    ? workflowEntries
-    : [];
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -75,6 +71,43 @@ export default function ActivityTab() {
       </div>
     );
   }
+
+  const baselineEntries: ActivityEntry[] = [
+    {
+      id: "baseline-status",
+      timestamp: emp.updatedAt || emp.createdAt || new Date().toISOString(),
+      isAutomated: false,
+      type: "Update",
+      user: "Avery Brooks",
+      summary: "Status updated",
+      changedFields: [{ field: "status", oldValue: "onboarding", newValue: emp.status || "active" }],
+    },
+    {
+      id: "baseline-manager",
+      timestamp: emp.createdAt || new Date().toISOString(),
+      isAutomated: false,
+      type: "Hierarchy",
+      user: "Mina Patel",
+      summary: "Manager assignment changed",
+      changedFields: [{ field: "manager", oldValue: "Unassigned", newValue: emp.manager ? `${emp.manager.firstName} ${emp.manager.lastName}` : "Unassigned" }],
+    },
+    {
+      id: "baseline-compensation",
+      timestamp: emp.startDate || emp.createdAt || new Date().toISOString(),
+      isAutomated: false,
+      type: "Compensation",
+      user: "Payroll Admin",
+      summary: "Base compensation recorded",
+      changedFields: [{ field: "salary", oldValue: "Not set", newValue: emp.salary ? `$${Number(emp.salary).toLocaleString()}` : "Not set" }],
+    },
+  ];
+
+  const allEntries = [...workflowEntries, ...baselineEntries].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const visibleEntries = filter === "All"
+    ? allEntries
+    : filter === "Automated"
+      ? allEntries.filter((entry) => entry.isAutomated)
+      : allEntries.filter((entry) => entry.type === filter || entry.actionType === filter.toLowerCase());
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -101,8 +134,8 @@ export default function ActivityTab() {
               <option value="All">All Events</option>
               <option value="Automated">Automated</option>
               <option value="Update">Data Updates</option>
-              <option value="Security">Security Logs</option>
-              <option value="Creation">Hierarchy Updates</option>
+              <option value="Compensation">Compensation</option>
+              <option value="Hierarchy">Hierarchy Updates</option>
             </select>
           </div>
         </div>
@@ -150,11 +183,11 @@ export default function ActivityTab() {
                     <span className="text-[11px] text-slate-400 font-medium">
                       {format(new Date(entry.timestamp), "MMM d, yyyy 'at' h:mm a")}
                     </span>
-                    {entry.workflowName && (
+                    {(entry.workflowName || entry.user) && (
                       <>
                         <span className="text-slate-300 dark:text-slate-700">·</span>
                         <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">
-                          {entry.workflowName}
+                          {entry.workflowName || entry.user}
                         </span>
                       </>
                     )}

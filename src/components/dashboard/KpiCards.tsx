@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -10,7 +10,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import { KPI_CARDS, KpiCard } from "@/data/dashboard";
+import { type KpiCard } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import Link from "next/link";
 import {

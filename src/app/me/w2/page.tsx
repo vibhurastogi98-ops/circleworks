@@ -3,15 +3,16 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, FileText, Clock, CheckCircle2, ToggleLeft, ToggleRight } from "lucide-react";
-import { mockTaxForms } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 export default function TaxFormsPage() {
-  const years = [...new Set(mockTaxForms.map(f => f.year))].sort((a, b) => b - a);
+  const { data } = useEmployeeSelfService();
+  const years = [2025, 2024, 2023, 2022, 2021];
   const [selectedYear, setSelectedYear] = useState<number>(years[0]);
   const [paperlessConsent, setPaperlessConsent] = useState(true);
 
-  const form = mockTaxForms.find(f => f.year === selectedYear);
+  const form = data.taxForms.find(f => f.year === selectedYear);
   const isAvailable = form?.status === 'Available';
   const availableDate = form ? new Date(form.availableDate) : null;
   const now = new Date();
@@ -104,6 +105,28 @@ export default function TaxFormsPage() {
           </div>
         </motion.div>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[
+          { type: "1099-NEC", copy: "Only shown when you are paid as a contractor." },
+          { type: "W-2c", copy: "Corrected W-2 forms appear here if issued." },
+        ].map((item) => (
+          <div key={item.type} className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700/60 dark:bg-slate-800/40">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700">
+                <FileText size={18} className="text-slate-500 dark:text-slate-300" />
+              </div>
+              <div>
+                <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">{item.type}</h3>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">{item.copy}</p>
+              </div>
+              <span className="ml-auto rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                Not issued
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Paperless Consent */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 p-5">

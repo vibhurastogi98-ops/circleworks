@@ -21,6 +21,9 @@ export function TriggerNode({ data, isConnectable, selected }: NodeProps) {
         <div className="text-sm font-medium text-slate-900 dark:text-white">
           {typeof data.label === 'string' ? data.label : 'Select Event...'}
         </div>
+        {typeof data.triggerEvent === "string" && (
+          <div className="mt-2 text-[11px] font-medium text-blue-600 dark:text-blue-300">{data.triggerEvent}</div>
+        )}
       </div>
       <Handle
         type="source"

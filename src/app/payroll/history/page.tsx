@@ -15,14 +15,23 @@ function fmt(n: number) { return new Intl.NumberFormat("en-US", { style: "curren
 
 export default function HistoryPage() {
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("All");
+  const [type, setType] = useState("All");
+  const [startDate, setStartDate] = useState("2026-01-01");
+  const [endDate, setEndDate] = useState("2026-03-31");
   const [exporting, setExporting] = useState(false);
 
-  // Filter history by search query
-  const filtered = HISTORY.filter((h) =>
-    h.id.toLowerCase().includes(search.toLowerCase()) ||
-    h.period.toLowerCase().includes(search.toLowerCase()) ||
-    h.date.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = HISTORY.filter((h) => {
+    const matchesSearch =
+      h.id.toLowerCase().includes(search.toLowerCase()) ||
+      h.period.toLowerCase().includes(search.toLowerCase()) ||
+      h.date.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = status === "All" || h.status === status;
+    const matchesType = type === "All" || h.type === type;
+    const runDate = new Date(h.date);
+    const inRange = runDate >= new Date(`${startDate}T00:00:00`) && runDate <= new Date(`${endDate}T23:59:59`);
+    return matchesSearch && matchesStatus && matchesType && inRange;
+  });
 
   // Compute YTD totals dynamically from full history
   const ytdGross = HISTORY.reduce((s, h) => s + h.gross, 0);
@@ -65,7 +74,7 @@ export default function HistoryPage() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex gap-4">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-3">
           <div className="relative w-72">
              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
              <input
@@ -75,7 +84,42 @@ export default function HistoryPage() {
                onChange={(e) => setSearch(e.target.value)}
                className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
-          <button className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"><Filter size={14}/> Filters</button>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(event) => setStartDate(event.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            aria-label="Start date"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(event) => setEndDate(event.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            aria-label="End date"
+          />
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            aria-label="Status filter"
+          >
+            <option>All</option>
+            <option>Paid</option>
+            <option>Processing</option>
+            <option>Draft</option>
+          </select>
+          <select
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            aria-label="Type filter"
+          >
+            <option>All</option>
+            <option>Regular</option>
+            <option>Off-cycle</option>
+          </select>
+          <span className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"><Filter size={14}/> {filtered.length} runs</span>
         </div>
         <table className="w-full text-left">
           <thead>

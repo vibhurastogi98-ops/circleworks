@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import { Plus, Zap, Play, Pause, Clock, FileText, ArrowRight, Activity, CalendarDays, Key, MoreHorizontal } from "lucide-react";
-import { MOCK_ACTIVE_WORKFLOWS, MOCK_TEMPLATES } from "@/data/mockWorkflows";
+import { Plus, Zap, Play, Pause, Clock, FileText, ArrowRight, Activity, MoreHorizontal } from "lucide-react";
+import { FEATURED_WORKFLOW_TEMPLATES, MOCK_ACTIVE_WORKFLOWS, MOCK_TEMPLATES } from "@/data/mockWorkflows";
 import { motion } from "framer-motion";
+import WorkflowBuilder from "@/components/workflows/WorkflowBuilder";
+import { Button } from "@/components/ui/button";
 
 export default function WorkflowsPage() {
   const [activeTab, setActiveTab] = useState<"active" | "templates">("active");
+  const [builderWorkflowId, setBuilderWorkflowId] = useState<string | null>(null);
+  const allWorkflows = [...MOCK_ACTIVE_WORKFLOWS, ...MOCK_TEMPLATES];
+  const builderWorkflow = builderWorkflowId === "new" ? null : allWorkflows.find((workflow) => workflow.id === builderWorkflowId) || null;
 
   return (
     <div className="flex flex-col h-full">
@@ -22,13 +26,34 @@ export default function WorkflowsPage() {
             Build rules to automate HR, IT, and payroll tasks across your company.
           </p>
         </div>
-        <Link 
-          href="/settings/workflows/new"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+        <Button
+          type="button"
+          onClick={() => setBuilderWorkflowId("new")}
+          className="gap-2 bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4" />
           New Workflow
-        </Link>
+        </Button>
+      </div>
+
+      <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-4">
+        {FEATURED_WORKFLOW_TEMPLATES.map((templateName) => {
+          const template = MOCK_TEMPLATES.find((item) => item.name.includes(templateName.replace("New hire IT setup", "New hire welcome sequence").replace("PTO reminder 30 days before expiry", "PTO balance expiry warning").replace("Anniversary kudos", "Work anniversary kudos").replace("90-day review trigger", "90-day review trigger"))) || MOCK_TEMPLATES[0];
+          return (
+            <button
+              key={templateName}
+              type="button"
+              onClick={() => setBuilderWorkflowId(template.id)}
+              className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-700"
+            >
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">{templateName}</div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Use template</div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Tabs */}
@@ -73,12 +98,13 @@ export default function WorkflowsPage() {
               <p className="text-sm text-slate-500 mb-6 max-w-sm">
                 Save time by automating repetitive tasks like onboarding emails, task creation, and notifications.
               </p>
-              <Link 
-                href="/settings/workflows/new"
+              <button
+                type="button"
+                onClick={() => setBuilderWorkflowId("new")}
                 className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-lg text-sm transition-transform hover:scale-105 active:scale-95"
               >
                 Create your first workflow
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -97,7 +123,7 @@ export default function WorkflowsPage() {
                   {MOCK_ACTIVE_WORKFLOWS.map((wf) => (
                     <tr key={wf.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
                       <td className="px-6 py-4">
-                        <Link href={`/settings/workflows/${wf.id}`} className="block">
+                        <button type="button" onClick={() => setBuilderWorkflowId(wf.id)} className="block text-left">
                           <div className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {wf.name}
                           </div>
@@ -105,7 +131,7 @@ export default function WorkflowsPage() {
                             <Activity className="w-3.5 h-3.5" />
                             {wf.triggerEvent}
                           </div>
-                        </Link>
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -146,10 +172,11 @@ export default function WorkflowsPage() {
       {activeTab === "templates" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {MOCK_TEMPLATES.map((template) => (
-            <Link 
+            <button
               key={template.id} 
-              href={`/settings/workflows/${template.id}`}
-              className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all group flex flex-col h-full"
+              type="button"
+              onClick={() => setBuilderWorkflowId(template.id)}
+              className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all group flex flex-col h-full text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform">
                 <FileText className="w-5 h-5" />
@@ -172,9 +199,16 @@ export default function WorkflowsPage() {
               <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mt-1 truncate">
                 {template.triggerEvent}
               </div>
-            </Link>
+            </button>
           ))}
         </div>
+      )}
+
+      {builderWorkflowId && (
+        <WorkflowBuilder
+          initialData={builderWorkflow}
+          onClose={() => setBuilderWorkflowId(null)}
+        />
       )}
     </div>
   );

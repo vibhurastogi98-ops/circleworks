@@ -9,7 +9,7 @@ import {
   DollarSign, Users, Shield, Heart, Briefcase, Receipt, Settings,
   BookOpen, Globe, PieChart, HeartPulse, Target, CheckCircle,
   Minus, Landmark, UserPlus, UserMinus, Cake, CalendarDays,
-  CalendarX, Car, Building, Wallet, AreaChart
+  CalendarX, Car, Building, Wallet, AreaChart, X, ExternalLink
 } from "lucide-react";
 import {
   standardReports,
@@ -20,6 +20,7 @@ import {
   type StandardReport,
   type ScheduledReport,
 } from "@/data/mockReports";
+import { ReportViewerContent } from "@/components/reports/ReportViewerContent";
 
 /* ─── Icon Resolver ───────────────────────────────────────────────── */
 const iconMap: Record<string, React.ElementType> = {
@@ -46,9 +47,11 @@ const PRESETS = [
 function DateRangePicker() {
   const [preset, setPreset] = useState("30d");
   const [showCustom, setShowCustom] = useState(false);
+  const [customStart, setCustomStart] = useState("2026-05-01");
+  const [customEnd, setCustomEnd] = useState("2026-05-23");
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-end gap-2">
       <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
         {PRESETS.map((p) => (
           <button
@@ -74,11 +77,34 @@ function DateRangePicker() {
           <Calendar size={12} /> Custom
         </button>
       </div>
+      {showCustom && (
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <input
+            type="date"
+            value={customStart}
+            onChange={(event) => setCustomStart(event.target.value)}
+            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          />
+          <span className="text-xs font-bold text-slate-400">to</span>
+          <input
+            type="date"
+            value={customEnd}
+            onChange={(event) => setCustomEnd(event.target.value)}
+            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-function ReportCard({ report }: { report: StandardReport }) {
+function reportHref(report: StandardReport) {
+  if (report.id === "rpt-20b") return "/reports/certified-payroll";
+  if (report.id === "rpt-9b") return "/reports/headcount-forecast";
+  return `/reports/viewer/${report.id}`;
+}
+
+function ReportCard({ report, onRun }: { report: StandardReport; onRun: (report: StandardReport) => void }) {
   const Icon = getIcon(report.icon);
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800 transition-all group flex flex-col">
@@ -124,17 +150,70 @@ function ReportCard({ report }: { report: StandardReport }) {
             </select>
           </div>
         )}
-        <Link
-          href={
-            report.id === "rpt-20b" ? `/reports/certified-payroll` :
-            report.id === "rpt-9b" ? `/reports/headcount-forecast` :
-            `/reports/viewer/${report.id}`
-          }
+        <button
+          type="button"
+          onClick={() => onRun(report)}
           className="w-full flex justify-center items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
         >
           <Play size={12} /> Run Report
+        </button>
+        <Link
+          href={reportHref(report)}
+          target="_blank"
+          className="w-full flex justify-center items-center gap-1.5 px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+        >
+          <ExternalLink size={12} /> Open in new tab
         </Link>
       </div>
+    </div>
+  );
+}
+
+function ReportSlideOver({
+  report,
+  onClose,
+}: {
+  report: StandardReport | null;
+  onClose: () => void;
+}) {
+  if (!report) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120]">
+      <button
+        type="button"
+        aria-label="Close report preview"
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
+      />
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-5xl flex-col overflow-hidden bg-slate-50 shadow-2xl dark:bg-slate-950">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-blue-600">Report Viewer</p>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white">{report.name}</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={reportHref(report)}
+              target="_blank"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <ExternalLink size={14} /> New tab
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <ReportViewerContent reportId={report.id} compact />
+        </div>
+      </aside>
     </div>
   );
 }
@@ -219,6 +298,7 @@ function InsightCard({ insight }: { insight: typeof aiInsights[0] }) {
 export default function ReportsPage() {
   const [activeCategory, setActiveCategory] = useState<ReportCategory>("Payroll");
   const [search, setSearch] = useState("");
+  const [activeReport, setActiveReport] = useState<StandardReport | null>(null);
 
   const filteredReports = standardReports.filter((r) => {
     if (r.category !== activeCategory) return false;
@@ -290,7 +370,7 @@ export default function ReportsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredReports.map((report) => (
-              <ReportCard key={report.id} report={report} />
+              <ReportCard key={report.id} report={report} onRun={setActiveReport} />
             ))}
             {filteredReports.length === 0 && (
               <div className="col-span-full py-12 text-center text-slate-500">
@@ -332,6 +412,7 @@ export default function ReportsPage() {
           ))}
         </div>
       </div>
+      <ReportSlideOver report={activeReport} onClose={() => setActiveReport(null)} />
     </div>
   );
 }

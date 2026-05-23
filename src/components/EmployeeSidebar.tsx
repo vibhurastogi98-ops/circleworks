@@ -5,9 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home, DollarSign, Clock, Timer, Heart, FileText, MoreHorizontal,
-  ChevronDown, LogOut, Receipt, Target, GraduationCap,
-  Banknote, Users2, User, ChevronRight,
+  Home, DollarSign, Clock, Heart, FileText, MoreHorizontal,
+  ChevronDown, LogOut, ChevronRight,
 } from "lucide-react";
 
 import { useSidebarStore } from "@/store/useSidebarStore";
@@ -29,17 +28,25 @@ const EMPLOYEE_NAV: NavItem[] = [
       { label: "Early Pay", href: "/me/ewa" },
     ],
   },
-  { label: "Time Off", icon: Clock, href: "/me/time-off", badgeCount: 1 },
-  { label: "Time", icon: Timer, href: "/me/time" },
+  {
+    label: "Time", icon: Clock, href: "/me/time-off", badgeCount: 1,
+    subItems: [
+      { label: "Time Off", href: "/me/time-off" },
+      { label: "Time Clock", href: "/me/time" },
+    ],
+  },
   { label: "Benefits", icon: Heart, href: "/me/benefits" },
-  { label: "Expenses", icon: Receipt, href: "/me/expenses" },
-  { label: "Documents", icon: FileText, href: "/me/documents" },
-  { label: "DIVIDER", icon: Home, isDivider: true },
-  { label: "Learning", icon: GraduationCap, href: "/me/learning" },
-  { label: "Goals", icon: Target, href: "/me/goals" },
-  { label: "Referrals", icon: Users2, href: "/me/referrals" },
-  { label: "DIVIDER", icon: Home, isDivider: true },
-  { label: "My Profile", icon: User, href: "/me/profile" },
+  { label: "Docs", icon: FileText, href: "/me/documents" },
+  {
+    label: "More", icon: MoreHorizontal, href: "/me/profile",
+    subItems: [
+      { label: "Expenses", href: "/me/expenses" },
+      { label: "Learning", href: "/me/learning" },
+      { label: "Goals", href: "/me/goals" },
+      { label: "Referrals", href: "/me/referrals" },
+      { label: "Profile", href: "/me/profile" },
+    ],
+  },
 ];
 
 // Guest Mode: Authentication constants

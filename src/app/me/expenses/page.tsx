@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Receipt, CheckCircle2, Clock, XCircle, AlertCircle, Plus, X, Camera, Loader2, Send } from "lucide-react";
-import { mockExpenses, mockExpenseReports } from "@/data/mockEmployeePortal";
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
 
 interface ApiExpenseReport {
@@ -32,6 +32,7 @@ const statusIcons: Record<string, React.ElementType> = {
 };
 
 export default function ExpensesPage() {
+  const { data } = useEmployeeSelfService();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ amount: "", date: "", merchant: "", category: "Meals", purpose: "" });
   const [activeTab, setActiveTab] = useState<"expenses" | "reports">("expenses");
@@ -81,7 +82,7 @@ export default function ExpensesPage() {
           <div className="hidden sm:grid grid-cols-[1fr_1fr_auto_1fr_auto] gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700/40 text-[12px] font-bold text-slate-500 uppercase tracking-wide">
             <span>Date / Merchant</span><span>Category</span><span>Amount</span><span>Purpose</span><span>Status</span>
           </div>
-          {mockExpenses.map((exp, i) => {
+          {data.expenses.map((exp, i) => {
             const StatusIcon = statusIcons[exp.status] || Clock;
             return (
               <motion.div key={exp.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_1fr_auto] gap-2 sm:gap-4 px-4 py-3 border-b border-slate-100 dark:border-slate-700/30 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors items-center">
@@ -107,7 +108,7 @@ export default function ExpensesPage() {
               <Loader2 size={20} className="animate-spin" />
               <span className="text-sm font-medium">Loading reports...</span>
             </div>
-          ) : (apiReports ?? mockExpenseReports).map((report, i) => {
+          ) : (apiReports ?? data.expenseReports).map((report, i) => {
             const statusKey = report.status;
             const StatusIcon = statusIcons[statusKey] || Clock;
             const displayStatus = statusKey === "pending_payroll" ? "Pending Payroll" : statusKey;
@@ -145,7 +146,7 @@ export default function ExpensesPage() {
         <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">Reimbursement Pipeline</h2>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {(["Submitted", "Approved", "pending_payroll", "Reimbursed"] as const).map((step, i) => {
-            const source = apiReports ?? mockExpenseReports;
+            const source = apiReports ?? data.expenseReports;
             const count = source.filter(r => r.status === step).length;
             const label = step === "pending_payroll" ? "Pending Payroll" : step;
             return (
@@ -172,7 +173,7 @@ export default function ExpensesPage() {
               </div>
               <div className="p-5 space-y-4">
                 {/* Receipt Upload */}
-                <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 transition-colors" onClick={() => toast("AI receipt scanning coming soon!", { icon: <Camera className="w-4 h-4" /> })}>
+                <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 transition-colors" onClick={() => { setFormData({ ...formData, merchant: "Toast POS", date: "2026-04-06", amount: "42.18" }); toast.success("AI filled merchant, date, and amount", { icon: <Camera className="w-4 h-4" /> }); }}>
                   <div className="w-12 h-12 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
                     <Camera size={20} className="text-violet-600 dark:text-violet-400" />
                   </div>

@@ -559,7 +559,11 @@ export function generateReportData(reportId: string): ReportViewerData {
   const report = standardReports.find((r) => r.id === reportId);
 
   if (report?.columns?.length) {
-    const rows = employees.map((name, i) => {
+    const sampleNames =
+      reportId === "rpt-36"
+        ? Array.from({ length: 120 }, (_, index) => employees[index % employees.length])
+        : employees;
+    const rows = sampleNames.map((name, i) => {
       const baseGross = 4200 + i * 375;
       const regular = 3600 + i * 240;
       const overtimeHours = (i % 4) * 2.5;
@@ -656,7 +660,7 @@ export function generateReportData(reportId: string): ReportViewerData {
     return {
       columns: report.columns,
       rows,
-      totalRows: rows.length,
+      totalRows: reportId === "rpt-36" ? 12540 : rows.length,
       generatedAt: new Date().toISOString(),
     };
   }
