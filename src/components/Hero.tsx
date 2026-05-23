@@ -17,15 +17,19 @@ const MARQUEE_LOGOS = [...TRUST_LOGOS, ...TRUST_LOGOS];
 
 const headlineLines = [
   [
-    { text: "Run", gradient: false },
+    { text: "The", gradient: false },
     { text: "Payroll", gradient: false },
     { text: "&", gradient: false },
     { text: "HR", gradient: false },
+    { text: "Platform", gradient: false },
+    { text: "Built", gradient: false },
+    { text: "for", gradient: false },
   ],
   [
-    { text: "The", gradient: false },
-    { text: "American", gradient: true },
-    { text: "Way.", gradient: true },
+    { text: "Creators,", gradient: true },
+    { text: "Agencies", gradient: true },
+    { text: "&", gradient: true },
+    { text: "Companies.", gradient: true },
   ],
 ];
 
@@ -221,7 +225,7 @@ export default function HeroSection() {
           transition={{ duration: 0.65, ease: "easeOut" }}
           className="text-[12px] font-bold uppercase tracking-[0.2em] text-cyan-400"
         >
-          THE #1 PAYROLL &amp; HR PLATFORM FOR USA COMPANIES
+          THE ONLY PAYROLL &amp; HR PLATFORM FOR CREATORS, AGENCIES &amp; COMPANIES
         </motion.p>
 
         <div className="mt-6 space-y-2">
@@ -257,7 +261,8 @@ export default function HeroSection() {
           transition={{ duration: 0.7, delay: flatWords.length * 0.05 + 0.08, ease: "easeOut" }}
           className="mt-8 max-w-2xl text-[18px] leading-relaxed text-slate-300 md:text-[20px]"
         >
-          All-in-one: Payroll · HRIS · ATS · Benefits · Time · Expenses. Built for every USA company.
+          All-in-one Payroll · HRIS · ATS · Benefits · Time · Expenses. Built
+          for creators, agencies, and companies of every size.
         </motion.p>
 
         <motion.div
@@ -271,7 +276,7 @@ export default function HeroSection() {
               href="/signup"
               className="inline-flex h-14 w-full items-center justify-center rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-8 text-base font-semibold text-white shadow-[0_0_0_rgba(59,130,246,0)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_0_34px_rgba(59,130,246,0.45)] sm:w-auto"
             >
-              Start Free - No Credit Card
+              Start Free
             </Link>
             <Link
               href="/demo"
