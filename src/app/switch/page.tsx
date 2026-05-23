@@ -1,31 +1,101 @@
-import React from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Metadata } from "next";
-import { 
-  ArrowRight, 
-  Calendar, 
-  CheckCircle2, 
-  Database, 
-  AlertTriangle, 
-  Clock, 
-  UserPlus, 
-  Download, 
-  Upload, 
-  Copy, 
+import {
+  AlertTriangle,
+  ArrowRight,
+  Calendar,
+  Check,
+  CheckCircle2,
+  ClipboardCheck,
+  Database,
+  Download,
+  FileCheck2,
   Rocket,
   ShieldCheck,
-  Check
+  Upload,
+  UserRoundCheck,
 } from "lucide-react";
 
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+
 export const metadata: Metadata = {
-  title: "Switch to CircleWorks | Hassle-Free Payroll Migration",
-  description: "Switching payroll providers is easier than you think. We handle the heavy lifting, data import, and parallel runs. Migrate to CircleWorks today.",
+  title: "Switch to CircleWorks | Payroll Migration Support",
+  description:
+    "Switching payroll providers is easier than you think. CircleWorks handles data import, parallel runs, and dedicated support.",
   alternates: {
     canonical: "https://circleworks.com/switch",
   },
 };
+
+const bookingHref = "/demo?intent=migration";
+
+const fears = [
+  {
+    icon: Database,
+    fear: "What if my historical data gets lost?",
+    resolution:
+      "We import all payroll history — pay stubs, tax records, everything",
+    tone: "text-blue-600 bg-blue-50 border-blue-100",
+  },
+  {
+    icon: AlertTriangle,
+    fear: "What if there are errors in the first run?",
+    resolution:
+      "We run parallel payroll alongside your old system for 1 month — free",
+    tone: "text-orange-600 bg-orange-50 border-orange-100",
+  },
+  {
+    icon: Calendar,
+    fear: "How long does it take?",
+    resolution:
+      "Most companies fully migrated in 2 weeks. Enterprise: 30 days with a specialist",
+    tone: "text-emerald-600 bg-emerald-50 border-emerald-100",
+  },
+];
+
+const migrationSteps = [
+  {
+    label: "Step 1",
+    title: "Sign up + assign migration specialist",
+    timing: "Day 1",
+    detail:
+      "Your specialist confirms payroll calendars, tax setup, employee groups, and the cutover plan.",
+    icon: UserRoundCheck,
+  },
+  {
+    label: "Step 2",
+    title: "Export data from current provider",
+    timing: "Provider guides included",
+    detail:
+      "We provide guides per provider so your team knows exactly what to export and where to find it.",
+    icon: Download,
+  },
+  {
+    label: "Step 3",
+    title: "We import everything",
+    timing: "3-5 days",
+    detail:
+      "Employee records, payroll history, tax records, pay stubs, departments, deductions, and earnings are mapped into CircleWorks.",
+    icon: Upload,
+  },
+  {
+    label: "Step 4",
+    title: "Parallel run alongside old system",
+    timing: "1 pay period",
+    detail:
+      "We compare gross-to-net, deductions, taxes, reimbursements, and edge cases before your first live run.",
+    icon: ClipboardCheck,
+  },
+  {
+    label: "Step 5",
+    title: "Go live on date of your choice",
+    timing: "Your launch date",
+    detail:
+      "Your team switches over when payroll is validated and everyone is ready.",
+    icon: Rocket,
+  },
+];
 
 const providers = [
   "Gusto",
@@ -34,232 +104,265 @@ const providers = [
   "QuickBooks Payroll",
   "Rippling",
   "BambooHR",
-  "Excel / CSV"
-];
-
-const fears = [
-  {
-    icon: <Database className="w-8 h-8 text-blue-500" />,
-    question: "What if my historical data gets lost?",
-    answer: "We import all payroll history — pay stubs, tax records, W-2s, 1099s, and employee files. Nothing gets left behind.",
-  },
-  {
-    icon: <AlertTriangle className="w-8 h-8 text-orange-500" />,
-    question: "What if there are errors in the first run?",
-    answer: "We run parallel payroll alongside your old system for 1 month — completely free. We compare the pennies so you don't have to.",
-  },
-  {
-    icon: <Clock className="w-8 h-8 text-emerald-500" />,
-    question: "How long does it take?",
-    answer: "Most companies are fully migrated in 2 weeks. Enterprise organizations (500+ employees) typically take 30 days with a dedicated specialist.",
-  }
-];
-
-const steps = [
-  {
-    day: "Day 1",
-    title: "Sign up & assign specialist",
-    desc: "Create your account and meet your dedicated migration specialist who will guide you from start to finish.",
-    icon: <UserPlus className="w-6 h-6 text-white" />,
-    color: "bg-blue-600"
-  },
-  {
-    day: "Day 2",
-    title: "Export your data",
-    desc: "Export your data from your current provider. We provide exact, step-by-step guides for Gusto, ADP, Paychex, and more.",
-    icon: <Download className="w-6 h-6 text-white" />,
-    color: "bg-indigo-600"
-  },
-  {
-    day: "Days 3-5",
-    title: "We import everything",
-    desc: "Hand us your raw exports. Our team maps your fields, imports your history, and structures your new account.",
-    icon: <Upload className="w-6 h-6 text-white" />,
-    color: "bg-purple-600"
-  },
-  {
-    day: "1 Pay Period",
-    title: "Parallel Run",
-    desc: "We run payroll alongside your old system for one full cycle to guarantee 100% accuracy before you cut the cord.",
-    icon: <Copy className="w-6 h-6 text-white" />,
-    color: "bg-cyan-600"
-  },
-  {
-    day: "Go Live",
-    title: "Launch CircleWorks",
-    desc: "Run your first official payroll on CircleWorks. Your employees get invited to the app on a date of your choosing.",
-    icon: <Rocket className="w-6 h-6 text-white" />,
-    color: "bg-emerald-600"
-  }
+  "Excel/CSV",
 ];
 
 export default function SwitchPage() {
   return (
-    <main className="min-h-screen bg-white font-sans selection:bg-blue-200 selection:text-navy">
-      <Navbar />
+    <main
+      id="main-content"
+      className="min-h-screen bg-white font-sans text-[#0A1628]"
+    >
+      <Navbar forceLight />
 
-      {/* HERO SECTION */}
-      <section className="relative pt-32 pb-24 lg:pt-48 lg:pb-32 bg-[#0A1628] overflow-hidden">
-        {/* Abstract background elements */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -translate-x-1/3 translate-y-1/3" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-8">
-              <ShieldCheck className="w-4 h-4" />
-              White-glove migration included
+      <section className="border-b border-slate-200 bg-white px-6 pb-16 pt-28 lg:pb-24 lg:pt-36">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.82fr)] lg:items-center">
+          <div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-blue-700">
+              <ShieldCheck className="h-4 w-4" />
+              White-glove migration
             </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[1.1] tracking-tight mb-8">
-              Switching payroll providers is <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">easier than you think</span>.
+            <h1 className="max-w-4xl text-4xl font-black tracking-tight text-slate-950 md:text-6xl lg:text-7xl">
+              Switching payroll providers is easier than you think
             </h1>
-            
-            <p className="text-xl text-slate-300 mb-10 leading-relaxed font-medium max-w-2xl">
-              We handle the heavy lifting — data import, parallel runs, and dedicated support. You won't miss a beat (or a paycheck).
+            <p className="mt-6 max-w-2xl text-xl leading-8 text-slate-600">
+              We handle the heavy lifting — data import, parallel runs,
+              dedicated support
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link 
-                href="/calendly" 
-                className="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#0A1628] font-bold rounded-xl hover:bg-slate-50 transition-all shadow-lg text-lg"
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={bookingHref}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
               >
                 Start Your Migration
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="#migration-process"
+                className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-200 px-6 text-sm font-black text-slate-800 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              >
+                See the process
               </Link>
             </div>
           </div>
+
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950 shadow-2xl shadow-slate-300/60">
+            <div className="border-b border-white/10 bg-slate-900 px-5 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+                    Migration workspace
+                  </p>
+                  <h2 className="mt-1 text-lg font-black text-white">
+                    First payroll readiness
+                  </h2>
+                </div>
+                <div className="rounded-lg bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-300">
+                  On track
+                </div>
+              </div>
+            </div>
+            <div className="space-y-5 p-5">
+              {[
+                ["Historical payroll", "Imported"],
+                ["Tax records", "Validated"],
+                ["Parallel run", "Scheduled"],
+                ["Go-live date", "Selected"],
+              ].map(([item, status]) => (
+                <div
+                  key={item}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                    <span className="text-sm font-bold text-white">{item}</span>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+                    {status}
+                  </span>
+                </div>
+              ))}
+              <div className="rounded-lg border border-blue-400/20 bg-blue-400/10 p-4">
+                <div className="flex items-start gap-3">
+                  <FileCheck2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-300" />
+                  <p className="text-sm font-semibold leading-6 text-blue-50">
+                    Your specialist reconciles every import before payroll goes
+                    live.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* DATA IMPORT SUPPORT MARQUEE / GRID */}
-      <section className="py-12 bg-slate-50 border-b border-slate-200 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">We seamlessly import data from</p>
-          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-70">
+      <section className="border-b border-slate-200 bg-slate-50 px-6 py-14">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">
+                Data import support
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950 md:text-3xl">
+                Bring your records from the tools you already use.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">
+              We support direct exports, structured files, and guided cleanup
+              for messy historical payroll data.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {providers.map((provider) => (
-              <div key={provider} className="flex items-center gap-2 text-slate-700 font-bold text-lg md:text-xl">
-                <Check className="w-5 h-5 text-blue-500" />
-                {provider}
+              <div
+                key={provider}
+                className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
+              >
+                <Check className="h-5 w-5 flex-shrink-0 text-emerald-600" />
+                <span className="font-black text-slate-800">{provider}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FEAR ADDRESSER SECTION */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] mb-6">
-              The #1 objection to switching? <br className="hidden md:block" />
-              <span className="text-blue-600">Fear of breaking payroll.</span>
+      <section className="bg-white px-6 py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-blue-600">
+              Fear addressers
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 md:text-5xl">
+              The scary parts are exactly where we do the most work.
             </h2>
-            <p className="text-lg text-slate-500">
-              We get it. Payroll is mission-critical. That's why we've engineered a migration process that eliminates risk entirely.
-            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {fears.map((fear, idx) => (
-              <div key={idx} className="bg-slate-50 rounded-3xl p-8 border border-slate-100 hover:shadow-lg transition-shadow relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                  <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-6 border border-slate-100">
-                    {fear.icon}
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
+            {fears.map((item) => {
+              const Icon = item.icon;
+              return (
+                <article
+                  key={item.fear}
+                  className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+                >
+                  <div
+                    className={`mb-5 flex h-12 w-12 items-center justify-center rounded-lg border ${item.tone}`}
+                  >
+                    <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-[#0A1628] mb-4 leading-tight">
-                    "{fear.question}"
+                  <h3 className="text-xl font-black leading-7 text-slate-950">
+                    {item.fear}
                   </h3>
-                  <p className="text-slate-600 leading-relaxed font-medium">
-                    {fear.answer}
+                  <p className="mt-4 text-base font-semibold leading-7 text-slate-600">
+                    {item.resolution}
                   </p>
-                </div>
-              </div>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* GUARANTEE BANNER */}
-      <section className="py-16 bg-blue-600">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 text-white mb-6">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-6">Our Ironclad Guarantee</h2>
-          <p className="text-xl text-blue-100 font-medium max-w-3xl mx-auto leading-relaxed">
-            If our migration process causes errors on your first official CircleWorks payroll, <span className="text-white font-bold bg-white/20 px-2 py-1 rounded">we cover any resulting tax penalties.</span> Period.
-          </p>
-        </div>
-      </section>
-
-      {/* STEP-BY-STEP PROCESS */}
-      <section className="py-24 bg-slate-50 relative overflow-hidden">
-        {/* Background decorative path */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-slate-200 hidden lg:block" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-black text-[#0A1628] mb-6">Your Migration Roadmap</h2>
-            <p className="text-xl text-slate-500 max-w-2xl mx-auto">
-              A transparent, predictable process that gets you live without the headaches.
+      <section
+        id="migration-process"
+        className="border-y border-slate-200 bg-slate-50 px-6 py-20 lg:py-24"
+      >
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 grid gap-6 lg:grid-cols-[0.75fr_1fr] lg:items-end">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-blue-600">
+                Step-by-step migration process
+              </p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 md:text-5xl">
+                A clear path from old provider to first live payroll.
+              </h2>
+            </div>
+            <p className="text-lg font-semibold leading-8 text-slate-600">
+              Most teams finish in two weeks because the work is sequenced,
+              verified, and owned by one dedicated specialist.
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-12">
-            {steps.map((step, idx) => (
-              <div key={idx} className="relative flex flex-col md:flex-row gap-8 items-start group">
-                
-                {/* Desktop Line Connector */}
-                {idx !== steps.length - 1 && (
-                  <div className="absolute top-12 left-[2.25rem] md:left-[5.5rem] bottom-[-3rem] w-0.5 bg-slate-200 group-hover:bg-blue-200 transition-colors z-0 hidden md:block" />
-                )}
-
-                {/* Left Side: Timeline / Day */}
-                <div className="md:w-48 shrink-0 pt-2 relative z-10 flex items-center gap-6">
-                  <div className={`w-12 h-12 rounded-xl ${step.color} shadow-lg flex items-center justify-center shrink-0`}>
-                    {step.icon}
+          <div className="grid gap-4">
+            {migrationSteps.map((step) => {
+              const Icon = step.icon;
+              return (
+                <article
+                  key={step.label}
+                  className="grid gap-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-[150px_minmax(0,1fr)_180px] md:items-center md:p-6"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm font-black uppercase tracking-[0.14em] text-slate-500">
+                      {step.label}
+                    </span>
                   </div>
-                  <div className="font-bold text-slate-400 uppercase tracking-widest text-sm">
-                    {step.day}
+                  <div>
+                    <h3 className="text-xl font-black text-slate-950">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                      {step.detail}
+                    </p>
                   </div>
-                </div>
-
-                {/* Right Side: Content */}
-                <div className="flex-1 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative z-10">
-                  <div className="absolute top-8 -left-3 w-6 h-6 bg-white border-t border-l border-slate-200 rotate-45 hidden md:block" />
-                  <h3 className="text-2xl font-bold text-[#0A1628] mb-3">{step.title}</h3>
-                  <p className="text-slate-600 leading-relaxed text-lg">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 md:text-center">
+                    {step.timing}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="py-24 bg-[#0A1628] text-center relative overflow-hidden border-t border-slate-800">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto px-4 relative z-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-500/20 text-blue-400 mb-8 border border-blue-500/30 backdrop-blur-sm shadow-2xl">
-            <Calendar className="w-10 h-10" />
+      <section className="bg-white px-6 py-16">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 rounded-lg border border-emerald-200 bg-emerald-50 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+          <div className="flex gap-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 shadow-sm">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700">
+                Guarantee
+              </p>
+              <h2 className="mt-2 max-w-3xl text-2xl font-black leading-9 text-slate-950 md:text-3xl">
+                If our migration causes errors on your first payroll, we cover
+                penalties.
+              </h2>
+            </div>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-            Ready to pull the trigger?
+          <Link
+            href={bookingHref}
+            className="inline-flex h-12 flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-6 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-emerald-800"
+          >
+            Talk to a specialist
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      <section className="bg-[#0A1628] px-6 py-20 text-center lg:py-24">
+        <div className="mx-auto max-w-4xl">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-blue-200">
+            <Calendar className="h-7 w-7" />
+          </div>
+          <h2 className="text-3xl font-black tracking-tight text-white md:text-5xl">
+            Talk to a migration specialist
           </h2>
-          <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Book a 30-minute working session with a migration specialist to review your current setup and build your custom transition timeline.
+          <p className="mx-auto mt-5 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
+            Book a 30-minute session to review your current provider, export
+            path, first payroll date, and parallel run plan.
           </p>
-          <div className="flex justify-center">
-             <Link href="/calendly" className="group px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-[0_0_40px_rgba(37,99,235,0.4)] flex items-center gap-3 text-lg">
-                <Calendar className="w-6 h-6" />
-                Talk to a Migration Specialist
-             </Link>
+          <div className="mt-9 flex justify-center">
+            <Link
+              href={bookingHref}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-black text-[#0A1628] shadow-lg transition hover:-translate-y-0.5 hover:bg-blue-50"
+            >
+              Talk to a migration specialist
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
