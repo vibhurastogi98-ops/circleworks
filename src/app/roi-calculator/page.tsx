@@ -1,392 +1,645 @@
 "use client";
 
-import React, { useState } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  Cell
-} from "recharts";
-import { 
-  Calculator, 
-  DollarSign, 
-  Clock, 
-  Users, 
-  AlertTriangle, 
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Calculator,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock,
+  DollarSign,
   Mail,
-  ArrowRight
+  Users,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-const TOOLS = [
-  "ADP", 
-  "Gusto", 
-  "QuickBooks", 
-  "Rippling", 
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+
+const CURRENT_TOOLS = [
+  "ADP",
+  "Gusto",
+  "QuickBooks",
+  "Rippling",
   "Spreadsheets",
   "Paychex",
   "Workday",
-  "Other"
+  "BambooHR",
+  "Other",
 ];
 
-export default function ROICalculatorPage() {
-  // Inputs state
-  const [employees, setEmployees] = useState(50);
-  const [selectedTools, setSelectedTools] = useState<string[]>([]);
-  const [hours, setHours] = useState(40);
-  const [hourlyRate, setHourlyRate] = useState(35);
-  const [errors, setErrors] = useState(2);
-  const [errorCost, setErrorCost] = useState(500);
-  const [showAssumptions, setShowAssumptions] = useState(false);
-  const [email, setEmail] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
+const PRO_PRICE_PER_EMPLOYEE = 14;
+const TIME_SAVED_RATE = 0.7;
 
-  // Toggle tool selection
-  const toggleTool = (tool: string) => {
-    if (selectedTools.includes(tool)) {
-      setSelectedTools(selectedTools.filter(t => t !== tool));
-    } else {
-      setSelectedTools([...selectedTools, tool]);
-    }
-  };
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  currency: "USD",
+  maximumFractionDigits: 0,
+  style: "currency",
+});
 
-  // Calculations
-  const currentAdminCost = (hours * 12 * hourlyRate);
-  const currentErrorCost = (errors * 12 * errorCost);
-  const currentTotalCost = currentAdminCost + currentErrorCost;
+function formatCurrency(value: number) {
+  return currencyFormatter.format(Math.round(value));
+}
 
-  const circleWorksCost = employees * 14 * 12; // Pro plan at $14/user/mo
-  
-  const timeSavedPerMonth = hours * 0.7; // 70% time savings
-  const newAdminCost = (hours - timeSavedPerMonth) * 12 * hourlyRate;
-  
-  // Assume errors are eliminated or significantly reduced (we'll assume 100% eliminated for ROI)
-  const estimatedSavings = currentTotalCost - circleWorksCost - newAdminCost;
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
-  const chartData = [
-    {
-      name: "Current Stack",
-      "Admin Time": currentAdminCost,
-      "Error Costs": currentErrorCost,
-      "Software Cost": 0, // Simplified, could add average software cost based on selectedTools
-    },
-    {
-      name: "With CircleWorks",
-      "Admin Time": newAdminCost,
-      "Error Costs": 0, // Eliminated
-      "Software Cost": circleWorksCost,
-    }
-  ];
+function parseNumber(value: string, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
-  const formatCurrency = (val: number) => 
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(val);
+function SliderField({
+  id,
+  icon: Icon,
+  label,
+  max,
+  min,
+  onChange,
+  suffix = "",
+  value,
+}: {
+  id: string;
+  icon: React.ElementType;
+  label: string;
+  max: number;
+  min: number;
+  onChange: (value: number) => void;
+  suffix?: string;
+  value: number;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label
+          htmlFor={`${id}-number`}
+          className="flex items-center gap-2 text-sm font-semibold text-slate-800"
+        >
+          <Icon className="h-4 w-4 text-slate-500" aria-hidden="true" />
+          {label}
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            id={`${id}-number`}
+            type="number"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(event) =>
+              onChange(clamp(parseNumber(event.target.value, min), min, max))
+            }
+            className="h-10 w-24 rounded-lg border border-slate-200 bg-white px-3 text-right text-sm font-bold text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+          />
+          {suffix && (
+            <span className="min-w-10 text-sm font-semibold text-slate-500">
+              {suffix}
+            </span>
+          )}
+        </div>
+      </div>
+      <input
+        aria-label={`${label} slider`}
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600"
+      />
+      <div className="flex justify-between text-xs font-medium text-slate-500">
+        <span>
+          {min}
+          {suffix}
+        </span>
+        <span>
+          {max}
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
+}
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setEmailSent(true);
-      setTimeout(() => setEmailSent(false), 3000);
-      setEmail("");
-    }
+function MoneyInput({
+  id,
+  label,
+  onChange,
+  value,
+}: {
+  id: string;
+  label: string;
+  onChange: (value: number) => void;
+  value: number;
+}) {
+  return (
+    <div className="space-y-2">
+      <label
+        htmlFor={id}
+        className="block text-sm font-semibold text-slate-800"
+      >
+        {label}
+      </label>
+      <div className="relative">
+        <DollarSign
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+          aria-hidden="true"
+        />
+        <input
+          id={id}
+          type="number"
+          min={0}
+          value={value}
+          onChange={(event) =>
+            onChange(Math.max(parseNumber(event.target.value), 0))
+          }
+          className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 pl-9 text-sm font-semibold text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ResultCard({
+  accent = "default",
+  label,
+  note,
+  value,
+}: {
+  accent?: "default" | "blue" | "green";
+  label: string;
+  note: string;
+  value: string;
+}) {
+  const styles = {
+    blue: "border-blue-200 bg-blue-50 text-blue-950",
+    default: "border-slate-200 bg-white text-slate-950",
+    green: "border-emerald-200 bg-emerald-50 text-emerald-950",
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#030712] flex flex-col font-sans">
+    <div className={`rounded-lg border p-5 shadow-sm ${styles[accent]}`}>
+      <p className="text-sm font-semibold opacity-75">{label}</p>
+      <p className="mt-2 text-3xl font-black tracking-tight">{value}</p>
+      <p className="mt-2 text-xs font-medium opacity-70">{note}</p>
+    </div>
+  );
+}
+
+export default function ROICalculatorPage() {
+  const [employees, setEmployees] = useState(50);
+  const [selectedTools, setSelectedTools] = useState<string[]>([
+    "Spreadsheets",
+  ]);
+  const [manualHours, setManualHours] = useState(40);
+  const [hourlyRate, setHourlyRate] = useState(35);
+  const [payrollErrors, setPayrollErrors] = useState(2);
+  const [averageErrorCost, setAverageErrorCost] = useState(500);
+  const [email, setEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<
+    "idle" | "ready" | "sent"
+  >("idle");
+  const [isChartReady, setIsChartReady] = useState(false);
+  const [showAssumptions, setShowAssumptions] = useState(false);
+
+  useEffect(() => {
+    setIsChartReady(true);
+  }, []);
+
+  const calculations = useMemo(() => {
+    const annualAdminCost = manualHours * 12 * hourlyRate;
+    const annualErrorCost = payrollErrors * 12 * averageErrorCost;
+    const currentAnnualCost = annualAdminCost + annualErrorCost;
+    const circleWorksAnnualCost = employees * PRO_PRICE_PER_EMPLOYEE * 12;
+    const timeSavedPerMonth = manualHours * TIME_SAVED_RATE;
+    const remainingAdminCost =
+      (manualHours - timeSavedPerMonth) * 12 * hourlyRate;
+    const estimatedAnnualSavings =
+      currentAnnualCost - circleWorksAnnualCost - remainingAdminCost;
+
+    return {
+      annualAdminCost,
+      annualErrorCost,
+      circleWorksAnnualCost,
+      currentAnnualCost,
+      estimatedAnnualSavings,
+      remainingAdminCost,
+      timeSavedPerMonth,
+    };
+  }, [averageErrorCost, employees, hourlyRate, manualHours, payrollErrors]);
+
+  const chartData = useMemo(
+    () => [
+      {
+        "Admin Time": calculations.annualAdminCost,
+        "Payroll Errors": calculations.annualErrorCost,
+        "Software Cost": 0,
+        name: "Current",
+      },
+      {
+        "Admin Time": calculations.remainingAdminCost,
+        "Payroll Errors": 0,
+        "Software Cost": calculations.circleWorksAnnualCost,
+        name: "CircleWorks",
+      },
+    ],
+    [calculations]
+  );
+
+  const toggleTool = (tool: string) => {
+    setSelectedTools((current) =>
+      current.includes(tool)
+        ? current.filter((selectedTool) => selectedTool !== tool)
+        : [...current, tool]
+    );
+  };
+
+  const handleEmailSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const subject = encodeURIComponent("Your CircleWorks ROI report");
+    const body = encodeURIComponent(
+      [
+        "CircleWorks ROI summary",
+        "",
+        `Employees: ${employees}`,
+        `Current tools: ${selectedTools.join(", ") || "None selected"}`,
+        `Current Annual HR Admin Cost: ${formatCurrency(
+          calculations.currentAnnualCost
+        )}`,
+        `CircleWorks Annual Cost: ${formatCurrency(
+          calculations.circleWorksAnnualCost
+        )}`,
+        `Estimated Annual Savings: ${formatCurrency(
+          calculations.estimatedAnnualSavings
+        )}`,
+        `Time Saved Per Month: ${calculations.timeSavedPerMonth.toFixed(
+          1
+        )} hours`,
+      ].join("\n")
+    );
+
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    setEmailStatus("sent");
+  };
+
+  const savingsText = formatCurrency(
+    Math.max(calculations.estimatedAnnualSavings, 0)
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-950">
       <Navbar />
-      
-      <main className="flex-1 pt-24 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Header */}
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-              Calculate Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">ROI with CircleWorks</span>
+
+      <main className="pb-20 pt-28">
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-widest text-blue-700">
+              <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
+              ROI Calculator
+            </div>
+            <h1 className="text-4xl font-black leading-tight tracking-normal text-slate-950 md:text-5xl">
+              See what manual HR work is really costing you.
             </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
-              See how much time and money you can save by consolidating your HR, payroll, and benefits into one unified platform.
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
+              Model your annual admin cost, compare it with CircleWorks Pro,
+              and adjust the numbers in real time as your team changes.
             </p>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
-            
-            {/* LEFT COLUMN: INPUTS */}
-            <div className="w-full lg:w-5/12 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-8">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <Calculator className="w-6 h-6 text-blue-600 dark:text-blue-500" />
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Current Setup</h2>
+          <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-start">
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                <div>
+                  <h2 className="text-xl font-black text-slate-950">
+                    Your Inputs
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Adjust the sliders and fields to match your current setup.
+                  </p>
+                </div>
+                <Users className="h-6 w-6 text-blue-600" aria-hidden="true" />
               </div>
 
-              <div className="space-y-8">
-                {/* 1. Employees */}
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <Users className="w-4 h-4 text-slate-400" /> Number of Employees
-                    </label>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{employees}</span>
-                  </div>
-                  <input 
-                    type="range" 
-                    min="1" max="500" 
-                    value={employees} 
-                    onChange={(e) => setEmployees(parseInt(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-slate-700"
-                  />
-                  <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>1</span>
-                    <span>500</span>
-                  </div>
-                </div>
+              <div className="mt-6 space-y-7">
+                <SliderField
+                  id="employees"
+                  icon={Users}
+                  label="Number of employees"
+                  min={1}
+                  max={500}
+                  value={employees}
+                  onChange={setEmployees}
+                />
 
-                {/* 2. Tools */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-3">
-                    Current Tools You Use
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-slate-800">
+                    Current tools
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {TOOLS.map(tool => (
-                      <button
-                        key={tool}
-                        onClick={() => toggleTool(tool)}
-                        className={`px-3 py-1.5 text-sm rounded-full transition-all border ${
-                          selectedTools.includes(tool)
-                            ? "bg-blue-50 dark:bg-blue-500/10 border-blue-600 text-blue-700 dark:text-blue-400 font-medium"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600"
-                        }`}
-                      >
-                        {tool}
-                      </button>
-                    ))}
+                    {CURRENT_TOOLS.map((tool) => {
+                      const isSelected = selectedTools.includes(tool);
+
+                      return (
+                        <button
+                          key={tool}
+                          type="button"
+                          onClick={() => toggleTool(tool)}
+                          className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition ${
+                            isSelected
+                              ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                          }`}
+                          aria-pressed={isSelected}
+                        >
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
+                          {tool}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* 3. Hours on manual tasks */}
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-slate-400" /> Manual HR Hours / Month
-                    </label>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{hours} hrs</span>
-                  </div>
-                  <input 
-                    type="range" 
-                    min="0" max="100" 
-                    value={hours} 
-                    onChange={(e) => setHours(parseInt(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-slate-700"
-                  />
-                </div>
+                <SliderField
+                  id="manual-hours"
+                  icon={Clock}
+                  label="Hours/month on manual HR tasks"
+                  min={0}
+                  max={100}
+                  suffix="hrs"
+                  value={manualHours}
+                  onChange={setManualHours}
+                />
 
-                {/* 4. Hourly Rate */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-                    Hourly Rate of HR Staff ($)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                      type="number"
-                      min="1"
-                      value={hourlyRate}
-                      onChange={(e) => setHourlyRate(parseInt(e.target.value) || 0)}
-                      className="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                  </div>
-                </div>
+                <MoneyInput
+                  id="hourly-rate"
+                  label="Hourly rate of HR staff"
+                  value={hourlyRate}
+                  onChange={setHourlyRate}
+                />
 
-                {/* 5. Payroll Errors */}
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-slate-400" /> Payroll Errors / Month
-                    </label>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{errors}</span>
-                  </div>
-                  <input 
-                    type="range" 
-                    min="0" max="20" 
-                    value={errors} 
-                    onChange={(e) => setErrors(parseInt(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:bg-slate-700"
-                  />
-                </div>
+                <SliderField
+                  id="payroll-errors"
+                  icon={AlertTriangle}
+                  label="Payroll errors per month"
+                  min={0}
+                  max={20}
+                  value={payrollErrors}
+                  onChange={setPayrollErrors}
+                />
 
-                {/* 6. Error Cost */}
-                <div>
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-2">
-                    Average Cost per Error ($)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      value={errorCost}
-                      onChange={(e) => setErrorCost(parseInt(e.target.value) || 0)}
-                      className="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
-                  </div>
-                </div>
+                <MoneyInput
+                  id="average-error-cost"
+                  label="Average cost per error"
+                  value={averageErrorCost}
+                  onChange={setAverageErrorCost}
+                />
               </div>
-            </div>
+            </section>
 
-            {/* RIGHT COLUMN: RESULTS */}
-            <div className="w-full lg:w-7/12 space-y-6">
-              
-              {/* Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Card 1 */}
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Current Annual Cost</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white">{formatCurrency(currentTotalCost)}</p>
-                  <p className="text-xs text-slate-400 mt-2">Admin time + error costs</p>
-                </div>
-                
-                {/* Card 2 */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/30 shadow-sm flex flex-col justify-center">
-                  <p className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">CircleWorks Annual Cost</p>
-                  <p className="text-3xl font-bold text-blue-800 dark:text-blue-300">{formatCurrency(circleWorksCost)}</p>
-                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-2">Based on Pro plan ($14/user/mo)</p>
-                </div>
+            <section className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ResultCard
+                  label="Current Annual HR Admin Cost"
+                  value={formatCurrency(calculations.currentAnnualCost)}
+                  note="Manual HR time plus payroll error costs"
+                />
+                <ResultCard
+                  accent="blue"
+                  label="CircleWorks Annual Cost"
+                  value={formatCurrency(calculations.circleWorksAnnualCost)}
+                  note="$14 per employee per month on Pro"
+                />
+                <ResultCard
+                  accent="green"
+                  label="Estimated Annual Savings"
+                  value={formatCurrency(calculations.estimatedAnnualSavings)}
+                  note="Current cost minus Pro and remaining admin time"
+                />
+                <ResultCard
+                  label="Time Saved Per Month"
+                  value={`${calculations.timeSavedPerMonth.toFixed(1)} hrs`}
+                  note="70% of manual HR admin time recovered"
+                />
+              </div>
 
-                {/* Card 3 - Hero Metric */}
-                <div className="sm:col-span-2 bg-gradient-to-br from-blue-600 to-cyan-500 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
-                  <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
-                    <DollarSign className="w-48 h-48" />
-                  </div>
-                  <p className="text-blue-100 font-medium mb-1 relative z-10">Estimated Annual Savings</p>
-                  <p className="text-5xl font-extrabold relative z-10">{formatCurrency(Math.max(0, estimatedSavings))}</p>
-                  <div className="mt-4 flex items-center gap-2 text-sm bg-white/20 w-fit px-3 py-1.5 rounded-full relative z-10">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Pays for itself in {estimatedSavings > 0 ? ((circleWorksCost / (estimatedSavings + circleWorksCost)) * 12).toFixed(1) : "N/A"} months</span>
-                  </div>
-                </div>
-
-                {/* Card 4 */}
-                <div className="sm:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <Clock className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-                  </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Time Saved Per Month</p>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{timeSavedPerMonth.toFixed(0)} hours</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">That's {(timeSavedPerMonth / 8).toFixed(1)} work days freed up for strategic HR.</p>
+                    <h2 className="text-lg font-black text-slate-950">
+                      Current vs. CircleWorks Breakdown
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Annualized cost comparison across admin time, errors, and
+                      software.
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Chart */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-80">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Cost Breakdown Comparison</h3>
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val/1000}k`} tick={{ fill: '#64748b' }} />
-                    <Tooltip 
-                      formatter={(value: any) => formatCurrency(Number(value))}
-                      cursor={{ fill: 'transparent' }}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="Admin Time" stackId="a" fill="#94a3b8" radius={[0, 0, 4, 4]} />
-                    <Bar dataKey="Error Costs" stackId="a" fill="#f87171" />
-                    <Bar dataKey="Software Cost" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* CTA Section */}
-              <div className="bg-slate-900 dark:bg-slate-800 p-8 rounded-2xl text-center text-white shadow-xl relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 mix-blend-overlay pointer-events-none"></div>
-                <h3 className="text-2xl font-bold mb-4">Save {formatCurrency(Math.max(0, estimatedSavings))} this year</h3>
-                <p className="text-slate-300 mb-6 max-w-md mx-auto">
-                  Stop overpaying for fragmented tools and manual errors. Start your free trial today.
-                </p>
-                <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-                  <a href="/signup" className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
-                    Start your free trial <ArrowRight className="w-4 h-4" />
-                  </a>
-                  <a href="/contact" className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-colors backdrop-blur-sm">
-                    Book a Demo
-                  </a>
-                </div>
-
-                {/* Email Capture */}
-                <div className="max-w-sm mx-auto pt-6 border-t border-white/10">
-                  <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3">
-                    <label className="text-sm text-slate-300 font-medium">Email me this report</label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input 
-                          type="email" 
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="work@email.com" 
-                          className="w-full pl-9 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        />
-                      </div>
-                      <button 
-                        type="submit" 
-                        className="px-4 py-2.5 bg-white text-slate-900 font-medium rounded-lg hover:bg-slate-100 transition-colors shrink-0 flex items-center justify-center"
-                        disabled={emailSent}
+                <div className="h-80 min-w-0">
+                  {isChartReady ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        margin={{ left: -18, top: 12 }}
                       >
-                        {emailSent ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : "Send"}
-                      </button>
+                        <CartesianGrid
+                          stroke="#e2e8f0"
+                          strokeDasharray="4 4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#475569", fontSize: 12 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#475569", fontSize: 12 }}
+                          tickFormatter={(value: number) =>
+                            `$${Math.round(value / 1000)}k`
+                          }
+                        />
+                        <Tooltip
+                          cursor={{ fill: "#f8fafc" }}
+                          formatter={(value) => formatCurrency(Number(value))}
+                          contentStyle={{
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 8,
+                            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.12)",
+                          }}
+                        />
+                        <Legend />
+                        <Bar
+                          dataKey="Admin Time"
+                          fill="#2563eb"
+                          radius={[6, 6, 0, 0]}
+                          stackId="cost"
+                        />
+                        <Bar
+                          dataKey="Payroll Errors"
+                          fill="#f97316"
+                          stackId="cost"
+                        />
+                        <Bar
+                          dataKey="Software Cost"
+                          fill="#10b981"
+                          radius={[6, 6, 0, 0]}
+                          stackId="cost"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-full items-end gap-4 rounded-lg bg-slate-50 p-6">
+                      <div className="h-4/5 flex-1 rounded-t-lg bg-slate-200" />
+                      <div className="h-1/2 flex-1 rounded-t-lg bg-slate-200" />
                     </div>
-                  </form>
+                  )}
                 </div>
               </div>
 
-              {/* Assumptions Accordion */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                <button 
-                  onClick={() => setShowAssumptions(!showAssumptions)}
-                  className="w-full px-6 py-4 flex items-center justify-between text-left font-semibold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              <div className="rounded-lg bg-slate-950 p-5 text-white shadow-sm sm:p-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-black tracking-normal">
+                      Save {savingsText} this year
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      Start your free trial and bring HR, payroll, benefits,
+                      and employee data into one place.
+                    </p>
+                  </div>
+                  <Link
+                    href="/signup"
+                    className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-700"
+                  >
+                    Start your free trial
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </div>
+
+                <form
+                  onSubmit={handleEmailSubmit}
+                  className="mt-6 border-t border-white/10 pt-5"
                 >
-                  <span className="flex items-center gap-2">
-                    How we calculate this
-                  </span>
-                  {showAssumptions ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-                </button>
-                <AnimatePresence>
-                  {showAssumptions && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="px-6 pb-6 text-sm text-slate-600 dark:text-slate-400 space-y-3 border-t border-slate-100 dark:border-slate-800 pt-4"
+                  <label className="text-sm font-bold text-white">
+                    Email me this report
+                  </label>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <div className="relative flex-1">
+                      <Mail
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        aria-hidden="true"
+                      />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(event) => {
+                          setEmail(event.target.value);
+                          setEmailStatus("ready");
+                        }}
+                        placeholder="work@email.com"
+                        className="h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 pl-9 text-sm text-white outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/25"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-black text-slate-950 transition hover:bg-slate-100"
                     >
-                      <p><strong>Current HR Admin Cost:</strong> Calculated as (Manual HR Hours per Month × 12 months × Hourly Rate) + (Payroll Errors per Month × 12 months × Average Cost per Error).</p>
-                      <p><strong>CircleWorks Annual Cost:</strong> Based on our Pro plan pricing of $14 per user per month, billed annually.</p>
-                      <p><strong>Time Saved:</strong> We estimate CircleWorks saves 70% of manual HR time through automated workflows, self-service portals, and unified data.</p>
-                      <p><strong>Error Reduction:</strong> For the purpose of this calculation, we assume unified data eliminates 100% of costly manual data entry errors.</p>
-                      <p><em>Note: This calculator provides an estimate. Actual savings may vary based on your specific business processes and implementation.</em></p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      {emailStatus === "sent" ? (
+                        <>
+                          <CheckCircle2
+                            className="h-4 w-4 text-emerald-600"
+                            aria-hidden="true"
+                          />
+                          Sent
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4" aria-hidden="true" />
+                          Send
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
 
-            </div>
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowAssumptions((visible) => !visible)}
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-black text-slate-950 transition hover:bg-slate-50 sm:px-6"
+                >
+                  How we calculate this
+                  {showAssumptions ? (
+                    <ChevronUp
+                      className="h-5 w-5 text-slate-500"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <ChevronDown
+                      className="h-5 w-5 text-slate-500"
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+                {showAssumptions && (
+                  <div className="space-y-3 border-t border-slate-100 px-5 py-5 text-sm leading-6 text-slate-600 sm:px-6">
+                    <p>
+                      <strong className="text-slate-950">
+                        Current Annual HR Admin Cost:
+                      </strong>{" "}
+                      (hours/month x 12 x hourly rate) + (payroll errors/month
+                      x 12 x average cost per error).
+                    </p>
+                    <p>
+                      <strong className="text-slate-950">
+                        CircleWorks Annual Cost:
+                      </strong>{" "}
+                      employees x $14 x 12, using the Pro plan.
+                    </p>
+                    <p>
+                      <strong className="text-slate-950">
+                        Estimated Annual Savings:
+                      </strong>{" "}
+                      current annual cost minus CircleWorks annual cost minus
+                      the 30% of manual admin time assumed to remain.
+                    </p>
+                    <p>
+                      <strong className="text-slate-950">
+                        Time Saved Per Month:
+                      </strong>{" "}
+                      manual HR hours x 0.7.
+                    </p>
+                    <p>
+                      This is an estimate for planning, not a guarantee. Actual
+                      savings vary by workflows, implementation, and payroll
+                      complexity.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
-
-        </div>
+        </section>
       </main>
 
       <Footer />
