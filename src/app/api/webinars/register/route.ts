@@ -113,6 +113,7 @@ async function sendConfirmationEmail(
               Name: `${webinar.slug}.ics`,
               Content: Buffer.from(buildWebinarIcs(webinar), "utf8").toString("base64"),
               ContentType: "text/calendar",
+              ContentID: null,
             },
           ]
         : undefined,
