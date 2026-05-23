@@ -7,6 +7,8 @@ type RetroPeriodInput = {
   hoursWorked?: number;
 };
 
+type RetroProcessingMode = "next_regular_run" | "off_cycle_run";
+
 function roundCurrency(value: number) {
   return Number(value.toFixed(2));
 }
@@ -53,13 +55,38 @@ function buildDefaultPeriods(effectiveDate: string): RetroPeriodInput[] {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { employeeId, oldRate, newRate, rateType = "salary", effectiveDate } = body;
+    const {
+      employeeId,
+      oldRate,
+      newRate,
+      rateType = "salary",
+      effectiveDate,
+      processingMode = "off_cycle_run",
+    } = body as {
+      employeeId?: string;
+      oldRate?: number;
+      newRate?: number;
+      rateType?: "salary" | "hourly";
+      effectiveDate?: string;
+      processingMode?: RetroProcessingMode;
+      periods?: RetroPeriodInput[];
+    };
     const periods: RetroPeriodInput[] = Array.isArray(body.periods) && body.periods.length > 0
       ? body.periods
-      : buildDefaultPeriods(effectiveDate);
+      : buildDefaultPeriods(effectiveDate ?? "");
 
-    if (!employeeId || !oldRate || !newRate || !effectiveDate || periods.length === 0) {
+    if (
+      !employeeId ||
+      typeof oldRate !== "number" ||
+      typeof newRate !== "number" ||
+      !effectiveDate ||
+      periods.length === 0
+    ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (oldRate <= 0 || newRate <= 0) {
+      return NextResponse.json({ error: "Rates must be greater than zero" }, { status: 400 });
     }
 
     // Determine hourly rates for calculation
@@ -112,6 +139,8 @@ export async function POST(request: Request) {
       periods: calculatedPeriods,
       offCycleRun: {
         type: "retro_adjustment",
+        processingMode,
+        status: processingMode === "next_regular_run" ? "queued_for_next_regular_run" : "ready_to_process",
         employeeId,
         grossAmount: totalDifferenceRounded,
         netAmount: netRetroPay,
@@ -142,6 +171,9 @@ export async function POST(request: Request) {
           effectiveDate,
         },
         calculatedAmount: totalDifferenceRounded,
+        offCycleRunType: "retro_adjustment",
+        paystubLineItem: "Retroactive Pay Adjustment",
+        processingMode,
       },
     });
   } catch (error) {

@@ -2,6 +2,59 @@
 import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Play, Search, AlertCircle, ArrowLeft, History, Calculator, CheckCircle2, ChevronDown, DollarSign } from "lucide-react";
+import { PAY_PERIOD } from "@/data/payrollRunMocks";
+
+type RetroProcessingOption = "next_regular_run" | "off_cycle_run";
+
+type RetroPeriodResult = {
+  name: string;
+  periodStart?: string;
+  periodEnd?: string;
+  hoursWorked: number;
+  oldGross: number;
+  newGross: number;
+  difference: number;
+  taxesOnDiff: {
+    federal: number;
+    ficaSS: number;
+    ficaMed: number;
+    state: number;
+    total: number;
+  };
+};
+
+type RetroCalculationResponse = {
+  success: true;
+  employeeId: string;
+  originalRate: number;
+  newRate: number;
+  effectiveDate: string;
+  totalDifference: number;
+  taxes: {
+    federal: number;
+    ficaSS: number;
+    ficaMed: number;
+    state: number;
+    total: number;
+  };
+  netRetroPay: number;
+  periods: RetroPeriodResult[];
+  offCycleRun: {
+    type: "retro_adjustment";
+    processingMode: RetroProcessingOption;
+    grossAmount: number;
+    netAmount: number;
+    earningsLines: Array<{ label: string; amount: number }>;
+  };
+  paystubLineItem: {
+    label: "Retroactive Pay Adjustment";
+    amount: number;
+  };
+  auditLog: {
+    action: "retro_pay_calculated";
+    calculatedAmount: number;
+  };
+};
 
 function fmtCurrency(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -23,9 +76,14 @@ function addDays(date: Date, days: number) {
 
 function buildAffectedPayPeriods(effectiveDate: string) {
   const effective = effectiveDate ? new Date(`${effectiveDate}T00:00:00`) : new Date();
+  const through = new Date(`${PAY_PERIOD.end}T00:00:00`);
+  const periodCount = Math.max(
+    1,
+    Math.min(6, Math.ceil((through.getTime() - effective.getTime() + 1) / (14 * 86400000)))
+  );
 
-  return [0, 14, 28].map((offset) => {
-    const start = addDays(effective, offset);
+  return Array.from({ length: periodCount }, (_, index) => {
+    const start = addDays(effective, index * 14);
     const end = addDays(start, 13);
 
     return {
@@ -45,6 +103,8 @@ function OffCycleContent() {
   const paramEffectiveDate = searchParams.get("effectiveDate") ?? "";
   const paramOldRate = Number(searchParams.get("oldRate") ?? 0);
   const paramNewRate = Number(searchParams.get("newRate") ?? 0);
+  const paramPayType = searchParams.get("payType") === "hourly" ? "hourly" : "salary";
+  const hasRetroParams = retroMode && paramOldRate > 0 && paramNewRate > 0 && Boolean(paramEmployeeId) && Boolean(paramEffectiveDate);
 
   const [activeTab, setActiveTab] = useState<"standard" | "retro">(retroMode ? "retro" : "standard");
   const [step, setStep] = useState(1);
@@ -52,25 +112,25 @@ function OffCycleContent() {
   const [showRetroModal, setShowRetroModal] = useState(false);
   const [retroProcessed, setRetroProcessed] = useState(false);
   const [loadingRetro, setLoadingRetro] = useState(false);
-  const [retroData, setRetroData] = useState<any>(null);
-  const [retroProcessingOption, setRetroProcessingOption] = useState<"next_regular_run" | "off_cycle_run">("off_cycle_run");
+  const [retroError, setRetroError] = useState("");
+  const [retroData, setRetroData] = useState<RetroCalculationResponse | null>(null);
+  const [retroProcessingOption, setRetroProcessingOption] = useState<RetroProcessingOption>("off_cycle_run");
 
   // Sync tab if params change (e.g., browser back/forward)
   useEffect(() => {
     if (retroMode) setActiveTab("retro");
   }, [retroMode]);
 
-  const hasRetroParams = retroMode && paramOldRate > 0 && paramNewRate > 0;
-
   // Use URL params when available, fall back to demo defaults
-  const retroEmployeeId = hasRetroParams ? paramEmployeeId : "emp-alex-clark";
-  const retroEmployeeName = hasRetroParams ? (paramEmployeeName || "Employee") : "Alex Clark";
-  const retroOldRate = hasRetroParams ? paramOldRate : 85000;
-  const retroNewRate = hasRetroParams ? paramNewRate : 92000;
-  const retroEffectiveDate = hasRetroParams ? paramEffectiveDate : "2026-02-01";
+  const retroEmployeeId = hasRetroParams ? paramEmployeeId : "";
+  const retroEmployeeName = hasRetroParams ? (paramEmployeeName || "Employee") : "";
+  const retroOldRate = hasRetroParams ? paramOldRate : 0;
+  const retroNewRate = hasRetroParams ? paramNewRate : 0;
+  const retroEffectiveDate = hasRetroParams ? paramEffectiveDate : PAY_PERIOD.start;
   const retroAffectedPeriods = buildAffectedPayPeriods(retroEffectiveDate);
 
   const handleCalculateRetro = async () => {
+    setRetroError("");
     setLoadingRetro(true);
     try {
       const res = await fetch("/api/payroll/retro-calc", {
@@ -80,21 +140,38 @@ function OffCycleContent() {
           employeeId: retroEmployeeId,
           oldRate: retroOldRate,
           newRate: retroNewRate,
-          rateType: "salary",
+          rateType: paramPayType,
           effectiveDate: retroEffectiveDate,
           periods: retroAffectedPeriods,
+          processingMode: retroProcessingOption,
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setRetroData(data);
         setShowRetroModal(true);
+      } else {
+        setRetroError(data.error || "Unable to calculate retro pay.");
       }
     } catch (e) {
       console.error(e);
+      setRetroError("Unable to calculate retro pay.");
     } finally {
       setLoadingRetro(false);
     }
+  };
+
+  const handleProcessRetro = () => {
+    if (!retroData) return;
+    setRetroData({
+      ...retroData,
+      offCycleRun: {
+        ...retroData.offCycleRun,
+        processingMode: retroProcessingOption,
+      },
+    });
+    setShowRetroModal(false);
+    setRetroProcessed(true);
   };
 
   return (
@@ -339,17 +416,18 @@ function OffCycleContent() {
 
       {activeTab === "retro" && (
         <div className="animate-in fade-in">
-          {showRetroBanner && !retroProcessed && (
+          {showRetroBanner && hasRetroParams && !retroProcessed && (
             <div className="border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 rounded-xl p-5 mb-8 flex flex-col sm:flex-row items-center gap-4 justify-between shadow-sm">
               <div className="flex gap-3">
                 <div className="mt-0.5">
                   <History className="text-blue-600 dark:text-blue-400" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-blue-900 dark:text-blue-100">Backdated change detected</h3>
+                  <h3 className="font-bold text-blue-900 dark:text-blue-100">Backdated change detected — calculate retroactive adjustment?</h3>
                   <p className="text-sm text-blue-800 dark:text-blue-200/70 mt-1">
-                    {retroEmployeeName}&apos;s compensation was changed from {fmtCurrency(retroOldRate)} to {fmtCurrency(retroNewRate)} effective {fmtDate(retroEffectiveDate)}. Calculate retroactive adjustment?
+                    {retroEmployeeName}&apos;s compensation was changed from {fmtCurrency(retroOldRate)} to {fmtCurrency(retroNewRate)} effective {fmtDate(retroEffectiveDate)}.
                   </p>
+                  {retroError && <p className="mt-2 text-xs font-bold text-red-600">{retroError}</p>}
                 </div>
               </div>
               <button
@@ -383,7 +461,7 @@ function OffCycleContent() {
             </div>
           )}
 
-          {!retroProcessed && (
+          {!hasRetroParams && !retroProcessed && (
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 text-center">
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calculator size={24} className="text-slate-400" />
@@ -443,8 +521,8 @@ function OffCycleContent() {
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-100">
-                     {retroData.periods.map((p: any, i: number) => (
-                       <tr key={i}>
+                     {retroData.periods.map((p) => (
+                       <tr key={`${p.periodStart}-${p.periodEnd}`}>
                          <td className="px-4 py-3 font-medium">{p.name}</td>
                          <td className="px-4 py-3 text-right text-slate-500">${p.oldGross.toFixed(2)}</td>
                          <td className="px-4 py-3 text-right font-medium">${p.newGross.toFixed(2)}</td>
@@ -519,7 +597,7 @@ function OffCycleContent() {
                </button>
                <div className="flex gap-3">
                  <button 
-                   onClick={() => { setShowRetroModal(false); setRetroProcessed(true); }}
+                   onClick={handleProcessRetro}
                    className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2"
                  >
                    <Play size={16} /> {retroProcessingOption === "next_regular_run" ? "Add to next regular run" : "Process as off-cycle run"}

@@ -205,7 +205,7 @@ export default function CompensationTab() {
                 </div>
               </div>
               <button
-                onClick={() => router.push(`/payroll/off-cycle?mode=retro&employeeId=${backdatedChange.employeeId}&employeeName=${encodeURIComponent(backdatedChange.employeeName)}&effectiveDate=${backdatedChange.effectiveDate}&oldRate=${backdatedChange.oldRate}&newRate=${backdatedChange.newRate}`)}
+                onClick={() => router.push(`/payroll/off-cycle?mode=retro&employeeId=${backdatedChange.employeeId}&employeeName=${encodeURIComponent(backdatedChange.employeeName)}&effectiveDate=${backdatedChange.effectiveDate}&oldRate=${backdatedChange.oldRate}&newRate=${backdatedChange.newRate}&payType=${payType}`)}
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-700"
               >
                 Calculate Retro Pay
