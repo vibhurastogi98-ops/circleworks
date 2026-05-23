@@ -3,8 +3,17 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  CheckCircle, ChevronRight, ChevronLeft, Shield, AlertCircle, Info,
-  FileText, ArrowRight, Check, AlertTriangle, HelpCircle
+  CheckCircle,
+  ChevronRight,
+  ChevronLeft,
+  Shield,
+  AlertCircle,
+  Info,
+  FileText,
+  ArrowRight,
+  Check,
+  AlertTriangle,
+  HelpCircle,
 } from "lucide-react";
 
 type W4Data = {
@@ -15,9 +24,13 @@ type W4Data = {
   city: string;
   state: string;
   zip: string;
-  filingStatus: "Single" | "Married Jointly" | "Head of Household" | "";
+  filingStatus: "Single" | "Married filing jointly" | "Head of household" | "";
   hasMultipleJobs: boolean | null;
   jobOption: "estimator" | "worksheet" | "checkbox" | null;
+  worksheetJobs: number;
+  worksheetHigherPay: number;
+  worksheetLowerPay: number;
+  worksheetExtraWithholding: number;
   children: number;
   otherDependents: number;
   otherIncome: number;
@@ -38,13 +51,17 @@ const initialData: W4Data = {
   filingStatus: "",
   hasMultipleJobs: null,
   jobOption: null,
+  worksheetJobs: 2,
+  worksheetHigherPay: 0,
+  worksheetLowerPay: 0,
+  worksheetExtraWithholding: 0,
   children: 0,
   otherDependents: 0,
   otherIncome: 0,
   deductions: 0,
   extraWithholding: 0,
   signature: "",
-  date: new Date().toISOString().split('T')[0],
+  date: new Date().toISOString().split("T")[0],
 };
 
 const STEPS = [
@@ -52,7 +69,7 @@ const STEPS = [
   "Multiple Jobs",
   "Dependents",
   "Adjustments",
-  "Review & Sign"
+  "Review & Sign",
 ];
 
 export default function W4Wizard() {
@@ -60,17 +77,67 @@ export default function W4Wizard() {
   const [data, setData] = useState<W4Data>(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [stepError, setStepError] = useState("");
 
   const updateData = (fields: Partial<W4Data>) => {
     setData((prev) => ({ ...prev, ...fields }));
   };
 
-  const nextStep = () => setCurrentStep((p) => Math.min(p + 1, STEPS.length - 1));
+  const validateStep = (step: number) => {
+    if (step === 0) {
+      const required = [
+        data.firstName,
+        data.lastName,
+        data.ssn,
+        data.address,
+        data.city,
+        data.state,
+        data.zip,
+        data.filingStatus,
+      ];
+      if (required.some((value) => String(value).trim().length === 0)) {
+        return "Complete your legal name, encrypted SSN, address, and filing status before continuing.";
+      }
+    }
+
+    if (step === 1) {
+      if (data.hasMultipleJobs === null) {
+        return "Choose whether you have multiple jobs or a working spouse.";
+      }
+      if (data.hasMultipleJobs && !data.jobOption) {
+        return "Choose one Step 2 withholding option.";
+      }
+    }
+
+    if (step === 4) {
+      if (!data.signature.trim() || !data.date) {
+        return "Type your legal name and confirm the signature date.";
+      }
+    }
+
+    return "";
+  };
+
+  const nextStep = () => {
+    const error = validateStep(currentStep);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError("");
+    setCurrentStep((p) => Math.min(p + 1, STEPS.length - 1));
+  };
   const prevStep = () => setCurrentStep((p) => Math.max(p - 1, 0));
 
-  const dependentsTotal = (data.children * 2000) + (data.otherDependents * 500);
+  const dependentsTotal = data.children * 2000 + data.otherDependents * 500;
 
   const handleSubmit = async () => {
+    const error = validateStep(currentStep);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/employees/me/w4", {
@@ -82,11 +149,14 @@ export default function W4Wizard() {
       if (res.ok) {
         setSubmitted(true);
       } else {
-        alert("Failed to submit W-4. Please try again.");
+        const payload = await res.json().catch(() => null);
+        setStepError(
+          payload?.error || "Failed to submit W-4. Please try again.",
+        );
       }
     } catch (e) {
       console.error(e);
-      alert("An error occurred.");
+      setStepError("An error occurred while submitting your W-4.");
     } finally {
       setIsSubmitting(false);
     }
@@ -118,12 +188,15 @@ export default function W4Wizard() {
         <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mb-6">
           <CheckCircle size={40} />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">W-4 Submitted</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+          W-4 Submitted
+        </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-md">
-          Your W-4 form has been successfully signed and submitted. A PDF copy has been saved to your employee documents.
+          Your W-4 form has been successfully signed and submitted. A PDF copy
+          has been saved to your employee documents.
         </p>
         <button
-          onClick={() => window.location.href = '/me'}
+          onClick={() => (window.location.href = "/me")}
           className="mt-8 px-6 py-2.5 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition"
         >
           Return to Dashboard
@@ -137,31 +210,42 @@ export default function W4Wizard() {
       <div className="flex-1 w-full relative">
         {/* Progress Bar */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Complete Your W-4</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+            Complete Your W-4
+          </h1>
           <div className="flex items-center justify-between relative">
-             <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-200 dark:bg-slate-700 -z-10 -translate-y-1/2 rounded-full" />
-             <div
-               className="absolute left-0 top-1/2 h-1 bg-violet-600 -z-10 -translate-y-1/2 transition-all duration-500 rounded-full"
-               style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
-             />
-             {STEPS.map((step, idx) => {
-               const isActive = currentStep === idx;
-               const isPast = currentStep > idx;
-               return (
-                 <div key={idx} className="flex flex-col items-center gap-2 bg-white dark:bg-slate-900 px-2">
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${
-                     isActive ? "border-violet-600 bg-violet-600 text-white" :
-                     isPast ? "border-violet-600 bg-violet-100 dark:bg-violet-900/30 text-violet-600" :
-                     "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-400"
-                   }`}>
-                     {isPast ? <Check size={16} /> : idx + 1}
-                   </div>
-                   <span className={`text-[11px] font-semibold hidden md:block ${isActive ? "text-violet-600" : isPast ? "text-slate-700 dark:text-slate-300" : "text-slate-400"}`}>
-                     {step}
-                   </span>
-                 </div>
-               );
-             })}
+            <div className="absolute left-0 right-0 top-1/2 h-1 bg-slate-200 dark:bg-slate-700 -z-10 -translate-y-1/2 rounded-full" />
+            <div
+              className="absolute left-0 top-1/2 h-1 bg-violet-600 -z-10 -translate-y-1/2 transition-all duration-500 rounded-full"
+              style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
+            />
+            {STEPS.map((step, idx) => {
+              const isActive = currentStep === idx;
+              const isPast = currentStep > idx;
+              return (
+                <div
+                  key={idx}
+                  className="flex flex-col items-center gap-2 bg-white dark:bg-slate-900 px-2"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors ${
+                      isActive
+                        ? "border-violet-600 bg-violet-600 text-white"
+                        : isPast
+                          ? "border-violet-600 bg-violet-100 dark:bg-violet-900/30 text-violet-600"
+                          : "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {isPast ? <Check size={16} /> : idx + 1}
+                  </div>
+                  <span
+                    className={`text-[11px] font-semibold hidden md:block ${isActive ? "text-violet-600" : isPast ? "text-slate-700 dark:text-slate-300" : "text-slate-400"}`}
+                  >
+                    {step}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -182,16 +266,31 @@ export default function W4Wizard() {
                 <Step2MultipleJobs data={data} updateData={updateData} />
               )}
               {currentStep === 2 && (
-                <Step3Dependents data={data} updateData={updateData} dependentsTotal={dependentsTotal} />
+                <Step3Dependents
+                  data={data}
+                  updateData={updateData}
+                  dependentsTotal={dependentsTotal}
+                />
               )}
               {currentStep === 3 && (
                 <Step4Adjustments data={data} updateData={updateData} />
               )}
               {currentStep === 4 && (
-                <Step5ReviewSign data={data} updateData={updateData} dependentsTotal={dependentsTotal} />
+                <Step5ReviewSign
+                  data={data}
+                  updateData={updateData}
+                  dependentsTotal={dependentsTotal}
+                />
               )}
             </motion.div>
           </AnimatePresence>
+
+          {stepError && (
+            <div className="mt-6 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <span>{stepError}</span>
+            </div>
+          )}
 
           {/* Navigation Buttons */}
           <div className="flex items-center justify-between mt-10 pt-6 border-t border-slate-200 dark:border-slate-700">
@@ -199,12 +298,14 @@ export default function W4Wizard() {
               onClick={prevStep}
               disabled={currentStep === 0}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition ${
-                currentStep === 0 ? "opacity-0 pointer-events-none" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                currentStep === 0
+                  ? "opacity-0 pointer-events-none"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
               <ChevronLeft size={18} /> Back
             </button>
-            
+
             {currentStep < STEPS.length - 1 ? (
               <button
                 onClick={nextStep}
@@ -215,10 +316,11 @@ export default function W4Wizard() {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !data.signature}
+                disabled={isSubmitting || !data.signature || !data.date}
                 className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl font-semibold transition shadow-sm hover:shadow"
               >
-                {isSubmitting ? "Submitting..." : "Submit W-4"} <CheckCircle size={18} />
+                {isSubmitting ? "Submitting..." : "Submit W-4"}{" "}
+                <CheckCircle size={18} />
               </button>
             )}
           </div>
@@ -226,26 +328,35 @@ export default function W4Wizard() {
       </div>
 
       {/* Sidebar: Withholding Estimator */}
-      <div className="w-full lg:w-[320xl] lg:max-w-sm sticky top-6">
+      <div className="w-full lg:w-[320px] lg:max-w-sm sticky top-6">
         <div className="bg-slate-900 rounded-2xl p-6 text-white overflow-hidden relative shadow-lg">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full" />
           <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-            <Shield size={20} className="text-indigo-400" /> Withholding Estimator
+            <Shield size={20} className="text-indigo-400" /> Withholding
+            Estimator
           </h3>
-          
+
           <div className="flex flex-col gap-5">
             <div className="p-4 bg-white/10 rounded-xl border border-white/5">
-              <div className="text-[13px] text-white/70 mb-2">Estimated Status</div>
+              <div className="text-[13px] text-white/70 mb-2">
+                Estimated Status
+              </div>
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5 p-1.5 bg-black/40 rounded-full">
-                  <div className={`w-3 h-3 rounded-full transition-colors ${trafficLight === 'Red' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-red-500/20'}`} />
-                  <div className={`w-3 h-3 rounded-full transition-colors ${trafficLight === 'Yellow' ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'bg-yellow-400/20'}`} />
-                  <div className={`w-3 h-3 rounded-full transition-colors ${trafficLight === 'Green' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-green-500/20'}`} />
+                  <div
+                    className={`w-3 h-3 rounded-full transition-colors ${trafficLight === "Red" ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" : "bg-red-500/20"}`}
+                  />
+                  <div
+                    className={`w-3 h-3 rounded-full transition-colors ${trafficLight === "Yellow" ? "bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]" : "bg-yellow-400/20"}`}
+                  />
+                  <div
+                    className={`w-3 h-3 rounded-full transition-colors ${trafficLight === "Green" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" : "bg-green-500/20"}`}
+                  />
                 </div>
                 <span className="font-semibold text-sm">
-                  {trafficLight === 'Red' && "Under-withheld"}
-                  {trafficLight === 'Yellow' && "On Track"}
-                  {trafficLight === 'Green' && "Well-Covered"}
+                  {trafficLight === "Red" && "Under-withheld"}
+                  {trafficLight === "Yellow" && "On Track"}
+                  {trafficLight === "Green" && "Well-Covered"}
                 </span>
               </div>
               <p className="text-[12px] text-white/60 mt-3 leading-relaxed">
@@ -256,19 +367,32 @@ export default function W4Wizard() {
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-white/70">Filing Status</span>
-                <span className="font-semibold">{data.filingStatus || "Not Set"}</span>
+                <span className="font-semibold">
+                  {data.filingStatus || "Not Set"}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-white/70">Dependents</span>
-                <span className="font-semibold">{dependentsTotal > 0 ? `$${dependentsTotal}` : "$0"}</span>
+                <span className="font-semibold">
+                  {dependentsTotal > 0 ? `$${dependentsTotal}` : "$0"}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-white/70">Extra Withholding</span>
-                <span className="font-semibold">{data.extraWithholding > 0 ? `$${data.extraWithholding}` : "$0"}</span>
+                <span className="font-semibold">
+                  {data.extraWithholding > 0
+                    ? `$${data.extraWithholding}`
+                    : "$0"}
+                </span>
               </div>
             </div>
-            
-            <a href="https://www.irs.gov/individuals/tax-withholding-estimator" target="_blank" rel="noreferrer" className="mt-2 text-[12px] text-indigo-300 hover:text-indigo-200 flex items-center gap-1 transition">
+
+            <a
+              href="https://www.irs.gov/individuals/tax-withholding-estimator"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 text-[12px] text-indigo-300 hover:text-indigo-200 flex items-center gap-1 transition"
+            >
               Use Official IRS Estimator <ArrowRight size={12} />
             </a>
           </div>
@@ -280,19 +404,35 @@ export default function W4Wizard() {
 
 // --- Steps Components ---
 
-function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d: Partial<W4Data>) => void }) {
-  const statuses = ["Single", "Married Jointly", "Head of Household"] as const;
+function Step1PersonalInfo({
+  data,
+  updateData,
+}: {
+  data: W4Data;
+  updateData: (d: Partial<W4Data>) => void;
+}) {
+  const statuses = [
+    "Single",
+    "Married filing jointly",
+    "Head of household",
+  ] as const;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 1: Personal Information</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Provide your details and select your anticipated filing status.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          Step 1: Personal Information
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Provide your details and select your anticipated filing status.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">First Name</label>
+          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            Legal first name
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none transition"
@@ -302,7 +442,9 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
           />
         </div>
         <div>
-          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Last Name</label>
+          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            Legal last name
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none transition"
@@ -324,12 +466,16 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
           onChange={(e) => updateData({ ssn: e.target.value })}
           placeholder="XXX-XX-XXXX"
         />
-        <p className="text-[11px] text-slate-500 mt-1">End-to-end encrypted and securely stored.</p>
+        <p className="text-[11px] text-slate-500 mt-1">
+          End-to-end encrypted and securely stored.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div className="md:col-span-6">
-          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Home Address</label>
+          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            Home Address
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none transition"
@@ -339,7 +485,9 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
           />
         </div>
         <div className="md:col-span-3">
-          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">City</label>
+          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            City
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none transition"
@@ -348,7 +496,9 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
           />
         </div>
         <div className="md:col-span-1">
-          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">State</label>
+          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            State
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none transition uppercase"
@@ -358,7 +508,9 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Zip Code</label>
+          <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            Zip Code
+          </label>
           <input
             type="text"
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none transition"
@@ -369,9 +521,11 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
       </div>
 
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-        <label className="block text-sm font-bold text-slate-900 dark:text-white mb-3">Filing Status</label>
+        <label className="block text-sm font-bold text-slate-900 dark:text-white mb-3">
+          Filing Status
+        </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {statuses.map(status => (
+          {statuses.map((status) => (
             <div
               key={status}
               onClick={() => updateData({ filingStatus: status })}
@@ -382,12 +536,20 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded-full border-2 flex flex-shrink-0 items-center justify-center ${
-                  data.filingStatus === status ? "border-violet-600" : "border-slate-300 dark:border-slate-600"
-                }`}>
-                  {data.filingStatus === status && <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />}
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex flex-shrink-0 items-center justify-center ${
+                    data.filingStatus === status
+                      ? "border-violet-600"
+                      : "border-slate-300 dark:border-slate-600"
+                  }`}
+                >
+                  {data.filingStatus === status && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-violet-600" />
+                  )}
                 </div>
-                <span className={`text-sm font-semibold ${data.filingStatus === status ? "text-violet-900 dark:text-violet-100" : "text-slate-700 dark:text-slate-300"}`}>
+                <span
+                  className={`text-sm font-semibold ${data.filingStatus === status ? "text-violet-900 dark:text-violet-100" : "text-slate-700 dark:text-slate-300"}`}
+                >
                   {status}
                 </span>
               </div>
@@ -399,12 +561,27 @@ function Step1PersonalInfo({ data, updateData }: { data: W4Data, updateData: (d:
   );
 }
 
-function Step2MultipleJobs({ data, updateData }: { data: W4Data, updateData: (d: Partial<W4Data>) => void }) {
+function Step2MultipleJobs({
+  data,
+  updateData,
+}: {
+  data: W4Data;
+  updateData: (d: Partial<W4Data>) => void;
+}) {
+  const worksheetEstimate = Math.ceil(
+    ((data.worksheetHigherPay + data.worksheetLowerPay) * 0.02) / 26,
+  );
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 2: Multiple Jobs or Spouse Works</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Complete this step if you hold more than one job at a time, or are married filing jointly and your spouse also works.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          Step 2: Multiple Jobs or Spouse Works
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Complete this step if you hold more than one job at a time, or are
+          married filing jointly and your spouse also works.
+        </p>
       </div>
 
       <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -419,7 +596,9 @@ function Step2MultipleJobs({ data, updateData }: { data: W4Data, updateData: (d:
             Yes
           </button>
           <button
-            onClick={() => updateData({ hasMultipleJobs: false, jobOption: null })}
+            onClick={() =>
+              updateData({ hasMultipleJobs: false, jobOption: null })
+            }
             className={`px-6 py-2.5 rounded-lg border-2 font-semibold transition ${data.hasMultipleJobs === false ? "border-violet-600 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
           >
             No
@@ -434,34 +613,181 @@ function Step2MultipleJobs({ data, updateData }: { data: W4Data, updateData: (d:
             animate={{ opacity: 1, height: "auto" }}
             className="space-y-4 overflow-hidden"
           >
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Choose ONE of the following options to ensure accurate withholding:</p>
-            
-            <label className={`block p-4 rounded-xl border-2 cursor-pointer transition ${data.jobOption === 'estimator' ? 'border-violet-600 bg-violet-50 dark:bg-violet-900/10' : 'border-slate-200 dark:border-slate-700'}`}>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Choose ONE of the following options to ensure accurate
+              withholding:
+            </p>
+
+            <label
+              className={`block p-4 rounded-xl border-2 cursor-pointer transition ${data.jobOption === "estimator" ? "border-violet-600 bg-violet-50 dark:bg-violet-900/10" : "border-slate-200 dark:border-slate-700"}`}
+            >
               <div className="flex gap-3">
-                <input type="radio" className="mt-1 w-4 h-4 text-violet-600 focus:ring-violet-500" checked={data.jobOption === 'estimator'} onChange={() => updateData({ jobOption: 'estimator' })} />
+                <input
+                  type="radio"
+                  className="mt-1 w-4 h-4 text-violet-600 focus:ring-violet-500"
+                  checked={data.jobOption === "estimator"}
+                  onChange={() => updateData({ jobOption: "estimator" })}
+                />
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-white text-[15px]">Option A: Use the Official Estimator</div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Most accurate and private. Use the IRS Tax Withholding Estimator online, then enter the generated values in Step 4.</p>
+                  <div className="font-bold text-slate-900 dark:text-white text-[15px]">
+                    Option A: Use the Official Estimator
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Most accurate and private. Use the IRS Tax Withholding
+                    Estimator online, then enter the generated values in Step 4.
+                  </p>
+                  {data.jobOption === "estimator" && (
+                    <a
+                      href="https://www.irs.gov/individuals/tax-withholding-estimator"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-violet-700 hover:text-violet-800 dark:text-violet-300"
+                    >
+                      Open IRS Tax Withholding Estimator{" "}
+                      <ArrowRight size={14} />
+                    </a>
+                  )}
                 </div>
               </div>
             </label>
 
-            <label className={`block p-4 rounded-xl border-2 cursor-pointer transition ${data.jobOption === 'worksheet' ? 'border-violet-600 bg-violet-50 dark:bg-violet-900/10' : 'border-slate-200 dark:border-slate-700'}`}>
+            <label
+              className={`block p-4 rounded-xl border-2 cursor-pointer transition ${data.jobOption === "worksheet" ? "border-violet-600 bg-violet-50 dark:bg-violet-900/10" : "border-slate-200 dark:border-slate-700"}`}
+            >
               <div className="flex gap-3">
-                <input type="radio" className="mt-1 w-4 h-4 text-violet-600 focus:ring-violet-500" checked={data.jobOption === 'worksheet'} onChange={() => updateData({ jobOption: 'worksheet' })} />
+                <input
+                  type="radio"
+                  className="mt-1 w-4 h-4 text-violet-600 focus:ring-violet-500"
+                  checked={data.jobOption === "worksheet"}
+                  onChange={() => updateData({ jobOption: "worksheet" })}
+                />
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-white text-[15px]">Option B: Use the Multiple Jobs Worksheet</div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Use the worksheet on page 3 of the IRS instructions to calculate extra withholding to enter in Step 4c.</p>
+                  <div className="font-bold text-slate-900 dark:text-white text-[15px]">
+                    Option B: Use the Multiple Jobs Worksheet
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Use the worksheet on page 3 of the IRS instructions to
+                    calculate extra withholding to enter in Step 4c.
+                  </p>
                 </div>
               </div>
             </label>
 
-            <label className={`block p-4 rounded-xl border-2 cursor-pointer transition ${data.jobOption === 'checkbox' ? 'border-violet-600 bg-violet-50 dark:bg-violet-900/10' : 'border-slate-200 dark:border-slate-700'}`}>
+            {data.jobOption === "worksheet" && (
+              <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-900/50 dark:bg-violet-950/20">
+                <div className="flex items-start gap-2">
+                  <HelpCircle
+                    size={18}
+                    className="mt-0.5 flex-shrink-0 text-violet-700 dark:text-violet-300"
+                  />
+                  <div>
+                    <h3 className="text-sm font-bold text-violet-950 dark:text-violet-100">
+                      Multiple Jobs Worksheet (Step 2b)
+                    </h3>
+                    <p className="mt-1 text-sm text-violet-800/80 dark:text-violet-200/80">
+                      Enter the pay details for the highest and next-highest
+                      paying jobs. This guided worksheet estimates extra
+                      withholding per pay period for Step 4c.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Number of jobs
+                    <input
+                      type="number"
+                      min={2}
+                      value={data.worksheetJobs}
+                      onChange={(e) =>
+                        updateData({
+                          worksheetJobs: Math.max(
+                            2,
+                            parseInt(e.target.value) || 2,
+                          ),
+                        })
+                      }
+                      className="mt-1 w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 dark:border-violet-800 dark:bg-slate-900"
+                    />
+                  </label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Higher-paying job annual wages
+                    <input
+                      type="number"
+                      min={0}
+                      value={data.worksheetHigherPay || ""}
+                      onChange={(e) =>
+                        updateData({
+                          worksheetHigherPay: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="mt-1 w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 dark:border-violet-800 dark:bg-slate-900"
+                      placeholder="0"
+                    />
+                  </label>
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Lower-paying job annual wages
+                    <input
+                      type="number"
+                      min={0}
+                      value={data.worksheetLowerPay || ""}
+                      onChange={(e) =>
+                        updateData({
+                          worksheetLowerPay: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="mt-1 w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500 dark:border-violet-800 dark:bg-slate-900"
+                      placeholder="0"
+                    />
+                  </label>
+                  <div className="rounded-lg bg-white p-3 text-sm dark:bg-slate-900">
+                    <div className="text-slate-500 dark:text-slate-400">
+                      Estimated extra withholding
+                    </div>
+                    <div className="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+                      ${worksheetEstimate.toLocaleString()}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Per pay period, based on 26 pay periods.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateData({
+                      worksheetExtraWithholding: worksheetEstimate,
+                      extraWithholding: worksheetEstimate,
+                    })
+                  }
+                  className="mt-4 rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-700"
+                >
+                  Use this amount in Step 4c
+                </button>
+              </div>
+            )}
+
+            <label
+              className={`block p-4 rounded-xl border-2 cursor-pointer transition ${data.jobOption === "checkbox" ? "border-violet-600 bg-violet-50 dark:bg-violet-900/10" : "border-slate-200 dark:border-slate-700"}`}
+            >
               <div className="flex gap-3">
-                <input type="radio" className="mt-1 w-4 h-4 text-violet-600 focus:ring-violet-500" checked={data.jobOption === 'checkbox'} onChange={() => updateData({ jobOption: 'checkbox' })} />
+                <input
+                  type="radio"
+                  className="mt-1 w-4 h-4 text-violet-600 focus:ring-violet-500"
+                  checked={data.jobOption === "checkbox"}
+                  onChange={() => updateData({ jobOption: "checkbox" })}
+                />
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-white text-[15px]">Option C: Check This Box</div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">If there are only two jobs total, you may check this box. Do the same on form W-4 for the other job. This option is generally more accurate than Option B for similar paying jobs. You may withhold more tax than necessary.</p>
+                  <div className="font-bold text-slate-900 dark:text-white text-[15px]">
+                    Option C: Check This Box
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    If there are only two jobs total, you may check this box. Do
+                    the same on form W-4 for the other job. This option is
+                    generally more accurate than Option B for similar paying
+                    jobs. You may withhold more tax than necessary.
+                  </p>
                 </div>
               </div>
             </label>
@@ -472,31 +798,53 @@ function Step2MultipleJobs({ data, updateData }: { data: W4Data, updateData: (d:
   );
 }
 
-function Step3Dependents({ data, updateData, dependentsTotal }: { data: W4Data, updateData: (d: Partial<W4Data>) => void, dependentsTotal: number }) {
+function Step3Dependents({
+  data,
+  updateData,
+  dependentsTotal,
+}: {
+  data: W4Data;
+  updateData: (d: Partial<W4Data>) => void;
+  dependentsTotal: number;
+}) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 3: Claim Dependents</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">If your total income will be $200,000 or less ($400,000 or less if married filing jointly):</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          Step 3: Claim Dependents
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          If your total income will be $200,000 or less ($400,000 or less if
+          married filing jointly):
+        </p>
       </div>
 
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl flex gap-3 text-sm">
         <Info size={18} className="flex-shrink-0 mt-0.5" />
-        <p>Complete this step only for your highest paying job. Leave blank for other jobs to avoid under-withholding.</p>
+        <p>
+          Complete this step only for your highest paying job. Leave blank for
+          other jobs to avoid under-withholding.
+        </p>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div>
-            <div className="font-bold text-[15px] text-slate-900 dark:text-white">Qualifying children under 17</div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">Multiply the number of children by $2,000</div>
+            <div className="font-bold text-[15px] text-slate-900 dark:text-white">
+              Qualifying children under 17
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Multiply the number of children by $2,000
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <input
               type="number"
               min={0}
               value={data.children}
-              onChange={(e) => updateData({ children: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                updateData({ children: parseInt(e.target.value) || 0 })
+              }
               className="w-20 px-3 py-2 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 font-bold"
             />
             <div className="w-20 text-right font-bold text-slate-900 dark:text-white text-lg">
@@ -507,15 +855,21 @@ function Step3Dependents({ data, updateData, dependentsTotal }: { data: W4Data, 
 
         <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
           <div>
-            <div className="font-bold text-[15px] text-slate-900 dark:text-white">Other dependents</div>
-            <div className="text-sm text-slate-500 dark:text-slate-400">Multiply the number of other dependents by $500</div>
+            <div className="font-bold text-[15px] text-slate-900 dark:text-white">
+              Other dependents
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400">
+              Multiply the number of other dependents by $500
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <input
               type="number"
               min={0}
               value={data.otherDependents}
-              onChange={(e) => updateData({ otherDependents: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                updateData({ otherDependents: parseInt(e.target.value) || 0 })
+              }
               className="w-20 px-3 py-2 text-center rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 font-bold"
             />
             <div className="w-20 text-right font-bold text-slate-900 dark:text-white text-lg">
@@ -527,34 +881,57 @@ function Step3Dependents({ data, updateData, dependentsTotal }: { data: W4Data, 
 
       <div className="mt-6 flex justify-between items-center p-5 bg-slate-900 rounded-xl text-white">
         <span className="font-bold text-lg">Total Dependent Deduction</span>
-        <span className="text-2xl font-black text-green-400">${dependentsTotal.toLocaleString()}</span>
+        <span className="text-2xl font-black text-green-400">
+          ${dependentsTotal.toLocaleString()}
+        </span>
       </div>
     </div>
   );
 }
 
-function Step4Adjustments({ data, updateData }: { data: W4Data, updateData: (d: Partial<W4Data>) => void }) {
+function Step4Adjustments({
+  data,
+  updateData,
+}: {
+  data: W4Data;
+  updateData: (d: Partial<W4Data>) => void;
+}) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 4: Other Adjustments (Optional)</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Complete this step if you have other income, deductions, or want extra tax withheld.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          Step 4: Other Adjustments (Optional)
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Complete this step if you have other income, deductions, or want extra
+          tax withheld.
+        </p>
       </div>
 
       <div className="space-y-5">
         <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
           <label className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex-1">
-              <span className="font-bold text-[15px] text-slate-900 dark:text-white block">4a. Other Income (not from jobs)</span>
-              <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">If you want tax withheld for other income you expect this year that won't have withholding, enter the amount of other income here. Include interest, dividends, and retirement income.</span>
+              <span className="font-bold text-[15px] text-slate-900 dark:text-white block">
+                4a. Other Income (not from jobs)
+              </span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">
+                If you want tax withheld for other income you expect this year
+                that won't have withholding, enter the amount of other income
+                here. Include interest, dividends, and retirement income.
+              </span>
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                $
+              </span>
               <input
                 type="number"
                 min={0}
-                value={data.otherIncome || ''}
-                onChange={(e) => updateData({ otherIncome: parseInt(e.target.value) || 0 })}
+                value={data.otherIncome || ""}
+                onChange={(e) =>
+                  updateData({ otherIncome: parseInt(e.target.value) || 0 })
+                }
                 className="w-32 pl-7 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-bold outline-none focus:ring-2 focus:ring-violet-500"
                 placeholder="0"
               />
@@ -565,16 +942,26 @@ function Step4Adjustments({ data, updateData }: { data: W4Data, updateData: (d: 
         <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700">
           <label className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex-1">
-              <span className="font-bold text-[15px] text-slate-900 dark:text-white block">4b. Deductions</span>
-              <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">If you expect to claim deductions other than the standard deduction and want to reduce your withholding, use the Deductions Worksheet and enter the result here.</span>
+              <span className="font-bold text-[15px] text-slate-900 dark:text-white block">
+                4b. Deductions
+              </span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 block mt-1">
+                If you expect to claim deductions other than the standard
+                deduction and want to reduce your withholding, use the
+                Deductions Worksheet and enter the result here.
+              </span>
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                $
+              </span>
               <input
                 type="number"
                 min={0}
-                value={data.deductions || ''}
-                onChange={(e) => updateData({ deductions: parseInt(e.target.value) || 0 })}
+                value={data.deductions || ""}
+                onChange={(e) =>
+                  updateData({ deductions: parseInt(e.target.value) || 0 })
+                }
                 className="w-32 pl-7 pr-3 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 font-bold outline-none focus:ring-2 focus:ring-violet-500"
                 placeholder="0"
               />
@@ -585,16 +972,28 @@ function Step4Adjustments({ data, updateData }: { data: W4Data, updateData: (d: 
         <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-violet-50/50 dark:bg-violet-900/10">
           <label className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex-1">
-              <span className="font-bold text-[15px] text-violet-900 dark:text-violet-100 block">4c. Extra Withholding</span>
-              <span className="text-sm text-violet-700/80 dark:text-violet-300/80 block mt-1">Enter any additional tax you want withheld <strong>each pay period</strong>. This is often calculated from Step 2.</span>
+              <span className="font-bold text-[15px] text-violet-900 dark:text-violet-100 block">
+                4c. Extra Withholding
+              </span>
+              <span className="text-sm text-violet-700/80 dark:text-violet-300/80 block mt-1">
+                Enter any additional tax you want withheld{" "}
+                <strong>each pay period</strong>. This is often calculated from
+                Step 2.
+              </span>
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-600 font-bold">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-600 font-bold">
+                $
+              </span>
               <input
                 type="number"
                 min={0}
-                value={data.extraWithholding || ''}
-                onChange={(e) => updateData({ extraWithholding: parseInt(e.target.value) || 0 })}
+                value={data.extraWithholding || ""}
+                onChange={(e) =>
+                  updateData({
+                    extraWithholding: parseInt(e.target.value) || 0,
+                  })
+                }
                 className="w-32 pl-7 pr-3 py-2.5 rounded-lg border border-violet-300 dark:border-violet-600 bg-white dark:bg-slate-900 font-bold outline-none focus:ring-2 focus:ring-violet-500 text-violet-900 dark:text-violet-100"
                 placeholder="0"
               />
@@ -606,12 +1005,26 @@ function Step4Adjustments({ data, updateData }: { data: W4Data, updateData: (d: 
   );
 }
 
-function Step5ReviewSign({ data, updateData, dependentsTotal }: { data: W4Data, updateData: (d: Partial<W4Data>) => void, dependentsTotal: number }) {
+function Step5ReviewSign({
+  data,
+  updateData,
+  dependentsTotal,
+}: {
+  data: W4Data;
+  updateData: (d: Partial<W4Data>) => void;
+  dependentsTotal: number;
+}) {
+  const taxYear = new Date().getFullYear();
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Step 5: Review & Sign</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review your generated W-4 form and provide your electronic signature.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          Step 5: Review & Sign
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Review your generated W-4 form and provide your electronic signature.
+        </p>
       </div>
 
       {/* Styled W-4 Preview */}
@@ -619,94 +1032,182 @@ function Step5ReviewSign({ data, updateData, dependentsTotal }: { data: W4Data, 
         <div className="border-b-4 border-black pb-4 mb-4 flex justify-between items-end">
           <div className="w-1/4">
             <div className="font-bold text-2xl mb-1">W-4</div>
-            <div className="text-[10px] leading-tight">Department of the Treasury<br/>Internal Revenue Service</div>
+            <div className="text-[10px] leading-tight">
+              Department of the Treasury
+              <br />
+              Internal Revenue Service
+            </div>
           </div>
           <div className="text-center w-1/2 px-4">
-            <div className="font-black text-xl leading-tight">Employee's Withholding Certificate</div>
-            <div className="text-[11px] mt-2">▶ Complete Form W-4 so that your employer can withhold the correct federal income tax from your pay.<br/>▶ Give Form W-4 to your employer.<br/>▶ Your withholding is subject to review by the IRS.</div>
+            <div className="font-black text-xl leading-tight">
+              Employee's Withholding Certificate
+            </div>
+            <div className="text-[11px] mt-2">
+              ▶ Complete Form W-4 so that your employer can withhold the correct
+              federal income tax from your pay.
+              <br />▶ Give Form W-4 to your employer.
+              <br />▶ Your withholding is subject to review by the IRS.
+            </div>
           </div>
           <div className="text-right w-1/4">
             <div className="font-bold mb-1">OMB No. 1545-0074</div>
-            <div className="text-xl font-black">2024</div>
+            <div className="text-xl font-black">{taxYear}</div>
           </div>
         </div>
 
         <div className="flex border-b border-black text-xs font-bold bg-gray-100 rounded-t-sm">
-          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">Step 1</div>
+          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">
+            Step 1
+          </div>
           <div className="p-1 px-2">Personal Information</div>
         </div>
         <div className="flex border-b border-black text-sm">
           <div className="flex-1 border-r border-black p-2 bg-[#fdfdfd]">
-            <div className="text-[10px] uppercase text-gray-500 font-bold mb-1">(a) First name and middle initial</div>
-            <div className="font-mono bg-blue-50/50 p-1 min-h-[28px] uppercase">{data.firstName}</div>
-            
-            <div className="text-[10px] uppercase text-gray-500 font-bold mt-2 mb-1">Address</div>
-            <div className="font-mono bg-blue-50/50 p-1 min-h-[28px] uppercase">{data.address}</div>
-            
-            <div className="text-[10px] uppercase text-gray-500 font-bold mt-2 mb-1">City, state, and ZIP code</div>
-            <div className="font-mono bg-blue-50/50 p-1 min-h-[28px] uppercase">{data.city}, {data.state} {data.zip}</div>
+            <div className="text-[10px] uppercase text-gray-500 font-bold mb-1">
+              (a) First name and middle initial
+            </div>
+            <div className="font-mono bg-blue-50/50 p-1 min-h-[28px] uppercase">
+              {data.firstName}
+            </div>
+
+            <div className="text-[10px] uppercase text-gray-500 font-bold mt-2 mb-1">
+              Address
+            </div>
+            <div className="font-mono bg-blue-50/50 p-1 min-h-[28px] uppercase">
+              {data.address}
+            </div>
+
+            <div className="text-[10px] uppercase text-gray-500 font-bold mt-2 mb-1">
+              City, state, and ZIP code
+            </div>
+            <div className="font-mono bg-blue-50/50 p-1 min-h-[28px] uppercase">
+              {data.city}, {data.state} {data.zip}
+            </div>
           </div>
           <div className="w-1/3 flex flex-col">
             <div className="flex-1 border-b border-black p-2 bg-[#fdfdfd]">
-               <div className="text-[10px] uppercase text-gray-500 font-bold mb-1">(b) Social security number</div>
-               <div className="font-mono bg-blue-50/50 p-1 uppercase">***-**-****</div>
+              <div className="text-[10px] uppercase text-gray-500 font-bold mb-1">
+                (b) Social security number
+              </div>
+              <div className="font-mono bg-blue-50/50 p-1 uppercase">
+                ***-**-****
+              </div>
             </div>
             <div className="flex-2 p-2 relative bg-[#fdfdfd]">
-               <div className="text-[10px] uppercase text-gray-500 font-bold mb-1">(c) Filing Status</div>
-               <div className="font-bold text-[11px] flex items-center gap-1"><div className="w-3 h-3 border border-black rounded-sm flex items-center justify-center">{data.filingStatus === 'Single' && 'X'}</div> Single or Married filing sep.</div>
-               <div className="font-bold text-[11px] flex items-center gap-1 mt-1"><div className="w-3 h-3 border border-black rounded-sm flex items-center justify-center">{data.filingStatus === 'Married Jointly' && 'X'}</div> Married filing jointly</div>
-               <div className="font-bold text-[11px] flex items-center gap-1 mt-1"><div className="w-3 h-3 border border-black rounded-sm flex items-center justify-center">{data.filingStatus === 'Head of Household' && 'X'}</div> Head of household</div>
+              <div className="text-[10px] uppercase text-gray-500 font-bold mb-1">
+                (c) Filing Status
+              </div>
+              <div className="font-bold text-[11px] flex items-center gap-1">
+                <div className="w-3 h-3 border border-black rounded-sm flex items-center justify-center">
+                  {data.filingStatus === "Single" && "X"}
+                </div>{" "}
+                Single or Married filing sep.
+              </div>
+              <div className="font-bold text-[11px] flex items-center gap-1 mt-1">
+                <div className="w-3 h-3 border border-black rounded-sm flex items-center justify-center">
+                  {data.filingStatus === "Married filing jointly" && "X"}
+                </div>{" "}
+                Married filing jointly
+              </div>
+              <div className="font-bold text-[11px] flex items-center gap-1 mt-1">
+                <div className="w-3 h-3 border border-black rounded-sm flex items-center justify-center">
+                  {data.filingStatus === "Head of household" && "X"}
+                </div>{" "}
+                Head of household
+              </div>
             </div>
           </div>
         </div>
 
         <div className="flex border-b border-black text-xs font-bold mt-2">
-          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">Step 2</div>
+          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">
+            Step 2
+          </div>
           <div className="p-1 px-2 flex-1">Multiple Jobs or Spouse Works</div>
-          <div className="p-1 border-l border-black w-24 text-center">Checkbox ✓</div>
+          <div className="p-1 border-l border-black w-24 text-center">
+            Checkbox ✓
+          </div>
         </div>
         <div className="p-2 border-b border-black text-xs flex justify-between bg-[#fdfdfd]">
-          <div><span className="font-bold">(c)</span> If there are only two jobs total, you may check this box.</div>
-          <div className="w-4 h-4 border-2 border-black rounded-sm flex items-center justify-center mr-8 bg-blue-50/50">{data.jobOption === 'checkbox' && 'X'}</div>
+          <div>
+            <span className="font-bold">(c)</span> If there are only two jobs
+            total, you may check this box.
+          </div>
+          <div className="w-4 h-4 border-2 border-black rounded-sm flex items-center justify-center mr-8 bg-blue-50/50">
+            {data.jobOption === "checkbox" && "X"}
+          </div>
         </div>
 
         <div className="flex border-b border-black text-xs font-bold mt-2">
-          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">Step 3</div>
+          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">
+            Step 3
+          </div>
           <div className="p-1 px-2 flex-1">Claim Dependents</div>
-          <div className="p-1 border-l border-black w-24 text-center">Total</div>
+          <div className="p-1 border-l border-black w-24 text-center">
+            Total
+          </div>
         </div>
         <div className="flex border-b border-black text-xs bg-[#fdfdfd]">
-          <div className="flex-1 p-2">Multiply children by $2,000. Multiply other dependents by $500. Add the amounts.</div>
-          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">{dependentsTotal > 0 ? dependentsTotal : ''}</div>
+          <div className="flex-1 p-2">
+            Multiply children by $2,000. Multiply other dependents by $500. Add
+            the amounts.
+          </div>
+          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">
+            {dependentsTotal > 0 ? dependentsTotal : ""}
+          </div>
         </div>
 
         <div className="flex border-b border-black text-xs font-bold mt-2">
-          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">Step 4</div>
+          <div className="p-1 px-2 border-r border-black w-14 bg-black text-white text-center">
+            Step 4
+          </div>
           <div className="p-1 px-2 flex-1">Other Adjustments</div>
           <div className="p-1 border-l border-black w-24"></div>
         </div>
         <div className="flex border-b border-black text-xs bg-[#fdfdfd]">
-          <div className="flex-1 p-2"><span className="font-bold">(a) Other income.</span> Enter the amount here.</div>
-          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">{data.otherIncome > 0 ? data.otherIncome : ''}</div>
+          <div className="flex-1 p-2">
+            <span className="font-bold">(a) Other income.</span> Enter the
+            amount here.
+          </div>
+          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">
+            {data.otherIncome > 0 ? data.otherIncome : ""}
+          </div>
         </div>
         <div className="flex border-b border-black text-xs bg-[#fdfdfd]">
-          <div className="flex-1 p-2"><span className="font-bold">(b) Deductions.</span> Enter the result here.</div>
-          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">{data.deductions > 0 ? data.deductions : ''}</div>
+          <div className="flex-1 p-2">
+            <span className="font-bold">(b) Deductions.</span> Enter the result
+            here.
+          </div>
+          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">
+            {data.deductions > 0 ? data.deductions : ""}
+          </div>
         </div>
         <div className="flex border-b border-black text-xs bg-[#fdfdfd]">
-          <div className="flex-1 p-2"><span className="font-bold">(c) Extra withholding.</span> Enter any additional tax you want withheld each pay period.</div>
-          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">{data.extraWithholding > 0 ? data.extraWithholding : ''}</div>
+          <div className="flex-1 p-2">
+            <span className="font-bold">(c) Extra withholding.</span> Enter any
+            additional tax you want withheld each pay period.
+          </div>
+          <div className="w-24 border-l border-black p-2 font-mono text-right bg-blue-50/50">
+            {data.extraWithholding > 0 ? data.extraWithholding : ""}
+          </div>
         </div>
       </div>
 
       {/* Signature Section */}
       <div className="p-6 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
-        <h3 className="font-bold text-slate-900 dark:text-white mb-2">Electronic Signature</h3>
-        <p className="text-sm text-slate-500 mb-6">Under penalties of perjury, I declare that this certificate, to the best of my knowledge and belief, is true, correct, and complete.</p>
-        
+        <h3 className="font-bold text-slate-900 dark:text-white mb-2">
+          Electronic Signature
+        </h3>
+        <p className="text-sm text-slate-500 mb-6">
+          Under penalties of perjury, I declare that this certificate, to the
+          best of my knowledge and belief, is true, correct, and complete.
+        </p>
+
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1">
-            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Type your full legal name</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Type your full legal name
+            </label>
             <input
               type="text"
               value={data.signature}
@@ -716,7 +1217,9 @@ function Step5ReviewSign({ data, updateData, dependentsTotal }: { data: W4Data, 
             />
           </div>
           <div className="w-full md:w-1/3">
-            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Date</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Date
+            </label>
             <input
               type="date"
               value={data.date}

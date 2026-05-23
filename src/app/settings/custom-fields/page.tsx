@@ -3,6 +3,11 @@
 import React, { useState } from "react";
 import { Plus, Settings2, Trash2, ShieldCheck } from "lucide-react";
 import { mockCustomFields } from "@/data/mockSettings";
+import {
+  FIELD_VISIBILITY_RULES,
+  type FieldVisibilityRule,
+  type FieldVisibilityRole,
+} from "@/lib/fieldVisibility";
 
 const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean, onChange: (v: boolean) => void, disabled?: boolean }) => (
   <button 
@@ -14,27 +19,17 @@ const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean, onC
   </button>
 );
 
-const initialVisibility = [
-  { id: "v1", name: "SSN / Tax ID", type: "System", roles: { employee: false, manager: false, hr: true, admin: true, everyone: false } },
-  { id: "v2", name: "Bank Account", type: "System", roles: { employee: true, manager: false, hr: false, admin: true, everyone: false } },
-  { id: "v3", name: "Salary/Compensation", type: "System", roles: { employee: false, manager: true, hr: true, admin: true, everyone: false } },
-  { id: "v4", name: "Personal Phone / Email", type: "System", roles: { employee: true, manager: false, hr: true, admin: true, everyone: false } },
-  { id: "v5", name: "Work Phone", type: "System", roles: { employee: true, manager: true, hr: true, admin: true, everyone: true } },
-  { id: "v6", name: "Title", type: "System", roles: { employee: true, manager: true, hr: true, admin: true, everyone: true } },
-  { id: "v7", name: "Department", type: "System", roles: { employee: true, manager: true, hr: true, admin: true, everyone: true } },
-  { id: "v8", name: "Location", type: "System", roles: { employee: true, manager: true, hr: true, admin: true, everyone: true } },
-  { id: "v9", name: "Emergency Contact", type: "System", roles: { employee: true, manager: false, hr: true, admin: true, everyone: false } },
-  { id: "v10", name: "Performance scores", type: "System", roles: { employee: true, manager: true, hr: true, admin: true, everyone: false } },
-  { id: "cf_1", name: "T-Shirt Size", type: "Custom", roles: { employee: true, manager: true, hr: true, admin: true, everyone: true } },
-  { id: "cf_2", name: "Dietary Restrictions", type: "Custom", roles: { employee: true, manager: true, hr: true, admin: true, everyone: false } }
-];
+const initialVisibility = FIELD_VISIBILITY_RULES.map((rule) => ({
+  ...rule,
+  roles: { ...rule.roles },
+}));
 
 export default function CustomFieldsSettingsPage() {
   const [fields] = useState(mockCustomFields);
   const [visibilities, setVisibilities] = useState(initialVisibility);
   const [activeTab, setActiveTab] = useState<'custom' | 'visibility'>('custom');
 
-  const handleToggle = (id: string, role: string, newValue: boolean) => {
+  const handleToggle = (id: string, role: FieldVisibilityRole, newValue: boolean) => {
     setVisibilities(prev => prev.map(v => {
       if (v.id === id) {
         if (role === 'everyone' && newValue) {
@@ -52,9 +47,10 @@ export default function CustomFieldsSettingsPage() {
 
   const applyPIIDefaults = () => {
     setVisibilities(prev => prev.map(v => {
-      if (v.name === "SSN / Tax ID") return { ...v, roles: { employee: false, manager: false, hr: true, admin: true, everyone: false } };
-      if (v.name === "Bank Account") return { ...v, roles: { employee: true, manager: false, hr: false, admin: true, everyone: false } };
-      if (v.name === "Personal Phone / Email") return { ...v, roles: { employee: true, manager: false, hr: true, admin: true, everyone: false } };
+      const defaultRule = FIELD_VISIBILITY_RULES.find((rule) => rule.id === v.id);
+      if (defaultRule?.sensitive) {
+        return { ...v, roles: { ...defaultRule.roles } };
+      }
       return v;
     }));
   };
@@ -164,7 +160,7 @@ export default function CustomFieldsSettingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {visibilities.map((v) => (
+                {visibilities.map((v: FieldVisibilityRule) => (
                   <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                     <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{v.name}</td>
                     <td className="px-4 py-4">
@@ -175,19 +171,19 @@ export default function CustomFieldsSettingsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <Toggle checked={v.roles.employee} onChange={(val) => handleToggle(v.id, 'employee', val)} disabled={v.name === 'SSN / Tax ID'} />
+                      <Toggle checked={v.roles.employee} onChange={(val) => handleToggle(v.id, 'employee', val)} />
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <Toggle checked={v.roles.manager} onChange={(val) => handleToggle(v.id, 'manager', val)} disabled={v.name === 'SSN / Tax ID'} />
+                      <Toggle checked={v.roles.manager} onChange={(val) => handleToggle(v.id, 'manager', val)} />
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <Toggle checked={v.roles.hr} onChange={(val) => handleToggle(v.id, 'hr', val)} disabled={v.name === 'SSN / Tax ID' && !v.roles.hr} />
+                      <Toggle checked={v.roles.hr} onChange={(val) => handleToggle(v.id, 'hr', val)} />
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <Toggle checked={v.roles.admin} onChange={(val) => handleToggle(v.id, 'admin', val)} disabled={true} />
+                      <Toggle checked={v.roles.admin} onChange={(val) => handleToggle(v.id, 'admin', val)} />
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <Toggle checked={v.roles.everyone} onChange={(val) => handleToggle(v.id, 'everyone', val)} disabled={['SSN / Tax ID', 'Bank Account', 'Salary/Compensation', 'Personal Phone / Email', 'Emergency Contact'].includes(v.name)} />
+                      <Toggle checked={v.roles.everyone} onChange={(val) => handleToggle(v.id, 'everyone', val)} disabled={!!v.sensitive} />
                     </td>
                   </tr>
                 ))}

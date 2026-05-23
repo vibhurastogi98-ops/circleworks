@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize, Minimize, Loader2, Users, Search, Edit } from "lucide-react";
+import { ChevronLeft, Download, ZoomIn, ZoomOut, Maximize, Minimize, Loader2, Users, Search } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import dynamic from "next/dynamic";
 
@@ -16,8 +16,6 @@ interface OrgNodeData {
   lastName: string;
   avatar: string;
   jobTitle: string;
-  department: string;
-  status: string;
   managerId: number | null;
   children?: OrgNodeData[];
 }
@@ -49,20 +47,6 @@ function EmployeeCard({ node }: { node: OrgNodeData }) {
           <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {node.jobTitle}
           </div>
-          <div className="text-[10px] uppercase font-bold text-slate-400 mt-1 truncate">
-            {node.department}
-          </div>
-          {node.id !== -1 && (
-            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700 flex justify-center">
-              <Link 
-                href={`/employees/${node.id}/edit`}
-                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all"
-                title="Edit Employee"
-              >
-                <Edit size={14} />
-              </Link>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -185,8 +169,6 @@ export default function OrgChartPage() {
         lastName: "",
         avatar: "https://api.dicebear.com/7.x/shapes/svg?seed=company",
         jobTitle: "Top Level",
-        department: "Company",
-        status: "active",
         managerId: null,
         children: hierarchy
       };

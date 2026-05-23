@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/session";
 import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
 import { invalidateEmployeeCaches } from "@/lib/redis-cache";
+import { applyEmployeeFieldVisibility } from "@/lib/fieldVisibility";
 
 export async function GET(
   req: NextRequest,
@@ -45,6 +46,11 @@ export async function GET(
         documents: true,
         bankAccounts: true,
         onboardingCases: true,
+        assetAssignments: {
+          with: {
+            asset: true,
+          },
+        },
       }
     });
 
@@ -54,29 +60,11 @@ export async function GET(
 
     const isSelf = requesterEmployeeId === employeeId;
     const isManager = requesterEmployeeId === employee.managerId;
-    const isHR = requesterRole === 'hr';
-    const isAdmin = requesterRole === 'admin';
-
-    // Apply visibility rules
-    const sanitized: any = { ...employee };
-
-    const canSeeBank = isSelf || isAdmin;
-    const canSeeSalary = isAdmin || isHR || isManager;
-    const canSeePersonal = isSelf || isAdmin || isHR;
-
-    if (!canSeeBank) {
-      delete sanitized.bankAccounts;
-    }
-
-    if (!canSeeSalary) {
-      delete sanitized.salary;
-      delete sanitized.compensation;
-    }
-
-    if (!canSeePersonal) {
-      delete sanitized.documents;
-      delete sanitized.onboardingCases;
-    }
+    const sanitized = applyEmployeeFieldVisibility(employee, {
+      requesterRole,
+      isSelf,
+      isManager,
+    });
 
     return NextResponse.json(sanitized);
   } catch (error: any) {
