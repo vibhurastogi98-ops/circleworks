@@ -4,10 +4,10 @@ import React from "react";
 import Link from "next/link";
 import {
   Clock, Users, AlertTriangle, FileCheck, Activity,
-  ChevronRight, Coffee, LogOut as LogOutIcon, Timer, CalendarClock,
+  ChevronRight, Coffee, Timer, CalendarClock,
   ShieldAlert, Zap, ClipboardList, Gauge
 } from "lucide-react";
-import { mockEmployeeClock, getTimeOverviewStats, mockTimesheets } from "@/data/mockTime";
+import { getEmployeeProjectAllocations, projectSetups } from "@/data/mockProjectAllocation";
 
 const STATUS_STYLES: Record<string, { dot: string; bg: string; label: string }> = {
   "clocked-in": { dot: "bg-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400", label: "Clocked In" },
@@ -169,6 +169,7 @@ export default function TimeOverview() {
               <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-medium text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3">Employee</th>
+                  <th className="px-5 py-3">Project</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3 text-right">Clock In</th>
                   <th className="px-5 py-3 text-right">Break</th>
@@ -180,11 +181,23 @@ export default function TimeOverview() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {employees.map((emp: any) => {
                   const st = STATUS_STYLES[emp.status];
+                  const projectAllocations = getEmployeeProjectAllocations(String(emp.employeeId || emp.id), emp.hoursThisWeek).slice(0, 2);
                   return (
                     <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-5 py-3">
                         <div className="font-bold text-slate-900 dark:text-white">{emp.name}</div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">{emp.department} &middot; {emp.location}</div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex flex-col gap-1">
+                          {projectAllocations.length > 0 ? projectAllocations.map((project) => (
+                            <span key={project.projectId} className="inline-flex w-fit items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                              {project.code} / {project.hours}h
+                            </span>
+                          )) : (
+                            <span className="text-xs font-semibold text-slate-400">Unassigned</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${st.bg}`}>
@@ -323,10 +336,13 @@ export default function TimeOverview() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project (Required)</label>
                 <select className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-bold text-indigo-600">
                   <option>Select project...</option>
-                  <option>Acme Rebrand</option>
-                  <option>Mobile App V2</option>
-                  <option>Internal / Admin</option>
+                  {projectSetups.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.code} - {project.name} ({project.billable ? "billable" : "internal"})
+                    </option>
+                  ))}
                 </select>
+                <p className="mt-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">Project selection is required before billable time can be logged.</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -359,4 +375,3 @@ export default function TimeOverview() {
     </div>
   );
 }
-

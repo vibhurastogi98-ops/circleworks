@@ -101,6 +101,7 @@ function DateRangePicker() {
 function reportHref(report: StandardReport) {
   if (report.id === "rpt-20b") return "/reports/certified-payroll";
   if (report.id === "rpt-9b") return "/reports/headcount-forecast";
+  if (report.id === "rpt-26b") return "/reports/project-profitability";
   return `/reports/viewer/${report.id}`;
 }
 

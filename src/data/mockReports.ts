@@ -308,6 +308,23 @@ export const standardReports: StandardReport[] = [
     ],
   }),
   standardReport({
+    id: "rpt-26b",
+    name: "Project Profitability",
+    description: "Project labor allocation, billable revenue, margin, and client billing preview.",
+    category: "Time & Attendance",
+    icon: "Building2",
+    popular: true,
+    columns: [
+      col("project", "Project"),
+      col("client", "Client"),
+      col("billableHours", "Billable Hours", "number"),
+      col("nonBillableHours", "Non-Billable", "number"),
+      col("laborCost", "Labor Cost", "currency"),
+      col("revenue", "Revenue", "currency"),
+      col("margin", "Margin %", "percentage"),
+    ],
+  }),
+  standardReport({
     id: "rpt-28",
     name: "Overtime",
     description: "Employees with OT hours and dollar cost.",

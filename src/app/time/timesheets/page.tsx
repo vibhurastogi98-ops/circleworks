@@ -3,10 +3,11 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
-  FileCheck, Search, Filter, CheckCircle2, XCircle, Clock,
+  FileCheck, Search, CheckCircle2, XCircle, Clock,
   ChevronDown, ArrowLeft, MessageSquare, Check
 } from "lucide-react";
 import { mockTimesheets, type TimesheetStatus } from "@/data/mockTime";
+import { getEmployeeProjectAllocations } from "@/data/mockProjectAllocation";
 
 const STATUS_STYLE: Record<TimesheetStatus, { bg: string; dot: string }> = {
   Submitted: { bg: "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400", dot: "bg-blue-500" },
@@ -162,7 +163,7 @@ export default function TimesheetsPage() {
                   <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded border-slate-300 dark:border-slate-600 text-violet-600 focus:ring-violet-500" />
                 </th>
                 <th className="px-5 py-3">Employee</th>
-                <th className="px-5 py-3">Top Project</th>
+                <th className="px-5 py-3">Project Hours</th>
                 <th className="px-5 py-3">Period</th>
                 <th className="px-5 py-3 text-right">Regular</th>
                 <th className="px-5 py-3 text-right">OT</th>
@@ -174,6 +175,7 @@ export default function TimesheetsPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((ts) => {
                 const style = STATUS_STYLE[ts.status as TimesheetStatus];
+                const projectBreakdown = getEmployeeProjectAllocations(String(ts.employeeId), ts.totalHours);
                 return (
                   <tr key={ts.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-5 py-3">
@@ -186,9 +188,15 @@ export default function TimesheetsPage() {
                       </Link>
                     </td>
                     <td className="px-5 py-3">
-                      <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        {ts.id === '1' ? 'Acme Rebrand' : 'Mobile App V2'}
-                      </span>
+                      <div className="flex max-w-[220px] flex-wrap gap-1">
+                        {projectBreakdown.length > 0 ? projectBreakdown.map((project) => (
+                          <span key={project.projectId} className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            {project.code}: {project.hours}h
+                          </span>
+                        )) : (
+                          <span className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">Unassigned</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3 text-slate-600 dark:text-slate-400 font-medium">
                       {ts.periodStart} – {ts.periodEnd}

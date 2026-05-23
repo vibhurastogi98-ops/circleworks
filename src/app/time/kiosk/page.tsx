@@ -1,15 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Fingerprint, QrCode, X, ArrowLeft } from "lucide-react";
+import { Fingerprint, QrCode, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { projectSetups } from "@/data/mockProjectAllocation";
+
+interface KioskProject {
+  id: string;
+  name: string;
+  code?: string;
+  billable?: boolean;
+}
 
 export default function KioskPage() {
   const [pin, setPin] = useState("");
   const [time, setTime] = useState(new Date());
   const [mode, setMode] = useState<"pin" | "qr">("pin");
   const [flash, setFlash] = useState<"success" | "error" | null>(null);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<KioskProject[]>(projectSetups);
   const [selectedProject, setSelectedProject] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState("");
@@ -21,7 +29,14 @@ export default function KioskPage() {
       try {
         const res = await fetch("/api/agency/projects");
         const data = await res.json();
-        if (data.success) setProjects(data.projects);
+        if (data.success && data.projects?.length > 0) {
+          setProjects(data.projects.map((project: KioskProject) => ({
+            id: String(project.id),
+            name: project.name,
+            code: project.code,
+            billable: project.billable,
+          })));
+        }
       } catch (err) { console.error(err); }
     }
     fetchProjects();
@@ -37,6 +52,12 @@ export default function KioskPage() {
 
   const handleSubmit = async () => {
     if (pin.length < 4) return;
+    if (!selectedProject) {
+      setFlash("error");
+      setMessage("Select a project before clocking in");
+      setTimeout(() => setFlash(null), 2000);
+      return;
+    }
     setIsProcessing(true);
     try {
       // In a real app, we'd have a specific endpoint to verify PIN and get employeeId
@@ -145,17 +166,20 @@ export default function KioskPage() {
           </div>
 
           <div className="w-[268px]">
-            <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Assign to Project</label>
+            <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Project Required</label>
             <select 
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
               className="w-full h-12 rounded-xl bg-white/10 border border-white/20 text-white px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer"
             >
-              <option value="" className="bg-slate-900 text-white">General / Internal</option>
+              <option value="" className="bg-slate-900 text-white">Select project...</option>
               {projects.map(p => (
-                <option key={p.id} value={p.id} className="bg-slate-900 text-white">{p.name}</option>
+                <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                  {p.code ? `${p.code} - ` : ""}{p.name}{p.billable === false ? " (internal)" : ""}
+                </option>
               ))}
             </select>
+            <p className="mt-1 text-[10px] font-medium text-white/40">Billable time cannot be logged without a project.</p>
           </div>
 
           <button

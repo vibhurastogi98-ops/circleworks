@@ -40,6 +40,7 @@ import ApprovalModal from "@/components/payroll/run/ApprovalModal";
 import { applyGrossToTaxes, ensureDraftCreatedAt, getCompensationChangesSinceDraft } from "@/lib/payroll/compensation-sync";
 import { deferEwaAdvanceToNextRun } from "@/data/mockEwa";
 import { useSocketStore } from "@/store/useSocketStore";
+import { calculatePayrollProjectAllocation } from "@/data/mockProjectAllocation";
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  HELPERS                                                                  */
@@ -741,6 +742,8 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
   const importedFromTimesheet = emp.timesheetImport?.source === "timesheet";
   const hasCompensationChange = Boolean(emp.compensationChange);
   const hasEwaRepayments = ewaTotal > 0;
+  const allocationHours = emp.hours ?? emp.timesheetImport?.totalHours ?? 40;
+  const projectAllocations = calculatePayrollProjectAllocation(emp.id, emp.grossPay, allocationHours);
 
   useEffect(() => { setGrossVal(emp.grossPay.toFixed(2)); }, [emp.grossPay]);
   useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
@@ -1101,22 +1104,23 @@ function EmployeeRow({ emp }: { emp: PayrollEmployee }) {
                         <DollarSign size={12} /> Project Cost Allocation
                       </p>
                       <div className="space-y-2">
-                        {[
-                          { name: "Acme Rebrand", hours: emp.hours ? emp.hours * 0.7 : 28, cost: emp.grossPay * 0.7 },
-                          { name: "Mobile App V2", hours: emp.hours ? emp.hours * 0.2 : 8, cost: emp.grossPay * 0.2 },
-                          { name: "Internal / Admin", hours: emp.hours ? emp.hours * 0.1 : 4, cost: emp.grossPay * 0.1 },
-                        ].map((proj) => (
-                          <div key={proj.name} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                        {projectAllocations.map((proj) => (
+                          <div key={proj.projectId} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700/50 shadow-sm">
                             <div>
-                              <p className="text-xs font-bold text-slate-900 dark:text-white">{proj.name}</p>
-                              <p className="text-[10px] text-slate-500">{proj.hours.toFixed(1)} hours logged</p>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">{proj.projectName}</p>
+                              <p className="text-[10px] text-slate-500">{proj.code} / {proj.hours.toFixed(1)} hours logged</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">{fmt(proj.cost)}</p>
+                              <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">{fmt(proj.laborCost)}</p>
                               <p className="text-[9px] text-slate-400 font-medium">Allocated Labor</p>
                             </div>
                           </div>
                         ))}
+                        {projectAllocations.length === 0 && (
+                          <div className="rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                            No project hours logged for this employee.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
