@@ -329,43 +329,95 @@ POST /api/v1/webhooks
 ```
 
 ### Delivery
-All webhook payloads include HMAC signature:
+All webhook events are delivered as `POST` requests to the customer-configured URL.
+Each request includes an HMAC-SHA256 signature in the `X-CircleWorks-Signature` header.
 
 ```
 POST https://your-domain.com/webhook
 Headers:
-  X-Signature: sha256=<hmac-signature>
-  X-Event-Type: payroll.run.processed
-  X-Delivery-ID: uuid
+  Content-Type: application/json
+  X-CircleWorks-Signature: <hmac-sha256-hex>
+  X-CircleWorks-Event: payroll.completed
+  X-CircleWorks-Api-Version: 2025-01-01
 
 Body:
 {
-  "event": "payroll.run.processed",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "runId": "123",
-    "status": "processed",
-    ...
+  "event": "payroll.completed",
+  "api_version": "2025-01-01",
+  "delivered_at": "2026-05-23T03:30:00.000Z",
+  "payload": {
+    "runId": 123,
+    "payPeriodStart": "2026-05-01",
+    "payPeriodEnd": "2026-05-15",
+    "totalGross": 125000,
+    "totalNet": 92000,
+    "employeeCount": 42
   }
 }
 ```
+
+### Webhook Event Payloads
+
+| Event | Payload |
+| --- | --- |
+| `employee.created` | `{ id, firstName, lastName, email, startDate, departmentId, companyId, timestamp }` |
+| `employee.terminated` | `{ id, terminationDate, terminationType, finalPayDate, companyId, timestamp }` |
+| `payroll.completed` | `{ runId, payPeriodStart, payPeriodEnd, totalGross, totalNet, employeeCount }` |
+| `document.signed` | `{ documentId, documentType, employeeId, signedAt, companyId }` |
+| `candidate.hired` | `{ candidateId, employeeId, jobId, startDate, companyId, timestamp }` |
 
 ### Signature Verification
 ```javascript
 const crypto = require('crypto');
 
 const payload = req.rawBody; // Raw request body
-const signature = req.headers['x-signature'];
+const signature = req.headers['x-circleworks-signature'];
 const secret = process.env.WEBHOOK_SECRET;
 
 const hmac = crypto
   .createHmac('sha256', secret)
   .update(payload)
-  .digest('base64');
+  .digest('hex');
 
-const expectedSignature = `sha256=${hmac}`;
+const expectedSignature = hmac;
 const isValid = signature === expectedSignature;
 ```
+
+## API Versioning Strategy
+
+- Current stable major version: `/v1/`
+- Stability policy: `/v1/` is supported for at least 18 months after a deprecation notice
+- Next major version: `/v2/`, introduced alongside `/v1/` for breaking changes only
+- Minor version header: `API-Version: 2025-01-01` for date-based minor versioning within `/v1/`
+- Deprecation headers: `Deprecation: true` and `Sunset: [date]`
+
+## Batch Endpoints
+
+| Method | Endpoint | Contract |
+| --- | --- | --- |
+| `POST` | `/api/v1/employees/batch` | Create up to 100 employees in one request |
+| `GET` | `/api/v1/employees/batch?ids=id1,id2,id3` | Fetch multiple employees by ID |
+| `POST` | `/api/v1/payroll/batch-approve` | Approve multiple payroll runs for the accountant portal |
+| `POST` | `/api/v1/documents/batch-send` | Send a document to multiple employees |
+
+## File Upload Limits
+
+| Upload type | Limit | Allowed types |
+| --- | --- | --- |
+| Employee documents | 25 MB | PDF, JPG, PNG, DOCX |
+| CSV imports | 10 MB and 5,000 rows | CSV |
+| Company logo | 2 MB | PNG, JPG, SVG |
+
+When an uploaded file is too large, APIs return:
+
+```json
+{
+  "error": "file_too_large",
+  "max_size_mb": 25
+}
+```
+
+HTTP status: `413 Request Too Large`.
 
 ## Caching Strategy
 

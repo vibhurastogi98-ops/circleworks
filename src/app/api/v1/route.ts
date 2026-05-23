@@ -18,36 +18,79 @@ export async function GET(req: Request) {
     webhook_events: [
       {
         event: "employee.created",
-        payload: ["id", "firstName", "lastName", "email", "startDate", "departmentId", "companyId", "timestamp"],
+        payload: {
+          id: "number",
+          firstName: "string",
+          lastName: "string | null",
+          email: "string | null",
+          startDate: "YYYY-MM-DD | null",
+          departmentId: "string | null",
+          companyId: "number | null",
+          timestamp: "ISO8601",
+        },
       },
       {
         event: "employee.terminated",
-        payload: ["id", "terminationDate", "terminationType", "finalPayDate", "companyId", "timestamp"],
+        payload: {
+          id: "number",
+          terminationDate: "YYYY-MM-DD",
+          terminationType: "voluntary | involuntary | layoff | other",
+          finalPayDate: "YYYY-MM-DD | null",
+          companyId: "number | null",
+          timestamp: "ISO8601",
+        },
       },
       {
         event: "payroll.completed",
-        payload: ["runId", "payPeriodStart", "payPeriodEnd", "totalGross", "totalNet", "employeeCount"],
+        payload: {
+          runId: "number",
+          payPeriodStart: "YYYY-MM-DD | null",
+          payPeriodEnd: "YYYY-MM-DD | null",
+          totalGross: "number | null",
+          totalNet: "number | null",
+          employeeCount: "number | null",
+        },
       },
       {
         event: "document.signed",
-        payload: ["documentId", "documentType", "employeeId", "signedAt", "companyId"],
+        payload: {
+          documentId: "number",
+          documentType: "string",
+          employeeId: "number | null",
+          signedAt: "ISO8601 | null",
+          companyId: "number | null",
+        },
       },
       {
         event: "candidate.hired",
-        payload: ["candidateId", "employeeId", "jobId", "startDate", "companyId", "timestamp"],
+        payload: {
+          candidateId: "number",
+          employeeId: "number | null",
+          jobId: "number | null",
+          startDate: "YYYY-MM-DD | null",
+          companyId: "number | null",
+          timestamp: "ISO8601",
+        },
       },
     ],
     webhook_security: {
+      delivery_method: "POST",
       method: "HMAC-SHA256",
       header: "X-CircleWorks-Signature",
+      signed_content: "raw JSON request body",
       docs: "https://docs.circleworks.io/api/webhooks",
     },
     batch_endpoints: [
       { method: "POST", path: "/api/v1/employees/batch", description: "Create up to 100 employees", limit: 100 },
-      { method: "GET",  path: "/api/v1/employees/batch?ids=...", description: "Fetch multiple employees by ID", limit: 100 },
-      { method: "POST", path: "/api/v1/payroll/batch-approve", description: "Approve multiple payroll runs", limit: 50 },
+      { method: "GET",  path: "/api/v1/employees/batch?ids=id1,id2,id3", description: "Fetch multiple employees by ID", limit: 100 },
+      { method: "POST", path: "/api/v1/payroll/batch-approve", description: "Approve multiple payroll runs for the accountant portal", limit: 50 },
       { method: "POST", path: "/api/v1/documents/batch-send", description: "Send document to multiple employees", limit: 200 },
     ],
+    file_upload_error: {
+      status: 413,
+      reason: "Request Too Large",
+      body: { error: "file_too_large", max_size_mb: 25 },
+    },
     upload_limits: uploadLimits,
   };
 
