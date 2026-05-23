@@ -254,6 +254,24 @@ export const useWebSocketEvents = () => {
       });
     };
 
+    const handleAnnouncementPublished = (data: { announcementId: number; title: string; priority: string }) => {
+      queryClient.invalidateQueries({ queryKey: ['announcements'] });
+      queryClient.invalidateQueries({ queryKey: ['me-announcements'] });
+      addNotification({
+        type: "INFO",
+        title: data.priority === "Urgent" ? `Urgent announcement: ${data.title}` : `New announcement: ${data.title}`,
+        description: "Company announcements have been updated.",
+        link: "/me",
+        metadata: {
+          announcementId: data.announcementId,
+          priority: data.priority,
+        },
+      });
+      toast.info(data.title, {
+        description: data.priority === "Urgent" ? "Urgent announcement published." : "New company announcement published.",
+      });
+    };
+
     // Register all event handlers
     on('payroll.run.status_update', handlePayrollRunStatusUpdate);
     on('payroll.run.completed', handlePayrollRunCompleted);
@@ -291,6 +309,7 @@ export const useWebSocketEvents = () => {
 
     on('system.maintenance.scheduled', handleSystemMaintenanceScheduled);
     on('feature.announcement', handleFeatureAnnouncement);
+    on('announcement.published', handleAnnouncementPublished);
     on('workflow.action.executed', handleWorkflowActionExecuted);
 
     // Cleanup function
@@ -331,6 +350,7 @@ export const useWebSocketEvents = () => {
 
       off('system.maintenance.scheduled', handleSystemMaintenanceScheduled);
       off('feature.announcement', handleFeatureAnnouncement);
+      off('announcement.published', handleAnnouncementPublished);
       off('workflow.action.executed', handleWorkflowActionExecuted);
     };
   }, [socket, queryClient, on, off, addNotification, incrementUnreadCount]);

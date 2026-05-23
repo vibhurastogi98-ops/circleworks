@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { announcements, announcementReads, users } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { getSession } from "@/lib/session";
+import { announcements, announcementReads } from "@/db/schema";
+import { and, eq, sql } from "drizzle-orm";
+import { getSession, resolveUserContext } from "@/lib/session";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
+    const session = await getSession(req);
+    const ctx = session ? await resolveUserContext(session) : null;
 
     const { id } = await params;
     const annId = parseInt(id);
@@ -18,15 +19,16 @@ export async function POST(
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    // Get current user employee mapping
-    const user = session
-      ? await db.query.users.findFirst({
-          where: eq(users.id, session.userId),
-          with: { employees: true }
-        })
-      : null;
+    if (ctx?.companyId) {
+      const item = await db.query.announcements.findFirst({
+        where: and(eq(announcements.id, annId), eq(announcements.companyId, ctx.companyId)),
+      });
+      if (!item) {
+        return NextResponse.json({ error: "Announcement not found" }, { status: 404 });
+      }
+    }
 
-    const employeeId = user?.employees?.[0]?.id;
+    const employeeId = ctx?.employeeId;
 
     if (!employeeId) {
        // Just increment views if we can't find specific employee

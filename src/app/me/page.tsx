@@ -37,37 +37,99 @@ const ptoIcons: Record<string, React.ElementType> = {
   Personal: UserIcon,
 };
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function renderAnnouncementBody(body: string) {
+  const escaped = escapeHtml(body);
+  return escaped
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 underline">$1</a>')
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
+    .replace(/(<li class="ml-4">.*<\/li>)/gs, '<ul class="list-disc space-y-1 pl-4">$1</ul>')
+    .replace(/\n/g, "<br />");
+}
+
+type EmployeeAnnouncement = {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  publishAt?: string | null;
+  isPinned: boolean;
+  isRead: boolean;
+  isUnread: boolean;
+  priority: "Normal" | "Important" | "Urgent";
+  attachments: Array<{ name: string; url: string; type: string; size: number }>;
+};
+
 function AnnouncementsWidget() {
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [selectedAnn, setSelectedAnn] = useState<any>(null);
-  const [readIds, setReadIds] = useState<Set<number>>(new Set());
+  const [announcements, setAnnouncements] = useState<EmployeeAnnouncement[]>([]);
+  const [selectedAnn, setSelectedAnn] = useState<EmployeeAnnouncement | null>(null);
 
   useEffect(() => {
-    fetch('/api/announcements?filter=Active')
-      .then(res => res.json())
-      .then(data => {
-        // Sort: pinned first, then by date desc. Get last 5.
-        if (Array.isArray(data)) {
-            const sorted = data.sort((a, b) => {
-              if (a.isPinned === b.isPinned) {
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-              }
-              return a.isPinned ? -1 : 1;
-            });
-            setAnnouncements(sorted.slice(0, 5));
-        }
-      })
-      .catch(console.error);
+    let isMounted = true;
+
+    const loadAnnouncements = async () => {
+      try {
+        const res = await fetch("/api/announcements?filter=Active", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data) || !isMounted) return;
+
+        const sorted = [...data]
+          .sort((a, b) => {
+            if (a.isPinned === b.isPinned) {
+              return new Date(b.publishAt ?? b.createdAt).getTime() - new Date(a.publishAt ?? a.createdAt).getTime();
+            }
+            return a.isPinned ? -1 : 1;
+          })
+          .slice(0, 5);
+
+        setAnnouncements(sorted);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadAnnouncements();
+    const interval = window.setInterval(loadAnnouncements, 30000);
+    const onFocus = () => loadAnnouncements();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
-  const handleOpen = (ann: any) => {
-    setSelectedAnn(ann);
-    if (!readIds.has(ann.id)) {
-      setTimeout(() => {
-         setReadIds(prev => new Set(prev).add(ann.id));
-         fetch(`/api/announcements/${ann.id}/read`, { method: 'POST' }).catch(console.error);
-      }, 3000);
-    }
+  useEffect(() => {
+    if (!selectedAnn || selectedAnn.isRead) return;
+
+    const timeout = window.setTimeout(() => {
+      fetch(`/api/announcements/${selectedAnn.id}/read`, { method: "POST" })
+        .then(() => {
+          setAnnouncements((current) => current.map((announcement) => (
+            announcement.id === selectedAnn.id
+              ? { ...announcement, isRead: true, isUnread: false }
+              : announcement
+          )));
+          setSelectedAnn((current) => current ? { ...current, isRead: true, isUnread: false } : current);
+        })
+        .catch(console.error);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [selectedAnn]);
+
+  const handleOpen = (announcement: EmployeeAnnouncement) => {
+    setSelectedAnn(announcement);
   };
 
   return (
@@ -85,13 +147,15 @@ function AnnouncementsWidget() {
               onClick={() => handleOpen(ann)}
               className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group relative"
             >
-              {!readIds.has(ann.id) && (
-                 <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500" title="Unread" />
+              {ann.isUnread && (
+                 <span className="absolute right-4 top-4 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" title="Unread">Unread</span>
               )}
               <div className="flex items-center gap-2 pr-4">
                 {ann.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
-                <h3 className={`text-[13px] font-bold ${readIds.has(ann.id) ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white'} truncate`}>{ann.title}</h3>
-                <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">{format(new Date(ann.createdAt), 'MMM d')}</span>
+                {ann.priority === "Important" && <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Important</span>}
+                {ann.priority === "Urgent" && <span className="text-[10px] rounded bg-red-100 px-1.5 py-0.5 font-bold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">Urgent</span>}
+                <h3 className={`text-[13px] font-bold ${ann.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white'} truncate`}>{ann.title}</h3>
+                <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">{format(new Date(ann.publishAt ?? ann.createdAt), 'MMM d')}</span>
               </div>
               <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 pr-4">{ann.body}</p>
             </button>
@@ -101,24 +165,43 @@ function AnnouncementsWidget() {
 
       <Dialog open={!!selectedAnn} onOpenChange={(open) => !open && setSelectedAnn(null)}>
         {selectedAnn && (
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {selectedAnn.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
-                {selectedAnn.title}
-              </DialogTitle>
-              <DialogDescription>
-                {format(new Date(selectedAnn.createdAt), 'MMMM d, yyyy')}
-              </DialogDescription>
-            </DialogHeader>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedAnn.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
+                  {selectedAnn.priority === "Important" && <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Important</span>}
+                  {selectedAnn.priority === "Urgent" && <span className="text-[10px] rounded bg-red-100 px-1.5 py-0.5 font-bold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">Urgent</span>}
+                  {selectedAnn.title}
+                </DialogTitle>
+                <DialogDescription>
+                  {format(new Date(selectedAnn.publishAt ?? selectedAnn.createdAt), 'MMMM d, yyyy')}
+                </DialogDescription>
+              </DialogHeader>
+            {selectedAnn.priority === "Important" && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
+                Important announcement
+              </div>
+            )}
+            {selectedAnn.priority === "Urgent" && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+                Urgent announcement
+              </div>
+            )}
             <div className="py-4">
-              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{selectedAnn.body}</p>
+              <div
+                className="max-w-none text-sm leading-relaxed text-slate-700 dark:text-slate-300"
+                dangerouslySetInnerHTML={{ __html: renderAnnouncementBody(selectedAnn.body) }}
+              />
             </div>
-            {selectedAnn.attachments && (
+            {selectedAnn.attachments.length > 0 && (
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <a href={selectedAnn.attachments} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
-                  <FileText size={14} /> View Attachment
-                </a>
+                <div className="space-y-2">
+                  {selectedAnn.attachments.map((attachment) => (
+                    <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                      <FileText size={14} /> {attachment.name}
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
           </DialogContent>
