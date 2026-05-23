@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Play, Search, Bell, ChevronDown } from "lucide-react";
 
@@ -48,7 +49,75 @@ const statusStyles: Record<string, string> = {
   Processing: "bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/20",
 };
 
+const dashboardSections = {
+  Overview: {
+    eyebrow: "Command Center",
+    title: "Company Payroll & HR Overview",
+    description: "A single view of payroll readiness, employee changes, benefits, and approvals.",
+    metrics: [
+      { label: "Open Tasks", value: "18", accent: "from-blue-600/30 to-blue-400/5" },
+      { label: "Due This Week", value: "7", accent: "from-cyan-500/25 to-cyan-300/5" },
+      { label: "Ready", value: "94%", accent: "from-indigo-500/25 to-violet-400/5" },
+    ],
+  },
+  "Payroll Runs": {
+    eyebrow: "April 30 Payroll Run",
+    title: "US Biweekly Payroll Preview",
+    description: "Review earnings, benefits, taxes, and reimbursement changes before funding this run.",
+    metrics: [
+      { label: "Gross Payroll", value: "$84,530", accent: "from-blue-600/30 to-blue-400/5" },
+      { label: "Deductions", value: "$11,264", accent: "from-cyan-500/25 to-cyan-300/5" },
+      { label: "Net Pay", value: "$62,941", accent: "from-indigo-500/25 to-violet-400/5" },
+    ],
+  },
+  Employees: {
+    eyebrow: "People Ops",
+    title: "Employee Changes Ready for Payroll",
+    description: "Track new hires, compensation changes, departments, and profile completion in one place.",
+    metrics: [
+      { label: "Employees", value: "142", accent: "from-blue-600/30 to-blue-400/5" },
+      { label: "New Hires", value: "8", accent: "from-cyan-500/25 to-cyan-300/5" },
+      { label: "Changes", value: "12", accent: "from-indigo-500/25 to-violet-400/5" },
+    ],
+  },
+  Benefits: {
+    eyebrow: "Benefits Sync",
+    title: "Benefit Deductions Matched to Payroll",
+    description: "Keep medical, dental, vision, and retirement deductions aligned before each run.",
+    metrics: [
+      { label: "Enrollments", value: "118", accent: "from-blue-600/30 to-blue-400/5" },
+      { label: "Deductions", value: "$11,264", accent: "from-cyan-500/25 to-cyan-300/5" },
+      { label: "Pending", value: "3", accent: "from-indigo-500/25 to-violet-400/5" },
+    ],
+  },
+  Time: {
+    eyebrow: "Time Review",
+    title: "Timesheets Ready for Approval",
+    description: "Review clocked hours, overtime, PTO, and manager approvals before payroll locks.",
+    metrics: [
+      { label: "Hours", value: "4,928", accent: "from-blue-600/30 to-blue-400/5" },
+      { label: "Overtime", value: "126", accent: "from-cyan-500/25 to-cyan-300/5" },
+      { label: "Missing", value: "5", accent: "from-indigo-500/25 to-violet-400/5" },
+    ],
+  },
+  Expenses: {
+    eyebrow: "Expenses",
+    title: "Approved Reimbursements Queued",
+    description: "Sync approved expenses and mileage reimbursements into the next payroll batch.",
+    metrics: [
+      { label: "Reports", value: "36", accent: "from-blue-600/30 to-blue-400/5" },
+      { label: "Approved", value: "$9,840", accent: "from-cyan-500/25 to-cyan-300/5" },
+      { label: "Pending", value: "6", accent: "from-indigo-500/25 to-violet-400/5" },
+    ],
+  },
+} as const;
+
+const dashboardNavItems = Object.keys(dashboardSections) as Array<keyof typeof dashboardSections>;
+
 function PayrollDashboardMockup() {
+  const [activeSection, setActiveSection] = useState<keyof typeof dashboardSections>("Payroll Runs");
+  const currentSection = dashboardSections[activeSection];
+
   return (
     <div className="hero-float relative mx-auto w-full max-w-[1100px] rounded-[28px] border border-white/10 bg-[#08111f]/90 shadow-[0_32px_120px_rgba(3,10,24,0.85)] backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-x-[18%] -bottom-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(6,182,212,0.22)_0%,_rgba(29,78,216,0.16)_35%,_rgba(10,22,40,0)_75%)] blur-2xl" />
@@ -82,26 +151,26 @@ function PayrollDashboardMockup() {
           </div>
 
           <div className="space-y-2">
-            {[
-              "Overview",
-              "Payroll Runs",
-              "Employees",
-              "Benefits",
-              "Time",
-              "Expenses",
-            ].map((item, index) => (
-              <div
-                key={item}
-                className={`flex items-center justify-between rounded-2xl px-3 py-3 text-sm font-semibold transition-colors ${
-                  index === 1
-                    ? "bg-gradient-to-r from-blue-600/20 to-cyan-400/10 text-white ring-1 ring-blue-400/25"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <span>{item}</span>
-                {index === 1 ? <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" /> : null}
-              </div>
-            ))}
+            {dashboardNavItems.map((item) => {
+              const isActive = item === activeSection;
+
+              return (
+                <button
+                  type="button"
+                  key={item}
+                  onClick={() => setActiveSection(item)}
+                  className={`flex w-full cursor-pointer items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-semibold transition-colors ${
+                    isActive
+                      ? "bg-gradient-to-r from-blue-600/20 to-cyan-400/10 text-white ring-1 ring-blue-400/25"
+                      : "text-slate-400 hover:bg-white/5 hover:text-white focus:bg-white/5 focus:text-white"
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  <span>{item}</span>
+                  {isActive ? <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" /> : null}
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-8 rounded-3xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/10 to-blue-600/10 p-4">
@@ -114,10 +183,10 @@ function PayrollDashboardMockup() {
         <div className="bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] p-4 md:p-6 lg:p-7">
           <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">April 30 Payroll Run</p>
-              <h3 className="mt-2 text-2xl font-black text-white md:text-[32px]">US Biweekly Payroll Preview</h3>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">{currentSection.eyebrow}</p>
+              <h3 className="mt-2 text-2xl font-black text-white md:text-[32px]">{currentSection.title}</h3>
               <p className="mt-2 max-w-xl text-sm text-slate-400 md:text-base">
-                Review earnings, benefits, taxes, and reimbursement changes before funding this run.
+                {currentSection.description}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -131,11 +200,7 @@ function PayrollDashboardMockup() {
           </div>
 
           <div className="mb-5 grid gap-4 md:grid-cols-3">
-            {[
-              { label: "Gross Payroll", value: "$84,530", accent: "from-blue-600/30 to-blue-400/5" },
-              { label: "Deductions", value: "$11,264", accent: "from-cyan-500/25 to-cyan-300/5" },
-              { label: "Net Pay", value: "$62,941", accent: "from-indigo-500/25 to-violet-400/5" },
-            ].map((card) => (
+            {currentSection.metrics.map((card) => (
               <div key={card.label} className={`rounded-3xl border border-white/10 bg-gradient-to-br ${card.accent} p-4`}>
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">{card.label}</p>
                 <p className="mt-3 text-2xl font-black text-white">{card.value}</p>
@@ -218,7 +283,7 @@ export default function HeroSection() {
         <rect width="100%" height="100%" filter="url(#heroNoise)" />
       </svg>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center text-center">
         <motion.p
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -234,7 +299,7 @@ export default function HeroSection() {
             return (
               <h1
                 key={`headline-line-${lineIndex}`}
-                className="flex flex-wrap items-center justify-center gap-x-[0.22em] gap-y-2 text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white sm:text-[56px] lg:text-[72px]"
+                className="flex flex-wrap items-center justify-center gap-x-[0.22em] gap-y-2 text-[38px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-[48px] lg:flex-nowrap lg:text-[58px] xl:text-[64px]"
               >
                 {line.map((word, wordIndex) => {
                   const order = offset + wordIndex;
