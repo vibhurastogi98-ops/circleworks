@@ -6,6 +6,13 @@ interface CertifiedPayrollSetupRequest {
   contractingAgency?: string;
   projectLocation?: string;
   weekEnding?: string;
+  contractorName?: string;
+  contractorAddress?: string;
+  contractorType?: "prime" | "subcontractor";
+  wageDeterminationNo?: string;
+  isFinalPayroll?: boolean;
+  adminSigner?: string;
+  adminTitle?: string;
 }
 
 const certifiedPayrollHistory = [
@@ -15,6 +22,11 @@ const certifiedPayrollHistory = [
     contractNumber: "DOJ-FX-9921",
     contractingAgency: "Department of Justice",
     projectLocation: "123 Justice Ave, Washington, DC 20001",
+    contractorName: "CircleWorks Inc.",
+    contractorAddress: "100 Market St, San Francisco, CA 94105",
+    contractorType: "prime",
+    wageDeterminationNo: "DC20250012 Rev. 4",
+    isFinalPayroll: false,
     weekEnding: "2026-03-24",
     payrollNo: 1,
     status: "Submitted",
@@ -26,6 +38,11 @@ const certifiedPayrollHistory = [
     contractNumber: "DOJ-FX-9921",
     contractingAgency: "Department of Justice",
     projectLocation: "123 Justice Ave, Washington, DC 20001",
+    contractorName: "CircleWorks Inc.",
+    contractorAddress: "100 Market St, San Francisco, CA 94105",
+    contractorType: "prime",
+    wageDeterminationNo: "DC20250012 Rev. 4",
+    isFinalPayroll: false,
     weekEnding: "2026-03-31",
     payrollNo: 2,
     status: "Draft",
@@ -37,6 +54,11 @@ const certifiedPayrollHistory = [
     contractNumber: "HUD-BLDG-11A",
     contractingAgency: "Department of Housing and Urban Development",
     projectLocation: "410 7th St SW, Washington, DC 20410",
+    contractorName: "CircleWorks Inc.",
+    contractorAddress: "100 Market St, San Francisco, CA 94105",
+    contractorType: "subcontractor",
+    wageDeterminationNo: "DC20250008 Rev. 2",
+    isFinalPayroll: false,
     weekEnding: "2026-04-05",
     payrollNo: 12,
     status: "Submitted",
@@ -73,21 +95,30 @@ export async function POST(request: Request) {
     }
 
     const payrollNo = nextPayrollNumber(contractNumber);
+    const report = {
+      id: `cp-draft-${contractNumber.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${payrollNo}`,
+      reportType: "Certified Payroll (Davis-Bacon)",
+      contractName: data.contractName,
+      contractNumber,
+      contractingAgency: data.contractingAgency,
+      projectLocation: data.projectLocation,
+      contractorName: data.contractorName?.trim() || "CircleWorks Inc.",
+      contractorAddress: data.contractorAddress?.trim() || "100 Market St, San Francisco, CA 94105",
+      contractorType: data.contractorType ?? "prime",
+      wageDeterminationNo: data.wageDeterminationNo?.trim() || "TBD",
+      isFinalPayroll: Boolean(data.isFinalPayroll),
+      weekEnding: data.weekEnding,
+      payrollNo,
+      status: "Draft",
+      generatedAt: new Date().toISOString(),
+    };
+
+    certifiedPayrollHistory.unshift(report);
 
     return NextResponse.json({
       success: true,
       message: "Certified payroll setup saved as draft",
-      report: {
-        id: `cp-draft-${contractNumber.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${payrollNo}`,
-        reportType: "Certified Payroll (Davis-Bacon)",
-        contractName: data.contractName,
-        contractNumber,
-        contractingAgency: data.contractingAgency,
-        projectLocation: data.projectLocation,
-        weekEnding: data.weekEnding,
-        payrollNo,
-        status: "Draft",
-      },
+      report,
     });
   } catch {
     return NextResponse.json({ error: "Failed to save certified payroll setup" }, { status: 500 });

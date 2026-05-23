@@ -14,9 +14,11 @@ import {
   Hash,
   MapPin,
   PenLine,
+  Plus,
   Play,
   Save,
   Shield,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
@@ -29,6 +31,11 @@ interface CertifiedPayrollHistoryItem {
   contractNumber: string;
   contractingAgency: string;
   projectLocation: string;
+  contractorName?: string;
+  contractorAddress?: string;
+  contractorType?: "prime" | "subcontractor";
+  wageDeterminationNo?: string;
+  isFinalPayroll?: boolean;
   weekEnding: string;
   payrollNo: number;
   status: string;
@@ -120,6 +127,11 @@ export default function CertifiedPayrollPage() {
     contractNumber: "DOJ-FX-9921",
     contractingAgency: "Department of Justice",
     projectLocation: "123 Justice Ave, Washington, DC 20001",
+    contractorName: "CircleWorks Inc.",
+    contractorAddress: "100 Market St, San Francisco, CA 94105",
+    contractorType: "prime" as const,
+    wageDeterminationNo: "DC20250012 Rev. 4",
+    isFinalPayroll: false,
     weekEnding: "2026-04-12",
     payrollNo: 3,
     adminSigner: "Alex HR Admin",
@@ -192,6 +204,26 @@ export default function CertifiedPayrollPage() {
     );
   };
 
+  const addWorkerRow = () => {
+    setWorkers((current) => [
+      ...current,
+      {
+        id: Math.max(0, ...current.map((worker) => worker.id)) + 1,
+        name: "New Worker",
+        ssnLast4: "",
+        classification: "Laborer",
+        hoursByDay: { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 },
+        hourlyRate: wageDeterminations.Laborer,
+        withholding: 0,
+        deductions: 0,
+      },
+    ]);
+  };
+
+  const removeWorkerRow = (workerIndex: number) => {
+    setWorkers((current) => current.filter((_, index) => index !== workerIndex));
+  };
+
   const saveSetupAndContinue = async () => {
     setIsSaving(true);
     try {
@@ -236,6 +268,36 @@ export default function CertifiedPayrollPage() {
       toast.error(error instanceof Error ? error.message : "WH-347 could not be generated.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const downloadWh347Pdf = async () => {
+    try {
+      const res = await fetch("/api/reports/certified-payroll/generate-wh347", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...setup,
+          workers,
+          mode: "pdf",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Unable to generate WH-347 PDF");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = generatedDocument?.wh347.fileName ?? `WH-347-${setup.contractNumber}-${setup.payrollNo}-${setup.weekEnding}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("WH-347 PDF downloaded.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "WH-347 PDF could not be downloaded.");
     }
   };
 
@@ -310,6 +372,32 @@ export default function CertifiedPayrollPage() {
                   <input value={setup.projectLocation} onChange={(e) => setSetup({ ...setup, projectLocation: e.target.value })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </label>
+              <label className="space-y-2">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Contractor Business Name</span>
+                <input value={setup.contractorName} onChange={(e) => setSetup({ ...setup, contractorName: e.target.value })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
+              <label className="space-y-2">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Wage Determination No.</span>
+                <input value={setup.wageDeterminationNo} onChange={(e) => setSetup({ ...setup, wageDeterminationNo: e.target.value })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
+              <label className="md:col-span-2 space-y-2">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Contractor Address</span>
+                <input value={setup.contractorAddress} onChange={(e) => setSetup({ ...setup, contractorAddress: e.target.value })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
+              <label className="space-y-2">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Contractor Type</span>
+                <select value={setup.contractorType} onChange={(e) => setSetup({ ...setup, contractorType: e.target.value as "prime" | "subcontractor" })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="prime">Prime contractor</option>
+                  <option value="subcontractor">Subcontractor</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4">
+                <input type="checkbox" checked={setup.isFinalPayroll} onChange={(e) => setSetup({ ...setup, isFinalPayroll: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <span>
+                  <span className="block text-xs font-bold uppercase tracking-wider text-slate-500">Final Payroll</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">Mark final WH-347 for this contract</span>
+                </span>
+              </label>
               <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
                   <Calendar size={14} />
@@ -324,6 +412,14 @@ export default function CertifiedPayrollPage() {
                 </div>
                 <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">#{setup.payrollNo} auto-incremented per contract</p>
               </div>
+              <label className="space-y-2">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Admin Signer</span>
+                <input value={setup.adminSigner} onChange={(e) => setSetup({ ...setup, adminSigner: e.target.value })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
+              <label className="space-y-2">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Admin Title</span>
+                <input value={setup.adminTitle} onChange={(e) => setSetup({ ...setup, adminTitle: e.target.value })} className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 font-medium bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
             </div>
             <div className="mt-8 flex justify-end">
               <button onClick={saveSetupAndContinue} disabled={isSaving} className="bg-slate-900 hover:bg-black text-white px-5 py-3 rounded-lg font-bold flex items-center gap-2 shadow-sm disabled:opacity-50">
@@ -366,22 +462,32 @@ export default function CertifiedPayrollPage() {
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">Prevailing Wage Tracking</h2>
               <p className="text-sm text-slate-500 mt-1">{setup.contractNumber} - week ending {formatDate(setup.weekEnding)}</p>
             </div>
-            <button onClick={generateWh347} disabled={isGenerating} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-lg font-bold shadow-sm flex items-center gap-2 disabled:opacity-50">
-              <Play size={16} />
-              Generate WH-347
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={addWorkerRow} className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 px-4 py-2 text-sm rounded-lg font-bold shadow-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800">
+                <Plus size={16} />
+                Add Line
+              </button>
+              <button onClick={generateWh347} disabled={isGenerating} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-lg font-bold shadow-sm flex items-center gap-2 disabled:opacity-50">
+                <Play size={16} />
+                Generate WH-347
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Employee</th>
+                  <th className="px-4 py-3">SSN</th>
                   <th className="px-4 py-3">Classification</th>
                   {dayColumns.map((day) => <th key={day.key} className="px-2 py-3 text-center">{day.label}</th>)}
                   <th className="px-4 py-3 text-center">Total</th>
                   <th className="px-4 py-3 text-right">Rate</th>
                   <th className="px-4 py-3 text-right">DOL Rate</th>
+                  <th className="px-4 py-3 text-right">Withholding</th>
+                  <th className="px-4 py-3 text-right">Deductions</th>
                   <th className="px-4 py-3">Flag</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -392,6 +498,9 @@ export default function CertifiedPayrollPage() {
                     <tr key={worker.id} className={isUnderpaid ? "bg-red-50 dark:bg-red-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/40"}>
                       <td className="px-4 py-3">
                         <input value={worker.name} onChange={(e) => updateWorker(workerIndex, "name", e.target.value)} className="w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 font-medium text-slate-900 dark:text-white" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input value={worker.ssnLast4} maxLength={4} onChange={(e) => updateWorker(workerIndex, "ssnLast4", e.target.value.replace(/\D/g, "").slice(0, 4))} className="w-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 font-mono text-xs text-slate-900 dark:text-white" placeholder="Last 4" />
                       </td>
                       <td className="px-4 py-3">
                         <select value={worker.classification} onChange={(e) => updateWorker(workerIndex, "classification", e.target.value)} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs text-slate-900 dark:text-white">
@@ -408,6 +517,12 @@ export default function CertifiedPayrollPage() {
                         <input type="number" min="0" value={worker.hourlyRate} onChange={(e) => updateWorker(workerIndex, "hourlyRate", Number(e.target.value))} className="w-24 text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 ml-auto font-mono text-sm text-slate-900 dark:text-white" />
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-300">{currency.format(prevailingRate)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <input type="number" min="0" value={worker.withholding} onChange={(e) => updateWorker(workerIndex, "withholding", Number(e.target.value))} className="w-24 text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 ml-auto font-mono text-sm text-slate-900 dark:text-white" />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <input type="number" min="0" value={worker.deductions} onChange={(e) => updateWorker(workerIndex, "deductions", Number(e.target.value))} className="w-24 text-right bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 ml-auto font-mono text-sm text-slate-900 dark:text-white" />
+                      </td>
                       <td className="px-4 py-3">
                         {isUnderpaid ? (
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded">
@@ -420,6 +535,11 @@ export default function CertifiedPayrollPage() {
                             Clear
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button type="button" onClick={() => removeWorkerRow(workerIndex)} disabled={workers.length === 1} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400" aria-label={`Remove ${worker.name}`}>
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -459,7 +579,7 @@ export default function CertifiedPayrollPage() {
 
           <div className="flex flex-wrap justify-end gap-3 print:hidden">
             <button onClick={() => setStep(2)} className="px-4 py-2 border border-slate-200 text-slate-600 font-bold text-sm bg-white rounded-lg shadow-sm hover:bg-slate-50">Back to Edit</button>
-            <button onClick={() => window.print()} className="px-4 py-2 border border-blue-200 text-blue-600 font-bold text-sm bg-blue-50 rounded-lg shadow-sm hover:bg-blue-100 flex items-center gap-2">
+            <button onClick={downloadWh347Pdf} className="px-4 py-2 border border-blue-200 text-blue-600 font-bold text-sm bg-blue-50 rounded-lg shadow-sm hover:bg-blue-100 flex items-center gap-2">
               <Download size={16} />
               Download WH-347 PDF
             </button>
@@ -471,7 +591,7 @@ export default function CertifiedPayrollPage() {
 
           <div className="bg-white border-2 border-slate-900 p-8 pt-12 min-h-[1056px] shadow-2xl overflow-hidden print:w-full print:border-none print:shadow-none print:p-0 relative font-serif">
             <div className="absolute top-4 right-8 border border-black p-1 text-[10px] text-center w-48 font-sans uppercase font-bold">
-              OMB No. 1235-0008<br />Expires: 04/30/2026
+              OMB No. 1235-0008<br />Expires: 01/31/2028
             </div>
 
             <div className="text-center mb-8">
@@ -487,7 +607,8 @@ export default function CertifiedPayrollPage() {
             <div className="grid grid-cols-2 gap-4 mb-6 text-sm font-sans">
               <div className="border border-black p-2 min-h-16">
                 <span className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Contractor or Subcontractor</span>
-                <span className="font-bold">CircleWorks Inc.</span>
+                <span className="font-bold">{setup.contractorName}</span>
+                <span className="block">{setup.contractorAddress}</span>
               </div>
               <div className="border border-black p-2 flex flex-col justify-between">
                 <span className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Project and Location</span>
@@ -499,7 +620,10 @@ export default function CertifiedPayrollPage() {
                   <span className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Project or Contract No.</span>
                   <span className="font-bold">{setup.contractNumber}</span>
                 </div>
-                <span className="font-bold text-slate-600 block pr-8">{setup.contractingAgency}</span>
+                <div className="text-right pr-8">
+                  <span className="font-bold text-slate-600 block">{setup.contractingAgency}</span>
+                  <span className="font-bold text-slate-600 block">WD: {setup.wageDeterminationNo}</span>
+                </div>
               </div>
             </div>
 
