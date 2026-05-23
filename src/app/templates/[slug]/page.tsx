@@ -1,10 +1,11 @@
 import { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { TEMPLATES } from "../../api/templates/route";
+import { TEMPLATES, getTemplateBySlug } from "@/data/templates";
 import { FileText, Download, ArrowLeft, CheckCircle2, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TemplateDownloadButton from "../TemplateDownloadButton";
 
 export const dynamicParams = false;
 
@@ -16,7 +17,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
-  const template = TEMPLATES.find((t) => t.slug === resolvedParams.slug);
+  const template = getTemplateBySlug(resolvedParams.slug);
   
   if (!template) return {};
 
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function TemplateDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  const template = TEMPLATES.find((t) => t.slug === resolvedParams.slug);
+  const template = getTemplateBySlug(resolvedParams.slug);
 
   if (!template) {
     notFound();
@@ -40,19 +41,21 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
   const schema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": template.title,
-    "description": template.description,
-    "url": `https://circleworks.com/templates/${template.slug}`,
-    "mainEntity": {
-      "@type": "CreativeWork",
-      "name": template.title,
-      "text": template.description,
-      "fileFormat": template.type,
-      "author": {
+    name: template.title,
+    description: template.description,
+    url: `https://circleworks.com/templates/${template.slug}`,
+    mainEntity: {
+      "@type": "DigitalDocument",
+      name: template.title,
+      description: template.description,
+      fileFormat: template.type,
+      encodingFormat: template.type,
+      author: {
         "@type": "Organization",
-        "name": "CircleWorks"
-      }
-    }
+        name: "CircleWorks",
+      },
+      isAccessibleForFree: true,
+    },
   };
 
   const getIcon = (type: string) => {
@@ -75,16 +78,15 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
           Back to all templates
         </Link>
         
-        <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-slate-200">
+        <div className="bg-white rounded-lg overflow-hidden shadow-xl border border-slate-200">
           <div className="flex flex-col md:flex-row">
             
             {/* Left side: Graphic/Icon */}
             <div className="md:w-1/3 bg-[#0A1628] p-12 flex flex-col items-center justify-center text-center relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
-               <div className="bg-white p-6 rounded-3xl shadow-2xl relative z-10 mb-6">
+               <div className="bg-white p-6 rounded-lg shadow-2xl relative z-10 mb-6">
                  {getIcon(template.type)}
                </div>
-               <span className="text-white font-bold bg-white/10 px-4 py-2 rounded-full uppercase tracking-wider text-sm relative z-10">
+                 <span className="text-white font-bold bg-white/10 px-4 py-2 rounded-md uppercase tracking-wider text-sm relative z-10">
                  {template.type}
                </span>
             </div>
@@ -108,7 +110,7 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
                  {template.description}
                </p>
 
-               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 mb-8">
+               <div className="bg-slate-50 border border-slate-100 rounded-lg p-6 mb-8">
                   <h3 className="font-bold text-[#0A1628] mb-3">What's included:</h3>
                   <ul className="space-y-2">
                     <li className="flex items-center text-slate-600">
@@ -124,14 +126,13 @@ export default async function TemplateDetailPage({ params }: { params: Promise<{
                </div>
                
                <div className="mt-auto">
-                 {/* Links back to the main templates page where the modal logic lives */}
-                 <Link 
-                   href="/templates" 
-                   className="inline-flex items-center justify-center w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-colors shadow-lg shadow-blue-500/30 text-lg gap-2"
+                 <TemplateDownloadButton
+                   template={template}
+                   className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-10 py-4 text-lg font-bold text-white shadow-lg shadow-blue-500/30 transition-colors hover:bg-blue-700 sm:w-auto disabled:cursor-not-allowed disabled:opacity-60"
                  >
                    <Download className="w-5 h-5" />
                    Download Free Template
-                 </Link>
+                 </TemplateDownloadButton>
                  <p className="text-sm text-slate-400 mt-4 font-medium text-center sm:text-left">
                    *Requires email registration. We'll send the download link directly to your inbox.
                  </p>

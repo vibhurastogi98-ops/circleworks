@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TemplatesClient from "./TemplatesClient";
-import { TEMPLATES } from "../api/templates/route";
+import { TEMPLATES } from "@/data/templates";
 
 export const metadata: Metadata = {
   title: "Free HR Templates & Resources | CircleWorks",
