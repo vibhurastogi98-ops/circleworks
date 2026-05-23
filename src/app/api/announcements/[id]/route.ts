@@ -15,18 +15,30 @@ import {
 import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
 import { getSession, resolveUserContext } from "@/lib/session";
 
+type AnnouncementReadWithEmployee = {
+  employeeId: number | null;
+  employee?: {
+    department?: string | null;
+  } | null;
+};
+
 function validateAttachmentPayload(body: any) {
   const attachments = Array.isArray(body.attachments) ? body.attachments : [];
   for (const attachment of attachments) {
     if (!attachment || typeof attachment !== "object") {
       return "Attachment payload is invalid.";
     }
-    const allowedType = typeof attachment.type === "string" &&
-      (attachment.type.startsWith("image/") || attachment.type === "application/pdf");
+    const allowedType =
+      typeof attachment.type === "string" &&
+      (attachment.type.startsWith("image/") ||
+        attachment.type === "application/pdf");
     if (!allowedType) {
       return "Attachments must be a PDF or image.";
     }
-    if (typeof attachment.size !== "number" || attachment.size > 10 * 1024 * 1024) {
+    if (
+      typeof attachment.size !== "number" ||
+      attachment.size > 10 * 1024 * 1024
+    ) {
       return "Attachments must be 10MB or smaller.";
     }
   }
@@ -35,7 +47,7 @@ function validateAttachmentPayload(body: any) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getSession(req);
@@ -45,7 +57,10 @@ export async function GET(
 
     const ctx = await resolveUserContext(session);
     if (!ctx) {
-      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 },
+      );
     }
 
     const { id } = await params;
@@ -56,7 +71,10 @@ export async function GET(
 
     const [item, employeeCount] = await Promise.all([
       db.query.announcements.findFirst({
-        where: and(eq(announcements.id, annId), eq(announcements.companyId, ctx.companyId)),
+        where: and(
+          eq(announcements.id, annId),
+          eq(announcements.companyId, ctx.companyId),
+        ),
         with: {
           reads: {
             with: {
@@ -66,7 +84,10 @@ export async function GET(
         },
       }),
       db.query.employees.findMany({
-        where: and(eq(employees.companyId, ctx.companyId), eq(employees.status, "active")),
+        where: and(
+          eq(employees.companyId, ctx.companyId),
+          eq(employees.status, "active"),
+        ),
       }),
     ]);
 
@@ -74,7 +95,8 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const isRead = item.reads.some((read) => read.employeeId === ctx.employeeId);
+    const reads = (item.reads ?? []) as AnnouncementReadWithEmployee[];
+    const isRead = reads.some((read) => read.employeeId === ctx.employeeId);
 
     return NextResponse.json({
       ...item,
@@ -86,19 +108,25 @@ export async function GET(
       analytics: {
         totalViews: item.viewsCount ?? 0,
         uniqueReaders: item.uniqueReaders ?? 0,
-        readPercent: getAnnouncementReadPercent(item.uniqueReaders ?? 0, employeeCount.length),
-        departmentBreakdown: getAnnouncementDepartmentBreakdown(item.reads),
+        readPercent: getAnnouncementReadPercent(
+          item.uniqueReaders ?? 0,
+          employeeCount.length,
+        ),
+        departmentBreakdown: getAnnouncementDepartmentBreakdown(reads),
       },
     });
   } catch (error) {
     console.error("[Announcement GET Error]", error);
-    return NextResponse.json({ error: "Failed to load announcement" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load announcement" },
+      { status: 500 },
+    );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getSession(req);
@@ -108,7 +136,10 @@ export async function PATCH(
 
     const ctx = await resolveUserContext(session);
     if (!ctx) {
-      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 },
+      );
     }
 
     const { id } = await params;
@@ -122,10 +153,16 @@ export async function PATCH(
     const content = String(body.body ?? "").trim();
 
     if (!title || !content) {
-      return NextResponse.json({ error: "Title and body are required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Title and body are required." },
+        { status: 400 },
+      );
     }
     if (title.length > 100) {
-      return NextResponse.json({ error: "Title must be 100 characters or fewer." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Title must be 100 characters or fewer." },
+        { status: 400 },
+      );
     }
 
     const attachmentError = validateAttachmentPayload(body);
@@ -135,11 +172,14 @@ export async function PATCH(
 
     const publishAt = body.publishAt ? new Date(body.publishAt) : null;
     const expireAt = body.expireAt ? new Date(body.expireAt) : null;
-    const nextStatus = body.status === "Draft" ? "Draft" : normalizeAnnouncementStatus({
-      status: body.status ?? "Published",
-      publishAt,
-      expireAt,
-    });
+    const nextStatus =
+      body.status === "Draft"
+        ? "Draft"
+        : normalizeAnnouncementStatus({
+            status: body.status ?? "Published",
+            publishAt,
+            expireAt,
+          });
 
     const [updated] = await db
       .update(announcements)
@@ -147,17 +187,28 @@ export async function PATCH(
         title,
         body: content,
         audience: body.audience || "All Employees",
-        department: body.audience === "By Department" || body.audience === "Custom Group" ? body.audienceValue || null : null,
-        location: body.audience === "By Location" ? body.audienceValue || null : null,
+        department:
+          body.audience === "By Department" || body.audience === "Custom Group"
+            ? body.audienceValue || null
+            : null,
+        location:
+          body.audience === "By Location" ? body.audienceValue || null : null,
         priority: body.priority || "Normal",
         status: nextStatus,
         publishAt,
         expireAt,
         isPinned: !!body.isPinned,
-        attachments: stringifyAnnouncementAttachments(Array.isArray(body.attachments) ? body.attachments : []),
+        attachments: stringifyAnnouncementAttachments(
+          Array.isArray(body.attachments) ? body.attachments : [],
+        ),
         updatedAt: new Date(),
       })
-      .where(and(eq(announcements.id, annId), eq(announcements.companyId, ctx.companyId)))
+      .where(
+        and(
+          eq(announcements.id, annId),
+          eq(announcements.companyId, ctx.companyId),
+        ),
+      )
       .returning();
 
     if (!updated) {
@@ -179,13 +230,16 @@ export async function PATCH(
     });
   } catch (error) {
     console.error("[Announcement PATCH Error]", error);
-    return NextResponse.json({ error: "Failed to update announcement" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update announcement" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getSession(req);
@@ -195,7 +249,10 @@ export async function DELETE(
 
     const ctx = await resolveUserContext(session);
     if (!ctx) {
-      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 },
+      );
     }
 
     const { id } = await params;
@@ -206,11 +263,19 @@ export async function DELETE(
 
     await db
       .delete(announcements)
-      .where(and(eq(announcements.id, annId), eq(announcements.companyId, ctx.companyId)));
+      .where(
+        and(
+          eq(announcements.id, annId),
+          eq(announcements.companyId, ctx.companyId),
+        ),
+      );
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Announcement DELETE Error]", error);
-    return NextResponse.json({ error: "Failed to delete announcement" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete announcement" },
+      { status: 500 },
+    );
   }
 }

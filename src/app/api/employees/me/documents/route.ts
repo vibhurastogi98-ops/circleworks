@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
-import { users } from "@/db/schema";
+import { employeeDocuments, users } from "@/db/schema";
 import { getSession } from "@/lib/session";
 
 export async function GET() {
@@ -14,11 +14,7 @@ export async function GET() {
     const user = await db.query.users.findFirst({
       where: eq(users.id, session.userId),
       with: {
-        employees: {
-          with: {
-            documents: true,
-          },
-        },
+        employees: true,
       },
     });
 
@@ -30,7 +26,11 @@ export async function GET() {
       );
     }
 
-    const documents = (employee.documents || []).map((document) => ({
+    const savedDocuments = await db.query.employeeDocuments.findMany({
+      where: eq(employeeDocuments.employeeId, employee.id),
+    });
+
+    const documents = savedDocuments.map((document) => ({
       id: `DB-${document.id}`,
       name: document.name,
       type: document.type,

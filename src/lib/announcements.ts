@@ -1,4 +1,8 @@
-export type AnnouncementStatus = "Draft" | "Scheduled" | "Published" | "Expired";
+export type AnnouncementStatus =
+  | "Draft"
+  | "Scheduled"
+  | "Published"
+  | "Expired";
 
 export type AnnouncementAudience =
   | "All Employees"
@@ -36,13 +40,16 @@ type AnnouncementLike = {
   audience?: string | null;
   department?: string | null;
   location?: string | null;
-  attachments?: string | null;
+  attachments?: string | AnnouncementAttachment[] | null;
   reads?: ReadLike[] | null;
   uniqueReaders?: number | null;
   viewsCount?: number | null;
 };
 
-export function normalizeAnnouncementStatus(announcement: AnnouncementLike, now = new Date()): AnnouncementStatus {
+export function normalizeAnnouncementStatus(
+  announcement: AnnouncementLike,
+  now = new Date(),
+): AnnouncementStatus {
   if ((announcement.status ?? "Draft") === "Draft") {
     return "Draft";
   }
@@ -61,11 +68,16 @@ export function normalizeAnnouncementStatus(announcement: AnnouncementLike, now 
   return "Published";
 }
 
-export function isAnnouncementActive(announcement: AnnouncementLike, now = new Date()): boolean {
+export function isAnnouncementActive(
+  announcement: AnnouncementLike,
+  now = new Date(),
+): boolean {
   return normalizeAnnouncementStatus(announcement, now) === "Published";
 }
 
-export function parseAnnouncementAttachments(value: string | null | undefined): AnnouncementAttachment[] {
+export function parseAnnouncementAttachments(
+  value: string | null | undefined,
+): AnnouncementAttachment[] {
   if (!value) return [];
 
   try {
@@ -78,20 +90,34 @@ export function parseAnnouncementAttachments(value: string | null | undefined): 
     }
   } catch {
     if (typeof value === "string") {
-      return [{ name: "Attachment", type: "application/octet-stream", size: 0, url: value }];
+      return [
+        {
+          name: "Attachment",
+          type: "application/octet-stream",
+          size: 0,
+          url: value,
+        },
+      ];
     }
   }
 
   return [];
 }
 
-export function stringifyAnnouncementAttachments(attachments: AnnouncementAttachment[]): string | null {
+export function stringifyAnnouncementAttachments(
+  attachments: AnnouncementAttachment[],
+): string | null {
   if (attachments.length === 0) return null;
   return JSON.stringify(attachments);
 }
 
-export function getAnnouncementAudienceValue(announcement: AnnouncementLike): string | null {
-  if (announcement.audience === "By Department" || announcement.audience === "Custom Group") {
+export function getAnnouncementAudienceValue(
+  announcement: AnnouncementLike,
+): string | null {
+  if (
+    announcement.audience === "By Department" ||
+    announcement.audience === "Custom Group"
+  ) {
     return announcement.department ?? null;
   }
 
@@ -102,15 +128,23 @@ export function getAnnouncementAudienceValue(announcement: AnnouncementLike): st
   return null;
 }
 
-export function formatAnnouncementAudience(announcement: AnnouncementLike): string {
+export function formatAnnouncementAudience(
+  announcement: AnnouncementLike,
+): string {
   const value = getAnnouncementAudienceValue(announcement);
-  return value ? `${announcement.audience}: ${value}` : announcement.audience ?? "All Employees";
+  return value
+    ? `${announcement.audience}: ${value}`
+    : (announcement.audience ?? "All Employees");
 }
 
-export function matchesAnnouncementAudience(announcement: AnnouncementLike, employee: EmployeeLike | null | undefined): boolean {
+export function matchesAnnouncementAudience(
+  announcement: AnnouncementLike,
+  employee: EmployeeLike | null | undefined,
+): boolean {
   if (!employee) return true;
 
-  const audience = (announcement.audience ?? "All Employees") as AnnouncementAudience;
+  const audience = (announcement.audience ??
+    "All Employees") as AnnouncementAudience;
   if (audience === "All Employees") return true;
 
   const target = (getAnnouncementAudienceValue(announcement) ?? "").trim();
@@ -142,7 +176,9 @@ export function matchesAnnouncementAudience(announcement: AnnouncementLike, empl
   return employeeTokens.some((token) => tokens.includes(token));
 }
 
-export function getAnnouncementDepartmentBreakdown(reads: ReadLike[] | null | undefined) {
+export function getAnnouncementDepartmentBreakdown(
+  reads: ReadLike[] | null | undefined,
+) {
   const counts = new Map<string, number>();
 
   for (const read of reads ?? []) {
@@ -155,7 +191,10 @@ export function getAnnouncementDepartmentBreakdown(reads: ReadLike[] | null | un
     .sort((a, b) => b.count - a.count || a.dept.localeCompare(b.dept));
 }
 
-export function getAnnouncementReadPercent(uniqueReaders: number, employeeCount: number) {
+export function getAnnouncementReadPercent(
+  uniqueReaders: number,
+  employeeCount: number,
+) {
   if (employeeCount <= 0) return 0;
   return Math.round((uniqueReaders / employeeCount) * 100);
 }
@@ -173,8 +212,10 @@ function normalize(value: string | null | undefined) {
 function isAttachmentLike(value: unknown): value is AnnouncementAttachment {
   if (!value || typeof value !== "object") return false;
   const maybe = value as Partial<AnnouncementAttachment>;
-  return typeof maybe.name === "string" &&
+  return (
+    typeof maybe.name === "string" &&
     typeof maybe.type === "string" &&
     typeof maybe.size === "number" &&
-    typeof maybe.url === "string";
+    typeof maybe.url === "string"
+  );
 }

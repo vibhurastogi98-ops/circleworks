@@ -4,17 +4,38 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  DollarSign, Clock, Receipt, CreditCard, FileText, Star,
-  CalendarDays, AlertCircle, ChevronRight, Megaphone, Gift,
-  Plane, Thermometer, User as UserIcon, Timer
+  DollarSign,
+  Clock,
+  Receipt,
+  CreditCard,
+  FileText,
+  Star,
+  CalendarDays,
+  AlertCircle,
+  ChevronRight,
+  Megaphone,
+  Gift,
+  Plane,
+  Thermometer,
+  User as UserIcon,
+  Timer,
 } from "lucide-react";
 
 import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import {
-  mockPtoBalances, mockPendingTasks, mockKudos, mockPayStubs,
+  mockPtoBalances,
+  mockPendingTasks,
+  mockKudos,
+  mockPayStubs,
 } from "@/data/mockEmployeePortal";
 import { format } from "date-fns";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -24,11 +45,40 @@ function getGreeting(): string {
 }
 
 const quickActions = [
-  { label: "Clock In/Out", icon: Timer, href: "/me/time", color: "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400" },
-  { label: "Request Time Off", icon: Plane, href: "/me/time-off", color: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400" },
-  { label: "Submit Expense", icon: Receipt, href: "/me/expenses", color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400" },
-  { label: "Update Bank Info", icon: CreditCard, href: "/me/profile", color: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" },
-  { label: "View Pay Stub", icon: DollarSign, href: "/me/paystubs", color: "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400" },
+  {
+    label: "Clock In/Out",
+    icon: Timer,
+    href: "/me/time",
+    color:
+      "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
+  },
+  {
+    label: "Request Time Off",
+    icon: Plane,
+    href: "/me/time-off",
+    color: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+  },
+  {
+    label: "Submit Expense",
+    icon: Receipt,
+    href: "/me/expenses",
+    color:
+      "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    label: "Update Bank Info",
+    icon: CreditCard,
+    href: "/me/profile",
+    color:
+      "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+  },
+  {
+    label: "View Pay Stub",
+    icon: DollarSign,
+    href: "/me/paystubs",
+    color:
+      "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400",
+  },
 ];
 
 const ptoIcons: Record<string, React.ElementType> = {
@@ -47,11 +97,17 @@ function escapeHtml(value: string) {
 function renderAnnouncementBody(body: string) {
   const escaped = escapeHtml(body);
   return escaped
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 underline">$1</a>')
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noreferrer" class="text-blue-600 underline">$1</a>',
+    )
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
-    .replace(/(<li class="ml-4">.*<\/li>)/gs, '<ul class="list-disc space-y-1 pl-4">$1</ul>')
+    .replace(
+      /(<li class="ml-4">[\s\S]*<\/li>)/g,
+      '<ul class="list-disc space-y-1 pl-4">$1</ul>',
+    )
     .replace(/\n/g, "<br />");
 }
 
@@ -69,15 +125,21 @@ type EmployeeAnnouncement = {
 };
 
 function AnnouncementsWidget() {
-  const [announcements, setAnnouncements] = useState<EmployeeAnnouncement[]>([]);
-  const [selectedAnn, setSelectedAnn] = useState<EmployeeAnnouncement | null>(null);
+  const [announcements, setAnnouncements] = useState<EmployeeAnnouncement[]>(
+    [],
+  );
+  const [selectedAnn, setSelectedAnn] = useState<EmployeeAnnouncement | null>(
+    null,
+  );
 
   useEffect(() => {
     let isMounted = true;
 
     const loadAnnouncements = async () => {
       try {
-        const res = await fetch("/api/announcements?filter=Active", { cache: "no-store" });
+        const res = await fetch("/api/announcements?filter=Active", {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!Array.isArray(data) || !isMounted) return;
@@ -85,7 +147,10 @@ function AnnouncementsWidget() {
         const sorted = [...data]
           .sort((a, b) => {
             if (a.isPinned === b.isPinned) {
-              return new Date(b.publishAt ?? b.createdAt).getTime() - new Date(a.publishAt ?? a.createdAt).getTime();
+              return (
+                new Date(b.publishAt ?? b.createdAt).getTime() -
+                new Date(a.publishAt ?? a.createdAt).getTime()
+              );
             }
             return a.isPinned ? -1 : 1;
           })
@@ -115,12 +180,16 @@ function AnnouncementsWidget() {
     const timeout = window.setTimeout(() => {
       fetch(`/api/announcements/${selectedAnn.id}/read`, { method: "POST" })
         .then(() => {
-          setAnnouncements((current) => current.map((announcement) => (
-            announcement.id === selectedAnn.id
-              ? { ...announcement, isRead: true, isUnread: false }
-              : announcement
-          )));
-          setSelectedAnn((current) => current ? { ...current, isRead: true, isUnread: false } : current);
+          setAnnouncements((current) =>
+            current.map((announcement) =>
+              announcement.id === selectedAnn.id
+                ? { ...announcement, isRead: true, isUnread: false }
+                : announcement,
+            ),
+          );
+          setSelectedAnn((current) =>
+            current ? { ...current, isRead: true, isUnread: false } : current,
+          );
         })
         .catch(console.error);
     }, 3000);
@@ -140,43 +209,90 @@ function AnnouncementsWidget() {
         </h2>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
           {announcements.length === 0 ? (
-            <div className="px-4 py-6 text-center text-slate-500 text-sm">No announcements at this time.</div>
-          ) : announcements.map(ann => (
-            <button 
-              key={ann.id} 
-              onClick={() => handleOpen(ann)}
-              className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group relative"
-            >
-              {ann.isUnread && (
-                 <span className="absolute right-4 top-4 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" title="Unread">Unread</span>
-              )}
-              <div className="flex items-center gap-2 pr-4">
-                {ann.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
-                {ann.priority === "Important" && <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Important</span>}
-                {ann.priority === "Urgent" && <span className="text-[10px] rounded bg-red-100 px-1.5 py-0.5 font-bold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">Urgent</span>}
-                <h3 className={`text-[13px] font-bold ${ann.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white'} truncate`}>{ann.title}</h3>
-                <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">{format(new Date(ann.publishAt ?? ann.createdAt), 'MMM d')}</span>
-              </div>
-              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 pr-4">{ann.body}</p>
-            </button>
-          ))}
+            <div className="px-4 py-6 text-center text-slate-500 text-sm">
+              No announcements at this time.
+            </div>
+          ) : (
+            announcements.map((ann) => (
+              <button
+                key={ann.id}
+                onClick={() => handleOpen(ann)}
+                className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group relative"
+              >
+                {ann.isUnread && (
+                  <span
+                    className="absolute right-4 top-4 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                    title="Unread"
+                  >
+                    Unread
+                  </span>
+                )}
+                <div className="flex items-center gap-2 pr-4">
+                  {ann.isPinned && (
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
+                      Pinned
+                    </span>
+                  )}
+                  {ann.priority === "Important" && (
+                    <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                      Important
+                    </span>
+                  )}
+                  {ann.priority === "Urgent" && (
+                    <span className="text-[10px] rounded bg-red-100 px-1.5 py-0.5 font-bold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      Urgent
+                    </span>
+                  )}
+                  <h3
+                    className={`text-[13px] font-bold ${ann.isRead ? "text-slate-700 dark:text-slate-300" : "text-slate-900 dark:text-white"} truncate`}
+                  >
+                    {ann.title}
+                  </h3>
+                  <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">
+                    {format(new Date(ann.publishAt ?? ann.createdAt), "MMM d")}
+                  </span>
+                </div>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 pr-4">
+                  {ann.body}
+                </p>
+              </button>
+            ))
+          )}
         </div>
       </div>
 
-      <Dialog open={!!selectedAnn} onOpenChange={(open) => !open && setSelectedAnn(null)}>
+      <Dialog
+        open={!!selectedAnn}
+        onOpenChange={(open) => !open && setSelectedAnn(null)}
+      >
         {selectedAnn && (
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedAnn.isPinned && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">Pinned</span>}
-                  {selectedAnn.priority === "Important" && <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Important</span>}
-                  {selectedAnn.priority === "Urgent" && <span className="text-[10px] rounded bg-red-100 px-1.5 py-0.5 font-bold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">Urgent</span>}
-                  {selectedAnn.title}
-                </DialogTitle>
-                <DialogDescription>
-                  {format(new Date(selectedAnn.publishAt ?? selectedAnn.createdAt), 'MMMM d, yyyy')}
-                </DialogDescription>
-              </DialogHeader>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedAnn.isPinned && (
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase shrink-0">
+                    Pinned
+                  </span>
+                )}
+                {selectedAnn.priority === "Important" && (
+                  <span className="text-[10px] rounded bg-amber-100 px-1.5 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    Important
+                  </span>
+                )}
+                {selectedAnn.priority === "Urgent" && (
+                  <span className="text-[10px] rounded bg-red-100 px-1.5 py-0.5 font-bold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                    Urgent
+                  </span>
+                )}
+                {selectedAnn.title}
+              </DialogTitle>
+              <DialogDescription>
+                {format(
+                  new Date(selectedAnn.publishAt ?? selectedAnn.createdAt),
+                  "MMMM d, yyyy",
+                )}
+              </DialogDescription>
+            </DialogHeader>
             {selectedAnn.priority === "Important" && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200">
                 Important announcement
@@ -190,14 +306,22 @@ function AnnouncementsWidget() {
             <div className="py-4">
               <div
                 className="max-w-none text-sm leading-relaxed text-slate-700 dark:text-slate-300"
-                dangerouslySetInnerHTML={{ __html: renderAnnouncementBody(selectedAnn.body) }}
+                dangerouslySetInnerHTML={{
+                  __html: renderAnnouncementBody(selectedAnn.body),
+                }}
               />
             </div>
             {selectedAnn.attachments.length > 0 && (
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="space-y-2">
                   {selectedAnn.attachments.map((attachment) => (
-                    <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-2">
+                    <a
+                      key={attachment.url}
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-blue-600 hover:underline flex items-center gap-2"
+                    >
                       <FileText size={14} /> {attachment.name}
                     </a>
                   ))}
@@ -238,23 +362,45 @@ export default function EmployeeHomePage() {
             {getGreeting()}, {firstName}! 👋
           </h1>
           <p className="mt-2 text-white/80 text-[15px]">
-            Next paycheck: <span className="font-bold text-white">${latestStub.netPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span> on{" "}
-            <span className="font-bold text-white">{nextPayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            Next paycheck:{" "}
+            <span className="font-bold text-white">
+              $
+              {latestStub.netPay.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+              })}
+            </span>{" "}
+            on{" "}
+            <span className="font-bold text-white">
+              {nextPayDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
           </p>
         </div>
       </motion.div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">Quick Actions</h2>
+        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">
+          Quick Actions
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {quickActions.map((action, i) => (
-            <motion.div key={action.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+            <motion.div
+              key={action.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
               <Link
                 href={action.href}
                 className="flex flex-col items-center gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 hover:shadow-md hover:-translate-y-0.5 transition-all group"
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${action.color}`}>
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${action.color}`}
+                >
                   <action.icon size={20} />
                 </div>
                 <span className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 text-center group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
@@ -268,7 +414,9 @@ export default function EmployeeHomePage() {
 
       {/* PTO Balances */}
       <div>
-        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">PTO Balances</h2>
+        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">
+          PTO Balances
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {mockPtoBalances.map((pto) => {
             const Icon = ptoIcons[pto.type] || CalendarDays;
@@ -282,18 +430,30 @@ export default function EmployeeHomePage() {
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
-                    <Icon size={16} className="text-violet-600 dark:text-violet-400" />
+                    <Icon
+                      size={16}
+                      className="text-violet-600 dark:text-violet-400"
+                    />
                   </div>
-                  <span className="text-[13px] font-bold text-slate-900 dark:text-white">{pto.type}</span>
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-white">
+                    {pto.type}
+                  </span>
                 </div>
-                <div className="text-2xl font-black text-slate-900 dark:text-white">{pto.balance} <span className="text-sm font-medium text-slate-400">days</span></div>
+                <div className="text-2xl font-black text-slate-900 dark:text-white">
+                  {pto.balance}{" "}
+                  <span className="text-sm font-medium text-slate-400">
+                    days
+                  </span>
+                </div>
                 <div className="mt-2 w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{pto.used} used of {pto.total}</p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  {pto.used} used of {pto.total}
+                </p>
               </motion.div>
             );
           })}
@@ -307,12 +467,24 @@ export default function EmployeeHomePage() {
             <AlertCircle size={16} className="text-amber-500" /> Pending Tasks
           </h2>
           <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 divide-y divide-slate-100 dark:divide-slate-700/40">
-            {mockPendingTasks.map(task => (
-              <Link key={task.id} href={task.link} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+            {mockPendingTasks.map((task) => (
+              <Link
+                key={task.id}
+                href={task.link}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group"
+              >
                 <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-slate-900 dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{task.title}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Due {new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                  <p className="text-[13px] font-semibold text-slate-900 dark:text-white truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                    {task.title}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Due{" "}
+                    {new Date(task.deadline).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
                 </div>
                 <ChevronRight size={14} className="text-slate-400" />
               </Link>
@@ -326,7 +498,7 @@ export default function EmployeeHomePage() {
             <Star size={16} className="text-yellow-500" /> Kudos Received
           </h2>
           <div className="flex flex-col gap-3">
-            {mockKudos.map(kudo => (
+            {mockKudos.map((kudo) => (
               <motion.div
                 key={kudo.id}
                 initial={{ opacity: 0, x: -8 }}
@@ -337,10 +509,19 @@ export default function EmployeeHomePage() {
                   <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 flex items-center justify-center text-white text-[11px] font-bold">
                     {kudo.from.charAt(0)}
                   </div>
-                  <span className="text-[13px] font-bold text-slate-900 dark:text-white">{kudo.from}</span>
-                  <span className="text-[11px] text-slate-400 ml-auto">{new Date(kudo.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-white">
+                    {kudo.from}
+                  </span>
+                  <span className="text-[11px] text-slate-400 ml-auto">
+                    {new Date(kudo.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
                 </div>
-                <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed">{kudo.message}</p>
+                <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {kudo.message}
+                </p>
               </motion.div>
             ))}
           </div>
