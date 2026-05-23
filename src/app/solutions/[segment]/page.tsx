@@ -2,15 +2,36 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { segments } from "./segmentData";
+import SegmentFeatureShowcase from "./SegmentFeatureShowcase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InteractiveMockup from "@/components/InteractiveMockup";
-import FeatureVisual from "@/components/FeatureVisual";
+import type { LucideIcon } from "lucide-react";
 import { 
-  ArrowRight, CheckCircle2, ChevronDown, 
+  ArrowRight,
   HelpCircle, MessageSquare, Quote, 
-  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, Target, MonitorPlay, Phone, Lock, Volume2, Film, Smartphone
+  ShieldCheck, Star, Zap, ShoppingBag, Landmark, CreditCard, Globe, Layers, Terminal, Rocket, Activity, Users, Clock, Heart, Building, MonitorPlay, Lock
 } from "lucide-react";
+
+const segmentLabels: Record<string, string> = {
+  agencies: "agencies",
+  creators: "creators",
+  startups: "startups",
+  healthcare: "healthcare teams",
+  tech: "tech companies",
+  restaurants: "restaurants",
+};
+
+const heroTabs: Record<string, "dashboard" | "payroll" | "compliance"> = {
+  agencies: "payroll",
+  creators: "payroll",
+  startups: "dashboard",
+  healthcare: "compliance",
+  tech: "dashboard",
+  restaurants: "payroll",
+};
+
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return Object.keys(segments).map((segment) => ({
@@ -24,9 +45,10 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
   
   if (!data) return {};
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://circleworks.io";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://circleworks.com";
 
   return {
+    metadataBase: new URL(baseUrl),
     title: data.seoTitle,
     description: data.seoDesc,
     openGraph: {
@@ -51,6 +73,7 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
 export default async function SegmentPage({ params }: { params: Promise<{ segment: string }> }) {
   const { segment } = await params;
   const data = segments[segment];
+  const segmentLabel = segmentLabels[segment] ?? segment.replaceAll("-", " ");
 
   if (!data) {
     notFound();
@@ -76,7 +99,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm text-xs font-bold uppercase tracking-widest">
                 <Zap size={14} className="text-yellow-400" />
-                Solutions for {segment}
+                Solutions for {segmentLabel}
               </div>
               <h1 className="text-5xl lg:text-7xl font-black tracking-tight leading-[1.05]">
                 {data.title}
@@ -99,7 +122,8 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
               <div className="relative aspect-[16/10] scale-110">
                 <InteractiveMockup 
                     accent="#2563eb" 
-                    initialTab={segment === "creators" || segment === "agencies" ? "payroll" : "dashboard"} 
+                    moduleName={segment}
+                    initialTab={heroTabs[segment] ?? "dashboard"}
                 />
               </div>
             </div>
@@ -112,14 +136,14 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-6 tracking-tight">
-               Built for the unique challenges of {segment}
+              Built for the unique challenges of {segmentLabel}
             </h2>
             <div className="w-20 h-1.5 bg-blue-600 mx-auto rounded-full" />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {data.painPoints.map((point, i) => {
-              const IconMap: Record<string, any> = {
+              const IconMap: Record<string, LucideIcon> = {
                 building: Building,
                 clock: Clock,
                 tag: Landmark,
@@ -164,7 +188,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                  Everything you need to scale
               </h2>
               <p className="text-xl text-slate-500 font-medium">
-                CircleWorks is the only platform that combines payroll, benefits, and HR with {segment}-specific automation.
+                CircleWorks combines payroll, benefits, and HR with {segmentLabel}-specific automation.
               </p>
             </div>
             <div className="flex items-center gap-4 text-blue-600 font-black">
@@ -172,66 +196,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <div className="space-y-12">
-              {data.features.map((feature, i) => {
-                 const IconMap: Record<string, any> = {
-                   keyboard: Landmark,
-                   clock: Clock,
-                   tag: Landmark,
-                   users: Users,
-                   map: Globe,
-                   file: Landmark,
-                   video: Activity,
-                   zap: Zap,
-                   film: Film,
-                   chart: Activity,
-                   activity: Activity,
-                   id: Landmark,
-                   shield: ShieldCheck,
-                   monitor: MonitorPlay,
-                   ban: Landmark,
-                   smartphone: Smartphone,
-                   award: Star,
-                   refresh: Landmark,
-                   phone: Phone,
-                   rocket: Rocket,
-                   "trending-down": Activity,
-                   lock: Lock,
-                   volume: Volume2,
-                   star: Star,
-                   building: Building,
-                   globe: Globe,
-                   dollar: CreditCard,
-                 };
-                 const DisplayIcon = IconMap[feature.icon] || Zap;
-
-                 return (
-                  <div key={i} className="group flex gap-6">
-                     <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex-shrink-0 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        <DisplayIcon size={24} />
-                     </div>
-                     <div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                           {feature.name}
-                        </h3>
-                        <p className="text-slate-500 font-medium leading-relaxed">
-                           {feature.description}
-                        </p>
-                     </div>
-                  </div>
-                 );
-              })}
-            </div>
-
-            <div className="sticky top-32">
-               <FeatureVisual 
-                  headline={data.features[0].name} 
-                  accent="#2563eb" 
-                  accentBg="bg-blue-600" 
-               />
-            </div>
-          </div>
+          <SegmentFeatureShowcase features={data.features} segmentLabel={segmentLabel} />
         </div>
       </section>
 
@@ -267,7 +232,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                
                 <div className="grid grid-cols-2 gap-6">
                   {data.partners.map((partner, i) => {
-                     const IconMap: Record<string, any> = {
+                     const IconMap: Record<string, LucideIcon> = {
                        Shopify: ShoppingBag,
                        QuickBooks: Landmark,
                        Slack: MessageSquare,
@@ -352,7 +317,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                Starting at $8/employee/month
             </h2>
             <p className="text-xl text-blue-100 font-medium mb-12 max-w-2xl mx-auto">
-               Ready to automate your {segment} payroll? Join thousands of companies using CircleWorks to run error-free payroll in minutes.
+               Ready to automate your {segmentLabel} payroll? Join thousands of companies using CircleWorks to run error-free payroll in minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                <Link href="/signup" className="px-10 py-5 bg-white text-blue-600 font-black rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-blue-900/40 w-full sm:w-auto">
