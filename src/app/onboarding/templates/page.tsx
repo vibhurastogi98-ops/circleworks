@@ -234,6 +234,20 @@ export default function TemplateLibrary() {
               <span>Last used: {formatDate(tmpl.lastUsed)}</span>
             </div>
 
+            {tmpl.equipmentTypes && tmpl.equipmentTypes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tmpl.equipmentTypes.map((type) => (
+                  <span
+                    key={type}
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                  >
+                    <span>{ASSET_TYPE_ICONS[type]}</span>
+                    {type}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button className="flex-1 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center justify-center gap-1">
                 Edit <ChevronRight size={12} />

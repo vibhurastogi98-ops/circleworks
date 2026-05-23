@@ -79,7 +79,8 @@ export default function OffboardingPage() {
   const overdueAlerts = enrichedCases.filter(c => {
     const termDate = new Date(c.terminationDate);
     const today = new Date();
-    return c.hasUnreturnedAssets && termDate < today;
+    const pendingAssetTasks = c.tasks.filter((task) => task.isAssetReturn && getTaskStatus(task.id, task.status) !== "Complete");
+    return pendingAssetTasks.length > 0 && termDate < today;
   });
 
   return (
@@ -126,6 +127,7 @@ export default function OffboardingPage() {
           const pct = Math.round((completed / total) * 100);
           const assetTasks = c.tasks.filter(t => t.isAssetReturn);
           const regularTasks = c.tasks.filter(t => !t.isAssetReturn);
+          const pendingAssetCount = assetTasks.filter((task) => getTaskStatus(task.id, task.status) !== "Complete").length;
 
           return (
             <div key={c.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
@@ -187,11 +189,11 @@ export default function OffboardingPage() {
                 {/* Asset Return Section */}
                 {assetTasks.length > 0 && (
                   <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-3">
                       <Package size={14} className="text-blue-600 dark:text-blue-400" />
                       <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Equipment Returns</h4>
                       <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-bold">
-                        {assetTasks.length}
+                        {pendingAssetCount}/{assetTasks.length}
                       </span>
                     </div>
                     <div className="divide-y divide-slate-100 dark:divide-slate-800">

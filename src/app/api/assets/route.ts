@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { assets, assetAssignments } from "@/db/schema";
+import { assets } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getSession, resolveUserContext } from "@/lib/session";
 
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
           ? `${activeAssignment.employee.firstName} ${activeAssignment.employee.lastName || ""}`
           : null,
         assignedToId: activeAssignment?.employeeId || null,
+        activeAssignmentId: activeAssignment?.id || null,
       };
     });
 

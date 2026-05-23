@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { assets, assetAssignments } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getSession } from "@/lib/session";
 
 // POST — assign an asset to an employee
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { assetId, employeeId, assignedBy, notes } = body;
 
@@ -16,19 +22,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const parsedAssetId = parseInt(assetId);
+    const parsedEmployeeId = parseInt(employeeId);
+
+    if (Number.isNaN(parsedAssetId) || Number.isNaN(parsedEmployeeId)) {
+      return NextResponse.json(
+        { error: "assetId and employeeId must be numeric" },
+        { status: 400 }
+      );
+    }
+
+    const asset = await db.query.assets.findFirst({
+      where: eq(assets.id, parsedAssetId),
+      with: {
+        assignments: true,
+      },
+    });
+
+    if (!asset) {
+      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+    }
+
+    const existingActiveAssignment = asset.assignments?.find((entry) => entry.status === "Active");
+    if (existingActiveAssignment) {
+      return NextResponse.json(
+        { error: "Asset is already assigned" },
+        { status: 409 }
+      );
+    }
+
     // Update asset status to Assigned
     await db
       .update(assets)
       .set({ status: "Assigned", updatedAt: new Date() })
-      .where(eq(assets.id, parseInt(assetId)));
+      .where(eq(assets.id, parsedAssetId));
 
     // Create assignment record
     const [assignment] = await db
       .insert(assetAssignments)
       .values({
-        assetId: parseInt(assetId),
-        employeeId: parseInt(employeeId),
-        assignedBy: assignedBy || null,
+        assetId: parsedAssetId,
+        employeeId: parsedEmployeeId,
+        assignedBy: assignedBy || String(session.userId),
         status: "Active",
         notes: notes || null,
       })
@@ -47,6 +82,11 @@ export async function POST(req: NextRequest) {
 // PATCH — return an asset (mark assignment as Returned, set asset back to Available)
 export async function PATCH(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { assignmentId } = body;
 
@@ -58,8 +98,16 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Find the assignment
+    const parsedAssignmentId = parseInt(assignmentId);
+    if (Number.isNaN(parsedAssignmentId)) {
+      return NextResponse.json(
+        { error: "assignmentId must be numeric" },
+        { status: 400 }
+      );
+    }
+
     const assignment = await db.query.assetAssignments.findFirst({
-      where: eq(assetAssignments.id, parseInt(assignmentId)),
+      where: eq(assetAssignments.id, parsedAssignmentId),
     });
 
     if (!assignment) {
@@ -76,7 +124,7 @@ export async function PATCH(req: NextRequest) {
         status: "Returned",
         returnedAt: new Date(),
       })
-      .where(eq(assetAssignments.id, parseInt(assignmentId)));
+      .where(eq(assetAssignments.id, parsedAssignmentId));
 
     // Set asset back to Available
     await db

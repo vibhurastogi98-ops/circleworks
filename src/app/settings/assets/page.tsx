@@ -7,8 +7,61 @@ import {
   UserPlus, RotateCcw, Eye, Hash, DollarSign, Calendar, StickyNote, Box
 } from "lucide-react";
 import { toast } from "sonner";
-import { mockAssets, mockAssetAssignments, ASSET_TYPES, ASSET_STATUSES, ASSET_TYPE_ICONS, type Asset, type AssetType, type AssetStatus } from "@/data/mockAssets";
+import { mockAssets, ASSET_TYPES, ASSET_STATUSES, ASSET_TYPE_ICONS, type Asset, type AssetType, type AssetStatus } from "@/data/mockAssets";
 import { formatDate } from "@/utils/formatDate";
+
+interface AssetHistoryItem {
+  id: number | string;
+  employeeId: number | null;
+  employeeName: string;
+  status: string;
+  assignedAt: string;
+  returnedAt: string | null;
+  notes?: string | null;
+}
+
+interface AssetRecord extends Asset {
+  activeAssignmentId?: number | null;
+  assignmentHistory?: AssetHistoryItem[];
+}
+
+interface EmployeeOption {
+  id: number;
+  name: string;
+  jobTitle?: string | null;
+  department?: string | null;
+}
+
+function normalizeAsset(apiAsset: any): AssetRecord {
+  const history = Array.isArray(apiAsset?.assignments)
+    ? apiAsset.assignments.map((assignment: any) => ({
+        id: assignment.id,
+        employeeId: assignment.employeeId ?? null,
+        employeeName: assignment.employee
+          ? `${assignment.employee.firstName} ${assignment.employee.lastName || ""}`.trim()
+          : "Former assignment",
+        status: assignment.status || "Returned",
+        assignedAt: assignment.assignedAt || assignment.createdAt || new Date().toISOString(),
+        returnedAt: assignment.returnedAt || null,
+        notes: assignment.notes || null,
+      }))
+    : [];
+
+  return {
+    id: String(apiAsset.id),
+    name: apiAsset.name,
+    type: apiAsset.type || "Other",
+    serialNumber: apiAsset.serialNumber || "",
+    assignedTo: apiAsset.assignedTo || null,
+    assignedToId: apiAsset.assignedToId || null,
+    status: apiAsset.status || "Available",
+    purchaseDate: apiAsset.purchaseDate || "",
+    value: apiAsset.value || 0,
+    notes: apiAsset.notes || "",
+    activeAssignmentId: apiAsset.activeAssignmentId || null,
+    assignmentHistory: history,
+  };
+}
 
 /* ─── Type Icon Component ───────────────────────────────────────────── */
 function AssetTypeIcon({ type, size = 18 }: { type: AssetType; size?: number }) {
@@ -64,16 +117,17 @@ function KpiCard({ label, value, icon, color }: { label: string; value: number; 
 /* ─── Main Page ─────────────────────────────────────────────────────── */
 export default function AssetsSettingsPage() {
   // State
-  const [assetList, setAssetList] = useState<Asset[]>(mockAssets);
+  const [assetList, setAssetList] = useState<AssetRecord[]>(mockAssets as AssetRecord[]);
+  const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<AssetType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<AssetStatus | "all">("all");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [editingAsset, setEditingAsset] = useState<AssetRecord | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignTarget, setAssignTarget] = useState<Asset | null>(null);
+  const [assignTarget, setAssignTarget] = useState<AssetRecord | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [detailAsset, setDetailAsset] = useState<Asset | null>(null);
+  const [detailAsset, setDetailAsset] = useState<AssetRecord | null>(null);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -86,28 +140,34 @@ export default function AssetsSettingsPage() {
 
   // Assign form state
   const [assignEmployee, setAssignEmployee] = useState("");
+  const [assignEmployeeId, setAssignEmployeeId] = useState<number | null>(null);
 
   // Try to load from API first
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/assets");
-        if (res.ok) {
-          const data = await res.json();
+        const [assetsRes, employeesRes] = await Promise.all([
+          fetch("/api/assets"),
+          fetch("/api/employees", { credentials: "include" }),
+        ]);
+
+        if (assetsRes.ok) {
+          const data = await assetsRes.json();
           if (data.length > 0) {
-            setAssetList(data.map((a: any) => ({
-              id: a.id.toString(),
-              name: a.name,
-              type: a.type || 'Other',
-              serialNumber: a.serialNumber || '',
-              assignedTo: a.assignedTo || null,
-              assignedToId: a.assignedToId || null,
-              status: a.status || 'Available',
-              purchaseDate: a.purchaseDate || '',
-              value: a.value || 0,
-              notes: a.notes || '',
-            })));
+            setAssetList(data.map(normalizeAsset));
           }
+        }
+
+        if (employeesRes.ok) {
+          const employees = await employeesRes.json();
+          setEmployeeOptions(
+            employees.map((employee: any) => ({
+              id: Number(employee.id),
+              name: `${employee.firstName} ${employee.lastName || ""}`.trim(),
+              jobTitle: employee.jobTitle || null,
+              department: employee.department || null,
+            }))
+          );
         }
       } catch {
         // fallback to mock data
@@ -131,6 +191,15 @@ export default function AssetsSettingsPage() {
   const assignedAssets = assetList.filter(a => a.status === "Assigned").length;
   const availableAssets = assetList.filter(a => a.status === "Available").length;
   const totalValue = assetList.reduce((sum, a) => sum + (a.value || 0), 0);
+  const filteredEmployeeOptions = employeeOptions.filter((employee) => {
+    const needle = assignEmployee.trim().toLowerCase();
+    if (!needle) return true;
+    return (
+      employee.name.toLowerCase().includes(needle) ||
+      (employee.jobTitle || "").toLowerCase().includes(needle) ||
+      (employee.department || "").toLowerCase().includes(needle)
+    );
+  });
 
   // Handlers
   const resetForm = () => {
@@ -144,7 +213,7 @@ export default function AssetsSettingsPage() {
     setEditingAsset(null);
   };
 
-  const handleEdit = (asset: Asset) => {
+  const handleEdit = (asset: AssetRecord) => {
     setEditingAsset(asset);
     setFormName(asset.name);
     setFormType(asset.type);
@@ -205,7 +274,7 @@ export default function AssetsSettingsPage() {
           }
         } catch {}
 
-        const newAsset: Asset = {
+        const newAsset: AssetRecord = {
           id: newId,
           name: formName,
           type: formType,
@@ -216,6 +285,8 @@ export default function AssetsSettingsPage() {
           purchaseDate: formPurchaseDate,
           value: payload.value || 0,
           notes: formNotes,
+          activeAssignmentId: null,
+          assignmentHistory: [],
         };
         setAssetList(prev => [newAsset, ...prev]);
         toast.success("Asset added to inventory");
@@ -228,7 +299,7 @@ export default function AssetsSettingsPage() {
     }
   };
 
-  const handleDelete = async (asset: Asset) => {
+  const handleDelete = async (asset: AssetRecord) => {
     if (!confirm(`Delete "${asset.name}" (S/N: ${asset.serialNumber})? This cannot be undone.`)) return;
     try {
       await fetch(`/api/assets/${asset.id}`, { method: "DELETE" });
@@ -237,63 +308,138 @@ export default function AssetsSettingsPage() {
     toast.success("Asset deleted");
   };
 
-  const handleAssign = (asset: Asset) => {
+  const handleAssign = (asset: AssetRecord) => {
     setAssignTarget(asset);
     setAssignEmployee("");
+    setAssignEmployeeId(null);
     setShowAssignModal(true);
   };
 
   const submitAssignment = async () => {
-    if (!assignTarget || !assignEmployee.trim()) {
-      toast.error("Please enter an employee name");
+    if (!assignTarget || !assignEmployee.trim() || !assignEmployeeId) {
+      toast.error("Select an employee from the search results");
       return;
     }
 
     try {
-      await fetch("/api/assets/assign", {
+      const response = await fetch("/api/assets/assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assetId: assignTarget.id,
-          employeeId: 1, // In real implementation, search employees
-          assignedBy: "admin",
+          employeeId: assignEmployeeId,
         }),
       });
-    } catch {}
 
-    setAssetList(prev =>
-      prev.map(a =>
-        a.id === assignTarget.id
-          ? { ...a, status: "Assigned" as AssetStatus, assignedTo: assignEmployee }
-          : a
-      )
-    );
-    setShowAssignModal(false);
-    setAssignTarget(null);
-    toast.success(`${assignTarget.name} assigned to ${assignEmployee}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to assign asset");
+      }
+
+      const assignment = await response.json();
+      const selectedEmployee = employeeOptions.find((employee) => employee.id === assignEmployeeId);
+      const historyItem: AssetHistoryItem = {
+        id: assignment.id,
+        employeeId: assignEmployeeId,
+        employeeName: selectedEmployee?.name || assignEmployee,
+        status: "Active",
+        assignedAt: assignment.assignedAt || new Date().toISOString(),
+        returnedAt: null,
+        notes: assignment.notes || null,
+      };
+
+      setAssetList(prev =>
+        prev.map(a =>
+          a.id === assignTarget.id
+            ? {
+                ...a,
+                status: "Assigned" as AssetStatus,
+                assignedTo: selectedEmployee?.name || assignEmployee,
+                assignedToId: assignEmployeeId,
+                activeAssignmentId: assignment.id,
+                assignmentHistory: [historyItem, ...(a.assignmentHistory || [])],
+              }
+            : a
+        )
+      );
+      setDetailAsset((current) =>
+        current && current.id === assignTarget.id
+          ? {
+              ...current,
+              status: "Assigned",
+              assignedTo: selectedEmployee?.name || assignEmployee,
+              assignedToId: assignEmployeeId,
+              activeAssignmentId: assignment.id,
+              assignmentHistory: [historyItem, ...(current.assignmentHistory || [])],
+            }
+          : current
+      );
+      setShowAssignModal(false);
+      setAssignTarget(null);
+      setAssignEmployee("");
+      setAssignEmployeeId(null);
+      toast.success(`${assignTarget.name} assigned to ${selectedEmployee?.name || assignEmployee}`);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to assign asset");
+    }
   };
 
-  const handleReturn = async (asset: Asset) => {
+  const handleReturn = async (asset: AssetRecord) => {
     try {
-      // Find the assignment to mark as returned
-      const assignment = mockAssetAssignments.find(a => a.assetId === asset.id && a.status === 'Active');
-      if (assignment) {
-        await fetch("/api/assets/assign", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ assignmentId: assignment.id }),
-        });
+      const currentAsset = assetList.find((entry) => entry.id === asset.id);
+      if (!currentAsset?.activeAssignmentId) {
+        throw new Error("No active assignment found for this asset");
       }
-    } catch {}
 
-    setAssetList(prev =>
-      prev.map(a =>
-        a.id === asset.id
-          ? { ...a, status: "Available" as AssetStatus, assignedTo: null, assignedToId: null }
-          : a
-      )
-    );
-    toast.success(`${asset.name} marked as returned and available`);
+      const response = await fetch("/api/assets/assign", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId: currentAsset.activeAssignmentId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to return asset");
+      }
+
+      setAssetList(prev =>
+        prev.map(a =>
+          a.id === asset.id
+            ? {
+                ...a,
+                status: "Available" as AssetStatus,
+                assignedTo: null,
+                assignedToId: null,
+                activeAssignmentId: null,
+                assignmentHistory: (a.assignmentHistory || []).map((history) =>
+                  history.id === currentAsset.activeAssignmentId
+                    ? { ...history, status: "Returned", returnedAt: new Date().toISOString() }
+                    : history
+                ),
+              }
+            : a
+        )
+      );
+      setDetailAsset((current) =>
+        current && current.id === asset.id
+          ? {
+              ...current,
+              status: "Available",
+              assignedTo: null,
+              assignedToId: null,
+              activeAssignmentId: null,
+              assignmentHistory: (current.assignmentHistory || []).map((history) =>
+                history.id === currentAsset.activeAssignmentId
+                  ? { ...history, status: "Returned", returnedAt: new Date().toISOString() }
+                  : history
+              ),
+            }
+          : current
+      );
+      toast.success(`${asset.name} marked as returned and available`);
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to return asset");
+    }
   };
 
   return (
@@ -696,26 +842,39 @@ export default function AssetsSettingsPage() {
                 <input
                   type="text"
                   value={assignEmployee}
-                  onChange={(e) => setAssignEmployee(e.target.value)}
+                  onChange={(e) => {
+                    setAssignEmployee(e.target.value);
+                    setAssignEmployeeId(null);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   placeholder="Search employee name..."
                   autoFocus
                 />
               </div>
-              {/* Quick suggestions */}
-              {assignEmployee.length === 0 && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {['Priya Sharma', 'Marcus Chen', 'Keiko Tanaka'].map(name => (
-                    <button
-                      key={name}
-                      onClick={() => setAssignEmployee(name)}
-                      className="text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="mt-2 flex max-h-48 flex-col gap-1 overflow-y-auto">
+                {filteredEmployeeOptions.slice(0, 6).map((employee) => (
+                  <button
+                    key={employee.id}
+                    onClick={() => {
+                      setAssignEmployee(employee.name);
+                      setAssignEmployeeId(employee.id);
+                    }}
+                    className={`rounded-lg px-3 py-2 text-left transition-colors ${
+                      assignEmployeeId === employee.id
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                        : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <div className="text-sm font-medium">{employee.name}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {[employee.jobTitle, employee.department].filter(Boolean).join(" • ") || "Employee"}
+                    </div>
+                  </button>
+                ))}
+                {filteredEmployeeOptions.length === 0 && (
+                  <p className="px-3 py-2 text-sm italic text-slate-400">No matching employees found.</p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -824,8 +983,7 @@ export default function AssetsSettingsPage() {
               <div>
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Assignment History</h4>
                 <div className="space-y-2">
-                  {mockAssetAssignments
-                    .filter(a => a.assetId === detailAsset.id)
+                  {(detailAsset.assignmentHistory || [])
                     .map(assignment => (
                       <div key={assignment.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
                         <div className="flex items-center gap-2">
@@ -842,7 +1000,7 @@ export default function AssetsSettingsPage() {
                         </div>
                       </div>
                     ))}
-                  {mockAssetAssignments.filter(a => a.assetId === detailAsset.id).length === 0 && (
+                  {(detailAsset.assignmentHistory || []).length === 0 && (
                     <p className="text-sm text-slate-400 italic">No previous assignments</p>
                   )}
                 </div>

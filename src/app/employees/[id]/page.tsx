@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
 import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { mockAssetAssignments, ASSET_TYPE_ICONS, type AssetType, mockAssets, type Asset, type AssetAssignment } from "@/data/mockAssets";
+import { ASSET_TYPE_ICONS, type AssetType, type Asset, type AssetAssignment } from "@/data/mockAssets";
 import { formatDate } from "@/utils/formatDate";
 
 /* ─── Asset Type Icon ─────────────────────────────────────────────── */
@@ -33,31 +33,83 @@ export default function EmployeeOverviewTab() {
   const [assigningId, setAssigningId] = useState<string | null>(null);
 
   // Mock available inventory (In real app, fetch from /api/assets?status=Available)
-  const [availableInventory, setAvailableInventory] = useState<Asset[]>(
-    mockAssets.filter((a: Asset) => a.status === 'Available')
-  );
+  const [availableInventory, setAvailableInventory] = useState<Asset[]>([]);
+  const [currentAssets, setCurrentAssets] = useState<AssetAssignment[]>([]);
 
-  // Local state for assignments (initialized from mock)
-  const [currentAssets, setCurrentAssets] = useState<AssetAssignment[]>(
-    mockAssetAssignments.filter((a: AssetAssignment) => a.employeeId === parseInt(id as string) && a.status === 'Active')
-  );
+  useEffect(() => {
+    const activeAssignments = (emp?.assetAssignments || [])
+      .filter((assignment: any) => assignment.status === "Active" && assignment.asset)
+      .map((assignment: any) => ({
+        id: String(assignment.id),
+        assetId: String(assignment.assetId),
+        assetName: assignment.asset.name,
+        assetType: (assignment.asset.type || "Other") as AssetType,
+        serialNumber: assignment.asset.serialNumber || "",
+        employeeId: Number(id),
+        employeeName: `${emp?.firstName || ""} ${emp?.lastName || ""}`.trim(),
+        assignedAt: assignment.assignedAt || assignment.createdAt || new Date().toISOString(),
+        returnedAt: assignment.returnedAt || null,
+        status: assignment.status as "Active" | "Returned" | "Overdue",
+      }));
+
+    setCurrentAssets(activeAssignments);
+  }, [emp, id]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await fetch("/api/assets?status=Available", { credentials: "include" });
+        if (!response.ok) return;
+        const assets = await response.json();
+        setAvailableInventory(
+          assets.map((asset: any) => ({
+            id: String(asset.id),
+            name: asset.name,
+            type: asset.type || "Other",
+            serialNumber: asset.serialNumber || "",
+            assignedTo: asset.assignedTo || null,
+            assignedToId: asset.assignedToId || null,
+            status: asset.status || "Available",
+            purchaseDate: asset.purchaseDate || "",
+            value: asset.value || 0,
+            notes: asset.notes || "",
+          }))
+        );
+      } catch {
+        // keep empty fallback if API isn't available
+      }
+    })();
+  }, []);
 
   const handleAssign = async (asset: Asset) => {
     try {
       setAssigningId(asset.id);
-      
-      // Simulate API call
-      // await fetch('/api/assets/assign', { ... });
+
+      const response = await fetch("/api/assets/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId: asset.id,
+          employeeId: id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to assign asset");
+      }
+
+      const assignment = await response.json();
 
       const newAssignment: AssetAssignment = {
-        id: `asgn-${Date.now()}`,
+        id: String(assignment.id),
         assetId: asset.id,
         assetName: asset.name,
         assetType: asset.type,
         serialNumber: asset.serialNumber,
         employeeId: parseInt(id as string),
         employeeName: `${emp?.firstName} ${emp?.lastName}`,
-        assignedAt: new Date().toISOString(),
+        assignedAt: assignment.assignedAt || new Date().toISOString(),
         returnedAt: null,
         status: 'Active' as const,
       };

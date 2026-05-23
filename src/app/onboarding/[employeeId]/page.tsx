@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getCaseById, OnboardingTask } from "@/data/mockOnboarding";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { ChevronLeft, CheckCircle2, Circle, SkipForward, Bell, Eye, User, Briefcase, Monitor, UserCheck } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Circle, SkipForward, Bell, Eye, User, Briefcase, Monitor, UserCheck, Package } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
 
@@ -36,7 +36,7 @@ function defaultTasksFor(onboardingCase: { id: string; startDate: string; tasks?
 
   return [
     { id: `${onboardingCase.id}-profile`, title: "Confirm employee profile", assignee: "HR", dueDate: addDays(start, -5).toISOString(), phase: "Pre-Hire", status: "Pending" },
-    { id: `${onboardingCase.id}-equipment`, title: "Prepare equipment and access", assignee: "IT", dueDate: addDays(start, -3).toISOString(), phase: "Pre-Hire", status: "Pending" },
+    { id: `${onboardingCase.id}-equipment`, title: "Assign Equipment", assignee: "IT", dueDate: start.toISOString(), phase: "Week 1", status: "Pending", taskType: "assign_equipment", equipmentTypes: ["Laptop", "Badge"], autoCreateOnStartDate: true },
     { id: `${onboardingCase.id}-welcome`, title: "Send first-day welcome details", assignee: "Manager", dueDate: start.toISOString(), phase: "Week 1", status: "Pending" },
   ];
 }
@@ -158,6 +158,18 @@ export default function IndividualOnboarding() {
                       <span className={`font-medium text-sm ${task.status === 'Complete' ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
                         {task.title}
                       </span>
+                      {task.taskType === "assign_equipment" && (
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                            <Package size={10} /> Auto-created on start date
+                          </span>
+                          {(task.equipmentTypes || []).map((type) => (
+                            <span key={type} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="text-xs text-slate-500 mt-0.5">Due: {formatDate(task.dueDate)}</div>
                     </div>
 

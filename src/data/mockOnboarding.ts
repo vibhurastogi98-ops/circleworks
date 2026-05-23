@@ -1,7 +1,10 @@
+import type { AssetType } from "@/data/mockAssets";
+
 export type OnboardingPhase = 'Pre-Hire' | 'Week 1' | 'Week 2' | '30-60-90 Day';
 export type TaskStatus = 'Pending' | 'Complete' | 'Skipped';
 export type CaseType = 'onboarding' | 'offboarding';
 export type AssigneeRole = 'HR' | 'Manager' | 'IT' | 'Employee';
+export type OnboardingTaskType = 'standard' | 'assign_equipment';
 
 export interface OnboardingTask {
   id: string;
@@ -10,6 +13,9 @@ export interface OnboardingTask {
   status: TaskStatus;
   dueDate: string;
   phase: OnboardingPhase;
+  taskType?: OnboardingTaskType;
+  equipmentTypes?: AssetType[];
+  autoCreateOnStartDate?: boolean;
 }
 
 export interface OnboardingCase {
@@ -31,6 +37,7 @@ export interface OnboardingTemplate {
   department: string | null;
   taskCount: number;
   lastUsed: string;
+  equipmentTypes?: AssetType[];
 }
 
 export interface OffboardingCase {
@@ -59,7 +66,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     id: 'obc-1', employeeId: 'emp-new-1', employeeName: 'Priya Sharma', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Priya&backgroundColor=transparent', department: 'Engineering', startDate: '2024-10-01', type: 'onboarding', phase: 'Pre-Hire',
     tasks: [
       { id: 't1', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-09-25', phase: 'Pre-Hire' },
-      { id: 't2', title: 'Ship laptop & peripherals', assignee: 'IT', status: 'Complete', dueDate: '2024-09-26', phase: 'Pre-Hire' },
+      { id: 't2', title: 'Assign Equipment', assignee: 'IT', status: 'Complete', dueDate: '2024-09-26', phase: 'Pre-Hire', taskType: 'assign_equipment', equipmentTypes: ['Laptop', 'Monitor', 'Keyboard'], autoCreateOnStartDate: true },
       { id: 't3', title: 'Create Google Workspace account', assignee: 'IT', status: 'Complete', dueDate: '2024-09-27', phase: 'Pre-Hire' },
       { id: 't4', title: 'Sign offer letter', assignee: 'Employee', status: 'Complete', dueDate: '2024-09-20', phase: 'Pre-Hire' },
       { id: 't5', title: 'Complete I-9 verification', assignee: 'HR', status: 'Pending', dueDate: '2024-09-30', phase: 'Pre-Hire' },
@@ -74,7 +81,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     id: 'obc-2', employeeId: 'emp-new-2', employeeName: 'Marcus Chen', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Marcus&backgroundColor=transparent', department: 'Product', startDate: '2024-10-07', type: 'onboarding', phase: 'Pre-Hire',
     tasks: [
       { id: 't11', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-10-01', phase: 'Pre-Hire' },
-      { id: 't12', title: 'Ship laptop & peripherals', assignee: 'IT', status: 'Pending', dueDate: '2024-10-03', phase: 'Pre-Hire' },
+      { id: 't12', title: 'Assign Equipment', assignee: 'IT', status: 'Pending', dueDate: '2024-10-03', phase: 'Pre-Hire', taskType: 'assign_equipment', equipmentTypes: ['Laptop'], autoCreateOnStartDate: true },
       { id: 't13', title: 'Create accounts', assignee: 'IT', status: 'Pending', dueDate: '2024-10-04', phase: 'Pre-Hire' },
       { id: 't14', title: 'Sign offer letter', assignee: 'Employee', status: 'Complete', dueDate: '2024-09-25', phase: 'Pre-Hire' },
       { id: 't15', title: 'Day 1 orientation', assignee: 'HR', status: 'Pending', dueDate: '2024-10-07', phase: 'Week 1' },
@@ -84,7 +91,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     id: 'obc-3', employeeId: 'emp-new-3', employeeName: 'Keiko Tanaka', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Keiko&backgroundColor=transparent', department: 'Marketing', startDate: '2024-09-15', type: 'onboarding', phase: 'Week 2',
     tasks: [
       { id: 't16', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-09-10', phase: 'Pre-Hire' },
-      { id: 't17', title: 'Ship laptop', assignee: 'IT', status: 'Complete', dueDate: '2024-09-12', phase: 'Pre-Hire' },
+      { id: 't17', title: 'Assign Equipment', assignee: 'IT', status: 'Complete', dueDate: '2024-09-12', phase: 'Pre-Hire', taskType: 'assign_equipment', equipmentTypes: ['Laptop', 'Badge'], autoCreateOnStartDate: true },
       { id: 't18', title: 'Complete I-9', assignee: 'HR', status: 'Complete', dueDate: '2024-09-14', phase: 'Pre-Hire' },
       { id: 't19', title: 'Day 1 orientation', assignee: 'HR', status: 'Complete', dueDate: '2024-09-15', phase: 'Week 1' },
       { id: 't20', title: 'Complete brand voice training', assignee: 'Employee', status: 'Pending', dueDate: '2024-09-22', phase: 'Week 2' },
@@ -119,9 +126,9 @@ export const mockOffboardingCases: OffboardingCase[] = [
 ];
 
 export const mockOnboardingTemplates: OnboardingTemplate[] = [
-  { id: 'tmpl-1', name: 'Standard Engineering Onboarding', type: 'onboarding', department: 'Engineering', taskCount: 12, lastUsed: '2024-09-15' },
-  { id: 'tmpl-2', name: 'General New Hire', type: 'onboarding', department: null, taskCount: 8, lastUsed: '2024-09-20' },
-  { id: 'tmpl-3', name: 'Sales Team Ramp-Up', type: 'onboarding', department: 'Sales', taskCount: 15, lastUsed: '2024-08-30' },
+  { id: 'tmpl-1', name: 'Standard Engineering Onboarding', type: 'onboarding', department: 'Engineering', taskCount: 12, lastUsed: '2024-09-15', equipmentTypes: ['Laptop', 'Monitor', 'Keyboard', 'Badge'] },
+  { id: 'tmpl-2', name: 'General New Hire', type: 'onboarding', department: null, taskCount: 8, lastUsed: '2024-09-20', equipmentTypes: ['Laptop', 'Badge'] },
+  { id: 'tmpl-3', name: 'Sales Team Ramp-Up', type: 'onboarding', department: 'Sales', taskCount: 15, lastUsed: '2024-08-30', equipmentTypes: ['Laptop', 'Phone', 'Parking Pass'] },
   { id: 'tmpl-4', name: 'Standard Offboarding', type: 'offboarding', department: null, taskCount: 6, lastUsed: '2024-09-25' },
 ];
 

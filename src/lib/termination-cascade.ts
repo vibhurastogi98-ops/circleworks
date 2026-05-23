@@ -126,14 +126,14 @@ function estimatePtoPayout(salary: number | null | undefined, state: string) {
   };
 }
 
-function buildOffboardingTasks(name: string, terminationDate: string, assetNames: string[]) {
+function buildOffboardingTasks(name: string, terminationDate: string, assetLabels: string[]) {
   return [
     { title: `Calculate final pay for ${name}`, assignee: "HR" as const },
     { title: `Send COBRA notice to ${name}`, assignee: "HR" as const },
     { title: `Notify 401(k) record keeper of termination date ${terminationDate}`, assignee: "HR" as const },
     { title: `Revoke system access for ${name} - terminated ${terminationDate}`, assignee: "IT" as const },
     { title: `Complete manager offboarding handoff for ${name}`, assignee: "Manager" as const },
-    ...assetNames.map((assetName) => ({ title: `Collect returned asset: ${assetName}`, assignee: "IT" as const })),
+    ...assetLabels.map((assetLabel) => ({ title: `Return ${assetLabel}`, assignee: "IT" as const })),
   ];
 }
 
@@ -149,7 +149,7 @@ function buildResult(params: {
   draftRunIds: number[];
   finalPayRunId: number | null;
   offboardingCaseId: string | number;
-  assetNames: string[];
+  assetLabels: string[];
   finalPayMode: "off_cycle" | "next_run";
 }): TerminationCascadeResult {
   const pto = estimatePtoPayout(params.salary, params.state);
@@ -202,8 +202,8 @@ function buildResult(params: {
     offboarding: {
       caseId: params.offboardingCaseId,
       template: "Standard Offboarding",
-      tasks: buildOffboardingTasks(params.name, params.terminationDate, params.assetNames),
-      assetReturnTasks: params.assetNames.map((assetName) => ({ title: `Collect returned asset: ${assetName}`, assignee: "IT" as const })),
+      tasks: buildOffboardingTasks(params.name, params.terminationDate, params.assetLabels),
+      assetReturnTasks: params.assetLabels.map((assetLabel) => ({ title: `Return ${assetLabel}`, assignee: "IT" as const })),
     },
     events: ["employee.termination.initiated", "employee.access.revoked", "employee.cobra.triggered"],
   };
@@ -242,6 +242,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       const name = `${mockEmployee.firstName} ${mockEmployee.lastName || ""}`.trim();
       const state = input.state || stateFromLocation(mockEmployee.location);
       const assets = getAssetsForEmployee(input.employeeId);
+      const assetLabels = assets.map((asset) => `${asset.assetName} (S/N: ${asset.serialNumber})`);
       const cobraCaseId = `cobra-term-${input.employeeId}-${terminationDate}`;
       if (!mockCobraCases.some((entry) => entry.id === cobraCaseId)) {
         mockCobraCases.unshift({
@@ -285,7 +286,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
         draftRunIds: ["1", "2", "4"].includes(String(input.employeeId)) ? [0] : [],
         finalPayRunId: null,
         offboardingCaseId,
-        assetNames: assets.map((asset) => asset.assetName),
+        assetLabels,
         finalPayMode,
       });
     }
@@ -399,7 +400,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       .returning({ id: onboardingCases.id });
 
     const assignedAssets = await tx
-      .select({ id: assetAssignments.id, assetName: assets.name })
+      .select({ id: assetAssignments.id, assetName: assets.name, serialNumber: assets.serialNumber })
       .from(assetAssignments)
       .innerJoin(assets, eq(assetAssignments.assetId, assets.id))
       .where(and(eq(assetAssignments.employeeId, input.employeeId), eq(assetAssignments.status, "Active")));
@@ -416,7 +417,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       draftRunIds: [...new Set(draftItems.map((entry) => entry.runId))],
       finalPayRunId,
       offboardingCaseId: offboardingCase.id,
-      assetNames: assignedAssets.map((asset) => asset.assetName),
+        assetLabels: assignedAssets.map((asset) => `${asset.assetName} (S/N: ${asset.serialNumber || "Unknown"})`),
       finalPayMode,
     });
   });
