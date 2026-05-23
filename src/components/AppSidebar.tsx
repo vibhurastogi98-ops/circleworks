@@ -58,6 +58,7 @@ const NAV_STRUCTURE: NavItem[] = [
       { label: "Run Payroll", href: "/payroll/run" },
       { label: "Pay Schedule", href: "/payroll/schedule" },
       { label: "History", href: "/payroll/history" },
+      { label: "GL Mapping", href: "/payroll/gl-mapping" },
       { label: "Contractors", href: "/contractors" },
     ],
   },
