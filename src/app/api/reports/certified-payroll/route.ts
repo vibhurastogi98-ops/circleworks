@@ -1,21 +1,95 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  // Mock history of previous WH-347 reports
-  const history = [
-    { id: "cp-001", contract: "DOJ-FX-9921", agency: "Department of Justice", weekEnding: "2026-03-24", payrollNo: 1, status: "Submitted" },
-    { id: "cp-002", contract: "DOJ-FX-9921", agency: "Department of Justice", weekEnding: "2026-03-31", payrollNo: 2, status: "Draft" },
-    { id: "cp-003", contract: "HUD-BLDG-11A", agency: "Housing and Urban Devel", weekEnding: "2026-04-05", payrollNo: 12, status: "Submitted" },
-  ];
+interface CertifiedPayrollSetupRequest {
+  contractName?: string;
+  contractNumber?: string;
+  contractingAgency?: string;
+  projectLocation?: string;
+  weekEnding?: string;
+}
 
-  return NextResponse.json({ history });
+const certifiedPayrollHistory = [
+  {
+    id: "cp-001",
+    contractName: "Federal Courthouse HQ Renovations",
+    contractNumber: "DOJ-FX-9921",
+    contractingAgency: "Department of Justice",
+    projectLocation: "123 Justice Ave, Washington, DC 20001",
+    weekEnding: "2026-03-24",
+    payrollNo: 1,
+    status: "Submitted",
+    generatedAt: "2026-03-25T15:12:00.000Z",
+  },
+  {
+    id: "cp-002",
+    contractName: "Federal Courthouse HQ Renovations",
+    contractNumber: "DOJ-FX-9921",
+    contractingAgency: "Department of Justice",
+    projectLocation: "123 Justice Ave, Washington, DC 20001",
+    weekEnding: "2026-03-31",
+    payrollNo: 2,
+    status: "Draft",
+    generatedAt: "2026-04-01T14:05:00.000Z",
+  },
+  {
+    id: "cp-003",
+    contractName: "HUD Seismic Retrofit",
+    contractNumber: "HUD-BLDG-11A",
+    contractingAgency: "Department of Housing and Urban Development",
+    projectLocation: "410 7th St SW, Washington, DC 20410",
+    weekEnding: "2026-04-05",
+    payrollNo: 12,
+    status: "Submitted",
+    generatedAt: "2026-04-06T16:40:00.000Z",
+  },
+];
+
+function nextPayrollNumber(contractNumber: string) {
+  const matchingPayrolls = certifiedPayrollHistory
+    .filter((item) => item.contractNumber === contractNumber)
+    .map((item) => item.payrollNo);
+
+  return (Math.max(0, ...matchingPayrolls) || 0) + 1;
+}
+
+export async function GET() {
+  return NextResponse.json({
+    reportType: "Certified Payroll (Davis-Bacon)",
+    output: "DOL WH-347 PDF",
+    history: certifiedPayrollHistory,
+  });
 }
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    return NextResponse.json({ success: true, message: "Saved as draft", data });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+    const data = (await request.json()) as CertifiedPayrollSetupRequest;
+    const contractNumber = data.contractNumber?.trim();
+
+    if (!data.contractName || !contractNumber || !data.contractingAgency || !data.projectLocation || !data.weekEnding) {
+      return NextResponse.json(
+        { error: "contractName, contractNumber, contractingAgency, projectLocation, and weekEnding are required" },
+        { status: 400 },
+      );
+    }
+
+    const payrollNo = nextPayrollNumber(contractNumber);
+
+    return NextResponse.json({
+      success: true,
+      message: "Certified payroll setup saved as draft",
+      report: {
+        id: `cp-draft-${contractNumber.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${payrollNo}`,
+        reportType: "Certified Payroll (Davis-Bacon)",
+        contractName: data.contractName,
+        contractNumber,
+        contractingAgency: data.contractingAgency,
+        projectLocation: data.projectLocation,
+        weekEnding: data.weekEnding,
+        payrollNo,
+        status: "Draft",
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to save certified payroll setup" }, { status: 500 });
   }
 }
