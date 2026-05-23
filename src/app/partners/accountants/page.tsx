@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { 
@@ -67,7 +68,7 @@ export default function AccountantPartnerPage() {
     firm: "",
     email: "",
     phone: "",
-    clients: "1-10"
+    payrollClients: "1-10"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
@@ -96,7 +97,7 @@ export default function AccountantPartnerPage() {
       
       if (res.ok) {
         setSubmitStatus("success");
-        setFormData({ name: "", firm: "", email: "", phone: "", clients: "1-10" });
+        setFormData({ name: "", firm: "", email: "", phone: "", payrollClients: "1-10" });
       } else {
         setSubmitStatus("error");
       }
@@ -120,7 +121,6 @@ export default function AccountantPartnerPage() {
         
         {/* HERO SECTION */}
         <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-slate-900 dark:bg-[#0A1628]">
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 mix-blend-overlay"></div>
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-30"></div>
           
           <div className="max-w-7xl mx-auto relative z-10 text-center">
@@ -136,9 +136,9 @@ export default function AccountantPartnerPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-5xl md:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto mb-6 leading-tight"
+              className="text-4xl md:text-6xl font-extrabold text-white tracking-tight max-w-5xl mx-auto mb-6 leading-tight"
             >
-              The payroll platform built for <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">accountants</span>
+              The payroll platform built for accountants who manage <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">multiple clients</span>
             </motion.h1>
             
             <motion.p 
@@ -147,7 +147,7 @@ export default function AccountantPartnerPage() {
               transition={{ delay: 0.2 }}
               className="text-xl text-slate-300 max-w-2xl mx-auto mb-10"
             >
-              Free dashboard, revenue share, and tools that make you look like a hero to your clients. Manage multiple businesses from one unified portal.
+              Free dashboard, revenue share, and tools that make you look like a hero
             </motion.p>
             
             <motion.div 
@@ -158,13 +158,13 @@ export default function AccountantPartnerPage() {
             >
               <button 
                 onClick={scrollToApply}
-                className="px-8 py-4 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] flex items-center gap-2 w-full sm:w-auto justify-center"
+                className="px-8 py-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] flex items-center gap-2 w-full sm:w-auto justify-center"
               >
                 Apply to Partner Program <ArrowRight className="w-5 h-5" />
               </button>
-              <button className="px-8 py-4 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg transition-all flex items-center gap-2 border border-slate-700 w-full sm:w-auto justify-center">
+              <Link href="/demo" className="px-8 py-4 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg transition-all flex items-center gap-2 border border-slate-700 w-full sm:w-auto justify-center">
                 <PlayCircle className="w-5 h-5" /> Watch 2-min demo
-              </button>
+              </Link>
             </motion.div>
           </div>
         </section>
@@ -173,44 +173,44 @@ export default function AccountantPartnerPage() {
         <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Everything you need to grow your practice</h2>
-              <p className="text-lg text-slate-600 dark:text-slate-400">Join thousands of accountants who are standardizing on CircleWorks.</p>
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Built for multi-client payroll work</h2>
+              <p className="text-lg text-slate-600 dark:text-slate-400">One partner program for firm operations, client service, and recurring revenue.</p>
             </div>
             
             <div className="grid md:grid-cols-3 gap-8">
               {/* Benefit 1 */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-800">
-                <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400">
                   <Building2 className="w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Free Accountant Dashboard</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Get a single, unified view of all your clients. Switch between company accounts with one click without needing separate logins. Always free for accountants.
+                  Always free for accountants, with one unified view across every client you support.
                 </p>
               </div>
 
               {/* Benefit 2 */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-lg border border-slate-200 dark:border-slate-800 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                   <BarChart3 className="w-32 h-32 text-emerald-600" />
                 </div>
-                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-400">
+                <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-400">
                   <BarChart3 className="w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Revenue Share</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed relative z-10">
-                  Earn a highly competitive, recurring percentage for every active client you refer and manage on the platform. Build a predictable revenue stream.
+                  Earn recurring % for every client referred + active, creating a predictable revenue stream for your firm.
                 </p>
               </div>
 
               {/* Benefit 3 */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-200 dark:border-slate-800">
-                <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-6 text-purple-600 dark:text-purple-400">
                   <Users className="w-7 h-7" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Client Management Tools</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Run payroll in batches, generate consolidated cross-client reporting, and set up custom permission levels for your firm&apos;s staff.
+                  Batch approval and consolidated reporting help you manage payroll work across clients without tab switching.
                 </p>
               </div>
             </div>
@@ -230,10 +230,10 @@ export default function AccountantPartnerPage() {
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12">
               {[
-                { step: "01", title: "Apply", desc: "Fill out the simple partner application form below to get started." },
-                { step: "02", title: "Get Certified", desc: "Complete our free 2-hour CircleWorks certification course online." },
-                { step: "03", title: "Onboard Clients", desc: "Work with a dedicated migration specialist to move your clients over." },
-                { step: "04", title: "Earn", desc: "Start collecting your recurring revenue share from day one." }
+                { step: "01", title: "Apply", desc: "Fill out partner application form." },
+                { step: "02", title: "Get Certified", desc: "Complete the 2-hour CircleWorks certification course." },
+                { step: "03", title: "Onboard Clients", desc: "Use dedicated migration support to move clients onto CircleWorks." },
+                { step: "04", title: "Earn", desc: "Receive recurring revenue share from day one." }
               ].map((item) => (
                 <div key={item.step} className="relative group">
                   {/* Background Number with better contrast */}
@@ -261,29 +261,28 @@ export default function AccountantPartnerPage() {
 
         {/* CERTIFICATION */}
         <section className="py-20 bg-blue-600 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 relative z-10">
             <div className="flex-1 text-white">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-sm font-semibold mb-6 backdrop-blur-sm">
                 <ShieldCheck className="w-4 h-4" /> Certification Program
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Become a Certified Expert</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Certification Program</h2>
               <p className="text-blue-100 text-lg mb-8 max-w-xl">
-                Master the platform with our 2-hour self-paced online course. You&apos;ll learn how to set up new accounts, run advanced reports, and troubleshoot common payroll scenarios.
+                Complete a 2-hour online course and earn the CircleWorks Certified Partner badge for your firm.
               </p>
               <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-3"><CheckCircle2 className="text-blue-300 w-5 h-5" /> Receive the official &quot;CircleWorks Certified&quot; badge</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-blue-300 w-5 h-5" /> Receive the official &quot;CircleWorks Certified Partner&quot; badge</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="text-blue-300 w-5 h-5" /> Placement in our public Partner Directory</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="text-blue-300 w-5 h-5" /> Continuing Professional Education (CPE) credits</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="text-blue-300 w-5 h-5" /> Course material for setup, approvals, reporting, and client migration</li>
               </ul>
             </div>
             <div className="w-full md:w-1/3">
-              <div className="bg-white rounded-3xl p-8 text-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
-                <div className="w-24 h-24 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-4">
+              <div className="bg-white rounded-lg p-8 text-center shadow-2xl">
+                <div className="w-24 h-24 mx-auto bg-blue-50 rounded-lg flex items-center justify-center mb-4">
                   <Award className="w-12 h-12 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-extrabold text-slate-900">CircleWorks Certified</h3>
-                <p className="text-slate-500 text-sm mt-1 mb-4">Partner Program 2026</p>
+                <h3 className="text-xl font-extrabold text-slate-900">CircleWorks Certified Partner</h3>
+                <p className="text-slate-500 text-sm mt-1 mb-4">2-hour online course</p>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-600 w-full"></div>
                 </div>
@@ -298,14 +297,14 @@ export default function AccountantPartnerPage() {
           <section className="flex-1">
             <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Partner Directory</h2>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Find a CircleWorks Certified Accountant</h2>
                 <p className="text-slate-600 dark:text-slate-400">Find a CircleWorks Certified Accountant near you.</p>
               </div>
               <button 
                 onClick={scrollToApply}
                 className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
               >
-                List your firm here &rarr;
+                List your firm here
               </button>
             </div>
 
@@ -323,7 +322,7 @@ export default function AccountantPartnerPage() {
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               {filteredPartners.length > 0 ? (
                 filteredPartners.map(partner => (
-                  <div key={partner.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={partner.id} className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                       <div>
                         <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
@@ -331,7 +330,7 @@ export default function AccountantPartnerPage() {
                         </h3>
                         <p className="text-slate-600 dark:text-slate-400 font-medium">{partner.firm}</p>
                       </div>
-                      <div className="flex items-center gap-1 text-slate-500 text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full w-fit">
+                      <div className="flex items-center gap-1 text-slate-500 text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-md w-fit">
                         <MapPin className="w-4 h-4" /> {partner.location}
                       </div>
                     </div>
@@ -345,7 +344,7 @@ export default function AccountantPartnerPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 border-dashed">
+                <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 border-dashed">
                   <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 dark:text-slate-400 font-medium">No partners found matching &quot;{searchTerm}&quot;</p>
                 </div>
@@ -355,13 +354,13 @@ export default function AccountantPartnerPage() {
 
           {/* APPLICATION FORM */}
           <section id="apply-form" className="w-full lg:w-[450px] shrink-0">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 sticky top-24">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 p-8 sticky top-24">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Apply to Partner</h2>
               <p className="text-slate-600 dark:text-slate-400 mb-8 text-sm">Fill out the form below to initiate your application process. Our team will reach out within 24 hours.</p>
               
               {submitStatus === "success" ? (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-6 text-center">
+                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-800/50 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <h3 className="font-bold text-emerald-900 dark:text-emerald-300 mb-2">Application Received!</h3>
@@ -376,7 +375,7 @@ export default function AccountantPartnerPage() {
               ) : (
                 <form onSubmit={handleApply} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Name</label>
                     <input 
                       required
                       type="text" 
@@ -424,8 +423,8 @@ export default function AccountantPartnerPage() {
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Number of Payroll Clients</label>
                     <select 
-                      value={formData.clients}
-                      onChange={(e) => setFormData({...formData, clients: e.target.value})}
+                      value={formData.payrollClients}
+                      onChange={(e) => setFormData({...formData, payrollClients: e.target.value})}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
                     >
                       <option value="1-10">1 - 10 clients</option>
@@ -445,7 +444,7 @@ export default function AccountantPartnerPage() {
                   <button 
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2"
+                    className="w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors flex justify-center items-center gap-2"
                   >
                     {isSubmitting ? (
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>

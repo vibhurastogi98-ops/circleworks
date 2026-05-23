@@ -4,10 +4,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Validate request body
-    const { name, firm, email, phone, clients } = body;
+    const { name, firm, email, phone } = body;
+    const payrollClients = body.payrollClients ?? body.clients;
     
-    if (!name || !firm || !email || !phone || !clients) {
+    if (!name || !firm || !email || !phone || !payrollClients) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -16,7 +16,13 @@ export async function POST(req: Request) {
     
     // In a real application, you would save this to a database
     // and send notification emails.
-    console.log("Partner application received:", body);
+    console.log("Partner application received:", {
+      name,
+      firm,
+      email,
+      phone,
+      payrollClients,
+    });
     
     return NextResponse.json(
       { message: "Application submitted successfully" },
