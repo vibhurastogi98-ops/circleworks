@@ -4,9 +4,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
-import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus, Activity } from "lucide-react";
+import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus, Activity, Shield, Hash, Save } from "lucide-react";
 import { toast } from "sonner";
 import { ASSET_TYPE_ICONS, type AssetType, type Asset, type AssetAssignment } from "@/data/mockAssets";
+import { mockEmployeeUnionMemberships, mockUnions } from "@/data/mockUnionPayroll";
 import { formatDate } from "@/utils/formatDate";
 
 /* ─── Asset Type Icon ─────────────────────────────────────────────── */
@@ -35,6 +36,12 @@ export default function EmployeeOverviewTab() {
   // Mock available inventory (In real app, fetch from /api/assets?status=Available)
   const [availableInventory, setAvailableInventory] = useState<Asset[]>([]);
   const [currentAssets, setCurrentAssets] = useState<AssetAssignment[]>([]);
+  const [isUnionMember, setIsUnionMember] = useState(false);
+  const [selectedUnionId, setSelectedUnionId] = useState("u-001");
+  const [membershipNumber, setMembershipNumber] = useState("");
+  const [employeeUnionMemberships, setEmployeeUnionMemberships] = useState<typeof mockEmployeeUnionMemberships>([]);
+
+  const employeeUnionLookupId = `e-${String(id).padStart(3, "0")}`;
 
   useEffect(() => {
     const activeAssignments = (emp?.assetAssignments || [])
@@ -54,6 +61,19 @@ export default function EmployeeOverviewTab() {
 
     setCurrentAssets(activeAssignments);
   }, [emp, id]);
+
+  useEffect(() => {
+    const fullName = `${emp?.firstName || ""} ${emp?.lastName || ""}`.trim();
+    const memberships = mockEmployeeUnionMemberships.filter(
+      (membership) =>
+        membership.employeeId === employeeUnionLookupId ||
+        membership.employeeId === String(id) ||
+        membership.employeeName === fullName,
+    );
+
+    setEmployeeUnionMemberships(memberships);
+    setIsUnionMember(memberships.length > 0);
+  }, [emp, employeeUnionLookupId, id]);
 
   useEffect(() => {
     (async () => {
@@ -124,6 +144,40 @@ export default function EmployeeOverviewTab() {
     } finally {
       setAssigningId(null);
     }
+  };
+
+  const handleAddUnionMembership = () => {
+    if (!isUnionMember) {
+      toast.info("Turn on Union Member before adding an affiliation");
+      return;
+    }
+
+    if (!membershipNumber.trim()) {
+      toast.error("Membership number is required");
+      return;
+    }
+
+    const selectedUnion = mockUnions.find((union) => union.id === selectedUnionId);
+    if (!selectedUnion || !emp) return;
+
+    const newMembership = {
+      id: `eum-local-${Date.now()}`,
+      employeeId: employeeUnionLookupId,
+      employeeName: `${emp.firstName} ${emp.lastName}`.trim(),
+      avatar: `${emp.firstName?.[0] || ""}${emp.lastName?.[0] || ""}`.toUpperCase(),
+      department: emp.department || "Production",
+      unionId: selectedUnion.id,
+      unionAbbreviation: selectedUnion.abbreviation,
+      membershipNumber: membershipNumber.trim(),
+      joinDate: new Date().toISOString().slice(0, 10),
+      status: "Active" as const,
+    };
+
+    setEmployeeUnionMemberships((prev) => [...prev, newMembership]);
+    setMembershipNumber("");
+    toast.success("Union membership added", {
+      description: `${selectedUnion.abbreviation} membership saved to this profile.`,
+    });
   };
 
   if (isLoading) {
@@ -213,6 +267,90 @@ export default function EmployeeOverviewTab() {
                  <span className="text-sm font-medium text-slate-900 dark:text-white capitalize">{emp.status}</span>
               </div>
            </div>
+        </div>
+
+        {/* Union Membership */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                 <Shield size={18} className="text-indigo-500" /> Union Membership
+              </h3>
+              <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                <span>Union Member</span>
+                <button
+                  type="button"
+                  onClick={() => setIsUnionMember((value) => !value)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${
+                    isUnionMember ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
+                  }`}
+                  aria-pressed={isUnionMember}
+                >
+                  <span
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
+                      isUnionMember ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </label>
+           </div>
+
+           {employeeUnionMemberships.length > 0 && (
+             <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+               {employeeUnionMemberships.map((membership) => (
+                 <div
+                   key={membership.id}
+                   className="rounded-xl border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/70 dark:bg-indigo-950/20 p-4"
+                 >
+                   <div className="flex items-center justify-between gap-3">
+                     <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">{membership.unionAbbreviation}</span>
+                     <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                       {membership.status}
+                     </span>
+                   </div>
+                   <div className="mt-3 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                     <Hash size={13} />
+                     <span className="font-mono">{membership.membershipNumber}</span>
+                   </div>
+                   <p className="mt-1 text-[11px] text-slate-500">Joined {formatDate(membership.joinDate)}</p>
+                 </div>
+               ))}
+             </div>
+           )}
+
+           {isUnionMember ? (
+             <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
+                <select
+                  value={selectedUnionId}
+                  onChange={(event) => setSelectedUnionId(event.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                >
+                  {mockUnions.map((union) => (
+                    <option key={union.id} value={union.id}>
+                      {union.abbreviation} — {union.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={membershipNumber}
+                  onChange={(event) => setMembershipNumber(event.target.value)}
+                  placeholder="Membership number"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddUnionMembership}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-700"
+                >
+                  <Save size={15} />
+                  Add Union
+                </button>
+             </div>
+           ) : (
+             <p className="text-sm text-slate-500 dark:text-slate-400">
+               Turn on the Union Member toggle to add SAG-AFTRA, IATSE, WGA, DGA, or other affiliations. Multiple union memberships can be stored for entertainment workers.
+             </p>
+           )}
         </div>
       </div>
 

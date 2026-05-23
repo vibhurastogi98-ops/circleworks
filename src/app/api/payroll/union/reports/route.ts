@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
-import { mockContributionReports, mockUnionPayrollCalcs } from "@/data/mockUnionPayroll";
+import {
+  maskSsn,
+  mockContributionReports,
+  mockUnionEmployeeSsns,
+  mockUnionPayrollCalcs,
+} from "@/data/mockUnionPayroll";
+
+function csvEscape(value: string | number) {
+  const stringValue = String(value);
+  return /[",\n]/.test(stringValue)
+    ? `"${stringValue.replace(/"/g, '""')}"`
+    : stringValue;
+}
 
 export async function POST(request: Request) {
   try {
@@ -26,23 +38,100 @@ export async function POST(request: Request) {
       c => c.unionAbbreviation === report.unionAbbreviation
     );
 
-    // Build CSV header based on format
-    const headers = format === "SAG-AFTRA CSV"
-      ? "Union,Employee Name,SSN (masked),Gross Earnings,Hours Worked,Dues,Pension,H&W,Fringe"
-      : format === "IATSE CSV"
-        ? "Union,Employee Name,SSN (masked),Gross Earnings,Hours,Dues,Pension,Health & Welfare,Annuity,Vacation"
-        : "Union,Employee Name,SSN,Earnings,Hours,Contributions";
+    const selectedFormat = format || report.exportFormat;
+    const headers =
+      selectedFormat === "SAG-AFTRA CSV"
+        ? [
+            "Union Name",
+            "Employee Name",
+            "SSN",
+            "Earnings",
+            "Hours",
+            "Union Dues",
+            "Work Dues",
+            "Pension Contribution",
+            "Health & Welfare",
+            "Fringe Contributions",
+          ]
+        : selectedFormat === "IATSE CSV"
+          ? [
+              "Local/Union",
+              "Employee Name",
+              "SSN",
+              "Gross Earnings",
+              "Hours",
+              "Dues",
+              "Pension",
+              "Health & Welfare",
+              "Annuity/Fringe",
+              "Total Contributions",
+            ]
+          : [
+              "Union Name",
+              "Employee Name",
+              "SSN",
+              "Earnings",
+              "Hours",
+              "Employee Deductions",
+              "Employer Contributions",
+              "Total Contributions",
+            ];
 
-    const rows = calcs.map(c =>
-      `${c.unionAbbreviation},"${c.employeeName}",***-**-XXXX,${c.grossEarnings},${c.hoursWorked},${c.duesDeduction},${c.pensionContribution},${c.healthWelfareContribution},${c.fringeContribution}`
-    );
+    const rows = calcs.map((calc) => {
+      const ssn = maskSsn(mockUnionEmployeeSsns[calc.employeeName]);
+      const totalContributions =
+        calc.totalEmployeeDeductions + calc.totalEmployerContributions;
+      const genericRow = [
+        calc.unionAbbreviation,
+        calc.employeeName,
+        ssn,
+        calc.grossEarnings,
+        calc.hoursWorked,
+        calc.totalEmployeeDeductions,
+        calc.totalEmployerContributions,
+        totalContributions,
+      ];
+      const detailedRow = [
+        calc.unionAbbreviation,
+        calc.employeeName,
+        ssn,
+        calc.grossEarnings,
+        calc.hoursWorked,
+        calc.duesDeduction,
+        calc.workDuesDeduction,
+        calc.pensionContribution,
+        calc.healthWelfareContribution,
+        calc.fringeContribution,
+      ];
+      const iatseRow = [
+        calc.unionAbbreviation,
+        calc.employeeName,
+        ssn,
+        calc.grossEarnings,
+        calc.hoursWorked,
+        calc.duesDeduction + calc.workDuesDeduction,
+        calc.pensionContribution,
+        calc.healthWelfareContribution,
+        calc.fringeContribution,
+        totalContributions,
+      ];
 
-    const csvContent = [headers, ...rows].join("\n");
+      return (selectedFormat === "Generic CSV"
+        ? genericRow
+        : selectedFormat === "IATSE CSV"
+          ? iatseRow
+          : detailedRow
+      )
+        .map(csvEscape)
+        .join(",");
+    });
+
+    const csvContent = [headers.map(csvEscape).join(","), ...rows].join("\n");
 
     return NextResponse.json({
       success: true,
       reportId,
-      format: format || report.exportFormat,
+      format: selectedFormat,
       csvContent,
       rowCount: calcs.length,
       generatedAt: new Date().toISOString(),

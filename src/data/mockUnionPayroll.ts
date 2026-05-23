@@ -6,6 +6,26 @@ export type MembershipStatus = "Active" | "Inactive" | "On Leave";
 export type ReportStatus = "Draft" | "Generated" | "Submitted" | "Confirmed";
 export type ExportFormat = "SAG-AFTRA CSV" | "IATSE CSV" | "Generic CSV";
 
+export const mockUnionEmployeeSsns: Record<string, string> = {
+  "Sophia Park": "123-45-6789",
+  "Elena Vasquez": "234-56-7890",
+  "David Chang": "345-67-8901",
+  "Liam Foster": "456-78-9012",
+  "Nina Kowalski": "567-89-0123",
+  "Marcus Webb": "678-90-1234",
+  "James Nakamura": "789-01-2345",
+  "Alice Chen": "890-12-3456",
+  "Tommy Lin": "901-23-4567",
+  "Diana Ross-Williams": "012-34-5678",
+  "Carlos Mendez": "112-23-3445",
+  "Rachel Kim": "223-34-4556",
+};
+
+export function maskSsn(ssn?: string) {
+  if (!ssn) return "***-**-XXXX";
+  return `***-**-${ssn.slice(-4)}`;
+}
+
 /* ─── Union Config ────────────────────────────────────────────── */
 
 export type UnionConfig = {
@@ -262,6 +282,71 @@ export type UnionPayrollCalc = {
   hoursWorked: number;
   payPeriod: string;
 };
+
+export function calculateUnionPayrollAmounts(
+  grossEarnings: number,
+  hoursWorked: number,
+  contract: Pick<
+    UnionContract,
+    "duesType" | "duesRate" | "workDuesRate" | "pensionRate" | "healthWelfareRate" | "fringeBenefits"
+  >,
+) {
+  const round = (value: number) => Math.round(value);
+  const duesDeduction =
+    contract.duesType === "flat"
+      ? round(contract.duesRate)
+      : round(grossEarnings * (contract.duesRate / 100));
+  const workDuesDeduction = round(grossEarnings * (contract.workDuesRate / 100));
+  const pensionContribution = round(grossEarnings * (contract.pensionRate / 100));
+  const healthWelfareContribution = round(grossEarnings * (contract.healthWelfareRate / 100));
+  const fringeContribution = round(
+    grossEarnings *
+      (contract.fringeBenefits.reduce((sum, benefit) => sum + benefit.rate, 0) / 100),
+  );
+
+  return {
+    grossEarnings,
+    hoursWorked,
+    duesDeduction,
+    workDuesDeduction,
+    pensionContribution,
+    healthWelfareContribution,
+    fringeContribution,
+    totalEmployeeDeductions: duesDeduction + workDuesDeduction,
+    totalEmployerContributions:
+      pensionContribution + healthWelfareContribution + fringeContribution,
+  };
+}
+
+export function getPayStubUnionLineItems(calc: UnionPayrollCalc) {
+  return [
+    {
+      label: "Union Dues",
+      type: "Employee deduction",
+      amount: -calc.duesDeduction,
+    },
+    {
+      label: "Work Dues",
+      type: "Employee deduction",
+      amount: -calc.workDuesDeduction,
+    },
+    {
+      label: "Pension (employer match)",
+      type: "Employer contribution",
+      amount: calc.pensionContribution,
+    },
+    {
+      label: "Health & Welfare",
+      type: "Employer contribution",
+      amount: calc.healthWelfareContribution,
+    },
+    {
+      label: "Union Fringe Benefits",
+      type: "Employer contribution",
+      amount: calc.fringeContribution,
+    },
+  ];
+}
 
 export const mockUnionPayrollCalcs: UnionPayrollCalc[] = [
   { id: "upc-001", employeeName: "Sophia Park", unionAbbreviation: "SAG-AFTRA", contractName: "TV/Theatrical 2024-2027", grossEarnings: 8500, duesDeduction: 134, workDuesDeduction: 85, pensionContribution: 1445, healthWelfareContribution: 85, fringeContribution: 723, totalEmployeeDeductions: 219, totalEmployerContributions: 2253, hoursWorked: 40, payPeriod: "2025-04-01 to 2025-04-15" },

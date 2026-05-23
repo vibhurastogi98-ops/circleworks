@@ -14,6 +14,7 @@ import {
   mockEmployeeUnionMemberships,
   mockUnionPayrollCalcs,
   mockContributionReports,
+  getPayStubUnionLineItems,
   getUnionPayrollStats,
   type UnionConfig,
   type UnionContract,
@@ -292,6 +293,95 @@ function MemberDrawer({ membership, onClose }: { membership: EmployeeUnionMember
   );
 }
 
+/* ─── Pay Stub Drawer ─────────────────────────────────────────── */
+
+function PayStubDrawer({
+  calc,
+  onClose,
+}: {
+  calc: UnionPayrollCalc;
+  onClose: () => void;
+}) {
+  const uc = getUnionColor(calc.unionAbbreviation);
+  const lineItems = getPayStubUnionLineItems(calc);
+  const fmtMoney = (val: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+    }).format(Math.abs(val));
+
+  return (
+    <div className="fixed inset-0 z-[200] flex justify-end">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 animate-in slide-in-from-right duration-300 overflow-y-auto">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${uc.gradient} flex items-center justify-center shadow-lg`}>
+              <FileText size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Union Pay Stub Lines</h3>
+              <p className="text-xs text-slate-500">{calc.employeeName} • {calc.payPeriod}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+            <X size={18} className="text-slate-500" />
+          </button>
+        </div>
+
+        <div className="p-6 flex flex-col gap-5">
+          <div className={`${uc.bg} border ${uc.border} rounded-xl p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-xs font-black uppercase tracking-wider ${uc.text}`}>{calc.unionAbbreviation}</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">{calc.contractName}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-500 uppercase">Gross earnings</p>
+                <p className="text-xl font-black text-slate-900 dark:text-white">{fmtMoney(calc.grossEarnings)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {lineItems.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4"
+              >
+                <div>
+                  <p className="text-sm font-black text-slate-900 dark:text-white">{item.label}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{item.type}</p>
+                </div>
+                <span
+                  className={`font-mono text-sm font-black ${
+                    item.amount < 0 ? "text-red-600" : "text-emerald-600"
+                  }`}
+                >
+                  {item.amount < 0 ? "-" : "+"}
+                  {fmtMoney(item.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4">
+              <p className="text-[10px] font-bold uppercase text-red-500">Employee deductions</p>
+              <p className="text-2xl font-black text-red-700 dark:text-red-300">{fmtMoney(calc.totalEmployeeDeductions)}</p>
+            </div>
+            <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-4">
+              <p className="text-[10px] font-bold uppercase text-emerald-500">Employer contributions</p>
+              <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{fmtMoney(calc.totalEmployerContributions)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Page ────────────────────────────────────────────────── */
 
 export default function UnionPayrollPage() {
@@ -300,6 +390,7 @@ export default function UnionPayrollPage() {
   const [unionFilter, setUnionFilter] = useState("All");
   const [selectedContract, setSelectedContract] = useState<UnionContract | null>(null);
   const [selectedMember, setSelectedMember] = useState<EmployeeUnionMembership | null>(null);
+  const [selectedCalc, setSelectedCalc] = useState<UnionPayrollCalc | null>(null);
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const [unions, setUnions] = useState<UnionConfig[]>(mockUnions);
   const [loading, setLoading] = useState(true);
@@ -650,6 +741,7 @@ export default function UnionPayrollPage() {
                   <th className="px-5 py-3.5 text-right text-emerald-600">Pension</th>
                   <th className="px-5 py-3.5 text-right text-emerald-600">H&W</th>
                   <th className="px-5 py-3.5 text-right text-orange-600">Fringe</th>
+                  <th className="px-5 py-3.5 text-right">Pay Stub</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -679,6 +771,15 @@ export default function UnionPayrollPage() {
                       <td className="px-5 py-4 text-right font-mono text-emerald-600 font-bold">${c.pensionContribution}</td>
                       <td className="px-5 py-4 text-right font-mono text-emerald-600 font-bold">${c.healthWelfareContribution}</td>
                       <td className="px-5 py-4 text-right font-mono text-orange-600 font-bold">${c.fringeContribution}</td>
+                      <td className="px-5 py-4 text-right">
+                        <button
+                          onClick={() => setSelectedCalc(c)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300 transition-colors"
+                        >
+                          <FileText size={12} />
+                          Lines
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -692,6 +793,7 @@ export default function UnionPayrollPage() {
                   <td className="px-5 py-4 text-right text-emerald-600">{fmtMoney(filteredCalcs.reduce((s, c) => s + c.pensionContribution, 0))}</td>
                   <td className="px-5 py-4 text-right text-emerald-600">{fmtMoney(filteredCalcs.reduce((s, c) => s + c.healthWelfareContribution, 0))}</td>
                   <td className="px-5 py-4 text-right text-orange-600">{fmtMoney(filteredCalcs.reduce((s, c) => s + c.fringeContribution, 0))}</td>
+                  <td className="px-5 py-4" />
                 </tr>
               </tbody>
             </table>
@@ -1005,6 +1107,7 @@ export default function UnionPayrollPage() {
       {/* Drawers */}
       {selectedContract && <ContractDrawer contract={selectedContract} onClose={() => setSelectedContract(null)} />}
       {selectedMember && <MemberDrawer membership={selectedMember} onClose={() => setSelectedMember(null)} />}
+      {selectedCalc && <PayStubDrawer calc={selectedCalc} onClose={() => setSelectedCalc(null)} />}
     </div>
   );
 }

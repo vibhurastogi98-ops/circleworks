@@ -50,6 +50,28 @@ function AddUnionModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [abbr, setAbbr] = useState("");
   const [description, setDescription] = useState("");
+  const starterUnions = [
+    {
+      abbr: "SAG-AFTRA",
+      name: "Screen Actors Guild – American Federation of Television and Radio Artists",
+      description: "Performers in film, television, commercials, radio, and new media.",
+    },
+    {
+      abbr: "IATSE",
+      name: "International Alliance of Theatrical Stage Employees",
+      description: "Crew, technicians, artisans, and craftspersons in entertainment.",
+    },
+    {
+      abbr: "WGA",
+      name: "Writers Guild of America",
+      description: "Writers in motion picture, broadcast, cable, and new media.",
+    },
+    {
+      abbr: "DGA",
+      name: "Directors Guild of America",
+      description: "Directors and directorial team members.",
+    },
+  ];
 
   const handleSave = () => {
     if (!name || !abbr) {
@@ -77,6 +99,25 @@ function AddUnionModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-6 flex flex-col gap-5">
+          <div>
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Common Entertainment Unions</label>
+            <div className="grid grid-cols-2 gap-2">
+              {starterUnions.map((union) => (
+                <button
+                  key={union.abbr}
+                  type="button"
+                  onClick={() => {
+                    setName(union.name);
+                    setAbbr(union.abbr);
+                    setDescription(union.description);
+                  }}
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-300 hover:border-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                >
+                  {union.abbr}
+                </button>
+              ))}
+            </div>
+          </div>
           <div>
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Union Name *</label>
             <input
@@ -129,12 +170,15 @@ function AddUnionModal({ onClose }: { onClose: () => void }) {
 
 function AddContractModal({ unionId, unionName, onClose }: { unionId: string; unionName: string; onClose: () => void }) {
   const [contractName, setContractName] = useState("");
+  const [duesType, setDuesType] = useState<"percentage" | "flat">("percentage");
   const [duesRate, setDuesRate] = useState("");
   const [pensionRate, setPensionRate] = useState("");
   const [hwRate, setHwRate] = useState("");
   const [workDuesRate, setWorkDuesRate] = useState("");
   const [effectiveDate, setEffectiveDate] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
+  const [fringeName, setFringeName] = useState("Vacation Accrual");
+  const [fringeRate, setFringeRate] = useState("");
 
   const handleSave = () => {
     if (!contractName || !duesRate || !pensionRate || !hwRate) {
@@ -165,12 +209,26 @@ function AddContractModal({ unionId, unionName, onClose }: { unionId: string; un
             <input type="text" value={contractName} onChange={(e) => setContractName(e.target.value)} placeholder="e.g. SAG-AFTRA TV/Theatrical Agreement 2024-2027" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-4">
             <div>
-              <label className="text-xs font-bold text-violet-600 uppercase tracking-wider block mb-2">Dues Rate (%) *</label>
-              <input type="number" step="0.01" value={duesRate} onChange={(e) => setDuesRate(e.target.value)} placeholder="1.575" className="w-full px-4 py-2.5 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-white" />
-              <p className="text-[10px] text-violet-500 mt-1">of gross earnings • Employee</p>
+              <label className="text-xs font-bold text-violet-600 uppercase tracking-wider block mb-2">Dues Type</label>
+              <select
+                value={duesType}
+                onChange={(e) => setDuesType(e.target.value as "percentage" | "flat")}
+                className="w-full px-4 py-2.5 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-white"
+              >
+                <option value="percentage">% of earnings</option>
+                <option value="flat">Flat amount</option>
+              </select>
             </div>
+            <div>
+              <label className="text-xs font-bold text-violet-600 uppercase tracking-wider block mb-2">Dues Rate *</label>
+              <input type="number" step="0.01" value={duesRate} onChange={(e) => setDuesRate(e.target.value)} placeholder={duesType === "percentage" ? "1.575" : "75.00"} className="w-full px-4 py-2.5 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-white" />
+              <p className="text-[10px] text-violet-500 mt-1">{duesType === "percentage" ? "of gross earnings" : "flat amount"} • Employee</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="text-xs font-bold text-blue-600 uppercase tracking-wider block mb-2">Work Dues (%)</label>
               <input type="number" step="0.01" value={workDuesRate} onChange={(e) => setWorkDuesRate(e.target.value)} placeholder="1.0" className="w-full px-4 py-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white" />
@@ -197,6 +255,33 @@ function AddContractModal({ unionId, unionName, onClose }: { unionId: string; un
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Expiration Date</label>
               <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white" />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-950/20 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Heart size={15} className="text-orange-600" />
+              <p className="text-xs font-black uppercase tracking-wider text-orange-700 dark:text-orange-300">Fringe Benefits</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
+              <input
+                type="text"
+                value={fringeName}
+                onChange={(e) => setFringeName(e.target.value)}
+                placeholder="Vacation accrual, annuity, training fund..."
+                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-slate-900 dark:text-white"
+              />
+              <input
+                type="number"
+                step="0.01"
+                value={fringeRate}
+                onChange={(e) => setFringeRate(e.target.value)}
+                placeholder="5.5%"
+                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-slate-900 dark:text-white"
+              />
+            </div>
+            <p className="text-[10px] text-orange-700 dark:text-orange-400 mt-2">
+              Fringe rates are employer-paid and applied on top of pension and health & welfare contributions.
+            </p>
           </div>
         </div>
 
