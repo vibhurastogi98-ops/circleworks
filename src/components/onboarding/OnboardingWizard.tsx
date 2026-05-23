@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   WelcomeScreen, PersonalInfoStep, TaxDocumentsStep, 
   DirectDepositStep, I9Step, SignDocumentsStep, CompletionScreen 
 } from "./WizardSteps";
+import type { OnboardingData, OnboardingMetadata } from "./types";
 
 interface Props {
-  payload: {
+  payload: Partial<OnboardingMetadata> & {
     employeeId: string | number;
     email: string;
   };
@@ -16,36 +17,60 @@ interface Props {
 
 export default function OnboardingWizard({ payload }: Props) {
   const [step, setStep] = useState(0);
-  const [data, setData] = useState({
+  const [data, setData] = useState<OnboardingData>({
     personal: {
        legalName: "",
        preferredName: "",
        pronouns: "",
+       emergencyContactName: "",
+       emergencyContactPhone: "",
        homeAddress: "",
-       emergencyContact: ""
+       city: "",
+       state: "",
+       zip: "",
     },
     tax: {
        filingStatus: "",
        multipleJobs: false,
+       claimDependents: 0,
+       otherIncome: 0,
+       deductions: 0,
+       extraWithholding: 0,
        exempt: false,
+       stateFormCompleted: false,
+       workState: payload.workState || "CA",
     },
     bank: {
+       method: "",
        routingNumber: "",
        accountNumber: "",
        bankName: "",
+       accountMask: "",
     },
     i9: {
        citizenshipStatus: "",
+       alienRegistrationNumber: "",
        attested: false
     },
     docs: []
   });
 
-  // Mock metadata that would usually come from the DB linked to the employeeId
-  const companyName = "CircleWorks";
-  const employeeName = "Alex Rivera"; // This would normally be fetched from the API with the employeeId
+  const metadata: OnboardingMetadata = {
+    employeeId: payload.employeeId,
+    email: payload.email,
+    companyName: payload.companyName || "CircleWorks",
+    employeeName: payload.employeeName || (payload.firstName ? `${payload.firstName} Rivera` : "Alex Rivera"),
+    firstName: payload.firstName || payload.employeeName?.split(" ")[0] || "Alex",
+    startDate: payload.startDate || "2026-06-01",
+    managerName: payload.managerName || "Michael Arrington",
+    managerPhotoUrl:
+      payload.managerPhotoUrl ||
+      "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent",
+    officeLocation: payload.officeLocation || "Headquarters, 548 Market St, San Francisco, CA",
+    workState: payload.workState || "CA",
+  };
 
-  const handleNext = (stepData: any) => {
+  const handleNext = (stepData: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...stepData }));
     setStep((prev) => prev + 1);
     window.scrollTo(0, 0);
@@ -104,10 +129,9 @@ export default function OnboardingWizard({ payload }: Props) {
           >
             <CurrentStepComponent 
               onNext={handleNext}
-              onBack={step > 1 ? handleBack : undefined}
+              onBack={step > 0 ? handleBack : undefined}
               data={data}
-              companyName={companyName}
-              employeeName={employeeName}
+              metadata={metadata}
             />
           </motion.div>
         </AnimatePresence>

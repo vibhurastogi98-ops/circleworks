@@ -6,6 +6,14 @@ const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 export interface InvitePayload {
   employeeId: string | number;
   email: string;
+  companyName?: string;
+  employeeName?: string;
+  firstName?: string;
+  startDate?: string;
+  managerName?: string;
+  managerPhotoUrl?: string;
+  officeLocation?: string;
+  workState?: string;
 }
 
 /**

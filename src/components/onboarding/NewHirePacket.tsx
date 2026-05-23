@@ -78,9 +78,11 @@ const styles = StyleSheet.create({
 interface NewHirePacketProps {
   employeeName: string;
   companyName: string;
+  startDate?: string;
+  officeLocation?: string;
 }
 
-const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
+const NewHirePacket = ({ employeeName, companyName, startDate = "your first day", officeLocation = "Company headquarters" }: NewHirePacketProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Header */}
@@ -141,6 +143,8 @@ const NewHirePacket = ({ employeeName, companyName }: NewHirePacketProps) => (
       {/* First Day Schedule */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>First Day Schedule</Text>
+        <Text style={styles.text}><Text style={styles.bold}>Date:</Text> {startDate}</Text>
+        <Text style={styles.text}><Text style={styles.bold}>Office address:</Text> {officeLocation}</Text>
         <View style={styles.list}>
           <View style={styles.listItem}>
             <Text style={styles.bullet}>•</Text>

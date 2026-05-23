@@ -40,6 +40,13 @@ export class PdfGenerationConsumer extends WorkerHost {
       );
       return;
     }
+    if (job.name === "new-hire-packet") {
+      const data = job.data as { employeeId?: string | number; companyName?: string; startDate?: string };
+      this.logger.log(
+        `pdf-generation new-hire-packet job=${job.id} employeeId=${data.employeeId} company=${data.companyName} startDate=${data.startDate}`
+      );
+      return;
+    }
     this.logger.debug(`pdf-generation ${job.id} name=${job.name}`);
   }
 }
