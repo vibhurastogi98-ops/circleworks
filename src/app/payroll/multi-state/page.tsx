@@ -1,165 +1,278 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { motion, AnimatePresence } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Map,
-  Plus,
-  ArrowRight,
-  ArrowLeft,
-  Save,
   AlertCircle,
-  X,
-  Search,
-  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
   Calendar,
-  Building2,
-  Trash2,
+  CheckCircle2,
   Edit2,
   History,
-  Info
+  Info,
+  Loader2,
+  Map,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  X,
 } from "lucide-react";
-import Link from "next/link";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
 import { formatDate } from "@/utils/formatDate";
 
-/* ──────────────────────────────────── MOCK DATA & API ─────────────────────────────── */
-
-export type StateAllocation = {
+type StateAllocation = {
   state: string;
   percentage: number;
+  taxRate: number;
+  proratedGross: number;
+  estimatedStateTax: number;
 };
 
-export type EmployeeAllocation = {
+type EmployeeAllocation = {
   id: string;
-  name: string;
+  employeeId: string;
+  employeeName: string;
   avatar: string;
   role: string;
   primaryState: string;
+  additionalStates: string[];
   allocations: StateAllocation[];
+  effectiveDate: string;
   updatedAt: string;
+  grossPayBasis: number;
+  history: Array<{
+    id: string;
+    date: string;
+    description: string;
+  }>;
 };
 
-const RECIPROCITY_MAP: Record<string, string[]> = {
-  "NY": ["NJ", "CT", "PA"],
-  "NJ": ["NY", "PA"],
-  "PA": ["NJ", "NY", "OH", "MD", "VA", "WV"],
-  "DC": ["MD", "VA"],
-  "MD": ["DC", "VA", "PA", "WV"],
-  "VA": ["DC", "MD", "PA", "WV", "KY"],
+type EmployeeOption = {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+  defaultState: string;
 };
 
 const US_STATES = [
-  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY",
-  "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND",
-  "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+  "DC",
 ];
 
-// Mock API initial state
-let MOCK_ALLOCATIONS: EmployeeAllocation[] = [
-  {
-    id: "EMP-001",
-    name: "Alex Clark",
-    avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=AlexClark&backgroundColor=transparent",
-    role: "Engineering Manager",
-    primaryState: "NY",
-    allocations: [{ state: "NY", percentage: 60 }, { state: "NJ", percentage: 40 }],
-    updatedAt: "2026-03-10",
-  },
-  {
-    id: "EMP-002",
-    name: "Taylor Smith",
-    avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=TaylorSmith&backgroundColor=transparent",
-    role: "Sales Rep",
-    primaryState: "CA",
-    allocations: [{ state: "CA", percentage: 75 }, { state: "OR", percentage: 25 }],
-    updatedAt: "2026-02-15",
-  },
-  {
-    id: "EMP-003",
-    name: "Jordan Brown",
-    avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=JordanBrown&backgroundColor=transparent",
-    role: "Consultant",
-    primaryState: "DC",
-    allocations: [{ state: "DC", percentage: 50 }, { state: "MD", percentage: 30 }, { state: "VA", percentage: 20 }],
-    updatedAt: "2026-04-01",
-  }
-];
-
-const mockSearchEmployees = async (query: string) => {
-  await new Promise(r => setTimeout(r, 300));
-  const pool = [
-    { id: "EMP-004", name: "Morgan Davis", role: "Developer", defaultState: "TX" },
-    { id: "EMP-005", name: "Casey Evans", role: "Designer", defaultState: "NY" },
-    { id: "EMP-006", name: "Riley Foster", role: "HR", defaultState: "IL" },
-  ];
-  return pool.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
+const RECIPROCITY_MAP: Record<string, string[]> = {
+  AZ: ["CA", "IN", "OR", "VA"],
+  DC: ["MD", "VA"],
+  IL: ["IA", "KY", "MI", "WI"],
+  IN: ["KY", "MI", "OH", "PA", "WI"],
+  KY: ["IL", "IN", "MI", "OH", "VA", "WV", "WI"],
+  MD: ["DC", "PA", "VA", "WV"],
+  MI: ["IL", "IN", "KY", "MN", "OH", "WI"],
+  MN: ["MI", "ND"],
+  NJ: ["PA"],
+  OH: ["IN", "KY", "MI", "PA", "WV"],
+  PA: ["IN", "MD", "NJ", "OH", "VA", "WV"],
+  VA: ["AZ", "DC", "KY", "MD", "PA", "WV"],
+  WV: ["KY", "MD", "OH", "PA", "VA"],
+  WI: ["IL", "IN", "KY", "MI"],
 };
-
-const mockFetchAllocations = async () => {
-  await new Promise(r => setTimeout(r, 600));
-  return [...MOCK_ALLOCATIONS];
-};
-
-const mockSaveAllocation = async (data: any) => {
-  await new Promise(r => setTimeout(r, 800));
-  return data;
-};
-
-/* ──────────────────────────────────── SCHEMA ─────────────────────────────────── */
-
-const allocationSchema = z.object({
-  employeeId: z.string().min(1, "Please select an employee"),
-  primaryState: z.string().min(2, "Primary state required"),
-  allocations: z.array(
-    z.object({
-      state: z.string(),
-      percentage: z.number().min(0).max(100)
-    })
-  ).min(1, "At least one allocation required"),
-  effectiveDate: z.string().min(1, "Effective date required")
-}).superRefine((val, ctx) => {
-  const sum = val.allocations.reduce((acc, curr) => acc + (curr.percentage || 0), 0);
-  if (Math.abs(sum - 100) > 0.01) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Allocation sum must equal exactly 100%",
-      path: ["allocations"]
-    });
-  }
-});
-
-type AllocationFormValues = z.infer<typeof allocationSchema>;
-
-/* ──────────────────────────────────── COMPONENTS ─────────────────────────────── */
 
 const STATE_COLORS = [
-  "from-blue-500 to-indigo-500",
-  "from-cyan-400 to-emerald-400",
-  "from-violet-500 to-fuchsia-500",
-  "from-orange-400 to-amber-500"
+  "bg-blue-600",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-violet-500",
+  "bg-rose-500",
 ];
+
+const allocationSchema = z
+  .object({
+    employeeId: z.string().min(1, "Please select an employee"),
+    employeeName: z.string().min(1),
+    role: z.string().min(1),
+    avatar: z.string().min(1),
+    primaryState: z.string().length(2),
+    allocations: z
+      .array(
+        z.object({
+          state: z.string().length(2),
+          percentage: z.coerce.number().min(0).max(100),
+        })
+      )
+      .min(1, "At least one state is required"),
+    effectiveDate: z.string().min(1, "Effective date is required"),
+  })
+  .superRefine((value, ctx) => {
+    const total = value.allocations.reduce((sum, row) => sum + Number(row.percentage || 0), 0);
+    if (total !== 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Allocation must equal 100%",
+        path: ["allocations"],
+      });
+    }
+  });
+
+type AllocationFormValues = z.input<typeof allocationSchema>;
+
+function inferState(location?: string | null) {
+  const match = location?.match(/\b[A-Z]{2}\b/);
+  return match?.[0] && US_STATES.includes(match[0]) ? match[0] : "NY";
+}
+
+function nextPayrollDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 14);
+  return date.toISOString().slice(0, 10);
+}
+
+function hasReciprocity(a: string, b: string) {
+  return RECIPROCITY_MAP[a]?.includes(b) || RECIPROCITY_MAP[b]?.includes(a);
+}
+
+function reciprocityPairs(allocations: Array<{ state: string }>) {
+  const pairs: string[] = [];
+  for (let i = 0; i < allocations.length; i += 1) {
+    for (let j = i + 1; j < allocations.length; j += 1) {
+      if (hasReciprocity(allocations[i].state, allocations[j].state)) {
+        pairs.push(`${allocations[i].state}-${allocations[j].state}`);
+      }
+    }
+  }
+  return pairs;
+}
+
+async function fetchAllocations(): Promise<EmployeeAllocation[]> {
+  const response = await fetch("/api/payroll/multi-state-allocations", { cache: "no-store" });
+  if (!response.ok) throw new Error("Failed to load multi-state allocations");
+  const data = await response.json();
+  return data.allocations ?? [];
+}
+
+async function fetchEmployees(search: string): Promise<EmployeeOption[]> {
+  const response = await fetch(`/api/employees?search=${encodeURIComponent(search)}`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  const rows = Array.isArray(data) ? data : data.employees ?? [];
+
+  return rows
+    .map((employee: any) => {
+      const firstName = employee.firstName ?? "";
+      const lastName = employee.lastName ?? "";
+      const name = employee.name ?? `${firstName} ${lastName}`.trim();
+      return {
+        id: String(employee.id),
+        name,
+        role: employee.jobTitle ?? employee.title ?? employee.role ?? employee.department ?? "Employee",
+        avatar:
+          employee.avatar ??
+          `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name || String(employee.id))}&backgroundColor=transparent`,
+        defaultState: employee.defaultState ?? employee.primaryState ?? inferState(employee.location),
+      };
+    })
+    .filter((employee: EmployeeOption) => {
+      if (!search.trim()) return true;
+      return employee.name.toLowerCase().includes(search.toLowerCase());
+    })
+    .slice(0, 8);
+}
+
+async function saveAllocation(values: AllocationFormValues) {
+  const response = await fetch("/api/payroll/multi-state-allocations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Failed to save allocation");
+  return data.allocation as EmployeeAllocation;
+}
+
+async function removeAllocation(employeeId: string) {
+  const response = await fetch("/api/payroll/multi-state-allocations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "remove", employeeId }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "Failed to remove allocation");
+  return data;
+}
 
 function AllocationBar({ allocations }: { allocations: StateAllocation[] }) {
   return (
-    <div className="flex flex-col gap-1.5 w-48 xl:w-64">
-      <div className="h-2 flex rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-        {allocations.map((a, i) => (
+    <div className="w-56 max-w-full">
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        {allocations.map((allocation, index) => (
           <div
-            key={a.state}
-            style={{ width: `${a.percentage}%` }}
-            className={`h-full bg-gradient-to-r ${STATE_COLORS[i % STATE_COLORS.length]}`}
+            key={`${allocation.state}-${index}`}
+            className={STATE_COLORS[index % STATE_COLORS.length]}
+            style={{ width: `${allocation.percentage}%` }}
           />
         ))}
       </div>
-      <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-        {allocations.map((a, i) => (
-          <span key={a.state} className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${STATE_COLORS[i % STATE_COLORS.length]}`} />
-            {a.state} {Math.round(a.percentage)}%
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+        {allocations.map((allocation, index) => (
+          <span key={allocation.state} className="inline-flex items-center gap-1">
+            <span className={`h-2 w-2 rounded-full ${STATE_COLORS[index % STATE_COLORS.length]}`} />
+            {allocation.state} {allocation.percentage}%
           </span>
         ))}
       </div>
@@ -167,265 +280,461 @@ function AllocationBar({ allocations }: { allocations: StateAllocation[] }) {
   );
 }
 
-function AddEditModal({ isOpen, onClose, editingRow }: { isOpen: boolean, onClose: () => void, editingRow: EmployeeAllocation | null }) {
+function Avatar({ src, name }: { src: string; name: string }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      className="h-10 w-10 shrink-0 rounded-full border border-slate-200 bg-slate-100 object-cover dark:border-slate-700 dark:bg-slate-800"
+    />
+  );
+}
+
+function HistoryPanel({
+  allocation,
+  onClose,
+}: {
+  allocation: EmployeeAllocation | null;
+  onClose: () => void;
+}) {
+  if (!allocation) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <button className="absolute inset-0 bg-slate-950/30" aria-label="Close history" onClick={onClose} />
+      <div className="relative flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Allocation History</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{allocation.employeeName}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 space-y-4 overflow-y-auto p-6">
+          {allocation.history.map((entry) => (
+            <div key={entry.id} className="border-l-2 border-blue-200 pl-4 dark:border-blue-900">
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{entry.description}</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatDate(entry.date)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AllocationModal({
+  editingRow,
+  isOpen,
+  onClose,
+}: {
+  editingRow: EmployeeAllocation | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedEmp, setSelectedEmp] = useState<any | null>(null);
 
-  const { control, register, handleSubmit, watch, setValue, formState: { errors } } = useForm<AllocationFormValues>({
+  const form = useForm<AllocationFormValues>({
     resolver: zodResolver(allocationSchema),
     defaultValues: {
       employeeId: "",
+      employeeName: "",
+      role: "",
+      avatar: "",
       primaryState: "NY",
       allocations: [{ state: "NY", percentage: 100 }],
-      effectiveDate: new Date().toISOString().split('T')[0]
-    }
+      effectiveDate: nextPayrollDate(),
+    },
+    mode: "onChange",
   });
 
-  const { fields, append, remove } = useFieldArray({ control, name: "allocations" });
-  const allAllocations = watch("allocations");
-  const totalAlloc = allAllocations.reduce((acc, curr) => acc + (Number(curr.percentage) || 0), 0);
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    register,
+    reset,
+    setValue,
+    trigger,
+    watch,
+  } = form;
 
-  // Pre-fill on edit
-  React.useEffect(() => {
+  const { append, fields, remove } = useFieldArray({ control, name: "allocations" });
+  const allocations = watch("allocations");
+  const selectedName = watch("employeeName");
+  const selectedRole = watch("role");
+  const selectedAvatar = watch("avatar");
+  const totalAllocation = allocations.reduce((sum, row) => sum + Number(row.percentage || 0), 0);
+  const remainingAllocation = Math.max(0, 100 - totalAllocation);
+  const allocationError = typeof errors.allocations?.message === "string" ? errors.allocations.message : undefined;
+  const pairs = reciprocityPairs(allocations);
+
+  const employeesQuery = useQuery({
+    queryKey: ["employees", "search", search],
+    queryFn: () => fetchEmployees(search),
+    enabled: isOpen && step === 1 && search.trim().length > 0,
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     if (editingRow) {
-      setSelectedEmp({ id: editingRow.id, name: editingRow.name, role: editingRow.role, defaultState: editingRow.primaryState });
-      setValue("employeeId", editingRow.id);
-      setValue("primaryState", editingRow.primaryState);
-      setValue("allocations", editingRow.allocations);
+      reset({
+        employeeId: editingRow.employeeId,
+        employeeName: editingRow.employeeName,
+        role: editingRow.role,
+        avatar: editingRow.avatar,
+        primaryState: editingRow.primaryState,
+        allocations: editingRow.allocations.map((allocation) => ({
+          state: allocation.state,
+          percentage: allocation.percentage,
+        })),
+        effectiveDate: editingRow.effectiveDate,
+      });
       setStep(2);
-    }
-  }, [editingRow, setValue]);
-
-  const searchMutation = useMutation({
-    mutationFn: mockSearchEmployees,
-    onSuccess: (data) => setSearchResults(data)
-  });
-
-  React.useEffect(() => {
-    if (search.length > 1) {
-      searchMutation.mutate(search);
-    } else {
-      setSearchResults([]);
-    }
-  }, [search]);
-
-  const saveMutation = useMutation({
-    mutationFn: mockSaveAllocation,
-    onSuccess: () => {
-      // Opt lock invalidation mock
-      queryClient.invalidateQueries({ queryKey: ["multistate-allocations"] });
-      onClose();
-    }
-  });
-
-  const onSubmit = (data: AllocationFormValues) => {
-    if (step < 3) {
-      setStep(step + 1);
+      setSearch(editingRow.employeeName);
       return;
     }
-    
-    // Convert to mock save
-    const newAlloc: EmployeeAllocation = {
-      id: selectedEmp.id,
-      name: selectedEmp.name,
-      avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${selectedEmp.name}&backgroundColor=transparent`,
-      role: selectedEmp.role,
-      primaryState: data.primaryState,
-      allocations: data.allocations,
-      updatedAt: new Date().toISOString().split('T')[0],
-    };
-    
-    MOCK_ALLOCATIONS = [newAlloc, ...MOCK_ALLOCATIONS.filter(a => a.id !== newAlloc.id)];
-    saveMutation.mutate(newAlloc);
+
+    reset({
+      employeeId: "",
+      employeeName: "",
+      role: "",
+      avatar: "",
+      primaryState: "NY",
+      allocations: [{ state: "NY", percentage: 100 }],
+      effectiveDate: nextPayrollDate(),
+    });
+    setStep(1);
+    setSearch("");
+  }, [editingRow, isOpen, reset]);
+
+  const saveMutation = useMutation({
+    mutationFn: saveAllocation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["multistate-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-preview"] });
+      toast.success("Allocation saved");
+      onClose();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const selectEmployee = (employee: EmployeeOption) => {
+    setValue("employeeId", employee.id, { shouldValidate: true });
+    setValue("employeeName", employee.name, { shouldValidate: true });
+    setValue("role", employee.role, { shouldValidate: true });
+    setValue("avatar", employee.avatar, { shouldValidate: true });
+    setValue("primaryState", employee.defaultState, { shouldValidate: true });
+    setValue("allocations", [{ state: employee.defaultState, percentage: 100 }], { shouldValidate: true });
+    setSearch(employee.name);
+    setStep(2);
   };
+
+  const addStateRow = () => {
+    const chosen = new Set(allocations.map((allocation) => allocation.state));
+    const nextState = US_STATES.find((state) => !chosen.has(state)) ?? "CA";
+    append({ state: nextState, percentage: remainingAllocation });
+  };
+
+  const goToEffectiveDate = async () => {
+    const valid = await trigger(["employeeId", "allocations"]);
+    if (!valid || totalAllocation !== 100) return;
+    setStep(3);
+  };
+
+  const submit = handleSubmit((values) => saveMutation.mutate(values));
 
   if (!isOpen) return null;
 
-  const hasReciprocity = (stateA: string, stateB: string) => {
-    return RECIPROCITY_MAP[stateA]?.includes(stateB) || RECIPROCITY_MAP[stateB]?.includes(stateA);
-  };
-
-  const reciprocityBadges = [];
-  for (let i = 0; i < allAllocations.length; i++) {
-    for (let j = i + 1; j < allAllocations.length; j++) {
-      if (hasReciprocity(allAllocations[i].state, allAllocations[j].state)) {
-         reciprocityBadges.push(`${allAllocations[i].state} ⇄ ${allAllocations[j].state}`);
-      }
-    }
-  }
-
   return (
     <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm" />
-      <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        
-        <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+      <motion.div
+        className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      />
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 18, scale: 0.98 }}
+      >
+        <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-800">
             <div>
-              <h3 className="text-lg font-bold">Multi-state Allocation</h3>
-              <div className="flex items-center gap-2 mt-1">
-                {[1, 2, 3].map(s => (
-                  <div key={s} className="flex items-center gap-1.5">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step >= s ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{s}</div>
-                    {s < 3 && <div className={`w-4 h-0.5 rounded-full ${step > s ? 'bg-blue-600' : 'bg-slate-100'}`} />}
-                  </div>
-                ))}
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                {editingRow ? "Edit Allocation" : "Add Allocation"}
+              </h2>
+              <div className="mt-3 flex items-center gap-2">
+                {["Select employee", "State allocation", "Effective date"].map((label, index) => {
+                  const number = index + 1;
+                  return (
+                    <React.Fragment key={label}>
+                      <span
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${
+                          step >= number ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                        }`}
+                        title={label}
+                      >
+                        {number}
+                      </span>
+                      {number < 3 && (
+                        <span className={`h-0.5 w-8 rounded-full ${step > number ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800"}`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </div>
-            <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          {/* Body */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
-            <div className="p-6">
-              
-              {/* STEP 1: SELECT EMPLOYEE */}
+          <form onSubmit={submit} className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6">
               {step === 1 && (
-                <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
-                  <div>
-                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Find Employee</label>
-                     <div className="relative mt-2">
-                       <Search size={16} className="absolute left-3 top-3 text-slate-400" />
-                       <input autoFocus type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name..." className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 dark:bg-slate-800" />
-                     </div>
+                <div className="space-y-4">
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="employee-search">
+                    Employee
+                  </label>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+                    <input
+                      id="employee-search"
+                      autoFocus
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                      placeholder="Search employee name"
+                    />
                   </div>
 
-                  {searchResults.length > 0 && (
-                    <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
-                      {searchResults.map(emp => (
-                        <div key={emp.id} onClick={() => { setSelectedEmp(emp); setValue("employeeId", emp.id); setValue("primaryState", emp.defaultState); setValue("allocations", [{state: emp.defaultState, percentage: 100}]); setStep(2); }}
-                          className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-200" />
-                          <div>
-                            <p className="text-sm font-bold">{emp.name}</p>
-                            <p className="text-xs text-slate-500">{emp.role}</p>
-                          </div>
+                  <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                    {employeesQuery.isFetching ? (
+                      <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm font-semibold text-slate-500">
+                        <Loader2 size={16} className="animate-spin" />
+                        Searching
+                      </div>
+                    ) : employeesQuery.data?.length ? (
+                      employeesQuery.data.map((employee) => (
+                        <button
+                          key={employee.id}
+                          type="button"
+                          onClick={() => selectEmployee(employee)}
+                          className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                        >
+                          <Avatar src={employee.avatar} name={employee.name} />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-bold text-slate-900 dark:text-white">{employee.name}</span>
+                            <span className="block text-xs text-slate-500 dark:text-slate-400">
+                              {employee.role} · {employee.defaultState}
+                            </span>
+                          </span>
                           <ArrowRight size={16} className="ml-auto text-slate-400" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {search.length > 1 && searchResults.length === 0 && (
-                    <p className="text-sm text-slate-500 text-center py-4">No employees found.</p>
-                  )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">
+                        {search.trim() ? "No matching employees found." : "Start typing to search employees."}
+                      </div>
+                    )}
+                  </div>
+                  {errors.employeeId && <p className="text-sm font-semibold text-red-600">{errors.employeeId.message}</p>}
                 </div>
               )}
 
-              {/* STEP 2: ALLOCATION */}
               {step === 2 && (
-                <div className="animate-in fade-in slide-in-from-right-4">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl mb-6">
-                     <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden"><img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${selectedEmp?.name}&backgroundColor=transparent`} /></div>
-                     <div><p className="font-bold">{selectedEmp?.name}</p><p className="text-xs text-slate-500">{selectedEmp?.role}</p></div>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                    <Avatar src={selectedAvatar} name={selectedName} />
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{selectedName}</p>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{selectedRole}</p>
+                    </div>
                   </div>
 
-                  <div className="mb-6">
-                    <div className="flex justify-between text-sm font-bold mb-2">
-                       <span>Total Allocation</span>
-                       <span className={totalAlloc !== 100 ? "text-red-500" : "text-emerald-600"}>{totalAlloc}%</span>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between text-sm font-bold">
+                      <span className="text-slate-700 dark:text-slate-300">Total Allocation</span>
+                      <span className={totalAllocation === 100 ? "text-emerald-600" : "text-red-600"}>{totalAllocation}%</span>
                     </div>
-                    <div className="h-3 rounded-full bg-slate-100 overflow-hidden flex">
-                       {allAllocations.map((a, i) => (
-                         <div key={i} style={{ width: `${a.percentage}%` }} className={`h-full bg-gradient-to-r ${STATE_COLORS[i % STATE_COLORS.length]}`} />
-                       ))}
-                       {totalAlloc < 100 && (
-                         <div style={{ width: `${100 - totalAlloc}%` }} className="h-full bg-slate-200" />
-                       )}
-                       {totalAlloc > 100 && (
-                         <div style={{ width: `${totalAlloc - 100}%` }} className="h-full bg-red-400 opacity-50" />
-                       )}
+                    <div className="flex h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      {allocations.map((allocation, index) => (
+                        <div
+                          key={`${allocation.state}-${index}`}
+                          className={totalAllocation > 100 ? "bg-red-500" : STATE_COLORS[index % STATE_COLORS.length]}
+                          style={{ width: `${Math.min(Number(allocation.percentage || 0), 100)}%` }}
+                        />
+                      ))}
+                      {remainingAllocation > 0 && <div className="bg-slate-300 dark:bg-slate-700" style={{ width: `${remainingAllocation}%` }} />}
                     </div>
-                    {errors.allocations && <p className="text-xs text-red-500 flex items-center gap-1 mt-2"><AlertCircle size={14}/> {errors.allocations.message}</p>}
-                    
-                    {reciprocityBadges.length > 0 && (
-                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-2">
-                        <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-bold text-amber-800">Reciprocity Agreements Active</p>
-                          <p className="text-xs text-amber-700 mt-1">
-                            {reciprocityBadges.join(", ")} have tax reciprocity. The employee may only need to pay income tax in their resident state. Wait to file till W-4 verification.
-                          </p>
-                        </div>
-                      </div>
+                    {(allocationError || totalAllocation !== 100) && (
+                      <p className="mt-2 flex items-center gap-1 text-xs font-bold text-red-600">
+                        <AlertCircle size={14} />
+                        {allocationError ?? "Allocation must equal 100%"}
+                      </p>
                     )}
                   </div>
 
                   <div className="space-y-3">
                     {fields.map((field, index) => (
-                       <div key={field.id} className="flex items-center gap-3">
-                         <div className="flex-1">
-                           <Controller name={`allocations.${index}.state`} control={control} render={({ field }) => (
-                             <select {...field} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-blue-500 font-semibold text-sm">
-                               {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                             </select>
-                           )} />
-                         </div>
-                         <div className="w-32 relative">
-                           <input type="number" {...register(`allocations.${index}.percentage`, { valueAsNumber: true })} 
-                             className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 font-bold text-sm text-right" 
-                           />
-                           <span className="absolute right-3 top-2.5 text-sm text-slate-400 font-bold">%</span>
-                         </div>
-                         <button type="button" onClick={() => remove(index)} disabled={fields.length === 1} className="p-2.5 text-slate-400 hover:text-red-500 disabled:opacity-30"><Trash2 size={16}/></button>
-                       </div>
+                      <div key={field.id} className="grid grid-cols-[1fr_128px_40px] items-center gap-3">
+                        <Controller
+                          control={control}
+                          name={`allocations.${index}.state`}
+                          render={({ field: stateField }) => (
+                            <select
+                              {...stateField}
+                              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                            >
+                              {US_STATES.map((state) => (
+                                <option key={state} value={state}>
+                                  {state}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            {...register(`allocations.${index}.percentage`)}
+                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-8 text-right text-sm font-black text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                          />
+                          <span className="absolute right-3 top-3 text-sm font-bold text-slate-400">%</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          disabled={fields.length === 1}
+                          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-red-950/30"
+                          title="Remove state"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  
-                  <button type="button" onClick={() => append({ state: "CA", percentage: 0 })} className="mt-4 text-sm font-bold text-blue-600 flex items-center gap-1 hover:text-blue-700">
-                    <Plus size={14}/> Add State Row
+
+                  <button
+                    type="button"
+                    onClick={addStateRow}
+                    className="inline-flex items-center gap-2 rounded-lg px-1 py-2 text-sm font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus size={15} />
+                    Add State Row
                   </button>
+
+                  {pairs.length > 0 && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/70 dark:bg-amber-950/30">
+                      <div className="mb-2 flex items-center gap-2 text-sm font-black text-amber-800 dark:text-amber-300">
+                        <Info size={16} />
+                        Reciprocity Agreements
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {pairs.map((pair) => (
+                          <span
+                            key={pair}
+                            className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-amber-800 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                          >
+                            {pair}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* STEP 3: EFFECTIVE DATE */}
               {step === 3 && (
-                <div className="animate-in fade-in slide-in-from-right-4">
-                  <div className="text-center mb-8">
-                     <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                       <CheckCircle2 size={32} className="text-emerald-500" />
-                     </div>
-                     <h3 className="text-xl font-bold">Allocation Balanced</h3>
-                     <p className="text-sm text-slate-500 mt-2">The 100% distribution is perfect. When should this tax routing take effect?</p>
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
+                      <CheckCircle2 size={28} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white">Allocation Balanced</h3>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Effective from the next payroll run.</p>
                   </div>
-
                   <div>
-                     <label className="text-sm font-bold text-slate-700 mb-2 block">Effective Date</label>
-                     <div className="relative">
-                       <Calendar size={16} className="absolute left-3 top-3 text-slate-400" />
-                       <input type="date" {...register("effectiveDate")} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white font-bold" />
-                     </div>
-                     <p className="text-xs text-slate-500 mt-2 flex items-center gap-1"><Info size={14}/> This applies the changes to the next unlocked payroll cycle.</p>
+                    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-300" htmlFor="effective-date">
+                      Effective Date
+                    </label>
+                    <div className="relative">
+                      <Calendar size={16} className="absolute left-3 top-3 text-slate-400" />
+                      <input
+                        id="effective-date"
+                        type="date"
+                        {...register("effectiveDate")}
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                      />
+                    </div>
+                    {errors.effectiveDate && <p className="mt-2 text-sm font-semibold text-red-600">{errors.effectiveDate.message}</p>}
                   </div>
                 </div>
               )}
-
             </div>
-            
-            {/* Footer Actions */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-              {step > 1 ? (
-                <button type="button" onClick={() => setStep(step - 1)} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors flex items-center gap-2 text-sm">
-                  <ArrowLeft size={16}/> Back
-                </button>
-              ) : <div/>}
 
-              {step === 1 ? (
-                <button type="button" disabled={!selectedEmp} onClick={() => setStep(2)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center gap-2 text-sm">
-                  Allocation <ArrowRight size={16}/>
-                </button>
-              ) : step === 2 ? (
-                <button type="button" disabled={totalAlloc !== 100} onClick={() => setStep(3)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center gap-2 text-sm">
-                  Schedule Date <ArrowRight size={16}/>
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-950">
+              {step > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(step - 1)}
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <ArrowLeft size={16} />
+                  Back
                 </button>
               ) : (
-                <button type="submit" disabled={saveMutation.isPending} className="px-5 py-2.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 transition-colors flex items-center gap-2 text-sm shadow-lg shadow-emerald-500/20">
-                  {saveMutation.isPending ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Save size={16}/>}
-                  {saveMutation.isPending ? "Saving..." : "Confirm & Save"}
+                <span />
+              )}
+
+              {step === 1 && (
+                <button
+                  type="button"
+                  disabled={!watch("employeeId")}
+                  onClick={() => setStep(2)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                >
+                  State Allocation
+                  <ArrowRight size={16} />
+                </button>
+              )}
+              {step === 2 && (
+                <button
+                  type="button"
+                  disabled={totalAllocation !== 100}
+                  onClick={goToEffectiveDate}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                >
+                  Effective Date
+                  <ArrowRight size={16} />
+                </button>
+              )}
+              {step === 3 && (
+                <button
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                >
+                  {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  Save Allocation
                 </button>
               )}
             </div>
@@ -437,99 +746,222 @@ function AddEditModal({ isOpen, onClose, editingRow }: { isOpen: boolean, onClos
 }
 
 export default function MultiStatePage() {
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<EmployeeAllocation | null>(null);
+  const [historyRow, setHistoryRow] = useState<EmployeeAllocation | null>(null);
+  const [filter, setFilter] = useState("");
 
-  const { data: allocations, isLoading } = useQuery({
+  const allocationsQuery = useQuery({
     queryKey: ["multistate-allocations"],
-    queryFn: mockFetchAllocations,
+    queryFn: fetchAllocations,
   });
 
+  const removeMutation = useMutation({
+    mutationFn: removeAllocation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["multistate-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-preview"] });
+      toast.success("Allocation removed");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const visibleAllocations = useMemo(() => {
+    const query = filter.trim().toLowerCase();
+    if (!query) return allocationsQuery.data ?? [];
+    return (allocationsQuery.data ?? []).filter((allocation) => {
+      return (
+        allocation.employeeName.toLowerCase().includes(query) ||
+        allocation.role.toLowerCase().includes(query) ||
+        allocation.allocations.some((row) => row.state.toLowerCase().includes(query))
+      );
+    });
+  }, [allocationsQuery.data, filter]);
+
   return (
-    <div className="flex flex-col gap-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col gap-6 pb-20">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-sm text-slate-500 font-semibold mb-1">
-            <Link href="/payroll" className="hover:text-blue-600">Payroll</Link>
-            <span className="text-slate-300">/</span>
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+            <Link href="/payroll" className="hover:text-blue-600">
+              Payroll
+            </Link>
+            <span className="text-slate-300 dark:text-slate-700">/</span>
             <span className="text-slate-900 dark:text-white">Multi-State</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Map size={20} className="text-blue-600" />
-            </div>
+          <h1 className="flex items-center gap-3 text-2xl font-extrabold text-slate-900 dark:text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300">
+              <Map size={21} />
+            </span>
             Multi-State Payroll
           </h1>
-          <p className="text-sm text-slate-500 mt-1 ml-[52px]">Configure employees working across multiple states.</p>
+          <p className="ml-[52px] mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Configure employees working across multiple states
+          </p>
         </div>
-
-        <button onClick={() => { setEditingRow(null); setModalOpen(true); }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md flex items-center gap-2 transition-transform hover:-translate-y-0.5 self-start md:self-auto">
-          <Plus size={16} /> Add Split Allocation
+        <button
+          type="button"
+          onClick={() => {
+            setEditingRow(null);
+            setModalOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 md:self-auto"
+        >
+          <Plus size={16} />
+          Add Allocation
         </button>
       </div>
 
-      {/* Main Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden mt-2">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 flex justify-between items-center">
-           <p className="font-bold text-sm text-slate-600">Active Allocations ({allocations?.length || 0})</p>
-           <div className="relative">
-             <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
-             <input type="text" placeholder="Filter..." className="pl-8 pr-4 py-1.5 text-sm rounded-lg border border-slate-200 bg-white" />
-           </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">Active Employees</p>
+          <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{allocationsQuery.data?.length ?? 0}</p>
         </div>
-
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-400 uppercase tracking-wider">
-              <th className="px-6 py-4 font-semibold">Employee</th>
-              <th className="px-6 py-4 font-semibold">Primary State</th>
-              <th className="px-6 py-4 font-semibold">Allocation %</th>
-              <th className="px-6 py-4 font-semibold text-center">Last Updated</th>
-              <th className="px-6 py-4 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {isLoading ? (
-              <tr><td colSpan={5} className="p-8 text-center"><div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" /></td></tr>
-            ) : allocations?.length === 0 ? (
-              <tr><td colSpan={5} className="p-12 text-center text-slate-500 text-sm">No multi-state allocations configured.</td></tr>
-            ) : (
-              allocations?.map(alloc => (
-                <tr key={alloc.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0"><img src={alloc.avatar} alt="" /></div>
-                      <div>
-                        <p className="font-bold text-sm text-slate-900">{alloc.name}</p>
-                        <p className="text-xs text-slate-500">{alloc.role}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                     <span className="inline-flex px-2 py-1 bg-blue-50 text-blue-700 font-bold text-xs uppercase rounded">{alloc.primaryState}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <AllocationBar allocations={alloc.allocations} />
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
-                    {formatDate(alloc.updatedAt)}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 text-slate-400">
-                      <button className="p-2 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="History"><History size={16}/></button>
-                      <button onClick={() => { setEditingRow(alloc); setModalOpen(true); }} className="p-2 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Edit"><Edit2 size={16}/></button>
-                      <button className="p-2 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Remove"><Trash2 size={16}/></button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">Auto-Prorate</p>
+          <p className="mt-1 text-sm font-bold text-emerald-600">Gross split by allocation</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">State Taxes</p>
+          <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">Calculated on prorated gross</p>
+        </div>
       </div>
 
-      <AddEditModal isOpen={modalOpen} onClose={() => setModalOpen(false)} editingRow={editingRow} />
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-black text-slate-700 dark:text-slate-200">Employee List</p>
+          <div className="relative w-full sm:w-72">
+            <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+            <input
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder="Filter employees or states"
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1040px] text-left">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:bg-slate-950/70">
+                <th className="px-5 py-4">Employee Name</th>
+                <th className="px-5 py-4">Primary State</th>
+                <th className="px-5 py-4">Additional States</th>
+                <th className="px-5 py-4">Allocation %</th>
+                <th className="px-5 py-4">Updated</th>
+                <th className="px-5 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {allocationsQuery.isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center">
+                    <Loader2 size={24} className="mx-auto animate-spin text-blue-600" />
+                  </td>
+                </tr>
+              ) : visibleAllocations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-sm font-semibold text-slate-500">
+                    No multi-state allocations found.
+                  </td>
+                </tr>
+              ) : (
+                visibleAllocations.map((allocation) => {
+                  const pairs = reciprocityPairs(allocation.allocations);
+                  return (
+                    <tr key={allocation.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar src={allocation.avatar} name={allocation.employeeName} />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-slate-900 dark:text-white">{allocation.employeeName}</p>
+                            <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                              {allocation.role}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-black text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                          {allocation.primaryState}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex max-w-[260px] flex-wrap gap-2">
+                          {allocation.additionalStates.map((state) => (
+                            <span
+                              key={state}
+                              className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              {state}
+                            </span>
+                          ))}
+                          {pairs.map((pair) => (
+                            <span
+                              key={pair}
+                              className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[11px] font-black uppercase text-amber-800 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                            >
+                              {pair}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <AllocationBar allocations={allocation.allocations} />
+                      </td>
+                      <td className="px-5 py-4 text-sm font-bold text-slate-600 dark:text-slate-300">{formatDate(allocation.updatedAt)}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRow(allocation);
+                              setModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                          >
+                            <Edit2 size={14} />
+                            Edit Allocation
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHistoryRow(allocation)}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <History size={14} />
+                            View History
+                          </button>
+                          <button
+                            type="button"
+                            disabled={removeMutation.isPending}
+                            onClick={() => removeMutation.mutate(allocation.employeeId)}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-black text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/30"
+                          >
+                            <Trash2 size={14} />
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <AllocationModal
+        editingRow={editingRow}
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingRow(null);
+        }}
+      />
+      <HistoryPanel allocation={historyRow} onClose={() => setHistoryRow(null)} />
     </div>
   );
 }

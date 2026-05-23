@@ -68,6 +68,12 @@ export const useWebSocketEvents = () => {
       toast.success('Direct deposit payments sent');
     };
 
+    const handlePayrollMultiStateUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ['multistate-allocations'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-preview'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+    };
+
     // Employee Events
     const handleEmployeeCreated = (data: { employee: any }) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
@@ -253,6 +259,7 @@ export const useWebSocketEvents = () => {
     on('payroll.run.completed', handlePayrollRunCompleted);
     on('payroll.approval.required', handlePayrollApprovalRequired);
     on('payroll.direct_deposit.sent', handlePayrollDirectDepositSent);
+    on('payroll.multistate.updated', handlePayrollMultiStateUpdated);
 
     on('employee.created', handleEmployeeCreated);
     on('employee.updated', handleEmployeeUpdated);
@@ -292,6 +299,7 @@ export const useWebSocketEvents = () => {
       off('payroll.run.completed', handlePayrollRunCompleted);
       off('payroll.approval.required', handlePayrollApprovalRequired);
       off('payroll.direct_deposit.sent', handlePayrollDirectDepositSent);
+      off('payroll.multistate.updated', handlePayrollMultiStateUpdated);
 
       off('employee.created', handleEmployeeCreated);
       off('employee.updated', handleEmployeeUpdated);

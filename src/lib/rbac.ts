@@ -560,6 +560,8 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
   { method: "DELETE", prefix: "/api/employees", permission: "terminate_employees" },
   { prefix: "/api/payroll/runs", permission: "view_payroll" },
   { method: "POST", prefix: "/api/payroll/runs", permission: "run_payroll" },
+  { method: "GET", prefix: "/api/payroll/multi-state-allocations", permission: "view_payroll" },
+  { method: "POST", prefix: "/api/payroll/multi-state-allocations", permission: "edit_payroll_settings" },
   { prefix: "/api/payroll/funding", permission: "view_payroll_funding" },
   { method: "POST", prefix: "/api/payroll/funding", permission: "manage_payroll_funding" },
   { prefix: "/api/payroll/sui", permission: "view_tax_filings" },
