@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { FEATURED_WEBINAR_TAGS, WEBINARS } from "@/data/webinars";
 import WebinarsClient from "./WebinarsClient";
-import { WEBINARS } from "../api/webinars/route";
 
 export const metadata: Metadata = {
   title: "Webinars & Events | CircleWorks",
@@ -16,7 +16,7 @@ export default function WebinarsPage() {
   return (
     <main className="min-h-screen bg-white font-sans selection:bg-blue-200 selection:text-navy">
       <Navbar />
-      <WebinarsClient initialWebinars={WEBINARS} />
+      <WebinarsClient initialWebinars={WEBINARS} featuredTags={FEATURED_WEBINAR_TAGS} />
       <Footer />
     </main>
   );

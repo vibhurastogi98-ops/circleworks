@@ -1,194 +1,313 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, Clock, User, PlayCircle, Download, CheckCircle2, ChevronRight } from "lucide-react";
+import {
+  Calendar,
+  CalendarPlus,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Lightbulb,
+  Mail,
+  PlayCircle,
+  User,
+  X,
+} from "lucide-react";
 
-export default function WebinarsClient({ initialWebinars }: { initialWebinars: any[] }) {
+import {
+  buildWebinarIcs,
+  formatWebinarDateTime,
+  type Webinar,
+  type WebinarTopic,
+} from "@/data/webinars";
+
+type CaptureFields = {
+  name: string;
+  email: string;
+  company: string;
+};
+
+type WebinarsClientProps = {
+  initialWebinars: Webinar[];
+  featuredTags: string[];
+};
+
+const tabs = ["All", "Payroll", "Compliance", "HR Tips", "Product Demo"];
+
+const blankCapture: CaptureFields = {
+  name: "",
+  email: "",
+  company: "",
+};
+
+function topicClasses(topic: string) {
+  if (topic === "Payroll") return "bg-blue-50 text-blue-700 border-blue-100";
+  if (topic === "Compliance") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+  if (topic === "Product Demo") return "bg-violet-50 text-violet-700 border-violet-100";
+  return "bg-amber-50 text-amber-700 border-amber-100";
+}
+
+export default function WebinarsClient({
+  initialWebinars,
+  featuredTags,
+}: WebinarsClientProps) {
   const [activeTab, setActiveTab] = useState("All");
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isLeadGateOpen, setIsLeadGateOpen] = useState(false);
-  const [selectedWebinar, setSelectedWebinar] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", email: "", company: "" });
+  const [registerWebinar, setRegisterWebinar] = useState<Webinar | null>(null);
+  const [leadGateWebinar, setLeadGateWebinar] = useState<Webinar | null>(null);
+  const [capture, setCapture] = useState<CaptureFields>(blankCapture);
+  const [mailingEmail, setMailingEmail] = useState("");
+  const [suggestion, setSuggestion] = useState({ name: "", email: "", topic: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [successState, setSuccessState] = useState<"register" | "lead" | "mailing" | "topic" | null>(null);
+  const [error, setError] = useState("");
 
-  const upcomingWebinars = initialWebinars.filter(w => w.type === "upcoming");
-  const onDemandWebinars = initialWebinars.filter(w => w.type === "ondemand");
+  const upcomingWebinars = useMemo(
+    () => initialWebinars.filter((webinar) => webinar.type === "upcoming"),
+    [initialWebinars],
+  );
+  const onDemandWebinars = useMemo(
+    () => initialWebinars.filter((webinar) => webinar.type === "ondemand"),
+    [initialWebinars],
+  );
+  const filteredOnDemand =
+    activeTab === "All"
+      ? onDemandWebinars
+      : onDemandWebinars.filter((webinar) =>
+          webinar.topics.includes(activeTab as WebinarTopic),
+        );
 
-  const filteredOnDemand = activeTab === "All" 
-    ? onDemandWebinars 
-    : onDemandWebinars.filter(w => w.topics.includes(activeTab));
+  function openRegisterModal(webinar: Webinar) {
+    setRegisterWebinar(webinar);
+    setLeadGateWebinar(null);
+    setSuccessState(null);
+    setError("");
+    setCapture(blankCapture);
+  }
 
-  const tabs = ["All", "Payroll", "Compliance", "HR Tips", "Product Demo"];
+  function openLeadGate(webinar: Webinar) {
+    setLeadGateWebinar(webinar);
+    setRegisterWebinar(null);
+    setSuccessState(null);
+    setError("");
+    setCapture({ ...blankCapture, company: "" });
+  }
 
-  const handleRegisterClick = (webinar: any) => {
-    setSelectedWebinar(webinar);
-    setIsRegisterModalOpen(true);
-    setIsSuccess(false);
-  };
+  function closeModals() {
+    setRegisterWebinar(null);
+    setLeadGateWebinar(null);
+    setSuccessState(null);
+    setError("");
+  }
 
-  const handleWatchClick = (webinar: any) => {
-    setSelectedWebinar(webinar);
-    setIsLeadGateOpen(true);
-    setIsSuccess(false);
-  };
-
-  const generateICS = (webinar: any) => {
-    const startDate = new Date(webinar.date);
-    const durationMatch = webinar.duration.match(/\d+/);
-    const durationMins = durationMatch ? parseInt(durationMatch[0]) : 60;
-    const endDate = new Date(startDate.getTime() + durationMins * 60000);
-    
-    const formatDate = (date: Date) => {
-      return date.toISOString().replace(/-|:|\.\d+/g, '');
-    };
-
-    const icsData = `BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-DTSTART:${formatDate(startDate)}
-DTEND:${formatDate(endDate)}
-SUMMARY:${webinar.title}
-DESCRIPTION:${webinar.description}
-END:VEVENT
-END:VCALENDAR`;
-
-    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', `${webinar.slug}.ics`);
+  function downloadCalendar(webinar: Webinar) {
+    const blob = new Blob([buildWebinarIcs(webinar)], {
+      type: "text/calendar;charset=utf-8",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${webinar.slug}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+    window.URL.revokeObjectURL(url);
+  }
 
-  const handleSubmit = async (e: React.FormEvent, type: "register" | "lead") => {
-    e.preventDefault();
+  async function submitRegistration(event: React.FormEvent<HTMLFormElement>, type: "register" | "lead") {
+    event.preventDefault();
+    const selectedWebinar = type === "register" ? registerWebinar : leadGateWebinar;
+
+    if (!selectedWebinar) return;
+
     setIsSubmitting(true);
-    
-    try {
-      const res = await fetch("/api/webinars/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, webinarId: selectedWebinar?.id, type })
-      });
-      
-      if (res.ok) {
-        setIsSuccess(true);
-        if (type === "lead" && selectedWebinar?.videoUrl) {
-           // In a real app, you might route to the video or show it inline.
-           // For this demo, we just show a success message.
-           setTimeout(() => {
-              window.location.href = `/webinars/${selectedWebinar.slug}`;
-           }, 1500);
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsSubmitting(false);
+    setError("");
+
+    const response = await fetch("/api/webinars/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...capture,
+        webinarId: selectedWebinar.id,
+        type,
+      }),
+    });
+
+    setIsSubmitting(false);
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      setError(payload?.error || "Something went wrong. Please try again.");
+      return;
     }
-  };
+
+    setSuccessState(type);
+  }
+
+  async function submitCta(event: React.FormEvent<HTMLFormElement>, type: "mailing" | "topic") {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+
+    const response = await fetch("/api/webinars/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        type === "mailing"
+          ? { type, email: mailingEmail }
+          : { type, name: suggestion.name, email: suggestion.email, topic: suggestion.topic },
+      ),
+    });
+
+    setIsSubmitting(false);
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      setError(payload?.error || "Something went wrong. Please try again.");
+      return;
+    }
+
+    setSuccessState(type);
+    if (type === "mailing") setMailingEmail("");
+    if (type === "topic") setSuggestion({ name: "", email: "", topic: "" });
+  }
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      {/* HERO SECTION */}
-      <section className="bg-[#0A1628] pt-32 pb-24 text-center px-4">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6">
-          Webinars & Events
-        </h1>
-        <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-          Join our expert-led sessions to master payroll, HR, and compliance. Learn best practices and stay ahead of regulatory changes.
-        </p>
+      <section className="bg-[#0A1628] pt-32 pb-20 text-center px-4 border-b border-white/10">
+        <div className="max-w-5xl mx-auto">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/30 bg-blue-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-blue-200 mb-7">
+            Live events and on-demand sessions
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight">
+            Webinars & Events
+          </h1>
+          <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium">
+            Expert-led sessions for payroll, HR, compliance, and CircleWorks product workflows.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            {featuredTags.map((tag) => (
+              <a
+                key={tag}
+                href="#on-demand"
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-blue-300/60 hover:text-white"
+              >
+                {tag}
+              </a>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* UPCOMING WEBINARS */}
-      <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-black text-[#0A1628] mb-12 flex items-center gap-3">
-          <Calendar className="w-8 h-8 text-blue-600" />
-          Upcoming Webinars
-        </h2>
-        
-        <div className="grid md:grid-cols-2 gap-8">
-          {upcomingWebinars.map(webinar => (
-            <div key={webinar.id} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col group">
+      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-10">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600 mb-3">
+              Reserve a seat
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] tracking-tight">
+              Upcoming Webinars
+            </h2>
+          </div>
+          <p className="text-slate-500 font-medium max-w-xl">
+            Registration is free. Confirmation details are sent by email after signup.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {upcomingWebinars.map((webinar) => (
+            <article
+              key={webinar.id}
+              className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/70 transition-all flex flex-col group"
+            >
               <div className="h-48 overflow-hidden relative">
-                <img src={webinar.thumbnail} alt={webinar.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-4 left-4 flex gap-2">
-                  {webinar.topics.map((t: string) => (
-                    <span key={t} className="bg-white/90 backdrop-blur text-[#0A1628] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                      {t}
+                <img
+                  src={webinar.thumbnail}
+                  alt=""
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                  {webinar.topics.map((topic) => (
+                    <span
+                      key={topic}
+                      className={`border text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${topicClasses(topic)}`}
+                    >
+                      {topic}
                     </span>
                   ))}
                 </div>
               </div>
-              <div className="p-8 flex-1 flex flex-col">
-                <h3 className="text-2xl font-bold text-[#0A1628] mb-4">
+              <div className="p-6 flex-1 flex flex-col">
+                <h3 className="text-xl font-black text-[#0A1628] mb-4 leading-tight">
                   <Link href={`/webinars/${webinar.slug}`} className="hover:text-blue-600 transition-colors">
                     {webinar.title}
                   </Link>
                 </h3>
-                
-                <div className="space-y-3 mb-8">
-                  <div className="flex items-center text-slate-500 font-medium">
-                    <Calendar className="w-5 h-5 mr-3 text-blue-500" />
-                    {new Date(webinar.date).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}
+
+                <div className="space-y-3 mb-7 text-sm">
+                  <div className="flex items-start text-slate-600 font-semibold">
+                    <Calendar className="w-5 h-5 mr-3 text-blue-500 shrink-0" />
+                    <span>{formatWebinarDateTime(webinar)}</span>
                   </div>
-                  <div className="flex items-center text-slate-500 font-medium">
-                    <Clock className="w-5 h-5 mr-3 text-blue-500" />
-                    {webinar.duration}
+                  <div className="flex items-center text-slate-600 font-semibold">
+                    <Clock className="w-5 h-5 mr-3 text-blue-500 shrink-0" />
+                    {webinar.durationMinutes} minutes
                   </div>
-                  <div className="flex items-center text-slate-500 font-medium">
-                    <User className="w-5 h-5 mr-3 text-blue-500" />
-                    {webinar.speaker}
+                  <div className="flex items-start text-slate-600 font-semibold">
+                    <User className="w-5 h-5 mr-3 text-blue-500 shrink-0" />
+                    <span>
+                      {webinar.speaker}
+                      <span className="block text-slate-400 font-bold">{webinar.speakerTitle}</span>
+                    </span>
                   </div>
                 </div>
 
-                <div className="mt-auto flex flex-wrap gap-4">
-                  <button 
-                    onClick={() => handleRegisterClick(webinar)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+                <div className="mt-auto flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => openRegisterModal(webinar)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-5 rounded-xl transition-colors shadow-lg shadow-blue-500/20"
                   >
                     Register Free
                   </button>
-                  <button 
-                    onClick={() => generateICS(webinar)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  <button
+                    onClick={() => downloadCalendar(webinar)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 px-5 rounded-xl transition-colors inline-flex items-center justify-center gap-2"
                   >
-                    <Download className="w-5 h-5" />
-                    <span className="sr-only sm:not-sr-only">Add to Calendar</span>
+                    <CalendarPlus className="w-5 h-5" />
+                    Add to Calendar
                   </button>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>
 
-      {/* ON-DEMAND LIBRARY */}
-      <section className="py-24 bg-white border-t border-slate-200">
+      <section id="on-demand" className="py-20 bg-white border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
             <div>
-              <h2 className="text-3xl font-black text-[#0A1628] mb-4 flex items-center gap-3">
-                <PlayCircle className="w-8 h-8 text-blue-600" />
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600 mb-3">
+                Watch anytime
+              </p>
+              <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] tracking-tight">
                 On-Demand Library
               </h2>
-              <p className="text-slate-500 text-lg">Watch our previous sessions anytime, anywhere.</p>
             </div>
-            
-            {/* TABS */}
-            <div className="flex flex-wrap gap-2">
-              {tabs.map(tab => (
+
+            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter on-demand webinars">
+              {tabs.map((tab) => (
                 <button
                   key={tab}
+                  type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${
-                    activeTab === tab 
-                      ? "bg-[#0A1628] text-white" 
+                  className={`px-4 py-2 rounded-full font-black text-sm transition-all ${
+                    activeTab === tab
+                      ? "bg-[#0A1628] text-white shadow-lg shadow-slate-900/15"
                       : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                   }`}
+                  aria-selected={activeTab === tab}
+                  role="tab"
                 >
                   {tab}
                 </button>
@@ -196,133 +315,239 @@ END:VCALENDAR`;
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {filteredOnDemand.map(webinar => (
-              <div key={webinar.id} className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl transition-shadow group flex flex-col">
-                <div className="h-48 overflow-hidden relative cursor-pointer" onClick={() => handleWatchClick(webinar)}>
-                  <img src={webinar.thumbnail} alt={webinar.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="grid md:grid-cols-3 gap-6">
+            {filteredOnDemand.map((webinar) => (
+              <article
+                key={webinar.id}
+                className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-slate-200/80 transition-shadow group flex flex-col"
+              >
+                <button
+                  type="button"
+                  className="h-48 overflow-hidden relative text-left"
+                  onClick={() => openLeadGate(webinar)}
+                  aria-label={`Watch ${webinar.title}`}
+                >
+                  <img
+                    src={webinar.thumbnail}
+                    alt=""
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <span className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <PlayCircle className="w-16 h-16 text-white" />
-                  </div>
-                  <div className="absolute bottom-4 right-4 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded">
-                    {webinar.duration}
-                  </div>
-                </div>
+                  </span>
+                  <span className="absolute bottom-4 right-4 bg-black/75 text-white text-xs font-black px-2 py-1 rounded">
+                    {webinar.durationMinutes} min
+                  </span>
+                </button>
                 <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-xl font-bold text-[#0A1628] mb-3 leading-tight">
+                  <h3 className="text-xl font-black text-[#0A1628] mb-3 leading-tight">
                     <Link href={`/webinars/${webinar.slug}`} className="hover:text-blue-600 transition-colors">
                       {webinar.title}
                     </Link>
                   </h3>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {webinar.topics.map((t: string) => (
-                      <span key={t} className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded uppercase tracking-wider">
-                        {t}
+                    {webinar.topics.map((topic) => (
+                      <span
+                        key={topic}
+                        className={`border text-[11px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${topicClasses(topic)}`}
+                      >
+                        {topic}
                       </span>
                     ))}
                   </div>
-                  <button 
-                    onClick={() => handleWatchClick(webinar)}
-                    className="mt-auto text-blue-600 font-bold flex items-center gap-1 group/btn"
+                  <button
+                    onClick={() => openLeadGate(webinar)}
+                    className="mt-auto text-blue-600 font-black flex items-center gap-1 group/btn w-max"
                   >
-                    Watch Now 
+                    Watch Now
                     <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA SECTION */}
-      <section className="py-24 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-black mb-6">Want to stay in the loop?</h2>
-          <p className="text-xl text-blue-100 mb-10">Join our mailing list to get early invites to upcoming webinars, or suggest a topic you'd like us to cover.</p>
-          
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-             <button className="bg-white text-blue-600 px-8 py-4 font-bold rounded-xl shadow-xl hover:-translate-y-1 transition-transform">
-                Join Mailing List
-             </button>
-             <button className="bg-transparent border-2 border-white/30 text-white px-8 py-4 font-bold rounded-xl hover:bg-white/10 transition-colors">
-                Suggest a Topic
-             </button>
+      <section className="py-20 bg-[#0A1628] text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-[0.85fr_1fr] gap-10 items-start">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300 mb-3">
+                Keep the calendar useful
+              </p>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-5">
+                Get invites, or tell us what to cover next.
+              </h2>
+              <p className="text-slate-300 text-lg leading-relaxed font-medium">
+                Join the webinar mailing list for upcoming invites, or send a topic request to the CircleWorks team.
+              </p>
+              {successState === "mailing" && (
+                <p className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-200">
+                  <CheckCircle2 className="w-5 h-5" />
+                  You're on the invite list.
+                </p>
+              )}
+              {successState === "topic" && (
+                <p className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-200">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Topic suggestion received.
+                </p>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              <form
+                onSubmit={(event) => submitCta(event, "mailing")}
+                className="rounded-2xl border border-white/10 bg-white/[0.06] p-6"
+              >
+                <Mail className="w-8 h-8 text-blue-300 mb-5" />
+                <h3 className="text-xl font-black mb-2">Join mailing list</h3>
+                <label className="sr-only" htmlFor="mailing-email">
+                  Work email
+                </label>
+                <input
+                  id="mailing-email"
+                  required
+                  type="email"
+                  value={mailingEmail}
+                  onChange={(event) => setMailingEmail(event.target.value)}
+                  placeholder="you@company.com"
+                  className="mt-5 w-full px-4 py-3 rounded-xl border border-white/10 bg-white text-[#0A1628] placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-300/30 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-3 w-full bg-blue-500 hover:bg-blue-400 text-white font-black py-3 rounded-xl transition-colors disabled:opacity-60"
+                >
+                  Join Mailing List
+                </button>
+              </form>
+
+              <form
+                onSubmit={(event) => submitCta(event, "topic")}
+                className="rounded-2xl border border-white/10 bg-white/[0.06] p-6"
+              >
+                <Lightbulb className="w-8 h-8 text-amber-200 mb-5" />
+                <h3 className="text-xl font-black mb-2">Suggest a webinar topic</h3>
+                <div className="mt-5 space-y-3">
+                  <input
+                    required
+                    type="text"
+                    value={suggestion.name}
+                    onChange={(event) => setSuggestion({ ...suggestion, name: event.target.value })}
+                    placeholder="Name"
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white text-[#0A1628] placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-300/30 outline-none"
+                  />
+                  <input
+                    required
+                    type="email"
+                    value={suggestion.email}
+                    onChange={(event) => setSuggestion({ ...suggestion, email: event.target.value })}
+                    placeholder="Work email"
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white text-[#0A1628] placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-300/30 outline-none"
+                  />
+                  <textarea
+                    required
+                    rows={3}
+                    value={suggestion.topic}
+                    onChange={(event) => setSuggestion({ ...suggestion, topic: event.target.value })}
+                    placeholder="Topic idea"
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white text-[#0A1628] placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-300/30 outline-none resize-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-3 w-full bg-white hover:bg-slate-100 text-blue-700 font-black py-3 rounded-xl transition-colors disabled:opacity-60"
+                >
+                  Send Topic
+                </button>
+              </form>
+            </div>
           </div>
+          {error && <p className="mt-6 text-sm font-bold text-red-200">{error}</p>}
         </div>
       </section>
 
-      {/* REGISTRATION MODAL */}
-      {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-            <button onClick={() => setIsRegisterModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
-            
-            {isSuccess ? (
+      {(registerWebinar || leadGateWebinar) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={closeModals}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {registerWebinar && successState === "register" && (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#0A1628] mb-2">You're Registered!</h3>
-                <p className="text-slate-500">We've sent a calendar invite and confirmation to your email.</p>
+                <h3 className="text-2xl font-black text-[#0A1628] mb-2">You're registered</h3>
+                <p className="text-slate-500 font-medium">
+                  A confirmation email with webinar details is on its way.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => downloadCalendar(registerWebinar)}
+                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-black text-white hover:bg-blue-700"
+                >
+                  <CalendarPlus className="w-5 h-5" />
+                  Add to Calendar
+                </button>
               </div>
-            ) : (
+            )}
+
+            {leadGateWebinar && successState === "lead" && (
+              <div>
+                <h3 className="text-2xl font-black text-[#0A1628] mb-5">{leadGateWebinar.title}</h3>
+                <div className="aspect-video rounded-xl overflow-hidden bg-slate-950">
+                  <iframe
+                    src={leadGateWebinar.videoUrl}
+                    title={leadGateWebinar.title}
+                    className="w-full h-full"
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
+
+            {registerWebinar && successState !== "register" && (
               <>
-                <h3 className="text-2xl font-bold text-[#0A1628] mb-2">Register for Webinar</h3>
-                <p className="text-slate-500 mb-6 font-medium">{selectedWebinar?.title}</p>
-                
-                <form onSubmit={(e) => handleSubmit(e, "register")} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
-                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="Jane Doe" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Work Email</label>
-                    <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="jane@company.com" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Company Name</label>
-                    <input required type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="Acme Corp" />
-                  </div>
-                  <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-colors mt-2">
+                <h3 className="text-2xl font-black text-[#0A1628] mb-2">Register Free</h3>
+                <p className="text-slate-500 mb-6 font-medium">{registerWebinar.title}</p>
+                <form onSubmit={(event) => submitRegistration(event, "register")} className="space-y-4">
+                  <CaptureInputs capture={capture} setCapture={setCapture} includeCompany />
+                  {error && <p className="text-sm font-bold text-red-600">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl transition-colors mt-2 disabled:opacity-60"
+                  >
                     {isSubmitting ? "Registering..." : "Complete Registration"}
                   </button>
                 </form>
               </>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* LEAD GATE MODAL */}
-      {isLeadGateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-            <button onClick={() => setIsLeadGateOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
-            
-            {isSuccess ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <PlayCircle className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold text-[#0A1628] mb-2">Unlocking Video...</h3>
-                <p className="text-slate-500">Redirecting you to the webinar session.</p>
-              </div>
-            ) : (
+            {leadGateWebinar && successState !== "lead" && (
               <>
-                <h3 className="text-2xl font-bold text-[#0A1628] mb-2">Watch On-Demand</h3>
-                <p className="text-slate-500 mb-6 font-medium">Please enter your details to access this exclusive content.</p>
-                
-                <form onSubmit={(e) => handleSubmit(e, "lead")} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
-                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="Jane Doe" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Work Email</label>
-                    <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" placeholder="jane@company.com" />
-                  </div>
-                  <button type="submit" disabled={isSubmitting} className="w-full bg-[#0A1628] hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-colors mt-2">
+                <h3 className="text-2xl font-black text-[#0A1628] mb-2">Watch On Demand</h3>
+                <p className="text-slate-500 mb-6 font-medium">
+                  Enter your details to unlock {leadGateWebinar.title}.
+                </p>
+                <form onSubmit={(event) => submitRegistration(event, "lead")} className="space-y-4">
+                  <CaptureInputs capture={capture} setCapture={setCapture} />
+                  {error && <p className="text-sm font-bold text-red-600">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-[#0A1628] hover:bg-slate-800 text-white font-black py-4 rounded-xl transition-colors mt-2 disabled:opacity-60"
+                  >
                     {isSubmitting ? "Unlocking..." : "Watch Video Now"}
                   </button>
                 </form>
@@ -331,7 +556,56 @@ END:VCALENDAR`;
           </div>
         </div>
       )}
-
     </div>
+  );
+}
+
+function CaptureInputs({
+  capture,
+  setCapture,
+  includeCompany = false,
+}: {
+  capture: CaptureFields;
+  setCapture: React.Dispatch<React.SetStateAction<CaptureFields>>;
+  includeCompany?: boolean;
+}) {
+  return (
+    <>
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
+        <input
+          required
+          type="text"
+          value={capture.name}
+          onChange={(event) => setCapture({ ...capture, name: event.target.value })}
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+          placeholder="Jane Doe"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">Work Email</label>
+        <input
+          required
+          type="email"
+          value={capture.email}
+          onChange={(event) => setCapture({ ...capture, email: event.target.value })}
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+          placeholder="jane@company.com"
+        />
+      </div>
+      {includeCompany && (
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1">Company Name</label>
+          <input
+            required
+            type="text"
+            value={capture.company}
+            onChange={(event) => setCapture({ ...capture, company: event.target.value })}
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+            placeholder="Acme Corp"
+          />
+        </div>
+      )}
+    </>
   );
 }

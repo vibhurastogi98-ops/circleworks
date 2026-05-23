@@ -39,7 +39,16 @@ const contentSecurityPolicy = [
     "wss://*.supabase.co",
     isDevelopment ? "http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*" : "",
   ].filter(Boolean).join(" "),
-  "frame-src https://js.stripe.com https://cdn.plaid.com https://www.youtube.com https://www.youtube-nocookie.com",
+  [
+    "frame-src",
+    "https://js.stripe.com",
+    "https://cdn.plaid.com",
+    "https://player.vimeo.com",
+    "https://fast.wistia.net",
+    "https://*.wistia.net",
+    "https://www.youtube.com",
+    "https://www.youtube-nocookie.com",
+  ].join(" "),
 ].join("; ");
 
 const securityHeaders = [
