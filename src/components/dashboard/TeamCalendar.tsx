@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { TEAM_CALENDAR } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function TeamCalendar() {
   const { teamCalendar } = useDashboardData();
@@ -66,9 +67,13 @@ export default function TeamCalendar() {
                     title={`${ev.name} — ${ev.type.toUpperCase()}`}
                   >
                     <div className="w-5 h-5 rounded-full overflow-hidden border border-white dark:border-slate-600 shadow-sm flex-shrink-0">
-                      <img
+                      <Image
                         src={`https://api.dicebear.com/7.x/notionists/svg?seed=${ev.avatarSeed}&backgroundColor=transparent`}
                         alt={ev.name}
+                        width={20}
+                        height={20}
+                        loading="lazy"
+                        unoptimized
                         className="w-full h-full"
                       />
                     </div>

@@ -3,6 +3,10 @@ name: CI
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -24,3 +28,48 @@ jobs:
 
       - run: npm install
       - run: npm run build
+      - name: Lighthouse CI
+        if: github.event_name == 'pull_request'
+        run: npm run lhci
+
+  security-headers:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: SecurityHeaders.com scan
+        run: |
+          TARGET="${SECURITY_HEADERS_TARGET:-https://app.circleworks.com}"
+          echo "Scanning $TARGET with securityheaders.com; target rating: A+"
+          curl --fail --silent --show-error \
+            "https://securityheaders.com/?q=${TARGET}&followRedirects=on" \
+            --output securityheaders.html
+
+      - name: Mozilla Observatory scan
+        run: |
+          TARGET_HOST="${MOZILLA_OBSERVATORY_HOST:-app.circleworks.com}"
+          echo "Scanning $TARGET_HOST with Mozilla Observatory; target rating: A+"
+          curl --fail --silent --show-error \
+            "https://observatory-api.mdn.mozilla.net/api/v2/scan?host=${TARGET_HOST}" \
+            --output mozilla-observatory.json
+
+  bundle-analysis:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm install
+      - run: npm run analyze
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: next-bundle-analysis
+          path: .next/analyze/*.html

@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { Play, Check, ChevronRight, LayoutDashboard, Users, CreditCard, Heart, ShieldCheck } from "lucide-react";
 
 const logos = [
@@ -24,6 +25,9 @@ const MOCK_TABS = [
   { id: "Benefits", icon: Heart },
   { id: "Compliance", icon: ShieldCheck },
 ];
+
+const heroBlurDataUrl =
+  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNjQwJyBoZWlnaHQ9JzY0MCcgdmlld0JveD0nMCAwIDY0MCA2NDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHJlY3Qgd2lkdGg9JzY0MCcgaGVpZ2h0PSc2NDAnIGZpbGw9JyMwQTE2MjgnLz48Y2lyY2xlIGN4PSc0NjAnIGN5PScxODAnIHI9JzI0MCcgZmlsbD0nIzFENEVEROCcgZmlsbC1vcGFjaXR5PScwLjQnLz48Y2lyY2xlIGN4PScxODAnIGN5PSc0NjAnIHI9JzI0MCcgZmlsbD0nIzA2QjZENScgZmlsbC1vcGFjaXR5PScwLjI1Jy8+PC9zdmc+";
 
 export default function HeroSection() {
   const [activeMockTab, setActiveMockTab] = React.useState("Dashboard");
@@ -171,6 +175,18 @@ export default function HeroSection() {
 
           {/* Browser Frame */}
           <div className="relative z-10 w-full bg-[#1E293B] border border-slate-700/50 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="pointer-events-none absolute -right-6 -top-8 z-20 hidden h-36 w-36 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-2xl shadow-blue-950/40 md:block lg:h-44 lg:w-44">
+              <Image
+                src="/dashboard-mockup.png"
+                alt="CircleWorks dashboard preview"
+                fill
+                priority
+                placeholder="blur"
+                blurDataURL={heroBlurDataUrl}
+                sizes="(min-width: 1280px) 176px, (min-width: 768px) 144px, 0px"
+                className="object-cover"
+              />
+            </div>
 
             {/* Chrome Bar */}
             <div className="h-10 bg-[#0F172A] border-b border-slate-700/50 flex items-center px-4 gap-4">

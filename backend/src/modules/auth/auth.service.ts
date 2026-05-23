@@ -21,6 +21,12 @@ import {
   MfaVerifyDto,
   MfaDisableDto,
 } from './dtos/auth.dto';
+import { SessionAlertService } from './session-alert.service';
+import { DeviceInfo, SessionLimitAction, SessionService } from './session.service';
+
+interface LoginContext {
+  deviceInfo: DeviceInfo;
+}
 
 @Injectable()
 export class AuthService {
@@ -28,6 +34,8 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private sessionService: SessionService,
+    private sessionAlertService: SessionAlertService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -63,8 +71,8 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
-    const { email, password, mfaCode } = loginDto;
+  async login(loginDto: LoginDto, context: LoginContext) {
+    const { email, password, mfaCode, rememberMe, sessionLimitAction } = loginDto;
 
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || !user.hashedPassword) {
@@ -92,7 +100,24 @@ export class AuthService {
       }
     }
 
-    const tokens = await this.generateTokens(user);
+    let tokens;
+    try {
+      tokens = await this.generateTokens(user, {
+        rememberMe,
+        deviceInfo: context.deviceInfo,
+        limitAction: sessionLimitAction,
+      });
+    } catch (error: any) {
+      if (error?.code === 'SESSION_LIMIT_REACHED') {
+        throw new ConflictException({
+          error: 'session_limit_reached',
+          message: 'Session limit reached',
+          maxSessions: error.maxSessions,
+          options: error.options,
+        });
+      }
+      throw error;
+    }
 
     // Update last login
     await this.prisma.user.update({
@@ -100,39 +125,62 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
+    void this.sessionAlertService.sendNewDeviceLoginAlertEmail(user, context.deviceInfo);
+
     return tokens;
   }
 
   async refresh(refreshTokenDto: RefreshTokenDto) {
     const { refreshToken } = refreshTokenDto;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    const storedToken = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-    });
-
-    if (!storedToken || storedToken.expiresAt < new Date() || storedToken.revokedAt) {
+    const rotated = await this.sessionService.rotateRefreshToken({ refreshToken });
+    if (!rotated) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: storedToken.userId },
+      where: { id: rotated.session.userId },
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    const tokens = await this.generateTokens(user);
-    return tokens;
+    const accessToken = this.generateAccessToken(user);
+    return {
+      accessToken,
+      refreshToken: rotated.refreshToken,
+      refreshTokenMaxAge: rotated.ttlSeconds,
+      session: this.serializeSession(rotated.session),
+      expiresIn: 900,
+      tokenType: 'Bearer',
+    };
   }
 
-  async logout(userId: string, refreshToken: string) {
-    await this.prisma.refreshToken.update({
-      where: { token: refreshToken },
-      data: { revokedAt: new Date() },
-    });
+  async logout(userId: string, refreshToken?: string) {
+    if (refreshToken) {
+      await this.sessionService.revokeRefreshToken(refreshToken);
+    }
 
     return { message: 'Logout successful' };
+  }
+
+  async listSessions(userId: string) {
+    const sessions = await this.sessionService.listSessions(userId);
+    return { sessions: sessions.map((session) => this.serializeSession(session)) };
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    const revoked = await this.sessionService.revokeSession(userId, sessionId);
+    return { success: revoked };
+  }
+
+  async revokeOtherSessions(userId: string, currentSessionId?: string) {
+    await this.sessionService.revokeOtherUserSessions(userId, currentSessionId);
+    return { success: true };
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
@@ -185,6 +233,15 @@ export class AuthService {
         where: { userId: payload.sub },
         data: { revokedAt: new Date() },
       });
+      await this.sessionService.revokeAllUserSessions(payload.sub);
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true },
+      });
+      if (user) {
+        void this.sessionAlertService.sendPasswordChangedRevocationEmail(user);
+      }
 
       return { message: 'Password reset successful' };
     } catch (error) {
@@ -292,35 +349,49 @@ export class AuthService {
     return { message: 'MFA disabled successfully' };
   }
 
-  private async generateTokens(user: any) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
-
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('JWT_EXPIRATION') || '15m',
-    });
-
-    const refreshTokenExpiresIn = this.configService.get('JWT_REFRESH_EXPIRATION') || '7d';
-    const refreshTokenString = this.jwtService.sign(payload, {
-      expiresIn: refreshTokenExpiresIn,
-    });
-
-    // Store refresh token
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    await this.prisma.refreshToken.create({
-      data: {
-        token: refreshTokenString,
-        userId: user.id,
-        expiresAt,
-      },
+  private async generateTokens(
+    user: any,
+    options: {
+      rememberMe?: boolean;
+      deviceInfo: DeviceInfo;
+      limitAction?: SessionLimitAction;
+    },
+  ) {
+    const accessToken = this.generateAccessToken(user);
+    const { refreshToken, session, ttlSeconds } = await this.sessionService.createSession({
+      userId: user.id,
+      rememberMe: options.rememberMe,
+      deviceInfo: options.deviceInfo,
+      limitAction: options.limitAction,
     });
 
     return {
       accessToken,
-      refreshToken: refreshTokenString,
+      refreshToken,
+      refreshTokenMaxAge: ttlSeconds,
+      session: this.serializeSession(session),
       expiresIn: 900, // 15 minutes in seconds
       tokenType: 'Bearer',
+    };
+  }
+
+  private generateAccessToken(user: any) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+
+    return this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_EXPIRATION') || '15m',
+    });
+  }
+
+  private serializeSession(session: any) {
+    return {
+      id: session.sessionId,
+      deviceId: session.deviceId,
+      createdAt: session.createdAt,
+      lastActive: session.lastActive,
+      expiresAt: session.expiresAt,
+      deviceInfo: session.deviceInfo,
+      rememberMe: session.rememberMe,
     };
   }
 

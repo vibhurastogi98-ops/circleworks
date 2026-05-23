@@ -1,5 +1,42 @@
 # Sec. 02 — Shared Architecture
 
+## Database Indexing Strategy
+
+Primary PostgreSQL indexes must be created for high-volume HRIS, payroll, time,
+audit, and ATS lookup paths.
+
+```sql
+CREATE INDEX idx_employees_company ON employees(company_id, status);
+CREATE INDEX idx_employees_email ON employees(email);
+CREATE INDEX idx_employees_manager ON employees(manager_id);
+CREATE INDEX idx_employees_dept ON employees(department_id, status);
+
+CREATE INDEX idx_payroll_company ON payroll_runs(company_id, status);
+CREATE INDEX idx_payroll_period ON payroll_runs(company_id, period_end DESC);
+
+CREATE INDEX idx_time_emp_date ON time_entries(employee_id, date DESC);
+CREATE INDEX idx_time_company ON time_entries(company_id, period_start, period_end);
+
+CREATE INDEX idx_audit_company ON audit_logs(company_id, created_at DESC);
+CREATE INDEX idx_audit_entity ON audit_logs(entity_type, entity_id);
+
+CREATE INDEX idx_candidates_job ON candidates(job_id, stage);
+```
+
+### Query Optimization
+
+- Enable slow query logging and run `EXPLAIN ANALYZE` for any query over 100ms.
+- Add a partial index for active employee lists:
+
+```sql
+CREATE INDEX idx_active_employees ON employees(company_id)
+WHERE status = 'active';
+```
+
+- Enable `pg_stat_statements` in production to identify recurring slow queries,
+  high-total-time queries, and missing-index candidates.
+- Review index usage quarterly and before any high-volume module launch.
+
 ## Redis Caching Strategy
 
 Our Redis caching strategy is designed to minimize database load and ensure high performance.

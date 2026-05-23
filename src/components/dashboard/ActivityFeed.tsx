@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { ACTIVITY_FEED } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { ListTodo } from "lucide-react";
@@ -59,9 +60,13 @@ export default function ActivityFeed() {
                       <span className="text-white text-[11px] font-bold">SYS</span>
                     </div>
                   ) : (
-                    <img
+                    <Image
                       src={`https://api.dicebear.com/7.x/notionists/svg?seed=${event.avatarSeed}&backgroundColor=transparent`}
                       alt={event.actor}
+                      width={38}
+                      height={38}
+                      loading="lazy"
+                      unoptimized
                       className="w-full h-full object-cover"
                     />
                   )}

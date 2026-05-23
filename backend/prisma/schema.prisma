@@ -184,9 +184,12 @@ model Employee {
 
   @@unique([companyId, email])
   @@index([companyId])
+  @@index([companyId, status], map: "idx_employees_company")
+  @@index([email], map: "idx_employees_email")
   @@index([userId])
-  @@index([reportingManagerId])
+  @@index([reportingManagerId], map: "idx_employees_manager")
   @@index([departmentId])
+  @@index([departmentId, status], map: "idx_employees_dept")
 }
 
 enum EmployeeStatus {
@@ -313,6 +316,8 @@ model PayrollRun {
   achFile         AchFile?
 
   @@index([companyId])
+  @@index([companyId, status], map: "idx_payroll_company")
+  @@index([companyId, periodEnd(sort: Desc)], map: "idx_payroll_period")
   @@index([status])
   @@index([payDate])
 }
@@ -455,6 +460,7 @@ model Candidate {
   @@unique([companyId, email])
   @@index([companyId])
   @@index([jobOpeningId])
+  @@index([jobOpeningId, currentStage], map: "idx_candidates_job")
 }
 
 enum CandidateStage {
@@ -621,6 +627,8 @@ model TimeEntry {
 
   @@unique([companyId, employeeId, date])
   @@index([employeeId])
+  @@index([employeeId, date(sort: Desc)], map: "idx_time_emp_date")
+  @@index([companyId, date], map: "idx_time_company")
 }
 
 model Timesheet {
@@ -871,9 +879,9 @@ model AuditLog {
   actor                 User?       @relation(fields: [actorId], references: [id])
 
   @@map("audit_logs")
-  @@index([companyId, createdAt])
+  @@index([companyId, createdAt(sort: Desc)], map: "idx_audit_company")
   @@index([actorId])
-  @@index([resourceType, resourceId])
+  @@index([resourceType, resourceId], map: "idx_audit_entity")
   @@index([fieldName])
 }
 

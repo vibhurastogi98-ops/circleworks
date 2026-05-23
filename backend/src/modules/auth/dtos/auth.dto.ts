@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -30,7 +30,16 @@ export class LoginDto {
   password: string;
 
   @IsString()
+  @IsOptional()
   mfaCode?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  rememberMe?: boolean;
+
+  @IsIn(['cancel', 'sign_out_oldest', 'sign_out_others'])
+  @IsOptional()
+  sessionLimitAction?: 'cancel' | 'sign_out_oldest' | 'sign_out_others';
 }
 
 export class ForgotPasswordDto {
@@ -54,8 +63,8 @@ export class ResetPasswordDto {
 
 export class RefreshTokenDto {
   @IsString()
-  @IsNotEmpty()
-  refreshToken: string;
+  @IsOptional()
+  refreshToken?: string;
 }
 
 export class VerifyEmailDto {

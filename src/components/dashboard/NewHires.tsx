@@ -5,6 +5,7 @@ import { NEW_HIRES } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { UserPlus } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 function OnboardingBadge({ percent }: { percent: number }) {
   const getColor = (p: number) => {
@@ -74,9 +75,13 @@ export default function NewHires() {
             >
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-600">
-                <img
+                <Image
                   src={`https://api.dicebear.com/7.x/notionists/svg?seed=${hire.avatarSeed}&backgroundColor=transparent`}
                   alt={hire.name}
+                  width={36}
+                  height={36}
+                  loading="lazy"
+                  unoptimized
                   className="w-full h-full object-cover"
                 />
               </div>

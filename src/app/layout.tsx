@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Inter } from "next/font/google";
 
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
@@ -9,6 +10,12 @@ import { Toaster } from "sonner";
 import QueryProvider from "@/components/QueryProvider";
 import SocketProvider from "@/components/SocketProvider";
 import { AuthProvider } from "@/context/AuthContext";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -46,18 +53,6 @@ export default function RootLayout({
           href="https://circleworks.vercel.app/"
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-
-        {/* Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
       </head>
 
       {/* Google Analytics */}
@@ -98,7 +93,7 @@ export default function RootLayout({
         `}
       </Script>
 
-      <body className="antialiased" suppressHydrationWarning>
+      <body className={`${inter.variable} ${inter.className} antialiased`} suppressHydrationWarning>
         <Toaster position="top-right" richColors />
         <KeyboardShortcuts />
         <CookieBanner />

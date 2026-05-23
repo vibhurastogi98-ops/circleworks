@@ -17,8 +17,17 @@ async function bootstrap() {
   }
 
   // CORS
+  const productionOrigins = ['https://circleworks.com', 'https://app.circleworks.com'];
+  const configuredOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean);
+  const productionConfiguredOrigins = configuredOrigins?.filter((origin) => origin !== '*');
+  let corsOrigins = configuredOrigins || ['http://localhost:3000'];
+
+  if (process.env.NODE_ENV === 'production') {
+    corsOrigins = productionConfiguredOrigins?.length ? productionConfiguredOrigins : productionOrigins;
+  }
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || 'http://localhost:3000',
+    origin: corsOrigins,
     credentials: true,
   });
 

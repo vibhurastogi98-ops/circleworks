@@ -1,7 +1,7 @@
 /**
  * GET /api/v1 — API version contract & discovery endpoint
  *
- * Returns versioning strategy, supported events, batch endpoints, and upload limits.
+ * Returns versioning strategy, pagination standard, supported events, batch endpoints, and upload limits.
  * Section 35: API Versioning Strategy
  */
 

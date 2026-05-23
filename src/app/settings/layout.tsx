@@ -35,6 +35,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                     <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Access & Security</h2>
                     <Link href="/settings/users" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Admin Users</Link>
                     <Link href="/settings/roles" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Roles & Permissions</Link>
+                    <Link href="/settings/security/devices" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">Devices & Sessions</Link>
                     <Link href="/settings/sso" className="px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">SSO & Provisioning</Link>
 
                     <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider mt-4 mb-2 px-3">Finance</h2>

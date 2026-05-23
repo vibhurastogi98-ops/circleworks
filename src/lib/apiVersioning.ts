@@ -177,5 +177,57 @@ export function getVersionContract() {
         },
       },
     },
+    cursor_pagination: {
+      standard: "All list endpoints use cursor-based pagination, not offset pagination.",
+      query_params: {
+        cursor: "opaque base64 cursor",
+        limit: "positive integer, max 100",
+        direction: "next | prev",
+      },
+      default_limits: {
+        employees: 25,
+        payroll_runs: 20,
+        audit_logs: 50,
+      },
+      max_limit: 100,
+      max_limit_error: {
+        status: 400,
+        body: {
+          error: "limit_exceeded",
+          max_limit: 100,
+        },
+      },
+      response_envelope: {
+        data: ["...items"],
+        pagination: {
+          cursor_next: "base64_encoded_cursor",
+          cursor_prev: "base64_encoded_cursor",
+          has_next: true,
+          has_prev: false,
+          total_count: 1247,
+        },
+      },
+      cursor_encoding: {
+        format: "base64 encoded JSON",
+        encrypted: false,
+        payload: {
+          id: "lastItemId",
+          sort_field: "lastItemSortValue",
+        },
+        sql_pattern: "WHERE (created_at, id) < (cursor.created_at, cursor.id)",
+      },
+      frontend: {
+        query_client: "TanStack Query useInfiniteQuery",
+        controls: ["Load More button", "infinite scroll trigger"],
+        status_text_example: "Showing 25 of 1,247 employees",
+      },
+      migrations: [
+        {
+          deprecated: "/v1/employees",
+          replacement: "/v2/employees",
+          reason: "offset pagination deprecated in favor of cursor pagination",
+        },
+      ],
+    },
   };
 }

@@ -79,16 +79,75 @@ module/
 3. Compare password with bcrypt
 4. Check MFA requirement
 5. Generate JWT access token (15 min)
-6. Generate refresh token (7 days)
-7. Store refresh token in database
-8. Return tokens
+6. Generate opaque refresh token
+7. Store refresh session in Redis
+8. Set refresh token in an httpOnly cookie
+9. Return access token and session metadata
 
 ### Refresh Token
-1. Client sends refresh token
-2. Verify token signature & expiration
-3. Check if token is not revoked
-4. Generate new access token
-5. Return new token
+1. Client sends refresh token from the httpOnly cookie
+2. Look up opaque token in Redis
+3. Rotate refresh token by deleting the used token and issuing a new one
+4. Update session `lastActive`
+5. Generate new 15-minute JWT access token
+6. Return access token and set the new refresh cookie
+
+### Section 13/35 Addendum: Session Management
+
+Token configuration:
+
+- Access token: JWT, expires in 15 minutes
+- Refresh token: opaque random token, stored in Redis, expires in 7 days
+- Remember Me: refresh token/session extends to 30 days
+- Token rotation: every refresh consumes the current refresh token and issues a new opaque token
+
+Client storage:
+
+- `access_token`: memory only; do not write to `localStorage`
+- `refresh_token`: httpOnly cookie with `Secure` in production and `SameSite=Strict`
+
+Redis session payload:
+
+```json
+{
+  "userId": "user_123",
+  "deviceId": "device_abc",
+  "createdAt": "2026-05-23T10:00:00.000Z",
+  "lastActive": "2026-05-23T10:12:00.000Z",
+  "deviceInfo": {
+    "type": "Desktop",
+    "browser": "Chrome",
+    "os": "macOS",
+    "location": "203.0.113.10"
+  }
+}
+```
+
+Redis keys:
+
+- `auth:session:{sessionId}` — session JSON
+- `auth:refresh:{sha256(refreshToken)}` — opaque refresh token lookup
+- `auth:user_sessions:{userId}` — sorted set for concurrent-session enforcement
+
+Concurrent sessions:
+
+- Default maximum: 5 sessions per user
+- 6th login returns `Session limit reached`
+- Supported options: `sign_out_oldest`, `sign_out_others`, or `cancel`
+
+Password change revocation:
+
+- On password reset/change, all Redis refresh sessions for the user are deleted
+- Other devices lose access on their next refresh attempt
+- Email event: `Password changed — all other sessions signed out`
+
+Device management:
+
+- `GET /auth/sessions` lists device type, browser, OS, location/IP, and last active time
+- `DELETE /auth/sessions/:id` signs out one session
+- `POST /auth/sessions/revoke-others` signs out all other sessions
+- UI route: `/settings/security/devices`
+- New device login alert email: `New sign-in from [device] in [location]`
 
 ### MFA (TOTP)
 1. User enables MFA during account setup
@@ -390,6 +449,129 @@ const isValid = signature === expectedSignature;
 - Next major version: `/v2/`, introduced alongside `/v1/` for breaking changes only
 - Minor version header: `API-Version: 2025-01-01` for date-based minor versioning within `/v1/`
 - Deprecation headers: `Deprecation: true` and `Sunset: [date]`
+
+## Cursor-Based Pagination Standard
+
+All list endpoints use cursor-based pagination instead of offset pagination.
+
+### Request Contract
+
+```http
+GET /api/v2/employees?cursor={opaque_cursor}&limit={n}&direction=next
+```
+
+| Query param | Description |
+| --- | --- |
+| `cursor` | Opaque base64 cursor from `cursor_next` or `cursor_prev` |
+| `limit` | Positive integer page size |
+| `direction` | `next` or `prev` |
+
+Default limits:
+
+| Resource | Default |
+| --- | ---: |
+| `employees` | 25 |
+| `payroll_runs` | 20 |
+| `audit_logs` | 50 |
+
+Maximum limit: `100`. Requests above `100` return HTTP `400`.
+
+```json
+{
+  "error": "limit_exceeded",
+  "max_limit": 100
+}
+```
+
+### Response Envelope
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "cursor_next": "base64_encoded_cursor",
+    "cursor_prev": "base64_encoded_cursor",
+    "has_next": true,
+    "has_prev": false,
+    "total_count": 1247
+  }
+}
+```
+
+### Cursor Encoding
+
+Cursors are base64 encoded JSON payloads, not encrypted values.
+
+```json
+{
+  "id": "lastItemId",
+  "sort_field": "lastItemSortValue"
+}
+```
+
+Database queries use deterministic tuple comparisons:
+
+```sql
+WHERE (created_at, id) < (cursor.created_at, cursor.id)
+```
+
+### Frontend Standard
+
+- Use TanStack Query `useInfiniteQuery` for list views.
+- Trigger loading with a `Load More` button or infinite scroll sentinel.
+- Show visible count status text, for example: `Showing 25 of 1,247 employees`.
+
+### Migration
+
+`/v1/employees` offset pagination is deprecated. Use `/v2/employees` cursor pagination for all new integrations.
+
+## CDN & Asset Optimization
+
+### Image Optimization
+
+- Use `next/image` for application and marketing images.
+- Serve optimized formats in this order: AVIF, then WebP.
+- Hero imagery uses responsive widths of `640w`, `1024w`, `1280w`, and `1920w`.
+- Above-the-fold hero images set `priority={true}`.
+- Below-fold images use lazy loading.
+- Hero images include `blurDataURL` placeholders to reduce layout shift.
+
+### Font Optimization
+
+- Inter is loaded through `next/font/google`, not a runtime Google Fonts stylesheet.
+- Font subsetting is limited to `latin`.
+- Font display is `swap` to avoid invisible text during font load.
+
+### Code Splitting
+
+- App Router provides automatic route-level splitting.
+- Heavy client-only components use dynamic imports with Suspense-style fallbacks.
+
+```ts
+const PayrollChart = dynamic(() => import("./PayrollChart"), { ssr: false });
+```
+
+- Target route bundle size: no route bundle over `200KB` gzipped.
+- Run bundle analysis with `ANALYZE=true next build`; CI uploads bundle analyzer artifacts on every published release.
+
+### CDN Configuration
+
+- Marketing pages use Vercel Edge/CDN delivery with static rendering or ISR where possible.
+- Static assets are served with immutable cache headers:
+
+```http
+Cache-Control: public, max-age=31536000, immutable
+```
+
+### Performance Targets
+
+Lighthouse CI runs on pull requests with these targets:
+
+| Metric | Target |
+| --- | ---: |
+| LCP | `<2.5s` |
+| CLS | `<0.1` |
+| INP/TBT proxy | `<200ms` |
 
 ## Batch Endpoints
 
