@@ -19,6 +19,20 @@ interface PendingChange {
   effectiveDate: string;
 }
 
+function buildRetroPayUrl(change: PendingChange, payType: string) {
+  const params = new URLSearchParams({
+    mode: "retro",
+    employeeId: change.employeeId,
+    employeeName: change.employeeName,
+    effectiveDate: change.effectiveDate,
+    oldRate: String(change.oldRate),
+    newRate: String(change.newRate),
+    payType,
+  });
+
+  return `/payroll/off-cycle?${params.toString()}`;
+}
+
 export default function CompensationTab() {
   const { id } = useParams();
   const router = useRouter();
@@ -115,7 +129,8 @@ export default function CompensationTab() {
     if (classification === "past") {
       setBackdatedChange(nextPendingChange);
       setShowRequestModal(false);
-      toast.message("Backdated compensation change detected.");
+      toast.message("Backdated compensation change detected. Redirecting to retro pay.");
+      router.push(buildRetroPayUrl(nextPendingChange, payType));
       return;
     }
 
@@ -205,7 +220,7 @@ export default function CompensationTab() {
                 </div>
               </div>
               <button
-                onClick={() => router.push(`/payroll/off-cycle?mode=retro&employeeId=${backdatedChange.employeeId}&employeeName=${encodeURIComponent(backdatedChange.employeeName)}&effectiveDate=${backdatedChange.effectiveDate}&oldRate=${backdatedChange.oldRate}&newRate=${backdatedChange.newRate}&payType=${payType}`)}
+                onClick={() => router.push(buildRetroPayUrl(backdatedChange, payType))}
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-700"
               >
                 Calculate Retro Pay

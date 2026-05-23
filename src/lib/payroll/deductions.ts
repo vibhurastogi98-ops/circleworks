@@ -1,5 +1,11 @@
 import { db } from "@/db";
-import { benefitEnrollments, benefitPlans, employees, payrolls } from "@/db/schema";
+import {
+  benefitEnrollments,
+  benefitPlans,
+  employees,
+  payrollBenefitDeductions,
+  payrolls,
+} from "@/db/schema";
 import { mockBenefitPlans, mockRetirementAccounts } from "@/data/mockBenefits";
 import { MOCK_EMPLOYEES } from "@/data/payrollRunMocks";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -22,6 +28,13 @@ export interface PayrollDeductionResult {
   deductions: PayrollDeductionLine[];
   paySchedule: PaySchedule;
 }
+
+type PayrollRunRow = typeof payrolls.$inferSelect;
+
+type ActivePayrollDeductionLine = PayrollDeductionLine & {
+  enrollmentCreatedAt?: Date | null;
+  planCreatedAt?: Date | null;
+};
 
 const PAY_PERIODS_PER_MONTH: Record<PaySchedule, number> = {
   "semi-monthly": 2,
@@ -79,7 +92,7 @@ function calculateEmployeeSharePercent(employeePremium: number, employerPremium:
   return roundCurrency((employeePremium / totalMonthlyPremium) * 100);
 }
 
-function calculatePerPaycheck(monthlyPremium: number, employeeSharePercent: number, paySchedule: PaySchedule) {
+export function calculateBenefitPerPaycheck(monthlyPremium: number, employeeSharePercent: number, paySchedule: PaySchedule) {
   return roundCurrency((monthlyPremium * (employeeSharePercent / 100)) / PAY_PERIODS_PER_MONTH[paySchedule]);
 }
 
@@ -127,7 +140,7 @@ function buildMockPayrollDeductions(runId: string): PayrollDeductionResult {
         planName: formatPlanDisplayName(plan.type, plan.name, plan.carrier),
         monthlyPremium,
         employeeShare,
-        perPaycheckAmount: calculatePerPaycheck(monthlyPremium, employeeShare, paySchedule),
+        perPaycheckAmount: calculateBenefitPerPaycheck(monthlyPremium, employeeShare, paySchedule),
         pretaxOrPosttax: getPretaxOrPosttax(plan.type),
         deductionCode: getDeductionCode(plan.type),
       });
@@ -141,22 +154,85 @@ function buildMockPayrollDeductions(runId: string): PayrollDeductionResult {
   };
 }
 
-export async function getPayrollDeductions(runId: string): Promise<PayrollDeductionResult> {
-  if (!/^\d+$/.test(runId)) {
-    return buildMockPayrollDeductions(runId);
+function stripSourceMetadata(line: ActivePayrollDeductionLine): PayrollDeductionLine {
+  const { enrollmentCreatedAt: _enrollmentCreatedAt, planCreatedAt: _planCreatedAt, ...deduction } = line;
+  return deduction;
+}
+
+function buildLineSignature(line: PayrollDeductionLine) {
+  return [
+    line.benefitPlanId,
+    line.deductionCode,
+    line.pretaxOrPosttax,
+    line.monthlyPremium,
+    line.employeeShare,
+    line.perPaycheckAmount,
+  ].join(":");
+}
+
+function countChangedEmployeesSinceDraft(
+  run: PayrollRunRow,
+  activeLines: ActivePayrollDeductionLine[],
+  persistedLines: PayrollDeductionLine[],
+) {
+  const changedEmployeeIds = new Set<string | number>();
+
+  if (persistedLines.length === 0) {
+    activeLines.forEach((line) => {
+      if (
+        (line.enrollmentCreatedAt && run.createdAt && line.enrollmentCreatedAt > run.createdAt) ||
+        (line.planCreatedAt && run.createdAt && line.planCreatedAt > run.createdAt)
+      ) {
+        changedEmployeeIds.add(line.employeeId);
+      }
+    });
+
+    return changedEmployeeIds.size;
   }
 
-  const payrollId = Number(runId);
+  const persistedByEmployee = new Map<string, string[]>();
+  persistedLines.forEach((line) => {
+    const key = String(line.employeeId);
+    const signatures = persistedByEmployee.get(key) || [];
+    signatures.push(buildLineSignature(line));
+    persistedByEmployee.set(key, signatures);
+  });
+
+  const activeByEmployee = new Map<string, string[]>();
+  activeLines.forEach((line) => {
+    const key = String(line.employeeId);
+    const signatures = activeByEmployee.get(key) || [];
+    signatures.push(buildLineSignature(line));
+    activeByEmployee.set(key, signatures);
+  });
+
+  const employeeIds = new Set([...persistedByEmployee.keys(), ...activeByEmployee.keys()]);
+  employeeIds.forEach((employeeId) => {
+    const persistedSignature = (persistedByEmployee.get(employeeId) || []).sort().join("|");
+    const activeSignature = (activeByEmployee.get(employeeId) || []).sort().join("|");
+    if (persistedSignature !== activeSignature) {
+      changedEmployeeIds.add(employeeId);
+    }
+  });
+
+  return changedEmployeeIds.size;
+}
+
+async function getRun(runId: string) {
+  if (!/^\d+$/.test(runId)) {
+    return null;
+  }
+
   const [run] = await db
     .select()
     .from(payrolls)
-    .where(eq(payrolls.id, payrollId))
+    .where(eq(payrolls.id, Number(runId)))
     .limit(1);
 
-  if (!run) {
-    return buildMockPayrollDeductions(runId);
-  }
+  return run || null;
+}
 
+async function getActiveBenefitDeductionsForRun(run: PayrollRunRow): Promise<ActivePayrollDeductionLine[]> {
   const paySchedule = inferPaySchedule(run.payPeriodStart, run.payPeriodEnd);
 
   const enrolled = await db
@@ -180,13 +256,12 @@ export async function getPayrollDeductions(runId: string): Promise<PayrollDeduct
     .where(
       and(
         eq(employees.companyId, run.companyId as number),
-        inArray(benefitEnrollments.status, ["Active", "Enrolled", "Pending", "Completed"]),
+        inArray(benefitEnrollments.status, ["Active", "Enrolled", "Completed"]),
         eq(benefitPlans.status, "Active")
       )
     );
 
-  const changedEmployeeIds = new Set<number>();
-  const deductions: PayrollDeductionLine[] = enrolled.map((row) => {
+  return enrolled.map((row) => {
     const fullName = `${row.employeeFirstName} ${row.employeeLastName || ""}`.trim();
     const is401k = row.planType.toLowerCase() === "401k";
     const monthlyPremium = is401k
@@ -196,29 +271,107 @@ export async function getPayrollDeductions(runId: string): Promise<PayrollDeduct
       ? 100
       : calculateEmployeeSharePercent(row.employeePremium || 0, row.employerPremium || 0);
 
-    if (
-      (row.enrollmentCreatedAt && run.createdAt && row.enrollmentCreatedAt > run.createdAt) ||
-      (row.planCreatedAt && run.createdAt && row.planCreatedAt > run.createdAt)
-    ) {
-      changedEmployeeIds.add(row.employeeId);
-    }
-
     return {
       employeeId: row.employeeId,
       benefitPlanId: row.planId,
       planName: formatPlanDisplayName(row.planType, row.planName, row.carrier),
       monthlyPremium,
       employeeShare,
-      perPaycheckAmount: calculatePerPaycheck(monthlyPremium, employeeShare, paySchedule),
+      perPaycheckAmount: calculateBenefitPerPaycheck(monthlyPremium, employeeShare, paySchedule),
       pretaxOrPosttax: getPretaxOrPosttax(row.planType),
       deductionCode: getDeductionCode(row.planType),
+      enrollmentCreatedAt: row.enrollmentCreatedAt,
+      planCreatedAt: row.planCreatedAt,
     };
   });
+}
+
+async function getPersistedBenefitDeductions(runId: number): Promise<PayrollDeductionLine[]> {
+  const rows = await db
+    .select({
+      employeeId: payrollBenefitDeductions.employeeId,
+      benefitPlanId: payrollBenefitDeductions.benefitPlanId,
+      planName: payrollBenefitDeductions.planName,
+      monthlyPremium: payrollBenefitDeductions.monthlyPremium,
+      employeeShare: payrollBenefitDeductions.employeeShare,
+      perPaycheckAmount: payrollBenefitDeductions.perPaycheckAmount,
+      pretaxOrPosttax: payrollBenefitDeductions.pretaxOrPosttax,
+      deductionCode: payrollBenefitDeductions.deductionCode,
+    })
+    .from(payrollBenefitDeductions)
+    .where(eq(payrollBenefitDeductions.payrollId, runId));
+
+  return rows.map((row) => ({
+    employeeId: row.employeeId || "",
+    benefitPlanId: row.benefitPlanId || "",
+    planName: row.planName,
+    monthlyPremium: Number(row.monthlyPremium || 0),
+    employeeShare: Number(row.employeeShare || 0),
+    perPaycheckAmount: Number(row.perPaycheckAmount || 0),
+    pretaxOrPosttax: row.pretaxOrPosttax === "post_tax" ? "post_tax" : "pre_tax",
+    deductionCode: row.deductionCode,
+  }));
+}
+
+export async function getPayrollDeductions(runId: string): Promise<PayrollDeductionResult> {
+  const run = await getRun(runId);
+
+  if (!run) {
+    return buildMockPayrollDeductions(runId);
+  }
+
+  const paySchedule = inferPaySchedule(run.payPeriodStart, run.payPeriodEnd);
+  const activeLines = await getActiveBenefitDeductionsForRun(run);
+  const persistedLines = await getPersistedBenefitDeductions(run.id);
+  const changedEmployeesCount = countChangedEmployeesSinceDraft(run, activeLines, persistedLines);
+
+  return {
+    deductions: persistedLines.length > 0 ? persistedLines : activeLines.map(stripSourceMetadata),
+    paySchedule,
+    changedEmployeesCount,
+  };
+}
+
+export async function syncPayrollBenefitDeductionsForRun(runId: string | number): Promise<PayrollDeductionResult> {
+  const run = await getRun(String(runId));
+
+  if (!run) {
+    return buildMockPayrollDeductions(String(runId));
+  }
+
+  const paySchedule = inferPaySchedule(run.payPeriodStart, run.payPeriodEnd);
+  const activeLines = await getActiveBenefitDeductionsForRun(run);
+  const persistedLines = await getPersistedBenefitDeductions(run.id);
+  const changedEmployeesCount = countChangedEmployeesSinceDraft(run, activeLines, persistedLines);
+  const deductions = activeLines.map(stripSourceMetadata);
+
+  await db
+    .delete(payrollBenefitDeductions)
+    .where(eq(payrollBenefitDeductions.payrollId, run.id));
+
+  if (deductions.length > 0) {
+    await db.insert(payrollBenefitDeductions).values(
+      deductions.map((line) => ({
+        payrollId: run.id,
+        employeeId: Number(line.employeeId),
+        benefitPlanId: Number(line.benefitPlanId),
+        planName: line.planName,
+        monthlyPremium: line.monthlyPremium,
+        employeeShare: line.employeeShare,
+        perPaycheckAmount: line.perPaycheckAmount,
+        pretaxOrPosttax: line.pretaxOrPosttax,
+        deductionCode: line.deductionCode,
+      }))
+    );
+  }
+
+  const totalBenefits = roundCurrency(deductions.reduce((sum, line) => sum + line.perPaycheckAmount, 0));
+  await db.update(payrolls).set({ totalBenefits: Math.round(totalBenefits) }).where(eq(payrolls.id, run.id));
 
   return {
     deductions,
     paySchedule,
-    changedEmployeesCount: changedEmployeeIds.size,
+    changedEmployeesCount,
   };
 }
 

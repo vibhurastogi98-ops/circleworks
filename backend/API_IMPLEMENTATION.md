@@ -6,41 +6,45 @@ This document outlines the complete API backend architecture for CircleWorks pla
 
 ## Technology Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| Runtime | Node.js | 18+ |
-| Framework | NestJS | 10.3+ |
-| Language | TypeScript | 5.3+ |
-| Database | PostgreSQL | 14+ |
-| ORM | Prisma | 5.8+ |
-| Cache | Redis | 7+ |
-| Queue | BullMQ (`bullmq` + `@nestjs/bullmq`) | 5.x |
-| Search | Elasticsearch | 8.10+ |
-| Storage | AWS S3 | - |
-| Auth | JWT + Bcrypt | - |
-| Monitoring | Sentry + Winston | - |
+| Component  | Technology                           | Version |
+| ---------- | ------------------------------------ | ------- |
+| Runtime    | Node.js                              | 18+     |
+| Framework  | NestJS                               | 10.3+   |
+| Language   | TypeScript                           | 5.3+    |
+| Database   | PostgreSQL                           | 14+     |
+| ORM        | Prisma                               | 5.8+    |
+| Cache      | Redis                                | 7+      |
+| Queue      | BullMQ (`bullmq` + `@nestjs/bullmq`) | 5.x     |
+| Search     | Elasticsearch                        | 8.10+   |
+| Storage    | AWS S3                               | -       |
+| Auth       | JWT + Bcrypt                         | -       |
+| Monitoring | Sentry + Winston                     | -       |
 
 ## Architecture Layers
 
 ### 1. Controller Layer
+
 - HTTP request handlers
 - Request validation (DTOs + class-validator)
 - Response formatting
 - Error handling
 
 ### 2. Service Layer
+
 - Business logic implementation
 - Database operations via Prisma
 - External API integrations
 - Cache management
 
 ### 3. Database Layer
+
 - Prisma ORM for type-safe queries
 - PostgreSQL for persistence
 - Redis for caching
 - Elasticsearch for full-text search
 
 ### 4. Cross-Cutting Concerns
+
 - JWT authentication & authorization
 - Rate limiting & throttling
 - Request logging & monitoring (Sentry)
@@ -66,6 +70,7 @@ module/
 ## Authentication Flow
 
 ### Registration
+
 1. User submits email + password
 2. Validate email format, password strength
 3. Hash password with bcrypt (10 rounds)
@@ -74,6 +79,7 @@ module/
 6. Return success message
 
 ### Login
+
 1. Validate email + password
 2. Query user by email
 3. Compare password with bcrypt
@@ -85,6 +91,7 @@ module/
 9. Return access token and session metadata
 
 ### Refresh Token
+
 1. Client sends refresh token from the httpOnly cookie
 2. Look up opaque token in Redis
 3. Rotate refresh token by deleting the used token and issuing a new one
@@ -150,6 +157,7 @@ Device management:
 - New device login alert email: `New sign-in from [device] in [location]`
 
 ### MFA (TOTP)
+
 1. User enables MFA during account setup
 2. Generate TOTP secret with speakeasy
 3. Generate QR code for authenticator apps
@@ -162,26 +170,31 @@ Device management:
 ## Database Relationships
 
 ### User & Company
+
 - Many-to-many through UserCompany junction table
 - Tracks user role and permissions per company
 - Users can belong to multiple companies
 
 ### Employee & User
+
 - One-to-one relationship
 - Some system users don't have employee records (e.g., contractors)
 
 ### Payroll Hierarchy
+
 - Company → PayrollSchedules (frequency config)
 - Company → PayrollRuns (processing batches)
 - PayrollRun → PayStubs (individual checks)
 
 ### HRIS Hierarchy
+
 - Company → Departments
 - Company → Positions
 - Department → Employees
 - Employees → CompensationHistory
 
 ### Benefits
+
 - Company → BenefitPlans (Health, 401k, etc.)
 - BenefitPlans → BenefitEnrollments
 - Employee → Enrollments (selected plans)
@@ -195,6 +208,7 @@ GET /api/v1/employees?page=1&limit=20&sort=name&order=asc&status=ACTIVE&dept=sal
 ```
 
 Response format:
+
 ```json
 {
   "data": [...],
@@ -210,6 +224,7 @@ Response format:
 ## Error Handling
 
 ### Validation Errors (400)
+
 ```json
 {
   "statusCode": 400,
@@ -224,7 +239,331 @@ Response format:
 }
 ```
 
+## Section 34: ATS-to-Onboarding Data Mapping
+
+The canonical ATS hire conversion lives in `AtsService` in the backend. When a candidate stage update targets `Hired`, the service runs the auto-employee creation flow instead of treating the move as a simple stage change.
+
+Canonical field mapping:
+
+| ATS source                                   | Employee target                            |
+| -------------------------------------------- | ------------------------------------------ |
+| `candidate.firstName` + `candidate.lastName` | `employee.firstName` + `employee.lastName` |
+| `candidate.email`                            | `employee.personalEmail`                   |
+| `candidate.phone`                            | `employee.personalPhone`                   |
+| `offer.salary`                               | `employee.compensation.annualSalary`       |
+| `offer.startDate`                            | `employee.startDate`                       |
+| `offer.title`                                | `employee.jobTitle`                        |
+| `offer.departmentId`                         | `employee.departmentId`                    |
+| `offer.locationId`                           | `employee.locationId`                      |
+| `offer.employmentType`                       | `employee.employmentType`                  |
+| `job.managerId`                              | `employee.managerId`                       |
+
+Auto-employee creation flow:
+
+1. Trigger when `candidate.stage` changes to `Hired` after offer acceptance.
+2. Check for duplicates by candidate email. If found, return `Employee with this email exists — merge or create new?`.
+3. Run the canonical field map and create the employee with `status = pre_boarding`.
+4. Emit `employee.auto_created_from_ats` with `{ employeeId, candidateId }`.
+5. Create an onboarding case from the first available onboarding template.
+6. Queue the pre-boarding invitation email using the pre-boarding invitation template payload.
+7. Return the toast text: `Employee created and pre-boarding invitation sent to [email]`.
+
+Pre-flight checklist:
+
+- Required: name and email.
+- Warnings: missing phone and unconfirmed start date.
+- Missing required fields return `PRE_FLIGHT_REQUIRED_FIELDS_MISSING` with the modal-ready checklist payload.
+
+### Benefits-to-Payroll Deduction Sync
+
+Deduction calculation:
+
+```txt
+per_paycheck = (monthly_premium x employee_share_%) / pay_periods_per_month
+```
+
+Pay periods per month:
+
+| Schedule     | Periods |
+| ------------ | ------- |
+| Semi-monthly | 2       |
+| Biweekly     | 2.167   |
+| Weekly       | 4.333   |
+
+API endpoint:
+
+```http
+GET /api/payroll/runs/:id/deductions
+```
+
+Returns:
+
+```json
+[
+  {
+    "employeeId": "123",
+    "benefitPlanId": "456",
+    "planName": "Medical (BCBS PPO)",
+    "monthlyPremium": 900,
+    "employeeShare": 35,
+    "perPaycheckAmount": 145.23,
+    "pretaxOrPosttax": "pre_tax",
+    "deductionCode": "MED_PRE"
+  }
+]
+```
+
+Payroll creation flow:
+
+1. On draft run creation, fetch every active benefit enrollment for employees in the company.
+2. Calculate per-paycheck deductions using the run pay schedule.
+3. Persist each result as a `payroll_benefit_deductions` line item.
+4. The payroll run screen shows total deductions in the row cell. Hover details group pre-tax and post-tax lines separately and include the total.
+5. If current benefits differ from the persisted draft lines, return `X-Benefits-Changed-Employees` so the UI can show `Benefits changed for 3 employees since draft — recalculate?`.
+
+### Timesheet-to-Payroll Auto-Import
+
+Auto-import trigger:
+
+- When a payroll run is created for a pay period, query approved time entries joined to approved timesheets where `timesheet.period_end = payroll.period_end`.
+- Include only hourly employees.
+- Auto-populate regular, overtime, double-time, total hours, and daily breakdown rows into `payroll_time_imports`.
+- If older approved timesheets have totals but no entry rows, use the approved timesheet totals as the fallback source.
+
+Payroll run creation pre-flight:
+
+- Response summary includes approved, missing, late, cutoff, period start, and period end counts.
+- UI copy follows: `47 of 52 hourly employees have approved timesheets`.
+- Missing employees are listed by name.
+- Supported choices are `Continue with 47`, `Wait for remaining 5`, and `Use scheduled hours for missing`.
+- Passing `timeImportMissingMode = wait` returns `TIMESHEETS_MISSING` with the summary instead of creating a draft when timesheets are missing.
+- Passing `timeImportMissingMode = scheduled` fills missing hourly employees from scheduled hours.
+
+Payroll run screen:
+
+- `[T]` icon marks hours auto-imported from timesheets.
+- Clicking `[T]` expands the row and shows daily hours breakdown.
+- Edit icon allows manual override and sets the override audit flag.
+- `Import Hours` refreshes from the latest approved time entries.
+- A warning banner appears when any employee hours were manually overridden.
+
+Cutoff timing:
+
+- Configured in `/settings/payroll/schedule`.
+- Default is 24 hours before the run date.
+- Late approvals inside the cutoff window show `Submitted within cutoff window — may miss run`.
+
+Partial periods:
+
+- New hire mid-period prorates scheduled hours based on start date when scheduled fallback is used.
+- Termination mid-period includes scheduled hours only through the termination date when scheduled fallback is used.
+- Approved time-entry imports use the actual approved entries in the pay period.
+
+### Expense-to-Payroll Reimbursement Sync
+
+Expense approval trigger:
+
+- On expense report approval, set `expense_report.status = pending_payroll`.
+- Pending payroll reports are the reimbursement queue for the next payroll run.
+- Emit `expense.approved` with the report id, employee id, and amount.
+- The frontend invalidates `expenses`, `payroll-preview`, and `budget-reports` per Rule 5.
+
+Payroll run reimbursements:
+
+- `GET /api/payroll/runs/:id/reimbursements` returns pending approved reports for the run company.
+- The payroll run screen shows a collapsible `Reimbursements` section below earnings and deductions.
+- Each employee row can expand to show report id, description, amount, approver, approval date, and flags.
+- Each report has an include checkbox. Approved expenses default to included and can be deferred to the next run.
+- Reimbursements are non-taxable and are added to net pay separately from gross wages.
+
+Pay stub display:
+
+- Pay stubs show an `Expense Reimbursements` section separate from gross wages and deductions.
+- Each report appears as one line with description and amount.
+- Total reimbursements are shown as non-taxable.
+
+Status updates after run:
+
+- Included reports are updated to `expense_report.status = reimbursed`.
+- `expense_report.payroll_run_id` stores the payroll run for traceability.
+- `expense_report.reimbursed_at` records the reimbursement timestamp.
+- Employee expense history displays `Reimbursed via Payroll [date]`.
+- Deferred reports remain `pending_payroll` with no payroll run id and are picked up next run.
+
+Edge cases:
+
+- Terminated employee before reimbursement is flagged `Requires manual check`.
+- Contractor reimbursement over `$600` is flagged for `1099 consideration`.
+
+### Comp Change Mid-Period Payroll Sync
+
+Mid-period detection:
+
+- When an admin saves a compensation change, compare the effective date to the current payroll period.
+- If the effective date is within the current pay period, show `This rate change is mid-period. How should this be handled?`.
+- Modal options are `Apply to full period`, `Prorate`, and `Apply starting next period only`.
+- If the effective date is in a past period, redirect to retro-pay at `/payroll/off-cycle?mode=retro`.
+- Future-dated changes are stored as `next_period_only` and do not alter the current run.
+
+Prorate calculation:
+
+```txt
+old_earnings = old_period_earnings x (days_before / period_days)
+new_earnings = new_period_earnings x (days_after / period_days)
+total = old_earnings + new_earnings
+```
+
+Implementation notes:
+
+- Salary rates convert annual pay to period earnings before proration.
+- Hourly rates use period hours from payroll/timesheet data before proration.
+- `full_period` uses the new rate for the entire run.
+- `next_period_only` returns no current-run payroll adjustment.
+
+Payroll run display:
+
+- A rate-change icon appears beside the employee name when the run has a compensation change.
+- The tooltip follows `Rate changed from $X to $Y effective [date] — prorated` for prorated changes.
+- Gross pay shows the calculated prorated amount.
+- Prorated rows show a `Prorated` badge below gross pay.
+
+Draft payroll protection:
+
+- Payroll drafts store their draft-created timestamp.
+- Changes saved after the draft and effective within the draft period show `3 employees have rate changes since draft — recalculate?`.
+- `Recalculate Affected` reruns gross, tax, net-pay, and compensation-rate calculations only for employees with qualifying mid-period changes.
+
+### EWA Repayment Deduction Sync
+
+EWA advance record:
+
+- On advance issuance, create an `ewa_advances` record with `employeeId`, `amount`, `issueDate`, `repaymentRunId = null`, `status = outstanding`, and `remainingBalance = amount`.
+- Partial repayments keep the same advance record and reduce `remainingBalance`.
+
+Payroll run auto-deduction:
+
+- When a payroll run is created, query outstanding and partial EWA advances for employees in the run company.
+- Each qualifying advance becomes a deduction line labeled `EWA Repayment: -$X.XX`.
+- The run creation preflight includes EWA repayment line count, total amount, and minimum-wage block count.
+- EWA deductions stay tied to the advance until run completion, when repayment status is finalized.
+
+Payroll run screen:
+
+- Employee rows show an `EWA` badge with the total repayment amount.
+- Badge hover text follows `EWA advance of $[amount] issued [date] — repaying via this run`.
+- The deductions tooltip lists `EWA Repayment` separately from benefits.
+- The `EWA Repayments` section lets admins review every queued advance.
+- Admins can choose `Defer to next run`, which opens a confirmation modal before removing the deduction from the current run.
+
+Net pay protection:
+
+- Before submission, calculate net pay after the EWA deduction.
+- If net pay is below `minimum wage x hours`, block run submission with `EWA repayment for [Employee] would bring net pay below state minimum`.
+- Resolution options are `Reduce repayment`, `Split across 2 runs`, and `Contact employee`.
+- Reduced or split repayments carry any remaining balance to a future payroll run.
+
+Pay stub display:
+
+- Pay stubs show `EWA Repayment` as a separate deduction line item.
+
+Status updates:
+
+- On run completion, included advances update to `status = repaid` and set `repaymentRunId`.
+- Partial repayments update to `status = partial`, set `repaymentRunId`, and persist the reduced `remainingBalance`.
+- Deferred advances remain outstanding or partial with `repaymentRunId = null`.
+
+### Workflow Action WS Events
+
+New websocket event:
+
+```txt
+workflow.action.executed
+```
+
+Payload:
+
+```json
+{
+  "workflowId": "workflow-new-hire-it",
+  "workflowName": "New Hire IT Setup",
+  "triggeredBy": "automation",
+  "actionType": "update_field",
+  "entityType": "employee",
+  "entityId": "123",
+  "changedFields": [
+    { "field": "status", "oldValue": "onboarding", "newValue": "active" }
+  ],
+  "timestamp": "2026-05-23T10:30:00.000Z"
+}
+```
+
+Allowed values:
+
+- `actionType`: `update_field`, `create_task`, `send_email`, `change_status`.
+- `entityType`: `employee`, `task`, `job`, `onboarding`.
+- `triggeredBy`: always `automation`.
+
+Activity feed:
+
+- Activity feed copy follows `[Workflow Name] automatically updated [field]` when a changed field is present.
+- Automated workflow entries use a purple `Automated` badge to distinguish them from manual changes.
+- If no changed field is present, the fallback copy is `[Workflow Name] performed [action type]`.
+
+Audit log:
+
+- Author displays as `Workflow Automation` with the workflow name stored in metadata.
+- Workflow audit metadata includes `workflowId`, `workflowName`, `changedFields`, `executedAt`, and `immutable = true`.
+- Workflow automation audit entries are immutable and cannot be manually edited or deleted.
+
+### Employee Termination Cascade
+
+Termination confirmation executes as one backend transaction through the employee termination cascade service. If any write fails, the cascade rolls back and no partial termination state is committed.
+
+Step 1 - PTO / leave:
+
+- Cancel pending PTO requests by setting `status = cancelled_termination`.
+- Notify the employee with `Your pending PTO requests have been cancelled`.
+- Calculate final PTO payout by state law.
+- California uses mandatory cash payout. Other states use company policy unless configured otherwise.
+
+Step 2 - Payroll:
+
+- If the employee is already in a draft payroll run, mark their payroll item with `Terminating - verify final pay`.
+- Calculate final pay as prorated salary or wages through the last day.
+- Add PTO payout as a separate earnings line when applicable.
+- Create or attach the final paycheck according to state timing:
+  - `CA` and `MT`: same day, off-cycle.
+  - `CO` and `ND`: next scheduled pay date.
+  - Other states: state deadline varies; default target is seven days.
+
+Step 3 - Benefits:
+
+- Set benefit coverage to end on the last day of the termination month.
+- Create a COBRA eligibility case and queue the election notice PDF/email.
+- COBRA notice due date is 14 days after termination.
+- Notify the 401(k) record keeper of the termination date.
+
+Step 4 - System access:
+
+- On the termination effective date, set `employee.status = terminated` and persist `employee.terminationDate`.
+- Revoke platform access by invalidating sessions/login state.
+- Create the IT task `Revoke system access for [Name] - terminated [date]`.
+- Asset return tasks are generated from active asset assignments.
+
+Step 5 - Offboarding:
+
+- Start an offboarding case from `/onboarding/templates/offboarding`.
+- Assign offboarding tasks to HR, IT, and the employee's direct manager.
+- Include asset return tasks in the offboarding task set.
+
+WS events emitted:
+
+- `employee.termination.initiated`
+- `employee.access.revoked`
+- `employee.cobra.triggered`
+
 ### Authentication Errors (401)
+
 ```json
 {
   "statusCode": 401,
@@ -234,6 +573,7 @@ Response format:
 ```
 
 ### Authorization Errors (403)
+
 ```json
 {
   "statusCode": 403,
@@ -243,6 +583,7 @@ Response format:
 ```
 
 ### Not Found (404)
+
 ```json
 {
   "statusCode": 404,
@@ -252,6 +593,7 @@ Response format:
 ```
 
 ### Conflict (409)
+
 ```json
 {
   "statusCode": 409,
@@ -261,6 +603,7 @@ Response format:
 ```
 
 ### Rate Limit (429)
+
 ```json
 {
   "error": "rate_limit_exceeded",
@@ -284,16 +627,16 @@ The limiter runs as a global Nest middleware before route handlers and emits rat
 
 ### Rate Limit Tiers
 
-| Endpoint type | Scope | Limit |
-| --- | --- | --- |
-| Auth endpoints (`/auth/login`, `/auth/signup`, `/auth/register`) | IP | 5 requests / minute |
-| Auth sensitive (`/auth/forgot-password`, `/auth/reset-password`, `/auth/mfa/*`) | IP | 3 requests / 15 minutes |
-| General authenticated API | User | 100 requests / minute |
-| Payroll processing writes | Company | 5 requests / minute |
-| Bulk operations (`/batch`, `/bulk`, `/import`) | Company | 10 requests / hour |
-| Report generation/export writes | User | 20 requests / hour |
-| Company aggregate | Company | 1,000 requests / minute |
-| Public API developer keys (`x-api-key`) | Key | 60 requests / minute |
+| Endpoint type                                                                   | Scope   | Limit                   |
+| ------------------------------------------------------------------------------- | ------- | ----------------------- |
+| Auth endpoints (`/auth/login`, `/auth/signup`, `/auth/register`)                | IP      | 5 requests / minute     |
+| Auth sensitive (`/auth/forgot-password`, `/auth/reset-password`, `/auth/mfa/*`) | IP      | 3 requests / 15 minutes |
+| General authenticated API                                                       | User    | 100 requests / minute   |
+| Payroll processing writes                                                       | Company | 5 requests / minute     |
+| Bulk operations (`/batch`, `/bulk`, `/import`)                                  | Company | 10 requests / hour      |
+| Report generation/export writes                                                 | User    | 20 requests / hour      |
+| Company aggregate                                                               | Company | 1,000 requests / minute |
+| Public API developer keys (`x-api-key`)                                         | Key     | 60 requests / minute    |
 
 ### Redis Key Patterns
 
@@ -346,23 +689,23 @@ Full sensitive values are never written to PostgreSQL, even in encrypted form.
 
 ### Field Masking Rules
 
-| Field type | Stored audit value |
-| --- | --- |
-| SSN / Tax ID | `***-**-1234` with only the last 4 digits visible |
-| Bank routing number | `***6789` with only the last 4 digits visible |
-| Bank account number | `***4821` with only the last 4 digits visible |
-| Salary / compensation, HR/Admin actor | `Updated from $X to $Y` |
-| Salary / compensation, non-HR actor | `Compensation updated` |
-| Password | `Password changed` |
+| Field type                            | Stored audit value                                |
+| ------------------------------------- | ------------------------------------------------- |
+| SSN / Tax ID                          | `***-**-1234` with only the last 4 digits visible |
+| Bank routing number                   | `***6789` with only the last 4 digits visible     |
+| Bank account number                   | `***4821` with only the last 4 digits visible     |
+| Salary / compensation, HR/Admin actor | `Updated from $X to $Y`                           |
+| Salary / compensation, non-HR actor   | `Compensation updated`                            |
+| Password                              | `Password changed`                                |
 
 ### Audit Log Display
 
 The API performs a second display-time guard for `/compliance/audit-log` responses:
 
-| Viewer role | Sensitive field display |
-| --- | --- |
-| HR/Admin | Masked value only, such as `***-**-1234` |
-| Non-HR | `[Sensitive field — masked]` for SSN, bank, and salary fields |
+| Viewer role | Sensitive field display                                       |
+| ----------- | ------------------------------------------------------------- |
+| HR/Admin    | Masked value only, such as `***-**-1234`                      |
+| Non-HR      | `[Sensitive field — masked]` for SSN, bank, and salary fields |
 
 ### Storage Contract
 
@@ -378,6 +721,7 @@ Application code must write audit events through `AuditLogService.createAuditLog
 ## Webhook Implementation
 
 ### Registration
+
 ```
 POST /api/v1/webhooks
 {
@@ -388,6 +732,7 @@ POST /api/v1/webhooks
 ```
 
 ### Delivery
+
 All webhook events are delivered as `POST` requests to the customer-configured URL.
 Each request includes an HMAC-SHA256 signature in the `X-CircleWorks-Signature` header.
 
@@ -417,15 +762,16 @@ Body:
 
 ### Webhook Event Payloads
 
-| Event | Payload |
-| --- | --- |
-| `employee.created` | `{ id, firstName, lastName, email, startDate, departmentId, companyId, timestamp }` |
-| `employee.terminated` | `{ id, terminationDate, terminationType, finalPayDate, companyId, timestamp }` |
-| `payroll.completed` | `{ runId, payPeriodStart, payPeriodEnd, totalGross, totalNet, employeeCount }` |
-| `document.signed` | `{ documentId, documentType, employeeId, signedAt, companyId }` |
-| `candidate.hired` | `{ candidateId, employeeId, jobId, startDate, companyId, timestamp }` |
+| Event                 | Payload                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `employee.created`    | `{ id, firstName, lastName, email, startDate, departmentId, companyId, timestamp }` |
+| `employee.terminated` | `{ id, terminationDate, terminationType, finalPayDate, companyId, timestamp }`      |
+| `payroll.completed`   | `{ runId, payPeriodStart, payPeriodEnd, totalGross, totalNet, employeeCount }`      |
+| `document.signed`     | `{ documentId, documentType, employeeId, signedAt, companyId }`                     |
+| `candidate.hired`     | `{ candidateId, employeeId, jobId, startDate, companyId, timestamp }`               |
 
 ### Signature Verification
+
 ```javascript
 const crypto = require('crypto');
 
@@ -433,10 +779,7 @@ const payload = req.rawBody; // Raw request body
 const signature = req.headers['x-circleworks-signature'];
 const secret = process.env.WEBHOOK_SECRET;
 
-const hmac = crypto
-  .createHmac('sha256', secret)
-  .update(payload)
-  .digest('hex');
+const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
 const expectedSignature = hmac;
 const isValid = signature === expectedSignature;
@@ -460,19 +803,19 @@ All list endpoints use cursor-based pagination instead of offset pagination.
 GET /api/v2/employees?cursor={opaque_cursor}&limit={n}&direction=next
 ```
 
-| Query param | Description |
-| --- | --- |
-| `cursor` | Opaque base64 cursor from `cursor_next` or `cursor_prev` |
-| `limit` | Positive integer page size |
-| `direction` | `next` or `prev` |
+| Query param | Description                                              |
+| ----------- | -------------------------------------------------------- |
+| `cursor`    | Opaque base64 cursor from `cursor_next` or `cursor_prev` |
+| `limit`     | Positive integer page size                               |
+| `direction` | `next` or `prev`                                         |
 
 Default limits:
 
-| Resource | Default |
-| --- | ---: |
-| `employees` | 25 |
-| `payroll_runs` | 20 |
-| `audit_logs` | 50 |
+| Resource       | Default |
+| -------------- | ------: |
+| `employees`    |      25 |
+| `payroll_runs` |      20 |
+| `audit_logs`   |      50 |
 
 Maximum limit: `100`. Requests above `100` return HTTP `400`.
 
@@ -548,7 +891,7 @@ WHERE (created_at, id) < (cursor.created_at, cursor.id)
 - Heavy client-only components use dynamic imports with Suspense-style fallbacks.
 
 ```ts
-const PayrollChart = dynamic(() => import("./PayrollChart"), { ssr: false });
+const PayrollChart = dynamic(() => import('./PayrollChart'), { ssr: false });
 ```
 
 - Target route bundle size: no route bundle over `200KB` gzipped.
@@ -567,28 +910,28 @@ Cache-Control: public, max-age=31536000, immutable
 
 Lighthouse CI runs on pull requests with these targets:
 
-| Metric | Target |
-| --- | ---: |
-| LCP | `<2.5s` |
-| CLS | `<0.1` |
+| Metric        |   Target |
+| ------------- | -------: |
+| LCP           |  `<2.5s` |
+| CLS           |   `<0.1` |
 | INP/TBT proxy | `<200ms` |
 
 ## Batch Endpoints
 
-| Method | Endpoint | Contract |
-| --- | --- | --- |
-| `POST` | `/api/v1/employees/batch` | Create up to 100 employees in one request |
-| `GET` | `/api/v1/employees/batch?ids=id1,id2,id3` | Fetch multiple employees by ID |
-| `POST` | `/api/v1/payroll/batch-approve` | Approve multiple payroll runs for the accountant portal |
-| `POST` | `/api/v1/documents/batch-send` | Send a document to multiple employees |
+| Method | Endpoint                                  | Contract                                                |
+| ------ | ----------------------------------------- | ------------------------------------------------------- |
+| `POST` | `/api/v1/employees/batch`                 | Create up to 100 employees in one request               |
+| `GET`  | `/api/v1/employees/batch?ids=id1,id2,id3` | Fetch multiple employees by ID                          |
+| `POST` | `/api/v1/payroll/batch-approve`           | Approve multiple payroll runs for the accountant portal |
+| `POST` | `/api/v1/documents/batch-send`            | Send a document to multiple employees                   |
 
 ## File Upload Limits
 
-| Upload type | Limit | Allowed types |
-| --- | --- | --- |
-| Employee documents | 25 MB | PDF, JPG, PNG, DOCX |
-| CSV imports | 10 MB and 5,000 rows | CSV |
-| Company logo | 2 MB | PNG, JPG, SVG |
+| Upload type        | Limit                | Allowed types       |
+| ------------------ | -------------------- | ------------------- |
+| Employee documents | 25 MB                | PDF, JPG, PNG, DOCX |
+| CSV imports        | 10 MB and 5,000 rows | CSV                 |
+| Company logo       | 2 MB                 | PNG, JPG, SVG       |
 
 When an uploaded file is too large, APIs return:
 
@@ -604,19 +947,32 @@ HTTP status: `413 Request Too Large`.
 ## Caching Strategy
 
 ### Cache Keys
+
 - `user:{userId}` - User profile (5 min TTL)
 - `company:{companyId}:employees` - Employee list (10 min)
 - `payroll:schedules:{companyId}` - Pay schedules (30 min)
 - `auth:refresh-token:{token}` - Refresh token validation (7 days)
 
 ### Cache Invalidation
+
 - Update operations invalidate relevant keys
 - Webhooks trigger cache purging for downstream systems
 - Scheduled jobs clean stale cache entries
 
+### Section 02: Workflow Action Cache Invalidation
+
+On `workflow.action.executed`:
+
+- If `entityType === employee`, invalidate `['employees', entityId]`.
+- If `entityType === task`, invalidate `['tasks']` and `['onboarding-tasks']`.
+- If `actionType === change_status`, invalidate `['dashboard', entityType]`.
+- Always invalidate `['activity-feed']`.
+- The dashboard activity feed also prepends `[Workflow Name] automatically updated [field]` with a purple `Automated` badge.
+
 ## Security Best Practices
 
 ✅ **Implemented:**
+
 - JWT with short expiration (15 min access, 7 days refresh)
 - Password hashing with bcrypt (10 rounds)
 - CORS to specific origin (app.circleworks.com)
@@ -632,21 +988,25 @@ HTTP status: `413 Request Too Large`.
 ## Testing Strategy
 
 ### Unit Tests
+
 - Service layer business logic
 - Validation & error handling
 - Utility functions
 
 ### Integration Tests
+
 - Controller ↔ Service ↔ Database
 - Authentication & authorization
 - Webhook delivery
 
 ### E2E Tests
+
 - Complete user flows
 - Multi-step workflows (e.g., payroll processing)
 - Third-party integrations
 
 Run tests:
+
 ```bash
 npm test                    # All tests
 npm run test:watch         # Watch mode
@@ -674,17 +1034,20 @@ npm run test:e2e          # E2E tests
 ## Performance Optimization
 
 ### Database
+
 - Indexed fields: `userId`, `companyId`, `email`, `status`, etc.
 - Query optimization with Prisma's `select` & `include`
 - Pagination for large datasets
 - Connection pooling via PgBouncer
 
 ### Caching
+
 - Redis cache for hot data
 - Cache-aside pattern
 - TTL-based expiration
 
 ### API
+
 - Compression (gzip)
 - Load balancing
 - CDN for static assets
@@ -693,17 +1056,20 @@ npm run test:e2e          # E2E tests
 ## Monitoring & Observability
 
 ### Metrics
+
 - Response times by endpoint
 - Error rates & types
 - Database query performance
 - Cache hit rates
 
 ### Logging
+
 - Winston for structured logging
 - Request ID tracking for debugging
 - Error stack traces to Sentry
 
 ### Alerts
+
 - API response time > 1s
 - Error rate > 1%
 - Database connection pool exhaustion
@@ -712,12 +1078,14 @@ npm run test:e2e          # E2E tests
 ## Scaling Strategy
 
 ### Horizontal
+
 - Deploy multiple API instances behind load balancer
 - Use managed PostgreSQL (RDS, Supabase)
 - Use managed Redis (ElastiCache, Redis Cloud)
 - CDN for static assets
 
 ### Vertical
+
 - Increase server resources
 - Optimize slow queries
 - Implement aggressive caching
@@ -726,6 +1094,7 @@ npm run test:e2e          # E2E tests
 ## Roadmap
 
 ### Phase 1 (Current)
+
 - ✅ Auth module with JWT
 - ✅ Core CRUD modules
 - ✅ Payroll processing
@@ -733,6 +1102,7 @@ npm run test:e2e          # E2E tests
 - Database schema & migrations
 
 ### Phase 2
+
 - Webhook system
 - Elasticsearch integration
 - Real-time updates (WebSockets)
@@ -740,6 +1110,7 @@ npm run test:e2e          # E2E tests
 - Email notifications
 
 ### Phase 3
+
 - Advanced reporting
 - Tax compliance automation
 - ATS pipeline management
@@ -747,6 +1118,7 @@ npm run test:e2e          # E2E tests
 - Performance review cycles
 
 ### Phase 4
+
 - Mobile app API
 - Third-party integrations
 - Custom workflows engine

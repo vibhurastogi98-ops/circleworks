@@ -55,7 +55,7 @@ export async function POST(
       await db
         .update(expenseReports)
         .set({
-          status: "Reimbursed",
+          status: "reimbursed",
           payrollRunId: payrollId,
           reimbursedAt: now,
         })

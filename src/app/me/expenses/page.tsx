@@ -22,13 +22,14 @@ const statusStyles: Record<string, string> = {
   pending_payroll: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
   "Pending Payroll": "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
   Processing: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+  reimbursed: "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400",
   Reimbursed: "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400",
   Paid: "bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400",
   Rejected: "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
 };
 
 const statusIcons: Record<string, React.ElementType> = {
-  Draft: AlertCircle, Submitted: Clock, Approved: CheckCircle2, pending_payroll: Clock, "Pending Payroll": Clock, Processing: Clock, Reimbursed: CheckCircle2, Paid: CheckCircle2, Rejected: XCircle,
+  Draft: AlertCircle, Submitted: Clock, Approved: CheckCircle2, pending_payroll: Clock, "Pending Payroll": Clock, Processing: Clock, reimbursed: CheckCircle2, Reimbursed: CheckCircle2, Paid: CheckCircle2, Rejected: XCircle,
 };
 
 export default function ExpensesPage() {
@@ -111,7 +112,7 @@ export default function ExpensesPage() {
           ) : (apiReports ?? data.expenseReports).map((report, i) => {
             const statusKey = report.status;
             const StatusIcon = statusIcons[statusKey] || Clock;
-            const displayStatus = statusKey === "pending_payroll" ? "Pending Payroll" : statusKey;
+            const displayStatus = statusKey === "pending_payroll" ? "Pending Payroll" : statusKey === "reimbursed" ? "Reimbursed" : statusKey;
             const submittedStr = "submittedAt" in report ? report.submittedAt : (report as any).submittedDate;
             const label = "payrollRunLabel" in report ? report.payrollRunLabel : (report as any).payrollRunLabel;
             return (

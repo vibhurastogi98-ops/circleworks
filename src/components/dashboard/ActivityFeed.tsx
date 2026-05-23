@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { ListTodo } from "lucide-react";
+import { ListTodo, Zap } from "lucide-react";
 
 export default function ActivityFeed() {
   const { activityFeed } = useDashboardData();
@@ -55,8 +55,14 @@ export default function ActivityFeed() {
                 {/* Avatar */}
                 <div className="w-[38px] h-[38px] rounded-full overflow-hidden flex-shrink-0 border-2 border-white dark:border-slate-800 shadow-sm z-10 bg-slate-100 dark:bg-slate-700">
                   {event.avatarSeed === "System" ? (
-                    <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                      <span className="text-white text-[11px] font-bold">SYS</span>
+                    <div className={`w-full h-full flex items-center justify-center ${
+                      event.isAutomated ? "bg-violet-600" : "bg-gradient-to-br from-indigo-500 to-purple-600"
+                    }`}>
+                      {event.isAutomated ? (
+                        <Zap size={15} className="text-white" />
+                      ) : (
+                        <span className="text-white text-[11px] font-bold">SYS</span>
+                      )}
                     </div>
                   ) : (
                     <Image
@@ -77,6 +83,11 @@ export default function ActivityFeed() {
                       {event.actor}
                     </span>{" "}
                     {event.action}
+                    {event.isAutomated && (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 align-middle text-[10px] font-black uppercase tracking-wider text-violet-700 ring-1 ring-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:ring-violet-500/30">
+                        <Zap size={9} /> Automated
+                      </span>
+                    )}
                   </p>
                 </div>
 

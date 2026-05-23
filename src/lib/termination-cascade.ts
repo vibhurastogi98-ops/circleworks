@@ -3,7 +3,9 @@ import {
   assetAssignments,
   assets,
   benefitEnrollments,
+  cobraCases,
   employees,
+  notifications,
   onboardingCases,
   onboardingTemplates,
   payrollItems,
@@ -12,8 +14,9 @@ import {
   users,
 } from "@/db/schema";
 import { mockCobraCases } from "@/data/mockBenefits";
-import { getAssetsForEmployee, getAssetsForEmployeeName } from "@/data/mockAssets";
+import { getAssetsForEmployee } from "@/data/mockAssets";
 import { mockOffboardingCases } from "@/data/mockOnboarding";
+import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
 import { dispatchWebhook } from "@/lib/webhooks";
 import { and, eq, gte, inArray } from "drizzle-orm";
 
@@ -56,7 +59,7 @@ export interface TerminationCascadeResult {
   };
   benefits: {
     coverageEndDate: string;
-    cobraCaseId: string;
+    cobraCaseId: string | number;
     cobraNoticeDueDate: string;
     cobraElectionNoticePdf: string;
     cobraEmailQueued: boolean;
@@ -148,6 +151,7 @@ function buildResult(params: {
   cancelledPendingRequests: number;
   draftRunIds: number[];
   finalPayRunId: number | null;
+  cobraCaseId?: string | number;
   offboardingCaseId: string | number;
   assetLabels: string[];
   finalPayMode: "off_cycle" | "next_run";
@@ -157,7 +161,7 @@ function buildResult(params: {
   const finalPayAmount = estimateFinalPay(params.salary, params.terminationDate);
   const cobraNoticeDueDate = addDays(params.terminationDate, 14);
   const coverageEndDate = endOfMonth(params.terminationDate);
-  const cobraCaseId = `cobra-term-${params.employeeId}-${params.terminationDate}`;
+  const cobraCaseId = params.cobraCaseId ?? `cobra-term-${params.employeeId}-${params.terminationDate}`;
 
   return {
     employee: {
@@ -219,6 +223,12 @@ async function emitTerminationEvents(result: TerminationCascadeResult, companyId
     timestamp: new Date().toISOString(),
   };
 
+  if (companyId != null) {
+    result.events.forEach((eventName) => {
+      recordCompanyRealtimeEvent(companyId, eventName, payload);
+    });
+  }
+
   await Promise.allSettled([
     dispatchWebhook("employee.termination.initiated", payload),
     dispatchWebhook("employee.access.revoked", payload),
@@ -228,7 +238,6 @@ async function emitTerminationEvents(result: TerminationCascadeResult, companyId
 
 export async function executeEmployeeTerminationCascade(input: TerminationCascadeInput): Promise<TerminationCascadeResult> {
   const terminationDate = input.terminationDate;
-  const finalPayMode = input.finalPayMode || (["CA", "MT"].includes(input.state || "") ? "off_cycle" : "next_run");
 
   const result = await db.transaction(async (tx) => {
     const employee = await tx.query.employees.findFirst({
@@ -241,6 +250,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
 
       const name = `${mockEmployee.firstName} ${mockEmployee.lastName || ""}`.trim();
       const state = input.state || stateFromLocation(mockEmployee.location);
+      const finalPayMode = input.finalPayMode || (["CA", "MT"].includes(state) ? "off_cycle" : "next_run");
       const assets = getAssetsForEmployee(input.employeeId);
       const assetLabels = assets.map((asset) => `${asset.assetName} (S/N: ${asset.serialNumber})`);
       const cobraCaseId = `cobra-term-${input.employeeId}-${terminationDate}`;
@@ -293,6 +303,10 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
 
     const name = `${employee.firstName} ${employee.lastName || ""}`.trim();
     const state = input.state || stateFromLocation(employee.location);
+    const finalPayMode = input.finalPayMode || (["CA", "MT"].includes(state) ? "off_cycle" : "next_run");
+    const ptoPayoutData = estimatePtoPayout(employee.salary, state);
+    const finalPayAmt = estimateFinalPay(employee.salary, terminationDate);
+    const cobraElectionNoticePdf = `/benefits/cobra/notices/cobra-term-${input.employeeId}-${terminationDate}.pdf`;
 
     const pendingPto = await tx
       .select({ id: ptoRequests.id })
@@ -300,7 +314,7 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       .where(
         and(
           eq(ptoRequests.employeeId, input.employeeId),
-          inArray(ptoRequests.status, ["Pending", "Approved"]),
+          inArray(ptoRequests.status, ["Pending", "pending"]),
           gte(ptoRequests.startDate, terminationDate)
         )
       );
@@ -311,6 +325,16 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
         .set({ status: "cancelled_termination" })
         .where(inArray(ptoRequests.id, pendingPto.map((entry) => entry.id)));
     }
+
+    await tx.insert(notifications).values({
+      companyId: employee.companyId,
+      employeeId: input.employeeId,
+      type: "HR",
+      title: "Pending PTO cancelled",
+      description: "Your pending PTO requests have been cancelled",
+      link: "/me/time-off",
+      status: "unread",
+    });
 
     await tx
       .update(employees)
@@ -344,8 +368,6 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
 
     let finalPayRunId: number | null = null;
     if (finalPayMode === "off_cycle" && employee.companyId) {
-      const ptoPayoutData = estimatePtoPayout(employee.salary, state);
-      const finalPayAmt = estimateFinalPay(employee.salary, terminationDate);
       const totalGross = Math.round(finalPayAmt + ptoPayoutData.payoutAmount);
 
       const [offCycleRun] = await tx
@@ -381,7 +403,33 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
           type: "pto_payout",
         });
       }
+    } else if (draftItems.length > 0) {
+      finalPayRunId = draftItems[0].runId;
+      if (ptoPayoutData.payoutAmount > 0) {
+        await tx.insert(payrollItems).values({
+          payrollId: finalPayRunId,
+          employeeId: input.employeeId,
+          gross: Math.round(ptoPayoutData.payoutAmount),
+          net: Math.round(ptoPayoutData.payoutAmount * 0.75),
+          type: "pto_payout",
+        });
+      }
     }
+
+    const [cobraCase] = await tx
+      .insert(cobraCases)
+      .values({
+        employeeId: input.employeeId,
+        status: "Eligible",
+        qualifyingEvent: input.terminationType === "voluntary" ? "Voluntary Resignation" : "Termination",
+        noticeSentDate: terminationDate,
+        electionDeadline: addDays(terminationDate, 60),
+        premiumAmount: 0,
+        paymentStatus: "Unpaid",
+        electionNoticePdf: cobraElectionNoticePdf,
+        emailQueued: true,
+      })
+      .returning({ id: cobraCases.id });
 
     const offboardingTemplate = employee.companyId
       ? await tx.query.onboardingTemplates.findFirst({
@@ -416,8 +464,9 @@ export async function executeEmployeeTerminationCascade(input: TerminationCascad
       cancelledPendingRequests: pendingPto.length,
       draftRunIds: [...new Set(draftItems.map((entry) => entry.runId))],
       finalPayRunId,
+      cobraCaseId: cobraCase.id,
       offboardingCaseId: offboardingCase.id,
-        assetLabels: assignedAssets.map((asset) => `${asset.assetName} (S/N: ${asset.serialNumber || "Unknown"})`),
+      assetLabels: assignedAssets.map((asset) => `${asset.assetName} (S/N: ${asset.serialNumber || "Unknown"})`),
       finalPayMode,
     });
   });

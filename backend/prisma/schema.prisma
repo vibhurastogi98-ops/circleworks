@@ -100,6 +100,7 @@ model Company {
   benefits              BenefitPlan[]
   jobOpenings           JobOpening[]
   candidates            Candidate[]
+  onboardingCases       OnboardingCase[]
   onboardingTasks       OnboardingTask[]
   timeEntries           TimeEntry[]
   timesheets            Timesheet[]
@@ -137,18 +138,24 @@ model Employee {
   firstName             String
   lastName              String
   email                 String
+  personalEmail         String?
   phone                 String?
+  personalPhone         String?
   ssn                   String?
   dateOfBirth           DateTime?
   hireDate              DateTime
+  startDate             DateTime?
   terminationDate       DateTime?
   jobTitle              String?
   reportingManagerId    String?
+  managerId             String?
   departmentId          String?
+  locationId            String?
   status                EmployeeStatus @default(ACTIVE)
   employmentType        EmploymentType
   payType               PayType
   payRate               Float
+  annualSalary          Float?
   payFrequency          PayFrequency @default(BI_WEEKLY)
   currency              String      @default("USD")
   directDepositAccount  String?
@@ -180,6 +187,7 @@ model Employee {
   goals                 PerformanceGoal[]
   interviews            Interview[]
   candidateProfile      Candidate?
+  onboardingCases       OnboardingCase[]
   expenses              Expense[] @relation("employee")
 
   @@unique([companyId, email])
@@ -195,6 +203,7 @@ model Employee {
 enum EmployeeStatus {
   ACTIVE
   INACTIVE
+  PRE_BOARDING @map("pre_boarding")
   ONBOARDING
   ON_LEAVE
   TERMINATED
@@ -424,6 +433,7 @@ model JobOpening {
   description     String?
   department      String?
   location        String?
+  managerId       String?
   salary          String?
   status          String      @default("open")
   createdAt       DateTime    @default(now())
@@ -433,6 +443,7 @@ model JobOpening {
   company         Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   position        Position    @relation(fields: [positionId], references: [id])
   candidates      Candidate[]
+  offers          Offer[]
 
   @@index([companyId])
 }
@@ -455,6 +466,8 @@ model Candidate {
   company         Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   jobOpening      JobOpening? @relation(fields: [jobOpeningId], references: [id])
   employee        Employee?   @relation(fields: [employeeId], references: [id])
+  onboardingCases OnboardingCase[]
+  offers          Offer[]
   interviews      Interview[]
 
   @@unique([companyId, email])
@@ -495,16 +508,25 @@ model Interview {
 model Offer {
   id              String      @id @default(cuid())
   candidateId     String
+  jobOpeningId    String?
   salary          Float
-  startDate       DateTime
+  startDate       DateTime?
   position        String
+  title           String?
+  departmentId    String?
+  locationId      String?
+  employmentType  EmploymentType?
   benefits        String?
   status          String      @default("pending")
   acceptedAt      DateTime?
   rejectedAt      DateTime?
   createdAt       DateTime    @default(now())
 
+  candidate       Candidate   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobOpening      JobOpening? @relation(fields: [jobOpeningId], references: [id])
+
   @@index([candidateId])
+  @@index([jobOpeningId])
 }
 
 // ============== ONBOARDING ==============
@@ -527,10 +549,32 @@ model OnboardingTemplate {
   companyId       String
   name            String
   description     String?
+  cases           OnboardingCase[]
   tasks           OnboardingTask[]
   createdAt       DateTime    @default(now())
 
   @@index([companyId])
+}
+
+model OnboardingCase {
+  id              String      @id @default(cuid())
+  companyId       String
+  employeeId      String
+  candidateId     String?
+  templateId      String?
+  status          String      @default("active")
+  startDate       DateTime?
+  createdAt       DateTime    @default(now())
+
+  company         Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  candidate       Candidate?  @relation(fields: [candidateId], references: [id])
+  template        OnboardingTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([candidateId])
+  @@index([templateId])
 }
 
 model OnboardingTask {

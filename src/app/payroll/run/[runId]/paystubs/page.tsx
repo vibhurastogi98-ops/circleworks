@@ -24,6 +24,14 @@ function PaystubDownloadButton({ type = "PDF" }: { type?: "PDF" | "ZIP" }) {
   );
 }
 
+function parseMoney(value: string) {
+  return Number(value.replace(/[^0-9.-]+/g, "")) || 0;
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
 export default function PaystubsPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = React.use(params);
   const [search, setSearch] = useState("");
@@ -100,6 +108,11 @@ export default function PaystubsPage({ params }: { params: Promise<{ runId: stri
                       <span className="font-bold">{line.amount}</span>
                     </div>
                   ))}
+                  <div className="mt-2 flex items-center justify-between border-t border-cyan-200/70 pt-2 font-black text-cyan-950 dark:border-cyan-800 dark:text-cyan-50">
+                    <span>Total reimbursements</span>
+                    <span>{formatMoney(s.reimbursements.reduce((sum, line) => sum + parseMoney(line.amount), 0))}</span>
+                  </div>
+                  <p className="mt-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-300">Non-taxable</p>
                 </div>
                )}
                {s.deductions.length > 0 && (

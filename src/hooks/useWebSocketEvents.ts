@@ -192,6 +192,8 @@ export const useWebSocketEvents = () => {
 
     const handleExpenseApproved = (data: { expenseId: string }) => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-preview'] });
+      queryClient.invalidateQueries({ queryKey: ['budget-reports'] });
       toast.success('Expense approved');
     };
 
@@ -246,6 +248,23 @@ export const useWebSocketEvents = () => {
       const summary = firstField
         ? `${data.workflowName} automatically updated ${firstField}`
         : `${data.workflowName} performed ${data.actionType.replace(/_/g, " ")}`;
+      queryClient.setQueryData(["dashboard", "admin"], (oldData: any) => {
+        const nextEvent = {
+          id: `workflow-${data.workflowId}-${data.timestamp}`,
+          actor: data.workflowName,
+          avatarSeed: "System",
+          action: firstField ? `automatically updated ${firstField}` : `performed ${data.actionType.replace(/_/g, " ")}`,
+          timestamp: data.timestamp,
+          relativeTime: "now",
+          isAutomated: true,
+          workflowName: data.workflowName,
+        };
+
+        return {
+          ...(oldData || {}),
+          activityFeed: [nextEvent, ...((oldData?.activityFeed || []).slice(0, 19))],
+        };
+      });
       toast.info(summary, { description: "Automated" });
     };
 

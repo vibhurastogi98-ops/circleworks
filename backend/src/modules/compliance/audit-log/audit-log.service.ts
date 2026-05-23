@@ -27,6 +27,17 @@ interface ListAuditLogsInput {
   cursor?: string;
 }
 
+interface CreateWorkflowAutomationAuditLogInput {
+  companyId: string;
+  workflowId: string;
+  workflowName: string;
+  actionType: string;
+  entityType: string;
+  entityId: string;
+  changedFields: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+  timestamp?: string;
+}
+
 const CIPHER_ALGORITHM = 'aes-256-gcm';
 
 @Injectable()
@@ -73,6 +84,31 @@ export class AuditLogService {
         displayValueEncrypted: maskedChange.displayValue ? this.encrypt(maskedChange.displayValue) : null,
         ipAddress: input.ipAddress,
         metadata: input.metadata || {},
+      },
+    });
+  }
+
+  async createWorkflowAutomationAuditLog(input: CreateWorkflowAutomationAuditLogInput) {
+    const firstChange = input.changedFields[0];
+
+    return this.createAuditLog({
+      companyId: input.companyId,
+      actorName: 'Workflow Automation',
+      action: input.actionType,
+      resourceType: input.entityType,
+      resourceId: input.entityId,
+      fieldName: firstChange?.field,
+      oldValue: firstChange?.oldValue,
+      newValue: firstChange?.newValue,
+      ipAddress: 'Automation',
+      metadata: {
+        immutable: true,
+        source: 'workflow_automation',
+        workflowId: input.workflowId,
+        workflowName: input.workflowName,
+        changedFields: input.changedFields,
+        executedAt: input.timestamp || new Date().toISOString(),
+        author: `Workflow Automation: ${input.workflowName}`,
       },
     });
   }

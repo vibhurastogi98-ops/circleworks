@@ -1,7 +1,7 @@
 import { db } from "@/db";
-import { employees, payrolls, timesheets, paySchedules } from "@/db/schema";
+import { employees, payrolls, timesheets, paySchedules, timeEntries } from "@/db/schema";
 import { MOCK_EMPLOYEES, PAY_PERIOD } from "@/data/payrollRunMocks";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 
 export interface TimesheetHoursDay {
   date: string;
@@ -106,6 +106,27 @@ function distributeHours(totalHours: number, periodStart: string, periodEnd: str
   });
 }
 
+function emptyDay(date: string): TimesheetHoursDay {
+  return {
+    date,
+    regularHours: 0,
+    overtimeHours: 0,
+    doubleTimeHours: 0,
+  };
+}
+
+function entryBucket(entryType?: string | null) {
+  const normalized = entryType?.toLowerCase() || "";
+  if (normalized.includes("double")) return "doubleTimeHours" as const;
+  if (normalized.includes("overtime")) return "overtimeHours" as const;
+  return "regularHours" as const;
+}
+
+function calculateEntryHours(clockIn: Date, clockOut: Date | null) {
+  if (!clockOut) return 0;
+  return Math.max(0, (clockOut.getTime() - clockIn.getTime()) / 3_600_000);
+}
+
 function buildMockTimesheetImport(useScheduledHoursForMissing = false): TimesheetImportResult {
   const hourlyEmployees = MOCK_EMPLOYEES.filter((employee) => employee.payType === "hourly");
   const approvedCount = Math.max(0, hourlyEmployees.length - 5);
@@ -178,7 +199,10 @@ export async function getTimesheetHoursImport(
   const [run] = await db.select().from(payrolls).where(eq(payrolls.id, payrollId)).limit(1);
   if (!run) return buildMockTimesheetImport(options.useScheduledHoursForMissing);
 
-  const [hourlyEmployees, approvedTimesheets, defaultSchedule] = await Promise.all([
+  const periodStartDate = new Date(`${run.payPeriodStart}T00:00:00`);
+  const periodEndDate = new Date(`${run.payPeriodEnd}T23:59:59.999`);
+
+  const [hourlyEmployees, approvedTimesheets, approvedEntries, defaultSchedule] = await Promise.all([
     db
       .select({
         id: employees.id,
@@ -215,6 +239,33 @@ export async function getTimesheetHoursImport(
       ),
 
     db
+      .select({
+        id: timeEntries.id,
+        employeeId: timeEntries.employeeId,
+        timesheetId: timeEntries.timesheetId,
+        clockIn: timeEntries.clockIn,
+        clockOut: timeEntries.clockOut,
+        entryType: timeEntries.entryType,
+        approvedAt: timesheets.approvedAt,
+        periodEnd: timesheets.periodEnd,
+      })
+      .from(timeEntries)
+      .innerJoin(timesheets, eq(timeEntries.timesheetId, timesheets.id))
+      .innerJoin(employees, eq(timeEntries.employeeId, employees.id))
+      .where(
+        and(
+          eq(timeEntries.companyId, run.companyId as number),
+          eq(employees.payType, "hourly"),
+          eq(timeEntries.status, "Approved"),
+          eq(timesheets.status, "Approved"),
+          eq(timesheets.periodEnd, run.payPeriodEnd),
+          gte(timeEntries.clockIn, periodStartDate),
+          lte(timeEntries.clockIn, periodEndDate),
+          sql`${timeEntries.clockOut} is not null`
+        )
+      ),
+
+    db
       .select({ cutoffHours: paySchedules.cutoffHoursBeforeRun })
       .from(paySchedules)
       .where(
@@ -228,6 +279,13 @@ export async function getTimesheetHoursImport(
 
   const cutoffHours = defaultSchedule[0]?.cutoffHours ?? DEFAULT_CUTOFF_HOURS_BEFORE_RUN;
   const sheetsByEmployee = new Map(approvedTimesheets.map((sheet) => [sheet.employeeId, sheet]));
+  const entriesByEmployee = new Map<number, typeof approvedEntries>();
+  approvedEntries.forEach((entry) => {
+    if (!entry.employeeId) return;
+    const entries = entriesByEmployee.get(entry.employeeId) || [];
+    entries.push(entry);
+    entriesByEmployee.set(entry.employeeId, entries);
+  });
   const cutoffStart = new Date(run.checkDate);
   cutoffStart.setHours(cutoffStart.getHours() - cutoffHours);
   const importedAt = new Date().toISOString();
@@ -236,8 +294,9 @@ export async function getTimesheetHoursImport(
   const imports = hourlyEmployees.flatMap((employee) => {
     const fullName = `${employee.firstName} ${employee.lastName || ""}`.trim();
     const sheet = sheetsByEmployee.get(employee.id);
+    const entries = entriesByEmployee.get(employee.id) || [];
 
-    if (!sheet) {
+    if (!sheet && entries.length === 0) {
       missingEmployees.push(fullName);
       if (!options.useScheduledHoursForMissing) return [];
     }
@@ -249,12 +308,36 @@ export async function getTimesheetHoursImport(
           ? "termination"
           : undefined;
 
-    let regularHours = roundHours(sheet?.regularHours || 80);
-    let overtimeHours = roundHours(sheet?.overtimeHours || 0);
-    let doubleTimeHours = roundHours(sheet?.doubleTimeHours || 0);
+    const daysByDate = new Map<string, TimesheetHoursDay>();
+    entries.forEach((entry) => {
+      const clockIn = entry.clockIn instanceof Date ? entry.clockIn : new Date(entry.clockIn);
+      const clockOut = entry.clockOut instanceof Date || entry.clockOut === null ? entry.clockOut : new Date(entry.clockOut);
+      const date = toDateString(clockIn);
+      const bucket = entryBucket(entry.entryType);
+      const day = daysByDate.get(date) || emptyDay(date);
+      day[bucket] = roundHours(day[bucket] + calculateEntryHours(clockIn, clockOut));
+      daysByDate.set(date, day);
+    });
+
+    let days = Array.from(daysByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+    let regularHours = roundHours(days.reduce((sum, day) => sum + day.regularHours, 0));
+    let overtimeHours = roundHours(days.reduce((sum, day) => sum + day.overtimeHours, 0));
+    let doubleTimeHours = roundHours(days.reduce((sum, day) => sum + day.doubleTimeHours, 0));
+
+    if (entries.length === 0 && sheet) {
+      regularHours = roundHours(sheet.regularHours || 0);
+      overtimeHours = roundHours(sheet.overtimeHours || 0);
+      doubleTimeHours = roundHours(sheet.doubleTimeHours || 0);
+    }
+
+    if (!sheet && entries.length === 0) {
+      regularHours = 80;
+      overtimeHours = 0;
+      doubleTimeHours = 0;
+    }
 
     // Prorate scheduled hours for partial periods (approved timesheets already reflect actual days).
-    if (!sheet && partialPeriodReason) {
+    if (!sheet && entries.length === 0 && partialPeriodReason) {
       const scheduledTotal = roundHours(regularHours + overtimeHours + doubleTimeHours);
       const prorated = prorateForPartialPeriod(
         scheduledTotal,
@@ -269,27 +352,39 @@ export async function getTimesheetHoursImport(
     }
 
     const totalHours = roundHours(regularHours + overtimeHours + doubleTimeHours);
+    if (days.length === 0) {
+      days = distributeHours(totalHours, run.payPeriodStart, run.payPeriodEnd);
+    }
 
     return [{
       employeeId: employee.id,
       employeeName: fullName,
       timesheetId: sheet?.id ?? null,
-      source: sheet ? "timesheet" as const : "scheduled" as const,
+      source: sheet || entries.length > 0 ? "timesheet" as const : "scheduled" as const,
       regularHours,
       overtimeHours,
       doubleTimeHours,
       totalHours,
       importedAt,
-      lateWithinCutoff: Boolean(sheet?.approvedAt && sheet.approvedAt >= cutoffStart),
+      lateWithinCutoff: Boolean(
+        (sheet?.approvedAt && sheet.approvedAt >= cutoffStart) ||
+        entries.some((entry) => entry.approvedAt && entry.approvedAt >= cutoffStart)
+      ),
       partialPeriodReason,
-      days: distributeHours(totalHours, run.payPeriodStart, run.payPeriodEnd),
+      days,
     }];
   });
+
+  const approvedEmployeeIds = new Set(
+    hourlyEmployees
+      .filter((employee) => sheetsByEmployee.has(employee.id) || (entriesByEmployee.get(employee.id) || []).length > 0)
+      .map((employee) => employee.id)
+  );
 
   return {
     summary: {
       hourlyEmployeeCount: hourlyEmployees.length,
-      approvedCount: approvedTimesheets.length,
+      approvedCount: approvedEmployeeIds.size,
       missingCount: missingEmployees.length,
       missingEmployees,
       lateCount: imports.filter((line) => line.lateWithinCutoff).length,

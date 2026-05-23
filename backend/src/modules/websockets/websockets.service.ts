@@ -1,25 +1,65 @@
 import { Injectable } from '@nestjs/common';
 import { EventsGateway } from './events.gateway';
 
+export type WorkflowActionType =
+  | 'update_field'
+  | 'create_task'
+  | 'send_email'
+  | 'change_status';
+
+export type WorkflowEntityType = 'employee' | 'task' | 'job' | 'onboarding';
+
+export interface WorkflowActionExecutedPayload {
+  workflowId: string;
+  workflowName: string;
+  triggeredBy: 'automation';
+  actionType: WorkflowActionType;
+  entityType: WorkflowEntityType;
+  entityId: string;
+  changedFields: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+  timestamp: string;
+}
+
 @Injectable()
 export class WebsocketsService {
   constructor(private readonly eventsGateway: EventsGateway) {}
 
   // Payroll Events
-  emitPayrollRunStatusUpdate(companyId: string, data: { runId: string; status: string; progress: number }) {
-    this.eventsGateway.emitToCompany(companyId, 'payroll.run.status_update', data);
+  emitPayrollRunStatusUpdate(
+    companyId: string,
+    data: { runId: string; status: string; progress: number },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'payroll.run.status_update',
+      data,
+    );
   }
 
-  emitPayrollRunCompleted(companyId: string, data: { runId: string; totalGross: number; employeeCount: number }) {
+  emitPayrollRunCompleted(
+    companyId: string,
+    data: { runId: string; totalGross: number; employeeCount: number },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'payroll.run.completed', data);
   }
 
-  emitPayrollApprovalRequired(companyId: string, data: { runId: string; approverIds: string[] }) {
-    this.eventsGateway.emitToCompany(companyId, 'payroll.approval.required', data);
+  emitPayrollApprovalRequired(
+    companyId: string,
+    data: { runId: string; approverIds: string[] },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'payroll.approval.required',
+      data,
+    );
   }
 
   emitPayrollDirectDepositSent(companyId: string, data: { runId: string }) {
-    this.eventsGateway.emitToCompany(companyId, 'payroll.direct_deposit.sent', data);
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'payroll.direct_deposit.sent',
+      data,
+    );
   }
 
   // Employee Events
@@ -27,24 +67,90 @@ export class WebsocketsService {
     this.eventsGateway.emitToCompany(companyId, 'employee.created', data);
   }
 
-  emitEmployeeUpdated(companyId: string, data: { employeeId: string; changedFields: string[] }) {
+  emitEmployeeUpdated(
+    companyId: string,
+    data: { employeeId: string; changedFields: string[] },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'employee.updated', data);
   }
 
-  emitEmployeeTerminated(companyId: string, data: { employeeId: string; lastDay: string }) {
+  emitEmployeeTerminated(
+    companyId: string,
+    data: { employeeId: string; lastDay: string },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'employee.terminated', data);
   }
 
-  emitEmployeeClockedIn(companyId: string, data: { employeeId: string; timestamp: string }) {
+  emitEmployeeTerminationInitiated(
+    companyId: string,
+    data: {
+      id: number;
+      terminationDate: string;
+      terminationType: string;
+      finalPayDate: string | null;
+      companyId: number | null;
+      timestamp: string;
+    },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'employee.termination.initiated',
+      data,
+    );
+  }
+
+  emitEmployeeAccessRevoked(
+    companyId: string,
+    data: { id: number; terminationDate: string; timestamp: string },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'employee.access.revoked',
+      data,
+    );
+  }
+
+  emitEmployeeCobraTriggered(
+    companyId: string,
+    data: { id: number; terminationDate: string; timestamp: string },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'employee.cobra.triggered',
+      data,
+    );
+  }
+
+  emitEmployeeAutoCreatedFromAts(
+    companyId: string,
+    data: { employeeId: string; candidateId: string },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'employee.auto_created_from_ats',
+      data,
+    );
+  }
+
+  emitEmployeeClockedIn(
+    companyId: string,
+    data: { employeeId: string; timestamp: string },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'employee.clocked_in', data);
   }
 
-  emitEmployeeClockedOut(companyId: string, data: { employeeId: string; timestamp: string; hoursWorked: number }) {
+  emitEmployeeClockedOut(
+    companyId: string,
+    data: { employeeId: string; timestamp: string; hoursWorked: number },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'employee.clocked_out', data);
   }
 
   // Time Events
-  emitTimePtoRequested(companyId: string, data: { requestId: string; employeeId: string; dates: string[] }) {
+  emitTimePtoRequested(
+    companyId: string,
+    data: { requestId: string; employeeId: string; dates: string[] },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'time.pto.requested', data);
   }
 
@@ -56,25 +162,44 @@ export class WebsocketsService {
     this.eventsGateway.emitToCompany(companyId, 'time.pto.denied', data);
   }
 
-  emitTimeOvertimeAlert(companyId: string, data: { employeeId: string; hoursThisWeek: number }) {
+  emitTimeOvertimeAlert(
+    companyId: string,
+    data: { employeeId: string; hoursThisWeek: number },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'time.overtime.alert', data);
   }
 
   // Hiring Events
-  emitAtsCandidateApplied(companyId: string, data: { jobId: string; candidateId: string; candidateName: string }) {
+  emitAtsCandidateApplied(
+    companyId: string,
+    data: { jobId: string; candidateId: string; candidateName: string },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'ats.candidate.applied', data);
   }
 
-  emitAtsCandidateStageChanged(companyId: string, data: { candidateId: string; fromStage: string; toStage: string }) {
-    this.eventsGateway.emitToCompany(companyId, 'ats.candidate.stage_changed', data);
+  emitAtsCandidateStageChanged(
+    companyId: string,
+    data: { candidateId: string; fromStage: string; toStage: string },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'ats.candidate.stage_changed',
+      data,
+    );
   }
 
-  emitAtsOfferSigned(companyId: string, data: { candidateId: string; jobId: string }) {
+  emitAtsOfferSigned(
+    companyId: string,
+    data: { candidateId: string; jobId: string },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'ats.offer.signed', data);
   }
 
   // Expense Events
-  emitExpenseSubmitted(companyId: string, data: { expenseId: string; employeeId: string; amount: number }) {
+  emitExpenseSubmitted(
+    companyId: string,
+    data: { expenseId: string; employeeId: string; amount: number },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'expense.submitted', data);
   }
 
@@ -95,17 +220,42 @@ export class WebsocketsService {
     this.eventsGateway.emitToUser(userId, 'notification.batch_update', data);
   }
 
+  // Workflow Automation Events
+  emitWorkflowActionExecuted(
+    companyId: string,
+    data: WorkflowActionExecutedPayload,
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'workflow.action.executed',
+      data,
+    );
+  }
+
   // Compliance Events
-  emitComplianceAlertNew(companyId: string, data: { alertId: string; severity: string; description: string }) {
+  emitComplianceAlertNew(
+    companyId: string,
+    data: { alertId: string; severity: string; description: string },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'compliance.alert.new', data);
   }
 
   // System Events
-  emitSystemMaintenanceScheduled(companyId: string, data: { startAt: string; duration: number }) {
-    this.eventsGateway.emitToCompany(companyId, 'system.maintenance.scheduled', data);
+  emitSystemMaintenanceScheduled(
+    companyId: string,
+    data: { startAt: string; duration: number },
+  ) {
+    this.eventsGateway.emitToCompany(
+      companyId,
+      'system.maintenance.scheduled',
+      data,
+    );
   }
 
-  emitFeatureAnnouncement(companyId: string, data: { title: string; description: string; ctaUrl?: string }) {
+  emitFeatureAnnouncement(
+    companyId: string,
+    data: { title: string; description: string; ctaUrl?: string },
+  ) {
     this.eventsGateway.emitToCompany(companyId, 'feature.announcement', data);
   }
 }

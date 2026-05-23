@@ -208,6 +208,8 @@ export type ActivityEvent = {
   action: string;
   timestamp: string;
   relativeTime: string;
+  isAutomated?: boolean;
+  workflowName?: string;
 };
 
 export const ACTIVITY_FEED: ActivityEvent[] = [

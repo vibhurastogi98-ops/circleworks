@@ -82,6 +82,24 @@ CREATE TABLE IF NOT EXISTS payroll_items (
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS payroll_benefit_deductions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  payroll_id INTEGER,
+  employee_id INTEGER,
+  benefit_plan_id INTEGER,
+  plan_name TEXT NOT NULL,
+  monthly_premium REAL DEFAULT 0,
+  employee_share REAL DEFAULT 0,
+  per_paycheck_amount REAL DEFAULT 0,
+  pretax_or_posttax TEXT DEFAULT 'pre_tax',
+  deduction_code TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(payroll_id) REFERENCES payrolls(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(benefit_plan_id) REFERENCES benefit_plans(id) ON DELETE SET NULL
+);
+
 -- 7. TAX LIABILITIES
 CREATE TABLE IF NOT EXISTS tax_liabilities (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -299,6 +317,8 @@ CREATE TABLE IF NOT EXISTS cobra_cases (
   election_deadline DATE,
   premium_amount INTEGER DEFAULT 0,
   payment_status TEXT CHECK(payment_status IN ('Current','Past Due','Unpaid')) DEFAULT 'Unpaid',
+  election_notice_pdf TEXT,
+  email_queued BOOLEAN DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
@@ -905,9 +925,15 @@ CREATE TABLE IF NOT EXISTS w4_forms (
   deductions INTEGER DEFAULT 0,
   extra_withholding INTEGER DEFAULT 0,
   exempt BOOLEAN DEFAULT 0,
+  ssn_encrypted TEXT,
+  signature TEXT,
+  signed_at DATETIME,
+  status TEXT DEFAULT 'Pending',
+  document_id INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(document_id) REFERENCES employee_documents(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_preboarding_invitations_token ON preboarding_invitations(token);

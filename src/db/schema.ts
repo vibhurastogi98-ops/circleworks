@@ -222,6 +222,8 @@ export const atsJobs = pgTable('ats_jobs', {
   department: text('department'),
   location: text('location'),
   employmentType: text('employment_type').default('Full-Time'),
+  salaryMin: integer('salary_min'),
+  salaryMax: integer('salary_max'),
   managerId: integer('manager_id'),
   status: text('status').default('Active'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -307,6 +309,35 @@ export const benefitEnrollments = pgTable('benefit_enrollments', {
   status: text('status').default('Pending'),
   enrolledAt: timestamp('enrolled_at'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const cobraCases = pgTable('cobra_cases', {
+  id: serial('id').primaryKey(),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  status: text('status').default('Eligible'),
+  qualifyingEvent: text('qualifying_event'),
+  noticeSentDate: date('notice_sent_date'),
+  electionDeadline: date('election_deadline'),
+  premiumAmount: integer('premium_amount').default(0),
+  paymentStatus: text('payment_status').default('Unpaid'),
+  electionNoticePdf: text('election_notice_pdf'),
+  emailQueued: boolean('email_queued').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const payrollBenefitDeductions = pgTable('payroll_benefit_deductions', {
+  id: serial('id').primaryKey(),
+  payrollId: integer('payroll_id').references(() => payrolls.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  benefitPlanId: integer('benefit_plan_id').references(() => benefitPlans.id, { onDelete: 'set null' }),
+  planName: text('plan_name').notNull(),
+  monthlyPremium: real('monthly_premium').default(0),
+  employeeShare: real('employee_share').default(0),
+  perPaycheckAmount: real('per_paycheck_amount').default(0),
+  pretaxOrPosttax: text('pretax_or_posttax').default('pre_tax'),
+  deductionCode: text('deduction_code').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // --- EXPENSES ---
@@ -399,6 +430,19 @@ export const announcements = pgTable('announcements', {
   uniqueReaders: integer('unique_readers').default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  link: text('link'),
+  status: text('status'),
+  isRead: boolean('is_read').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const announcementReads = pgTable('announcement_reads', {
@@ -1253,6 +1297,11 @@ export const w4Forms = pgTable('w4_forms', {
   deductions: integer('deductions').default(0),
   extraWithholding: integer('extra_withholding').default(0),
   exempt: boolean('exempt').default(false),
+  ssnEncrypted: text('ssn_encrypted'),
+  signature: text('signature'),
+  signedAt: timestamp('signed_at'),
+  status: text('status').default('Pending'),
+  documentId: integer('document_id').references(() => employeeDocuments.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
