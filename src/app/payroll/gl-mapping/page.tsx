@@ -1,198 +1,401 @@
 "use client";
-import React, { useState } from "react";
-import { CopyPlus, Save, LayoutGrid, CheckCircle2, SlidersHorizontal, Settings2, Share2, FileSpreadsheet } from "lucide-react";
-import { mockGLAccounts, mockPayrollComponents, type PayrollComponent } from "@/data/mockGL";
+
+import React, { useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  Download,
+  FileText,
+  LayoutGrid,
+  RefreshCw,
+  Save,
+  Send,
+} from "lucide-react";
 import { toast } from "sonner";
+import { mockGLAccounts, mockPayrollComponents, type PayrollComponent } from "@/data/mockGL";
+
+type AccountingProvider = "QuickBooks Online" | "Xero" | "NetSuite" | "Generic CSV";
+
+const providerDetails: Record<AccountingProvider, string> = {
+  "QuickBooks Online": "Chart of Accounts API",
+  Xero: "Chart of Accounts API",
+  NetSuite: "CSV import format",
+  "Generic CSV": "User-defined column mapping",
+};
+
+const categories: PayrollComponent["category"][] = [
+  "Earnings",
+  "Deductions",
+  "Taxes",
+  "Employer Contributions",
+];
+
+const previewGroups: PayrollComponent["previewGroup"][] = [
+  "Gross Pay",
+  "Tax Liabilities",
+  "Net Pay",
+  "Employer Costs",
+];
+
+const mockTotals: Record<string, number> = {
+  "comp-1": 85000,
+  "comp-2": 5000,
+  "comp-3": 10000,
+  "comp-4": 7650,
+  "comp-5": 600,
+  "comp-6": 12000,
+  "comp-7": 4000,
+  "comp-8": 7650,
+  "comp-9": 2500,
+  "comp-10": 4000,
+  "comp-11": 69850,
+  "comp-12": 9000,
+};
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function buildJournalRows(components: PayrollComponent[]) {
+  return components.map((component) => {
+    const account = mockGLAccounts.find((item) => item.id === component.assignedGlId);
+    const amount = mockTotals[component.id] || 0;
+
+    return {
+      date: "2026-05-29",
+      group: component.previewGroup,
+      description: component.name,
+      debitAccount: component.defaultEntryType === "Debit" ? `${account?.code ?? "UNMAPPED"} ${account?.name ?? ""}`.trim() : "",
+      creditAccount: component.defaultEntryType === "Credit" ? `${account?.code ?? "UNMAPPED"} ${account?.name ?? ""}`.trim() : "",
+      amount,
+      mapped: Boolean(account),
+    };
+  }).filter((row) => row.amount > 0);
+}
 
 export default function GLMappingPage() {
   const [components, setComponents] = useState<PayrollComponent[]>(mockPayrollComponents);
+  const [activeCategory, setActiveCategory] = useState<PayrollComponent["category"]>("Earnings");
+  const [templateName, setTemplateName] = useState("Default Payroll GL Mapping");
+  const [activeProvider, setActiveProvider] = useState<AccountingProvider>("QuickBooks Online");
   const [showPreview, setShowPreview] = useState(false);
-  const [activeIntegration, setActiveIntegration] = useState("QuickBooks Online");
-  
-  const handleMapAccount = (compId: string, glId: string | null) => {
-    setComponents(components.map(c => c.id === compId ? { ...c, assignedGlId: glId } : c));
+  const [syncing, setSyncing] = useState(false);
+
+  const journalRows = useMemo(() => buildJournalRows(components), [components]);
+  const filteredComponents = components.filter((component) => component.category === activeCategory);
+  const unmappedCount = components.filter((component) => !component.assignedGlId).length;
+
+  const updateComponent = (componentId: string, updates: Partial<PayrollComponent>) => {
+    setComponents((current) =>
+      current.map((component) =>
+        component.id === componentId ? { ...component, ...updates } : component
+      )
+    );
   };
 
   const handleSaveTemplate = () => {
-    toast.success("GL Mapping Template Saved", { description: "Active payrolls will now use this journal entity mapping."});
+    toast.success("GL mapping template saved", {
+      description: `${templateName} will be used for upcoming payroll journal entries.`,
+    });
   };
 
-  const categories = ["Gross Pay", "Taxes (Employer)", "Taxes (Employee)", "Deductions", "Net Pay"];
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch("/api/payroll/gl-mapping/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: activeProvider,
+          templateName,
+          mappings: components.map((component) => ({
+            payrollComponentId: component.id,
+            glAccountId: component.assignedGlId,
+            debitCredit: component.defaultEntryType,
+            deptSplit: component.deptSplit,
+          })),
+          journalEntries: journalRows,
+        }),
+      });
 
-  // Journal Entry Preview Math
-  // Mocking a sample run of $100k gross for a preview
-  const mockTotals: Record<string, number> = {
-    "comp-1": 85000, "comp-2": 5000, "comp-3": 10000, // Gross: 100k
-    "comp-4": 7650, "comp-5": 600, // Employer Taxes: ~8.25k
-    "comp-6": 12000, "comp-7": 4000, "comp-8": 7650, // Employee Taxes: ~23.65k
-    "comp-9": 2500, "comp-10": 4000, // Deductions: ~6.5k
-    "comp-11": 69850 // Net
+      if (!response.ok) {
+        throw new Error("Sync failed");
+      }
+
+      toast.success("Journal entries approved", {
+        description: `Sent to ${activeProvider}.`,
+      });
+      setShowPreview(false);
+    } catch {
+      toast.error("Unable to sync journal entries");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const exportCsv = () => {
+    const headers = ["Date", "Description", "Debit Account", "Credit Account", "Amount"];
+    const lines = journalRows.map((row) => [
+      row.date,
+      row.description,
+      row.debitAccount,
+      row.creditAccount,
+      row.amount.toFixed(2),
+    ]);
+    const csv = [headers, ...lines].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "payroll-journal-preview.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPdf = () => {
+    window.print();
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 animate-in fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 pb-24">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">General Ledger Mapping</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Map payroll components to your Chart of Accounts for automated journal entries.</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">GL Mapping</h1>
+          <p className="mt-2 max-w-3xl text-slate-500 dark:text-slate-400">
+            Map payroll earnings, deductions, taxes, and employer contributions to accounting system accounts before payroll posts.
+          </p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
-          <button 
+        <div className="flex flex-wrap gap-3">
+          <button
             onClick={() => setShowPreview(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm font-medium shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
           >
-            <LayoutGrid size={16} /> Journal Entry Preview
+            <LayoutGrid size={16} /> Journal Preview
           </button>
-          <button 
+          <button
             onClick={handleSaveTemplate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md hover:bg-blue-700 transition-all"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
           >
-            <Save size={16} /> Save Mapping
+            <Save size={16} /> Save Template
           </button>
         </div>
       </div>
 
-      {/* Integration Status Bar */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-8 flex items-center justify-between">
-         <div className="flex items-center gap-3">
-           <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-             <CheckCircle2 size={20} />
-           </div>
-           <div>
-             <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">Active Sync: {activeIntegration}</h3>
-             <p className="text-xs text-slate-500">124 Accounts synced 5 mins ago</p>
-           </div>
-         </div>
-         <div className="flex gap-2">
-            <button className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50">Sync Now</button>
-            <button className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 flex items-center gap-1">
-              <Settings2 size={14} /> Providers
-            </button>
-         </div>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.5fr]">
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="border-b border-slate-200 p-5 dark:border-slate-800">
+            <h2 className="text-base font-black text-slate-900 dark:text-white">Payroll Line Items</h2>
+            <p className="mt-1 text-sm text-slate-500">Select a component group to map accounts.</p>
+          </div>
+          <div className="p-3">
+            {categories.map((category) => {
+              const count = components.filter((component) => component.category === category).length;
+              return (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(category)}
+                  className={`mb-2 flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-colors ${
+                    activeCategory === category
+                      ? "bg-blue-50 text-blue-800 ring-1 ring-blue-200"
+                      : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <span className="text-sm font-bold">{category}</span>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-500 dark:bg-slate-800">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="border-t border-slate-200 p-5 text-sm dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-700 dark:text-slate-200">Mapping status</span>
+              <span className={unmappedCount ? "font-black text-amber-600" : "font-black text-emerald-600"}>
+                {unmappedCount ? `${unmappedCount} unmapped` : "Complete"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid gap-4 border-b border-slate-200 p-5 dark:border-slate-800 md:grid-cols-[1fr_220px]">
+            <div>
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500">Named template</label>
+              <input
+                value={templateName}
+                onChange={(event) => setTemplateName(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500">Accounting system</label>
+              <select
+                value={activeProvider}
+                onChange={(event) => setActiveProvider(event.target.value as AccountingProvider)}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              >
+                {(Object.keys(providerDetails) as AccountingProvider[]).map((provider) => (
+                  <option key={provider}>{provider}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-500 dark:bg-slate-800/70">
+                <tr>
+                  <th className="px-4 py-3">Payroll Component</th>
+                  <th className="px-4 py-3">GL Account Code</th>
+                  <th className="px-4 py-3">GL Account Name</th>
+                  <th className="px-4 py-3">Debit/Credit</th>
+                  <th className="px-4 py-3">Dept Split</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filteredComponents.map((component) => {
+                  const selectedAccount = mockGLAccounts.find((account) => account.id === component.assignedGlId);
+                  return (
+                    <tr key={component.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
+                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{component.name}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={component.assignedGlId || ""}
+                          onChange={(event) => updateComponent(component.id, { assignedGlId: event.target.value || null })}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                          <option value="">Select</option>
+                          {mockGLAccounts.map((account) => (
+                            <option key={account.id} value={account.id}>
+                              {account.code}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                        {selectedAccount?.name ?? "Unmapped"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={component.defaultEntryType}
+                          onChange={(event) => updateComponent(component.id, { defaultEntryType: event.target.value as PayrollComponent["defaultEntryType"] })}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                          <option>Debit</option>
+                          <option>Credit</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={component.deptSplit}
+                          onChange={(event) => updateComponent(component.id, { deptSplit: event.target.value as PayrollComponent["deptSplit"] })}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                          <option>None</option>
+                          <option>Employee Department</option>
+                          <option>Project Code</option>
+                          <option>Location</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
-      {/* Main Mapping Area */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="grid grid-cols-12 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">
-          <div className="col-span-5">Payroll Line Item</div>
-          <div className="col-span-1 text-center">Type</div>
-          <div className="col-span-4">GL Account Mapping</div>
-          <div className="col-span-2">Department Split</div>
-        </div>
-        
-        <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
-           {categories.map(category => (
-             <React.Fragment key={category}>
-               <div className="bg-slate-100/50 dark:bg-slate-800/30 px-6 py-2 text-xs font-black tracking-widest text-slate-700 uppercase">
-                 {category}
-               </div>
-               
-               {components.filter(c => c.category === category).map((comp) => (
-                 <div key={comp.id} className="grid grid-cols-12 py-4 px-6 items-center hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors group">
-                    <div className="col-span-5 pr-4">
-                      <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{comp.name}</p>
-                      {comp.assignedGlId === null && <p className="text-[10px] text-red-500 font-bold mt-1 uppercase">Action Required</p>}
-                    </div>
-                    <div className="col-span-1 flex justify-center">
-                      <span className={`text-[10px] uppercase font-black tracking-wider px-2 py-1 rounded ${
-                        comp.defaultEntryType === 'Debit' ? 'bg-indigo-50 text-indigo-700' : 'bg-fuchsia-50 text-fuchsia-700'
-                      }`}>
-                        {comp.defaultEntryType}
-                      </span>
-                    </div>
-                    <div className="col-span-4 pr-6">
-                      <select 
-                        value={comp.assignedGlId || ""}
-                        onChange={(e) => handleMapAccount(comp.id, e.target.value || null)}
-                        className={`w-full bg-slate-50 border ${comp.assignedGlId ? 'border-slate-200' : 'border-red-300 ring-2 ring-red-100'} rounded-lg py-2 px-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none`}
-                      >
-                        <option value="">-- Select GL Account --</option>
-                        {mockGLAccounts.map(gl => (
-                          <option key={gl.id} value={gl.id}>
-                            {gl.code} - {gl.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                       <button className="flex justify-between items-center w-full px-3 py-2 text-xs font-medium text-slate-500 border border-dashed border-slate-300 rounded-lg hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50">
-                         No Split <SlidersHorizontal size={12} className="opacity-50 group-hover:opacity-100" />
-                       </button>
-                    </div>
-                 </div>
-               ))}
-             </React.Fragment>
-           ))}
-        </div>
-      </div>
+      <section className="grid gap-3 md:grid-cols-4">
+        {(Object.keys(providerDetails) as AccountingProvider[]).map((provider) => (
+          <button
+            key={provider}
+            onClick={() => setActiveProvider(provider)}
+            className={`rounded-xl border p-4 text-left transition-colors ${
+              activeProvider === provider
+                ? "border-blue-300 bg-blue-50 text-blue-900"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            }`}
+          >
+            <p className="text-sm font-black">{provider}</p>
+            <p className="mt-1 text-xs opacity-75">{providerDetails[provider]}</p>
+          </button>
+        ))}
+      </section>
 
-      {/* Journal Entry Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-               <div>
-                 <h2 className="text-xl font-bold text-slate-900">Journal Entry Preview</h2>
-                 <p className="text-sm text-slate-500">Simulating a $100k standard gross payroll run.</p>
-               </div>
-               <div className="flex gap-2">
-                 <button className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">
-                   <FileSpreadsheet size={16} />
-                 </button>
-                 <button onClick={() => setShowPreview(false)} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-sm rounded-lg hover:bg-slate-200 transition-colors">
-                   Close Preview
-                 </button>
-               </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+            <div className="flex flex-col gap-4 border-b border-slate-200 p-5 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">Journal Entry Preview</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Review entries before payroll completes. Approve to send entries to {activeProvider}.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={exportCsv} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200">
+                  <Download size={15} /> CSV
+                </button>
+                <button onClick={exportPdf} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200">
+                  <FileText size={15} /> PDF
+                </button>
+                <button onClick={() => setShowPreview(false)} className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">
+                  Close
+                </button>
+              </div>
             </div>
 
-            <div className="p-6 overflow-y-auto bg-slate-50">
-               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                 <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-900 text-white font-medium text-xs tracking-wider uppercase">
-                       <tr>
-                         <th className="px-4 py-3 border-r border-slate-700">Account Code</th>
-                         <th className="px-4 py-3">Account Name</th>
-                         <th className="px-4 py-3 border-r border-slate-700">Payroll Description</th>
-                         <th className="px-4 py-3 text-right bg-slate-800">Debit</th>
-                         <th className="px-4 py-3 text-right bg-slate-800">Credit</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {components.map(comp => {
-                        const gl = mockGLAccounts.find(g => g.id === comp.assignedGlId);
-                        const val = mockTotals[comp.id] || 0;
-                        if (val === 0) return null;
-                        
-                        return (
-                          <tr key={comp.id} className={`hover:bg-slate-50 ${!gl ? 'bg-red-50/10' : ''}`}>
-                             <td className={`px-4 py-3 font-mono text-xs border-r border-slate-100 ${!gl ? 'text-red-400' : 'text-slate-500'}`}>{gl ? gl.code : 'UNMAPPED'}</td>
-                             <td className={`px-4 py-3 font-bold ${!gl ? 'text-red-600' : 'text-slate-700'}`}>{gl ? gl.name : 'Missing Mapping'}</td>
-                             <td className="px-4 py-3 text-slate-500 border-r border-slate-100 italic">{comp.name}</td>
-                             <td className="px-4 py-3 text-right font-mono font-medium">{comp.defaultEntryType === 'Debit' ? `$${val.toLocaleString()}` : ''}</td>
-                             <td className="px-4 py-3 text-right font-mono font-medium">{comp.defaultEntryType === 'Credit' ? `$${val.toLocaleString()}` : ''}</td>
-                          </tr>
-                        );
-                      })}
-                      
-                      {/* Totals Row */}
-                      <tr className="bg-slate-900 text-white font-black">
-                         <td colSpan={3} className="px-4 py-4 text-right">BALANCED TOTAL:</td>
-                         <td className="px-4 py-4 text-right border-x border-slate-700">$108,250.00</td>
-                         <td className="px-4 py-4 text-right border-x border-slate-700">$108,250.00</td>
+            <div className="overflow-y-auto p-5">
+              {previewGroups.map((group) => (
+                <div key={group} className="mb-6 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+                  <div className="bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-wider text-white">
+                    {group}
+                  </div>
+                  <table className="w-full min-w-[900px] text-left text-sm">
+                    <thead className="bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-500 dark:bg-slate-800">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Description</th>
+                        <th className="px-4 py-3">Debit Account</th>
+                        <th className="px-4 py-3">Credit Account</th>
+                        <th className="px-4 py-3 text-right">Amount</th>
                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {journalRows.filter((row) => row.group === group).map((row) => (
+                        <tr key={`${row.group}-${row.description}`} className={!row.mapped ? "bg-red-50/60" : ""}>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-500">{row.date}</td>
+                          <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{row.description}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.debitAccount || "-"}</td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{row.creditAccount || "-"}</td>
+                          <td className="px-4 py-3 text-right font-mono font-black">{formatCurrency(row.amount)}</td>
+                        </tr>
+                      ))}
                     </tbody>
-                 </table>
-               </div>
+                  </table>
+                </div>
+              ))}
             </div>
-            
-            <div className="p-5 border-t border-slate-100 bg-white rounded-b-2xl flex justify-between">
-               <span className="text-xs text-slate-500 flex items-center gap-1"><Share2 size={14}/> Auto-syncs to QuickBooks Online on Approval</span>
-               <button 
-                 onClick={() => { setShowPreview(false); toast.success("Manual Sync Initiated"); }}
-                 className="px-6 py-2 bg-slate-900 hover:bg-black text-white text-sm font-bold rounded-lg shadow-md transition-colors"
-               >
-                 Send to GL
-               </button>
+
+            <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950 sm:flex-row sm:items-center sm:justify-between">
+              <span className="inline-flex items-center gap-2 text-xs font-bold text-slate-500">
+                <CheckCircle2 size={15} className="text-emerald-600" />
+                {activeProvider}: {providerDetails[activeProvider]}
+              </span>
+              <button
+                onClick={handleSync}
+                disabled={syncing || unmappedCount > 0}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-black text-white shadow-sm transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {syncing ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                Approve and Send Journal Entries
+              </button>
             </div>
           </div>
         </div>
