@@ -129,7 +129,7 @@ export default function CertifiedPayrollPage() {
     projectLocation: "123 Justice Ave, Washington, DC 20001",
     contractorName: "CircleWorks Inc.",
     contractorAddress: "100 Market St, San Francisco, CA 94105",
-    contractorType: "prime" as const,
+    contractorType: "prime" as "prime" | "subcontractor",
     wageDeterminationNo: "DC20250012 Rev. 4",
     isFinalPayroll: false,
     weekEnding: "2026-04-12",
