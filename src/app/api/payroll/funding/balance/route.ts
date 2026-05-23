@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  // Mocking the Impound Trust balances
-  const upcomingPayroll = 125000.00; // Expected next payroll
-  const impoundBalance = 240000.00; // Currently inside the CircleWorks settlement trust
-  const pendingAchDebits = 14500.00;
+  const upcomingPayroll = 118000.00;
+  const impoundBalance = 210000.00;
+  const pendingAchDebits = 118000.00;
   
-  // 2x logic warning rule
   const isBelowWarningThreshold = impoundBalance < (upcomingPayroll * 2);
   const status = impoundBalance < upcomingPayroll ? "Insufficient Funds" : pendingAchDebits > 0 ? "Pending" : "Funded";
   
@@ -14,9 +12,9 @@ export async function GET() {
     impoundBalance,
     upcomingPayroll,
     pendingAchDebits,
-    lastFundedAmount: 125000.00,
-    lastFundedDate: "2026-04-01T15:00:00Z",
-    nextFundingDate: "2026-04-12T15:00:00Z",
+    lastFundedAmount: 118000.00,
+    lastFundedDate: "2026-05-15T15:00:00Z",
+    nextFundingDate: "2026-05-28T15:00:00Z",
     status,
     isBelowWarningThreshold,
     thresholdMultiple: 2,
