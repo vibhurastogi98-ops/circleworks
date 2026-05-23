@@ -36,6 +36,7 @@ export default function ReportViewer() {
   }, []);
 
   const data: ReportViewerData = useMemo(() => generateReportData(reportId), [reportId]);
+  const exportFormats = report?.exportableFormats ?? ["CSV", "PDF", "Excel"];
 
   const totalRows = data.totalRows;
   const isLarge = totalRows > 10000;
@@ -60,6 +61,8 @@ export default function ReportViewer() {
   const pagedRows = sortedRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const toggleSort = (key: string) => {
+    const column = data.columns.find((col) => col.key === key);
+    if (column && !column.sortable) return;
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
@@ -104,15 +107,18 @@ export default function ReportViewer() {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-            <button onClick={() => handleExport("csv")} className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex items-center gap-1">
-              <Download size={12} /> CSV
-            </button>
-            <button onClick={() => handleExport("excel")} className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-              Excel
-            </button>
-            <button onClick={() => handleExport("pdf")} className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">
-              PDF
-            </button>
+            {exportFormats.map((format, index) => (
+              <button
+                key={format}
+                onClick={() => handleExport(format.toLowerCase())}
+                className={`px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1 ${
+                  index < exportFormats.length - 1 ? "border-r border-slate-200 dark:border-slate-700" : ""
+                }`}
+              >
+                {index === 0 ? <Download size={12} /> : null}
+                {format}
+              </button>
+            ))}
           </div>
           <button className="p-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700">
             <Printer size={16} />
@@ -214,11 +220,17 @@ export default function ReportViewer() {
                   <th
                     key={col.key}
                     onClick={() => toggleSort(col.key)}
-                    className="px-6 py-3 font-medium text-slate-500 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 select-none"
+                    className={`px-6 py-3 font-medium text-slate-500 select-none ${
+                      col.sortable
+                        ? "cursor-pointer hover:text-slate-700 dark:hover:text-slate-300"
+                        : "cursor-default"
+                    }`}
                   >
                     <span className="flex items-center gap-1">
                       {col.label}
-                      <ArrowUpDown size={12} className={sortKey === col.key ? "text-blue-500" : "text-slate-300"} />
+                      {col.sortable ? (
+                        <ArrowUpDown size={12} className={sortKey === col.key ? "text-blue-500" : "text-slate-300"} />
+                      ) : null}
                     </span>
                   </th>
                 ))}
@@ -233,6 +245,8 @@ export default function ReportViewer() {
                         ? `$${Number(row[col.key]).toLocaleString()}`
                         : col.type === "percentage"
                         ? `${row[col.key]}%`
+                        : col.type === "number"
+                        ? Number(row[col.key]).toLocaleString()
                         : String(row[col.key])
                       }
                     </td>

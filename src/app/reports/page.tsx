@@ -94,17 +94,36 @@ function ReportCard({ report }: { report: StandardReport }) {
       </div>
       <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 transition-colors">{report.name}</h4>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed flex-1">{report.description}</p>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {report.columns?.length ? (
+          <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+            {report.columns.length} columns
+          </span>
+        ) : null}
+        {report.columns?.every((column) => column.sortable) ? (
+          <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+            Sortable
+          </span>
+        ) : null}
+        {report.exportableFormats?.slice(0, 3).map((format) => (
+          <span key={format} className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+            {format}
+          </span>
+        ))}
+      </div>
       <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50 flex flex-col gap-2">
-        <div className="flex justify-between items-center w-full">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date Range</span>
-          <select className="text-xs border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 outline-none focus:border-blue-500">
-            <option value="30d">Last 30 days</option>
-            <option value="quarter">This Quarter</option>
-            <option value="ytd">Year to Date</option>
-            <option value="last_year">Last Year</option>
-            <option value="custom">Custom Range</option>
-          </select>
-        </div>
+        {report.dateRangeFilter && (
+          <div className="flex justify-between items-center w-full">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date Range</span>
+            <select className="text-xs border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 outline-none focus:border-blue-500">
+              <option value="30d">Last 30 days</option>
+              <option value="quarter">This Quarter</option>
+              <option value="ytd">Year to Date</option>
+              <option value="last_year">Last Year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+        )}
         <Link
           href={
             report.id === "rpt-20b" ? `/reports/certified-payroll` :

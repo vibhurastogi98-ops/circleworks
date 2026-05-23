@@ -2,7 +2,7 @@
 
 export type ReportCategory =
   | "Payroll"
-  | "Employees"
+  | "HRIS"
   | "Tax & Compliance"
   | "Benefits"
   | "Time & Attendance"
@@ -17,71 +17,347 @@ export interface StandardReport {
   category: ReportCategory;
   icon: string;
   popular?: boolean;
-  columns?: { key: string; label: string; type: string; sortable: boolean }[];
+  columns?: ReportColumn[];
   exportableFormats?: string[];
+  dateRangeFilter?: boolean;
 }
+
+export interface ReportColumn {
+  key: string;
+  label: string;
+  type: "text" | "currency" | "number" | "date" | "percentage";
+  sortable: boolean;
+}
+
+const standardExports = ["CSV", "PDF", "Excel"];
+
+const col = (
+  key: string,
+  label: string,
+  type: ReportColumn["type"] = "text",
+  sortable = true,
+): ReportColumn => ({ key, label, type, sortable });
+
+const standardReport = (report: StandardReport): StandardReport => ({
+  exportableFormats: standardExports,
+  dateRangeFilter: true,
+  ...report,
+});
 
 export const standardReports: StandardReport[] = [
   // Payroll
-  { id: "rpt-1", name: "Payroll Register", description: "Complete payroll run details — gross, deductions, net pay per employee.", category: "Payroll", icon: "DollarSign", popular: true },
-  { id: "rpt-2", name: "Payroll Journal", description: "General-ledger-ready journal entries for each payroll run.", category: "Payroll", icon: "BookOpen" },
-  { id: "rpt-3", name: "Payroll Summary", description: "High-level totals by pay period — wages, taxes, deductions.", category: "Payroll", icon: "BarChart2", popular: true },
-  { id: "rpt-4", name: "Check Register", description: "All issued paychecks with amounts and check/ACH numbers.", category: "Payroll", icon: "FileText" },
-  { id: "rpt-5", name: "Deduction Report", description: "Breakdown of all employee deductions by type.", category: "Payroll", icon: "Minus" },
-  { id: "rpt-6", name: "Employer Tax Liability", description: "Federal and state employer tax obligations by period.", category: "Payroll", icon: "Landmark" },
-  { id: "rpt-7", name: "Workers' Comp Summary", description: "Work-comp premium amounts by class code per payroll.", category: "Payroll", icon: "Shield" },
-    { id: "rpt-3b", name: "Year-to-Date Earnings", description: "Employee x month x YTD cumulative earnings.", category: "Payroll", icon: "DollarSign", exportableFormats: ["CSV", "PDF", "Excel"], columns: [ { key: "employee", label: "Employee", type: "text", sortable: true }, { key: "month", label: "Month", type: "text", sortable: true }, { key: "ytdCumulative", label: "YTD Cumulative", type: "currency", sortable: true } ] },
-  // Employees
-  { id: "rpt-8", name: "Employee Directory", description: "Full active employee roster with contact info and department.", category: "Employees", icon: "Users", popular: true },
-  { id: "rpt-9", name: "Headcount Report", description: "Total headcount over time — hires, terminations, and net change.", category: "Employees", icon: "TrendingUp" },
-  { id: "rpt-9b", name: "Headcount Forecast", description: "Project planned hires, attrition, and budget impact securely.", category: "Employees", icon: "AreaChart", popular: true },
-  { id: "rpt-10", name: "Turnover Analysis", description: "Voluntary vs involuntary turnover rates by department and period.", category: "Employees", icon: "ActivitySquare" },
-  { id: "rpt-11", name: "Compensation Summary", description: "Salary bands, averages, and distributions by department/role.", category: "Employees", icon: "DollarSign" },
-  { id: "rpt-12", name: "Anniversary & Birthday", description: "Upcoming work anniversaries and employee birthdays.", category: "Employees", icon: "Cake" },
-  { id: "rpt-13", name: "New Hire Report", description: "All new hires within date range — start date, department, manager.", category: "Employees", icon: "UserPlus", popular: true },
-  { id: "rpt-14", name: "Termination Report", description: "Terminated employees with reason codes and last day worked.", category: "Employees", icon: "UserMinus" },
-    { id: "rpt-12b", name: "Org Chart Export", description: "Downloadable PNG/PDF org chart.", category: "Employees", icon: "Users", exportableFormats: ["PNG", "PDF"], columns: [ { key: "node", label: "Node", type: "text", sortable: false } ] },
+  standardReport({
+    id: "rpt-1",
+    name: "Payroll Summary",
+    description: "Period totals for gross pay, taxes, net pay, and department split.",
+    category: "Payroll",
+    icon: "BarChart2",
+    popular: true,
+    columns: [
+      col("period", "Period"),
+      col("totalGross", "Total Gross", "currency"),
+      col("taxes", "Taxes", "currency"),
+      col("netPay", "Net Pay", "currency"),
+      col("deptSplit", "Dept Split"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-2",
+    name: "Payroll Detail",
+    description: "Per-employee report for all earnings, deductions, taxes, and net pay.",
+    category: "Payroll",
+    icon: "DollarSign",
+    popular: true,
+    columns: [
+      col("employee", "Employee"),
+      col("regularEarnings", "Regular Earnings", "currency"),
+      col("overtimeEarnings", "Overtime Earnings", "currency"),
+      col("bonusEarnings", "Bonus Earnings", "currency"),
+      col("preTaxDeductions", "Pre-Tax Deductions", "currency"),
+      col("postTaxDeductions", "Post-Tax Deductions", "currency"),
+      col("taxes", "Taxes", "currency"),
+      col("netPay", "Net Pay", "currency"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-3",
+    name: "Tax Liability",
+    description: "Payroll taxes by type, including FICA, FUTA, SUTA, federal, and state.",
+    category: "Payroll",
+    icon: "Landmark",
+    columns: [
+      col("taxType", "Tax Type"),
+      col("jurisdiction", "Jurisdiction"),
+      col("employeeTax", "Employee Tax", "currency"),
+      col("employerTax", "Employer Tax", "currency"),
+      col("totalLiability", "Total Liability", "currency"),
+      col("dueDate", "Due Date", "date"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-4",
+    name: "GL Journal",
+    description: "Accounting-system mapping for payroll GL sync.",
+    category: "Payroll",
+    icon: "BookOpen",
+    columns: [
+      col("glAccount", "GL Account"),
+      col("accountName", "Account Name"),
+      col("department", "Department"),
+      col("debit", "Debit", "currency"),
+      col("credit", "Credit", "currency"),
+      col("payrollRun", "Payroll Run"),
+      col("syncStatus", "Sync Status"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-5",
+    name: "Year-to-Date Earnings",
+    description: "Employee x month x YTD cumulative earnings.",
+    category: "Payroll",
+    icon: "DollarSign",
+    columns: [
+      col("employee", "Employee"),
+      col("month", "Month"),
+      col("grossYtd", "Gross YTD", "currency"),
+      col("taxYtd", "Tax YTD", "currency"),
+      col("deductionYtd", "Deduction YTD", "currency"),
+      col("netYtd", "Net YTD", "currency"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-6",
+    name: "New Hires Report",
+    description: "All new hires in period for state new-hire reporting.",
+    category: "Payroll",
+    icon: "UserPlus",
+    columns: [
+      col("employee", "Employee"),
+      col("hireDate", "Hire Date", "date"),
+      col("state", "State"),
+      col("department", "Department"),
+      col("jobTitle", "Job Title"),
+      col("manager", "Manager"),
+      col("reportingStatus", "Reporting Status"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-7",
+    name: "Terminated Employees",
+    description: "Terminations with final pay dates and final pay amounts.",
+    category: "Payroll",
+    icon: "UserMinus",
+    columns: [
+      col("employee", "Employee"),
+      col("terminationDate", "Termination Date", "date"),
+      col("reason", "Reason"),
+      col("finalPayDate", "Final Pay Date", "date"),
+      col("finalGross", "Final Gross", "currency"),
+      col("finalNet", "Final Net", "currency"),
+    ],
+  }),
+
+  // HRIS
+  standardReport({
+    id: "rpt-8",
+    name: "Headcount",
+    description: "Headcount by department, location, and employment type as of date.",
+    category: "HRIS",
+    icon: "Users",
+    popular: true,
+    columns: [
+      col("asOfDate", "As Of Date", "date"),
+      col("department", "Department"),
+      col("location", "Location"),
+      col("employmentType", "Employment Type"),
+      col("headcount", "Headcount", "number"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-9",
+    name: "Turnover",
+    description: "Attrition rate by department and period.",
+    category: "HRIS",
+    icon: "TrendingDown",
+    columns: [
+      col("period", "Period"),
+      col("department", "Department"),
+      col("startingHeadcount", "Starting Headcount", "number"),
+      col("terminations", "Terminations", "number"),
+      col("endingHeadcount", "Ending Headcount", "number"),
+      col("attritionRate", "Attrition Rate", "percentage"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-10",
+    name: "Birthday/Anniversary List",
+    description: "Upcoming birthdays and anniversaries in the next 30, 60, or 90 days.",
+    category: "HRIS",
+    icon: "Cake",
+    columns: [
+      col("employee", "Employee"),
+      col("eventType", "Event Type"),
+      col("eventDate", "Event Date", "date"),
+      col("daysAway", "Days Away", "number"),
+      col("department", "Department"),
+      col("manager", "Manager"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-11",
+    name: "Org Chart Export",
+    description: "Downloadable PNG/PDF org chart with employee, manager, and role data.",
+    category: "HRIS",
+    icon: "Users",
+    exportableFormats: ["CSV", "PDF", "Excel", "PNG"],
+    columns: [
+      col("employee", "Employee"),
+      col("manager", "Manager"),
+      col("department", "Department"),
+      col("jobTitle", "Job Title"),
+      col("location", "Location"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-12",
+    name: "Demographics",
+    description: "EEO-1 categories for EEO filing.",
+    category: "HRIS",
+    icon: "PieChart",
+    columns: [
+      col("eeoCategory", "EEO-1 Category"),
+      col("raceEthnicity", "Race/Ethnicity"),
+      col("gender", "Gender"),
+      col("department", "Department"),
+      col("location", "Location"),
+      col("employeeCount", "Employee Count", "number"),
+    ],
+  }),
   // Tax & Compliance
-  { id: "rpt-15", name: "941 Quarterly Summary", description: "Quarterly federal tax return preparation summary.", category: "Tax & Compliance", icon: "FileCheck" },
-  { id: "rpt-16", name: "State Tax Summary", description: "State-level withholding and unemployment tax summary.", category: "Tax & Compliance", icon: "Globe" },
-  { id: "rpt-17", name: "W-2 Preview", description: "Preview W-2 data before year-end filing.", category: "Tax & Compliance", icon: "FileText" },
-  { id: "rpt-18", name: "I-9 Audit Report", description: "I-9 compliance status for all employees with expiry tracking.", category: "Tax & Compliance", icon: "ShieldCheck" },
-  { id: "rpt-19", name: "EEO-1 Summary", description: "Equal employment opportunity report data by category.", category: "Tax & Compliance", icon: "PieChart" },
-  { id: "rpt-20", name: "ACA Eligibility", description: "ACA full-time equivalent tracking and coverage status.", category: "Tax & Compliance", icon: "HeartPulse" },
-  { id: "rpt-20b", name: "Certified Payroll (Davis-Bacon)", description: "WH-347 prevailing wage compliance reporting for government contracts.", category: "Tax & Compliance", icon: "Shield" },
+  standardReport({ id: "rpt-15", name: "941 Quarterly Summary", description: "Quarterly federal tax return preparation summary.", category: "Tax & Compliance", icon: "FileCheck" }),
+  standardReport({ id: "rpt-16", name: "State Tax Summary", description: "State-level withholding and unemployment tax summary.", category: "Tax & Compliance", icon: "Globe" }),
+  standardReport({ id: "rpt-17", name: "W-2 Preview", description: "Preview W-2 data before year-end filing.", category: "Tax & Compliance", icon: "FileText" }),
+  standardReport({ id: "rpt-18", name: "I-9 Audit Report", description: "I-9 compliance status for all employees with expiry tracking.", category: "Tax & Compliance", icon: "ShieldCheck" }),
+  standardReport({ id: "rpt-19", name: "EEO-1 Summary", description: "Equal employment opportunity report data by category.", category: "Tax & Compliance", icon: "PieChart" }),
+  standardReport({ id: "rpt-20", name: "ACA Eligibility", description: "ACA full-time equivalent tracking and coverage status.", category: "Tax & Compliance", icon: "HeartPulse" }),
+  standardReport({ id: "rpt-20b", name: "Certified Payroll (Davis-Bacon)", description: "WH-347 prevailing wage compliance reporting for government contracts.", category: "Tax & Compliance", icon: "Shield" }),
   // Benefits
-  { id: "rpt-21", name: "Benefits Enrollment", description: "Employee enrollment status across all benefit plans.", category: "Benefits", icon: "Heart", popular: true },
-  { id: "rpt-22", name: "Benefits Cost Analysis", description: "Employer vs employee cost breakdown by plan and period.", category: "Benefits", icon: "DollarSign" },
-  { id: "rpt-23", name: "401(k) Contributions", description: "Employee and employer 401(k) contribution details.", category: "Benefits", icon: "PiggyBank" },
-  { id: "rpt-24", name: "COBRA Tracking", description: "Active COBRA participants with payment status.", category: "Benefits", icon: "Shield" },
-  { id: "rpt-25", name: "FSA/HSA Balances", description: "Current FSA and HSA balance details per employee.", category: "Benefits", icon: "Wallet" },
+  standardReport({
+    id: "rpt-21",
+    name: "Benefits Enrollment",
+    description: "Plan x enrolled/waived status per employee.",
+    category: "Benefits",
+    icon: "Heart",
+    popular: true,
+    columns: [
+      col("employee", "Employee"),
+      col("plan", "Plan"),
+      col("planType", "Plan Type"),
+      col("enrollmentStatus", "Enrolled/Waived"),
+      col("coverageTier", "Coverage Tier"),
+      col("effectiveDate", "Effective Date", "date"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-22",
+    name: "Benefits Cost",
+    description: "Employer vs employee share per plan.",
+    category: "Benefits",
+    icon: "DollarSign",
+    columns: [
+      col("plan", "Plan"),
+      col("planType", "Plan Type"),
+      col("enrolledEmployees", "Enrolled Employees", "number"),
+      col("employerShare", "Employer Share", "currency"),
+      col("employeeShare", "Employee Share", "currency"),
+      col("totalCost", "Total Cost", "currency"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-24",
+    name: "COBRA Enrollments",
+    description: "Active COBRA participants and enrollment status.",
+    category: "Benefits",
+    icon: "Shield",
+    columns: [
+      col("participant", "Participant"),
+      col("qualifyingEvent", "Qualifying Event"),
+      col("coverageStart", "Coverage Start", "date"),
+      col("coverageEnd", "Coverage End", "date"),
+      col("status", "Status"),
+      col("monthlyPremium", "Monthly Premium", "currency"),
+    ],
+  }),
+  standardReport({ id: "rpt-23", name: "401(k) Contributions", description: "Employee and employer 401(k) contribution details.", category: "Benefits", icon: "PiggyBank" }),
+  standardReport({ id: "rpt-25", name: "FSA/HSA Balances", description: "Current FSA and HSA balance details per employee.", category: "Benefits", icon: "Wallet" }),
   // Time & Attendance
-  { id: "rpt-26", name: "Timesheet Summary", description: "Hours worked summary by employee, period, and project.", category: "Time & Attendance", icon: "Clock", popular: true },
-  { id: "rpt-27", name: "PTO Balances", description: "Current PTO/vacation accruals and balances.", category: "Time & Attendance", icon: "CalendarDays" },
-  { id: "rpt-28", name: "Overtime Report", description: "Employees with overtime hours — weekly breakdown.", category: "Time & Attendance", icon: "AlertTriangle" },
-  { id: "rpt-29", name: "Attendance Summary", description: "Absences, tardiness, and patterns by employee.", category: "Time & Attendance", icon: "CalendarX" },
-  { id: "rpt-30", name: "Schedule Variance", description: "Actual vs scheduled hours comparison.", category: "Time & Attendance", icon: "GitCompare" },
-    { id: "rpt-27b", name: "PTO Liability", description: "Accrued balance x hourly rate = dollar liability.", category: "Time & Attendance", icon: "CalendarDays", exportableFormats: ["CSV", "PDF", "Excel"], columns: [ { key: "employee", label: "Employee", type: "text", sortable: true }, { key: "accruedBalance", label: "Accrued Balance", type: "number", sortable: true }, { key: "hourlyRate", label: "Hourly Rate", type: "currency", sortable: true }, { key: "dollarLiability", label: "Dollar Liability", type: "currency", sortable: true } ] },
+  standardReport({
+    id: "rpt-26",
+    name: "Timesheet Summary",
+    description: "Hours per employee per period.",
+    category: "Time & Attendance",
+    icon: "Clock",
+    popular: true,
+    columns: [
+      col("employee", "Employee"),
+      col("period", "Period"),
+      col("regularHours", "Regular Hours", "number"),
+      col("overtimeHours", "Overtime Hours", "number"),
+      col("ptoHours", "PTO Hours", "number"),
+      col("totalHours", "Total Hours", "number"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-28",
+    name: "Overtime",
+    description: "Employees with OT hours and dollar cost.",
+    category: "Time & Attendance",
+    icon: "AlertTriangle",
+    columns: [
+      col("employee", "Employee"),
+      col("department", "Department"),
+      col("period", "Period"),
+      col("overtimeHours", "OT Hours", "number"),
+      col("overtimeRate", "OT Rate", "currency"),
+      col("overtimeCost", "OT Dollar Cost", "currency"),
+    ],
+  }),
+  standardReport({
+    id: "rpt-27",
+    name: "PTO Liability",
+    description: "Accrued balance x hourly rate = dollar liability.",
+    category: "Time & Attendance",
+    icon: "CalendarDays",
+    columns: [
+      col("employee", "Employee"),
+      col("department", "Department"),
+      col("accruedBalance", "Accrued Balance", "number"),
+      col("hourlyRate", "Hourly Rate", "currency"),
+      col("dollarLiability", "Dollar Liability", "currency"),
+    ],
+  }),
+  standardReport({ id: "rpt-29", name: "Attendance Summary", description: "Absences, tardiness, and patterns by employee.", category: "Time & Attendance", icon: "CalendarX" }),
+  standardReport({ id: "rpt-30", name: "Schedule Variance", description: "Actual vs scheduled hours comparison.", category: "Time & Attendance", icon: "GitCompare" }),
   // Hiring
-  { id: "rpt-31", name: "Applicant Pipeline", description: "Candidates by stage — applied, screened, interviewed, offered.", category: "Hiring", icon: "Briefcase" },
-  { id: "rpt-32", name: "Time to Fill", description: "Average days to fill open positions by department.", category: "Hiring", icon: "Clock" },
-  { id: "rpt-33", name: "Source Effectiveness", description: "Hire source breakdown — job boards, referrals, direct.", category: "Hiring", icon: "Target" },
-  { id: "rpt-34", name: "Offer Acceptance Rate", description: "Offer-to-acceptance conversion rates over time.", category: "Hiring", icon: "CheckCircle" },
-  { id: "rpt-35", name: "Onboarding Status", description: "New hire onboarding task completion tracking.", category: "Hiring", icon: "ClipboardCheck" },
+  standardReport({ id: "rpt-31", name: "Applicant Pipeline", description: "Candidates by stage — applied, screened, interviewed, offered.", category: "Hiring", icon: "Briefcase" }),
+  standardReport({ id: "rpt-32", name: "Time to Fill", description: "Average days to fill open positions by department.", category: "Hiring", icon: "Clock" }),
+  standardReport({ id: "rpt-33", name: "Source Effectiveness", description: "Hire source breakdown — job boards, referrals, direct.", category: "Hiring", icon: "Target" }),
+  standardReport({ id: "rpt-34", name: "Offer Acceptance Rate", description: "Offer-to-acceptance conversion rates over time.", category: "Hiring", icon: "CheckCircle" }),
+  standardReport({ id: "rpt-35", name: "Onboarding Status", description: "New hire onboarding task completion tracking.", category: "Hiring", icon: "ClipboardCheck" }),
   // Expenses
-  { id: "rpt-36", name: "Expense Summary", description: "Total expenses by category, department, and employee.", category: "Expenses", icon: "Receipt", popular: true },
-  { id: "rpt-37", name: "Mileage Report", description: "Mileage logs and reimbursement amounts.", category: "Expenses", icon: "Car" },
-  { id: "rpt-38", name: "Policy Violations", description: "Expense submissions flagged for policy violations.", category: "Expenses", icon: "AlertCircle" },
-  { id: "rpt-39", name: "Vendor Spending", description: "Top vendors and spending patterns over time.", category: "Expenses", icon: "Building" },
-  { id: "rpt-40", name: "Per Diem Report", description: "Per diem allocations and usage by employee.", category: "Expenses", icon: "CalendarDays" },
+  standardReport({ id: "rpt-36", name: "Expense Summary", description: "Total expenses by category, department, and employee.", category: "Expenses", icon: "Receipt", popular: true }),
+  standardReport({ id: "rpt-37", name: "Mileage Report", description: "Mileage logs and reimbursement amounts.", category: "Expenses", icon: "Car" }),
+  standardReport({ id: "rpt-38", name: "Policy Violations", description: "Expense submissions flagged for policy violations.", category: "Expenses", icon: "AlertCircle" }),
+  standardReport({ id: "rpt-39", name: "Vendor Spending", description: "Top vendors and spending patterns over time.", category: "Expenses", icon: "Building" }),
+  standardReport({ id: "rpt-40", name: "Per Diem Report", description: "Per diem allocations and usage by employee.", category: "Expenses", icon: "CalendarDays" }),
   // Custom
-  { id: "rpt-41", name: "Custom: Dept Cost Center", description: "Employee costs allocated by cost center — custom build.", category: "Custom", icon: "Settings" },
-  { id: "rpt-42", name: "Custom: Grant Allocation", description: "Hours and costs allocated to specific grants.", category: "Custom", icon: "Settings" },
+  standardReport({ id: "rpt-41", name: "Custom: Dept Cost Center", description: "Employee costs allocated by cost center — custom build.", category: "Custom", icon: "Settings" }),
+  standardReport({ id: "rpt-42", name: "Custom: Grant Allocation", description: "Hours and costs allocated to specific grants.", category: "Custom", icon: "Settings" }),
 ];
 
 export const reportCategories: ReportCategory[] = [
   "Payroll",
-  "Employees",
+  "HRIS",
   "Tax & Compliance",
   "Benefits",
   "Time & Attendance",
@@ -106,11 +382,11 @@ export interface ScheduledReport {
 }
 
 export const scheduledReports: ScheduledReport[] = [
-  { id: "sr-1", reportName: "Payroll Register", reportId: "rpt-1", frequency: "biweekly", recipients: ["sarah@company.com", "cfo@company.com"], format: "pdf", lastRun: "2026-03-28", nextRun: "2026-04-11", active: true },
-  { id: "sr-2", reportName: "Headcount Report", reportId: "rpt-9", frequency: "monthly", recipients: ["hr@company.com"], format: "excel", lastRun: "2026-04-01", nextRun: "2026-05-01", active: true },
-  { id: "sr-3", reportName: "Overtime Report", reportId: "rpt-28", frequency: "weekly", recipients: ["ops@company.com", "hr@company.com"], format: "csv", lastRun: "2026-04-04", nextRun: "2026-04-11", active: true },
+  { id: "sr-1", reportName: "Payroll Summary", reportId: "rpt-1", frequency: "biweekly", recipients: ["sarah@company.com", "cfo@company.com"], format: "pdf", lastRun: "2026-03-28", nextRun: "2026-04-11", active: true },
+  { id: "sr-2", reportName: "Headcount", reportId: "rpt-8", frequency: "monthly", recipients: ["hr@company.com"], format: "excel", lastRun: "2026-04-01", nextRun: "2026-05-01", active: true },
+  { id: "sr-3", reportName: "Overtime", reportId: "rpt-28", frequency: "weekly", recipients: ["ops@company.com", "hr@company.com"], format: "csv", lastRun: "2026-04-04", nextRun: "2026-04-11", active: true },
   { id: "sr-4", reportName: "Expense Summary", reportId: "rpt-36", frequency: "monthly", recipients: ["finance@company.com"], format: "pdf", lastRun: "2026-04-01", nextRun: "2026-05-01", active: false },
-  { id: "sr-5", reportName: "PTO Balances", reportId: "rpt-27", frequency: "quarterly", recipients: ["hr@company.com", "managers@company.com"], format: "excel", lastRun: "2026-01-01", nextRun: "2026-04-01", active: true },
+  { id: "sr-5", reportName: "PTO Liability", reportId: "rpt-27", frequency: "quarterly", recipients: ["hr@company.com", "managers@company.com"], format: "excel", lastRun: "2026-01-01", nextRun: "2026-04-01", active: true },
 ];
 
 
@@ -132,7 +408,7 @@ export const aiInsights: AIInsight[] = [
     id: "ai-1",
     title: "Overtime costs up 23% this quarter",
     description: "Engineering and Operations departments are driving 78% of overtime. Consider adjusting staffing levels or schedules.",
-    actionLabel: "View Overtime Report",
+    actionLabel: "View Overtime",
     actionHref: "/reports/viewer/rpt-28",
     severity: "warning",
     metric: "$18,400",
@@ -142,7 +418,7 @@ export const aiInsights: AIInsight[] = [
     id: "ai-2",
     title: "Benefits cost per employee trending down",
     description: "Employer benefits cost per FTE decreased 4.2% after plan renegotiation. Projected annual savings: $38,000.",
-    actionLabel: "View Benefits Cost Analysis",
+    actionLabel: "View Benefits Cost",
     actionHref: "/reports/viewer/rpt-22",
     severity: "opportunity",
     metric: "$1,240/mo",
@@ -270,7 +546,7 @@ export const visualizationOptions: { value: VisualizationType; label: string; ic
 // ─── REPORT VIEWER SAMPLE DATA ───────────────────────────────────────
 
 export interface ReportViewerData {
-  columns: { key: string; label: string; type: "text" | "currency" | "number" | "date" | "percentage" }[];
+  columns: ReportColumn[];
   rows: Record<string, string | number>[];
   totalRows: number;
   generatedAt: string;
@@ -279,19 +555,124 @@ export interface ReportViewerData {
 export function generateReportData(reportId: string): ReportViewerData {
   const employees = ["Robert Chen", "Sarah Williams", "David Martinez", "Maria Santos", "Emily Park", "James Liu", "Kevin O'Brien", "Lisa Thompson", "Raj Patel", "Anna Kowalski", "Aisha Johnson", "Michael Brown"];
   const departments = ["Engineering", "HR", "Finance", "Marketing", "Sales", "Operations", "Product", "Legal"];
+  const locations = ["Austin", "Denver", "New York", "Remote", "San Francisco"];
+  const report = standardReports.find((r) => r.id === reportId);
+
+  if (report?.columns?.length) {
+    const rows = employees.map((name, i) => {
+      const baseGross = 4200 + i * 375;
+      const regular = 3600 + i * 240;
+      const overtimeHours = (i % 4) * 2.5;
+      const overtimeRate = 42 + i;
+      const accruedBalance = 32 + i * 3;
+      const hourlyRate = 28 + i * 2;
+      const rowValues: Record<string, string | number> = {
+        employee: name,
+        participant: name,
+        period: i % 2 === 0 ? "Apr 1-15, 2026" : "Apr 16-30, 2026",
+        totalGross: baseGross * 8,
+        grossYtd: baseGross * (i + 3),
+        taxes: Math.round(baseGross * 0.24),
+        taxYtd: Math.round(baseGross * (i + 3) * 0.24),
+        deductionYtd: Math.round(baseGross * (i + 3) * 0.08),
+        netYtd: Math.round(baseGross * (i + 3) * 0.68),
+        netPay: Math.round(baseGross * 0.68),
+        deptSplit: `${departments[i % departments.length]} ${55 + (i % 4) * 10}%`,
+        regularEarnings: regular,
+        overtimeEarnings: Math.round(overtimeHours * overtimeRate),
+        bonusEarnings: i % 3 === 0 ? 750 : 0,
+        preTaxDeductions: Math.round(baseGross * 0.05),
+        postTaxDeductions: Math.round(baseGross * 0.03),
+        taxType: ["FICA", "FUTA", "SUTA", "Federal", "State"][i % 5],
+        jurisdiction: ["Federal", "CA", "NY", "TX", "CO"][i % 5],
+        employeeTax: Math.round(baseGross * 0.13),
+        employerTax: Math.round(baseGross * 0.09),
+        totalLiability: Math.round(baseGross * 0.22),
+        dueDate: `2026-05-${String(10 + (i % 10)).padStart(2, "0")}`,
+        glAccount: `${6000 + i * 10}`,
+        accountName: ["Wages Expense", "Payroll Taxes", "Benefits Payable", "Cash Clearing"][i % 4],
+        department: departments[i % departments.length],
+        debit: i % 2 === 0 ? baseGross : 0,
+        credit: i % 2 === 0 ? 0 : baseGross,
+        payrollRun: `PR-2026-${String(i + 1).padStart(3, "0")}`,
+        syncStatus: i % 3 === 0 ? "Ready" : "Mapped",
+        month: ["January", "February", "March", "April", "May", "June"][i % 6],
+        hireDate: `2026-0${(i % 4) + 1}-${String(8 + i).padStart(2, "0")}`,
+        state: ["CA", "NY", "TX", "CO", "WA"][i % 5],
+        jobTitle: ["Engineer", "HR Partner", "Analyst", "Manager", "Sales Rep"][i % 5],
+        manager: employees[(i + 2) % employees.length],
+        reportingStatus: i % 3 === 0 ? "Filed" : "Due",
+        terminationDate: `2026-0${(i % 4) + 1}-${String(12 + i).padStart(2, "0")}`,
+        reason: ["Voluntary", "Involuntary", "End of contract"][i % 3],
+        finalPayDate: `2026-0${(i % 4) + 1}-${String(15 + i).padStart(2, "0")}`,
+        finalGross: baseGross,
+        finalNet: Math.round(baseGross * 0.7),
+        asOfDate: "2026-05-23",
+        location: locations[i % locations.length],
+        employmentType: ["Full-time", "Part-time", "Contractor"][i % 3],
+        headcount: 8 + i * 2,
+        startingHeadcount: 42 + i * 3,
+        terminations: i % 4,
+        endingHeadcount: 44 + i * 3,
+        attritionRate: Math.round(((i % 4) / (42 + i * 3)) * 1000) / 10,
+        eventType: i % 2 === 0 ? "Birthday" : "Anniversary",
+        eventDate: `2026-06-${String(1 + i).padStart(2, "0")}`,
+        daysAway: 7 + i * 4,
+        eeoCategory: ["Professionals", "Managers", "Technicians", "Sales Workers"][i % 4],
+        raceEthnicity: ["Hispanic or Latino", "Asian", "White", "Black or African American"][i % 4],
+        gender: i % 2 === 0 ? "Female" : "Male",
+        employeeCount: 4 + i,
+        plan: ["Blue Choice PPO", "Dental Plus", "Vision Select", "Life Basic"][i % 4],
+        planType: ["Medical", "Dental", "Vision", "Life"][i % 4],
+        enrollmentStatus: i % 4 === 0 ? "Waived" : "Enrolled",
+        coverageTier: ["Employee", "Employee + Spouse", "Family"][i % 3],
+        effectiveDate: `2026-01-${String(1 + (i % 9)).padStart(2, "0")}`,
+        enrolledEmployees: 12 + i,
+        employerShare: 650 + i * 35,
+        employeeShare: 180 + i * 15,
+        totalCost: 830 + i * 50,
+        qualifyingEvent: ["Termination", "Reduction in hours", "Divorce"][i % 3],
+        coverageStart: `2026-0${(i % 4) + 1}-01`,
+        coverageEnd: `2026-1${i % 2}-30`,
+        status: i % 3 === 0 ? "Pending" : "Active",
+        monthlyPremium: 720 + i * 28,
+        regularHours: 72 + (i % 3) * 4,
+        overtimeHours,
+        ptoHours: i % 3 === 0 ? 8 : 0,
+        totalHours: 72 + (i % 3) * 4 + overtimeHours,
+        overtimeRate,
+        overtimeCost: Math.round(overtimeHours * overtimeRate),
+        accruedBalance,
+        hourlyRate,
+        dollarLiability: Math.round(accruedBalance * hourlyRate),
+      };
+
+      return report.columns!.reduce<Record<string, string | number>>((row, column) => {
+        row[column.key] = rowValues[column.key] ?? fallbackValueForColumn(column, i);
+        return row;
+      }, {});
+    });
+
+    return {
+      columns: report.columns,
+      rows,
+      totalRows: rows.length,
+      generatedAt: new Date().toISOString(),
+    };
+  }
 
   // Payroll Register
   if (reportId === "rpt-1" || reportId === "rpt-3") {
     return {
       columns: [
-        { key: "employee", label: "Employee", type: "text" },
-        { key: "department", label: "Department", type: "text" },
-        { key: "grossPay", label: "Gross Pay", type: "currency" },
-        { key: "fedTax", label: "Federal Tax", type: "currency" },
-        { key: "stateTax", label: "State Tax", type: "currency" },
-        { key: "fica", label: "FICA", type: "currency" },
-        { key: "deductions", label: "Deductions", type: "currency" },
-        { key: "netPay", label: "Net Pay", type: "currency" },
+        col("employee", "Employee"),
+        col("department", "Department"),
+        col("grossPay", "Gross Pay", "currency"),
+        col("fedTax", "Federal Tax", "currency"),
+        col("stateTax", "State Tax", "currency"),
+        col("fica", "FICA", "currency"),
+        col("deductions", "Deductions", "currency"),
+        col("netPay", "Net Pay", "currency"),
       ],
       rows: employees.map((name, i) => {
         const gross = 3500 + Math.floor(Math.random() * 5000);
@@ -310,12 +691,12 @@ export function generateReportData(reportId: string): ReportViewerData {
   if (reportId === "rpt-9") {
     return {
       columns: [
-        { key: "month", label: "Month", type: "text" },
-        { key: "startCount", label: "Start Count", type: "number" },
-        { key: "hires", label: "Hires", type: "number" },
-        { key: "terminations", label: "Terminations", type: "number" },
-        { key: "endCount", label: "End Count", type: "number" },
-        { key: "growthRate", label: "Growth Rate", type: "percentage" },
+        col("month", "Month"),
+        col("startCount", "Start Count", "number"),
+        col("hires", "Hires", "number"),
+        col("terminations", "Terminations", "number"),
+        col("endCount", "End Count", "number"),
+        col("growthRate", "Growth Rate", "percentage"),
       ],
       rows: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m, i) => {
         const start = 42 + i * 2;
@@ -332,10 +713,10 @@ export function generateReportData(reportId: string): ReportViewerData {
   // Default
   return {
     columns: [
-      { key: "employee", label: "Employee", type: "text" },
-      { key: "department", label: "Department", type: "text" },
-      { key: "value", label: "Value", type: "currency" },
-      { key: "date", label: "Date", type: "date" },
+      col("employee", "Employee"),
+      col("department", "Department"),
+      col("value", "Value", "currency"),
+      col("date", "Date", "date"),
     ],
     rows: employees.map((name, i) => ({
       employee: name,
@@ -346,6 +727,14 @@ export function generateReportData(reportId: string): ReportViewerData {
     totalRows: employees.length,
     generatedAt: new Date().toISOString(),
   };
+}
+
+function fallbackValueForColumn(column: ReportColumn, index: number): string | number {
+  if (column.type === "currency") return 1000 + index * 275;
+  if (column.type === "number") return 10 + index;
+  if (column.type === "percentage") return Math.round((4.5 + index * 0.7) * 10) / 10;
+  if (column.type === "date") return `2026-05-${String(1 + index).padStart(2, "0")}`;
+  return `Sample ${column.label}`;
 }
 
 // Sample data for custom report preview
