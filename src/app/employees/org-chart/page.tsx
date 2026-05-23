@@ -192,9 +192,15 @@ export default function OrgChartPage() {
     return hierarchy[0] || null;
   }, [employees, rootId, departmentFilter]);
 
-  const departments = useMemo(() => {
+  const departments = useMemo<string[]>(() => {
     if (!employees) return [];
-    return Array.from(new Set(employees.map((emp: any) => emp.department).filter(Boolean))).sort();
+    const departmentNames = new Set<string>();
+    employees.forEach((emp: any) => {
+      if (typeof emp.department === "string" && emp.department.length > 0) {
+        departmentNames.add(emp.department);
+      }
+    });
+    return Array.from(departmentNames).sort();
   }, [employees]);
 
   return (

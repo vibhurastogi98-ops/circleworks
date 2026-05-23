@@ -6,6 +6,7 @@ import { mockIntegrations } from "@/data/mockSettings";
 import * as Icons from "lucide-react";
 
 type Integration = (typeof mockIntegrations)[number];
+type IconMap = Record<string, React.ElementType>;
 
 export default function IntegrationsSettingsPage() {
   const [integrations] = useState(mockIntegrations);
@@ -13,7 +14,8 @@ export default function IntegrationsSettingsPage() {
 
   const getIcon = (iconName: string) => {
     const pascalName = iconName.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join("");
-    const IconComponent = (Icons as Record<string, React.ElementType>)[pascalName] || Icons.Box;
+    const iconMap = Icons as unknown as IconMap;
+    const IconComponent = iconMap[pascalName] || Icons.Box;
     return <IconComponent size={24} strokeWidth={1.5} />;
   };
 
