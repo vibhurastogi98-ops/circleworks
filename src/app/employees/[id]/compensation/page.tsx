@@ -30,6 +30,7 @@ export default function CompensationTab() {
   const [effectiveDate, setEffectiveDate] = useState(PAY_PERIOD.start);
   const [reason, setReason] = useState("Annual Merit Increase");
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
+  const [backdatedChange, setBackdatedChange] = useState<PendingChange | null>(null);
   const [savedMarker, setSavedMarker] = useState<string | null>(null);
 
   const savedHistory = useMemo(() => {
@@ -112,8 +113,9 @@ export default function CompensationTab() {
 
     const classification = classifyEffectiveDate(effectiveDate, PAY_PERIOD);
     if (classification === "past") {
-      toast.message("This effective date is in a past pay period. Redirecting to retro pay.");
-      router.push(`/payroll/off-cycle?mode=retro&employeeId=${emp.id}&employeeName=${encodeURIComponent(employeeName)}&effectiveDate=${effectiveDate}&oldRate=${currentSalary}&newRate=${parsedAmount}`);
+      setBackdatedChange(nextPendingChange);
+      setShowRequestModal(false);
+      toast.message("Backdated compensation change detected.");
       return;
     }
 
@@ -188,6 +190,30 @@ export default function CompensationTab() {
       </div>
 
       <div className="lg:col-span-2">
+        {backdatedChange && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-lg bg-white/80 p-2 text-amber-600 dark:bg-slate-900/60 dark:text-amber-300">
+                  <AlertCircle size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Backdated change detected — calculate retroactive adjustment?</p>
+                  <p className="mt-1 text-xs text-amber-900/80 dark:text-amber-100/80">
+                    {backdatedChange.employeeName} changed from ${backdatedChange.oldRate.toLocaleString()} to ${backdatedChange.newRate.toLocaleString()} effective {formatDate(backdatedChange.effectiveDate)}.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push(`/payroll/off-cycle?mode=retro&employeeId=${backdatedChange.employeeId}&employeeName=${encodeURIComponent(backdatedChange.employeeName)}&effectiveDate=${backdatedChange.effectiveDate}&oldRate=${backdatedChange.oldRate}&newRate=${backdatedChange.newRate}`)}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-700"
+              >
+                Calculate Retro Pay
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-base font-bold text-slate-900 dark:text-white">Compensation History</h3>

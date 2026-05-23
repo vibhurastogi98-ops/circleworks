@@ -1,66 +1,148 @@
 import { NextResponse } from "next/server";
 
+type RetroPeriodInput = {
+  name?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  hoursWorked?: number;
+};
+
+function roundCurrency(value: number) {
+  return Number(value.toFixed(2));
+}
+
+function calculateTaxes(difference: number) {
+  const federal = roundCurrency(difference * 0.22);
+  const ficaSS = roundCurrency(difference * 0.062);
+  const ficaMed = roundCurrency(difference * 0.0145);
+  const state = roundCurrency(difference * 0.05);
+
+  return {
+    federal,
+    ficaSS,
+    ficaMed,
+    state,
+    total: roundCurrency(federal + ficaSS + ficaMed + state),
+  };
+}
+
+function buildDefaultPeriods(effectiveDate: string): RetroPeriodInput[] {
+  const effective = effectiveDate ? new Date(`${effectiveDate}T00:00:00`) : new Date();
+  const periods: RetroPeriodInput[] = [];
+
+  for (let index = 0; index < 3; index += 1) {
+    const start = new Date(effective);
+    start.setDate(start.getDate() + index * 14);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 13);
+
+    const periodStart = start.toISOString().slice(0, 10);
+    const periodEnd = end.toISOString().slice(0, 10);
+
+    periods.push({
+      name: `${periodStart} to ${periodEnd}`,
+      periodStart,
+      periodEnd,
+      hoursWorked: 86.67,
+    });
+  }
+
+  return periods;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { employeeId, oldRate, newRate, rateType = "salary", periods } = body;
+    const { employeeId, oldRate, newRate, rateType = "salary", effectiveDate } = body;
+    const periods: RetroPeriodInput[] = Array.isArray(body.periods) && body.periods.length > 0
+      ? body.periods
+      : buildDefaultPeriods(effectiveDate);
 
-    if (!oldRate || !newRate || !periods) {
+    if (!employeeId || !oldRate || !newRate || !effectiveDate || periods.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Determine hourly rates for calculation
     const oldHourly = rateType === "salary" ? oldRate / 2080 : oldRate;
     const newHourly = rateType === "salary" ? newRate / 2080 : newRate;
-    const diffHourly = newHourly - oldHourly;
 
     let totalDifference = 0;
     
     // (new_rate - old_rate) * hours_worked_in_period
-    const calculatedPeriods = periods.map((p: { name: string; hoursWorked: number }) => {
-      // For salary employees, we often simplify to a flat semi-monthly difference if hours aren't tracked
-      // But we'll follow the exact prompt: (new - old) * hours
-      
-      // If it's a salary standard semi-monthly period (86.67 hours)
-      const hours = p.hoursWorked || 86.67; 
+    const calculatedPeriods = periods.map((p) => {
+      const hours = p.hoursWorked || 86.67;
       
       const oldGross = oldHourly * hours;
       const newGross = newHourly * hours;
       const diff = newGross - oldGross;
+      const taxesOnDiff = calculateTaxes(diff);
 
       totalDifference += diff;
 
       return {
-        name: p.name,
-        oldGross: Number(oldGross.toFixed(2)),
-        newGross: Number(newGross.toFixed(2)),
-        difference: Number(diff.toFixed(2))
+        name: p.name || `${p.periodStart} to ${p.periodEnd}`,
+        periodStart: p.periodStart,
+        periodEnd: p.periodEnd,
+        hoursWorked: hours,
+        oldGross: roundCurrency(oldGross),
+        newGross: roundCurrency(newGross),
+        difference: roundCurrency(diff),
+        taxesOnDiff,
       };
     });
 
     // Apply FICA + federal/state withholding on difference amount
-    const taxes = {
-      federal: Number((totalDifference * 0.22).toFixed(2)), // 22% Supplemental withholding rate
-      ficaSS: Number((totalDifference * 0.062).toFixed(2)), // 6.2% FICA SS
-      ficaMed: Number((totalDifference * 0.0145).toFixed(2)), // 1.45% FICA Med
-      state: Number((totalDifference * 0.05).toFixed(2)) // ~5% State Tax Mock
-    };
+    const taxes = calculateTaxes(totalDifference);
 
     const netRetroPay = Number(
-      (totalDifference - taxes.federal - taxes.ficaSS - taxes.ficaMed - taxes.state).toFixed(2)
+      (totalDifference - taxes.total).toFixed(2)
     );
+
+    const totalDifferenceRounded = roundCurrency(totalDifference);
 
     return NextResponse.json({
       success: true,
+      employeeId,
       originalRate: oldRate,
       newRate: newRate,
-      totalDifference: Number(totalDifference.toFixed(2)),
+      effectiveDate,
+      totalDifference: totalDifferenceRounded,
       taxes,
       netRetroPay,
       periods: calculatedPeriods,
-      // Metadata for off-cycle run type
-      offCycleType: "retro_adjustment",
-      paystubLineItem: "Retroactive Pay Adjustment"
+      offCycleRun: {
+        type: "retro_adjustment",
+        employeeId,
+        grossAmount: totalDifferenceRounded,
+        netAmount: netRetroPay,
+        earningsLines: [
+          {
+            label: "Retroactive Pay Adjustment",
+            amount: totalDifferenceRounded,
+          },
+        ],
+      },
+      paystubLineItem: {
+        label: "Retroactive Pay Adjustment",
+        amount: totalDifferenceRounded,
+      },
+      auditLog: {
+        action: "retro_pay_calculated",
+        entityType: "payroll_run",
+        employeeId,
+        originalPeriods: calculatedPeriods.map((period) => ({
+          name: period.name,
+          periodStart: period.periodStart,
+          periodEnd: period.periodEnd,
+          hoursWorked: period.hoursWorked,
+        })),
+        rateChange: {
+          oldRate,
+          newRate,
+          effectiveDate,
+        },
+        calculatedAmount: totalDifferenceRounded,
+      },
     });
   } catch (error) {
     console.error("Retro calc error:", error);

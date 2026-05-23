@@ -11,6 +11,32 @@ function fmtDate(s: string) {
   return new Date(`${s}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function toISODate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function buildAffectedPayPeriods(effectiveDate: string) {
+  const effective = effectiveDate ? new Date(`${effectiveDate}T00:00:00`) : new Date();
+
+  return [0, 14, 28].map((offset) => {
+    const start = addDays(effective, offset);
+    const end = addDays(start, 13);
+
+    return {
+      name: `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      periodStart: toISODate(start),
+      periodEnd: toISODate(end),
+      hoursWorked: 86.67,
+    };
+  });
+}
+
 function OffCycleContent() {
   const searchParams = useSearchParams();
   const retroMode = searchParams.get("mode") === "retro";
@@ -27,6 +53,7 @@ function OffCycleContent() {
   const [retroProcessed, setRetroProcessed] = useState(false);
   const [loadingRetro, setLoadingRetro] = useState(false);
   const [retroData, setRetroData] = useState<any>(null);
+  const [retroProcessingOption, setRetroProcessingOption] = useState<"next_regular_run" | "off_cycle_run">("off_cycle_run");
 
   // Sync tab if params change (e.g., browser back/forward)
   useEffect(() => {
@@ -41,6 +68,7 @@ function OffCycleContent() {
   const retroOldRate = hasRetroParams ? paramOldRate : 85000;
   const retroNewRate = hasRetroParams ? paramNewRate : 92000;
   const retroEffectiveDate = hasRetroParams ? paramEffectiveDate : "2026-02-01";
+  const retroAffectedPeriods = buildAffectedPayPeriods(retroEffectiveDate);
 
   const handleCalculateRetro = async () => {
     setLoadingRetro(true);
@@ -53,11 +81,8 @@ function OffCycleContent() {
           oldRate: retroOldRate,
           newRate: retroNewRate,
           rateType: "salary",
-          periods: [
-            { name: "Feb 1 – Feb 15", hoursWorked: 86.67 },
-            { name: "Feb 16 – Feb 28", hoursWorked: 86.67 },
-            { name: "Mar 1 – Mar 15", hoursWorked: 86.67 },
-          ],
+          effectiveDate: retroEffectiveDate,
+          periods: retroAffectedPeriods,
         }),
       });
       const data = await res.json();
@@ -99,7 +124,7 @@ function OffCycleContent() {
               : "text-slate-500 hover:text-slate-700"
           }`}
         >
-          Retroactive Pay
+          Retro Pay
         </button>
       </div>
 
@@ -304,7 +329,7 @@ function OffCycleContent() {
               </div>
               <h3 className="text-2xl font-black text-emerald-900">Retro Pay Processed Successfully</h3>
               <p className="text-emerald-700 mt-2 max-w-lg mb-6">
-                The retroactive adjustment of ${retroData ? retroData.totalDifference.toFixed(2) : "1,076.92"} has been added to off-cycle payroll and paystubs will reflect "Retroactive Pay Adjustment".
+                The retroactive adjustment of ${retroData ? retroData.totalDifference.toFixed(2) : "1,076.92"} has been {retroProcessingOption === "next_regular_run" ? "added to the next regular run" : "processed as an off-cycle run"} and paystubs will reflect "Retroactive Pay Adjustment".
               </p>
               <button 
                 onClick={() => {
@@ -333,7 +358,7 @@ function OffCycleContent() {
       {/* Retro Pay Calculator Modal */}
       {showRetroModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-extrabold text-slate-900">Retroactive Pay Calculator</h2>
@@ -342,24 +367,24 @@ function OffCycleContent() {
             </div>
 
             <div className="p-6 overflow-y-auto">
-               <div className="flex gap-4 mb-8 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-lg">
-                    {retroEmployeeName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+               <div className="mb-8 grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Employee selector</label>
+                    <select value={retroEmployeeId} disabled className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900">
+                      <option value={retroEmployeeId}>{retroEmployeeName}</option>
+                    </select>
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">{retroEmployeeName}</h3>
-                    <p className="text-sm text-slate-500">Effective Date: <span className="font-medium text-slate-800">{fmtDate(retroEffectiveDate)}</span></p>
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Old rate</label>
+                    <input value={fmtCurrency(retroOldRate)} readOnly className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800" />
                   </div>
-                  <div className="ml-auto flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Old Rate</p>
-                      <p className="font-bold text-slate-800">{fmtCurrency(retroOldRate)}</p>
-                    </div>
-                    <ArrowRight size={14} className="text-slate-300" />
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-blue-500">New Rate</p>
-                      <p className="font-bold text-slate-900">{fmtCurrency(retroNewRate)}</p>
-                    </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-blue-500">New rate</label>
+                    <input value={fmtCurrency(retroNewRate)} readOnly className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-900" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Effective date</label>
+                    <input value={retroEffectiveDate} readOnly type="date" className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800" />
                   </div>
                </div>
 
@@ -374,6 +399,7 @@ function OffCycleContent() {
                        <th className="px-4 py-3 text-right">Old Gross</th>
                        <th className="px-4 py-3 text-right">New Gross</th>
                        <th className="px-4 py-3 text-right text-blue-600">Difference</th>
+                       <th className="px-4 py-3 text-right text-red-600">Taxes on Diff</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-100">
@@ -383,13 +409,14 @@ function OffCycleContent() {
                          <td className="px-4 py-3 text-right text-slate-500">${p.oldGross.toFixed(2)}</td>
                          <td className="px-4 py-3 text-right font-medium">${p.newGross.toFixed(2)}</td>
                          <td className="px-4 py-3 text-right font-bold text-blue-600">+${p.difference.toFixed(2)}</td>
+                         <td className="px-4 py-3 text-right font-bold text-red-600">-${p.taxesOnDiff.total.toFixed(2)}</td>
                        </tr>
                      ))}
                    </tbody>
                  </table>
                  <div className="bg-slate-50 p-4 border-t border-slate-200 space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-500 italic">
-                      <span>Total Gross Adjustment:</span>
+                    <div className="flex justify-between rounded-lg bg-blue-50 px-3 py-2 text-base font-black text-blue-800">
+                      <span>Total retro amount:</span>
                       <span>+${retroData.totalDifference.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-red-500">
@@ -399,6 +426,10 @@ function OffCycleContent() {
                     <div className="flex justify-between text-red-500">
                       <span>FICA (SS + Med):</span>
                       <span>-${(retroData.taxes.ficaSS + retroData.taxes.ficaMed).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-500">
+                      <span>State Withholding Estimate:</span>
+                      <span>-${retroData.taxes.state.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-black text-slate-900 border-t border-slate-200 pt-2 text-sm">
                       <span>Estimated Net Payment:</span>
@@ -412,6 +443,31 @@ function OffCycleContent() {
                  <AlertCircle className="shrink-0 text-amber-600" size={18} />
                  <p>Standard Federal withholding and FICA taxes will be automatically applied to the difference amount when processed.</p>
                </div>
+
+               <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                 <button
+                   onClick={() => setRetroProcessingOption("next_regular_run")}
+                   className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                     retroProcessingOption === "next_regular_run"
+                       ? "border-blue-500 bg-blue-50 text-blue-900"
+                       : "border-slate-200 bg-white text-slate-700 hover:border-blue-200"
+                   }`}
+                 >
+                   <p className="text-sm font-black">Add to next regular run</p>
+                   <p className="mt-1 text-xs opacity-80">Include the retro earnings line on the next scheduled payroll.</p>
+                 </button>
+                 <button
+                   onClick={() => setRetroProcessingOption("off_cycle_run")}
+                   className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                     retroProcessingOption === "off_cycle_run"
+                       ? "border-blue-500 bg-blue-50 text-blue-900"
+                       : "border-slate-200 bg-white text-slate-700 hover:border-blue-200"
+                   }`}
+                 >
+                   <p className="text-sm font-black">Process as off-cycle run</p>
+                   <p className="mt-1 text-xs opacity-80">Create an off-cycle run with type retro_adjustment.</p>
+                 </button>
+               </div>
             </div>
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between gap-3">
@@ -424,15 +480,9 @@ function OffCycleContent() {
                <div className="flex gap-3">
                  <button 
                    onClick={() => { setShowRetroModal(false); setRetroProcessed(true); }}
-                   className="px-6 py-2.5 bg-white border border-slate-200 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
-                 >
-                   Add to next regular run
-                 </button>
-                 <button 
-                   onClick={() => { setShowRetroModal(false); setRetroProcessed(true); }}
                    className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2"
                  >
-                   <Play size={16} /> Process as off-cycle run
+                   <Play size={16} /> {retroProcessingOption === "next_regular_run" ? "Add to next regular run" : "Process as off-cycle run"}
                  </button>
                </div>
             </div>
