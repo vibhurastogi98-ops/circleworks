@@ -876,7 +876,7 @@ function SignupWizardInner() {
       </div>
 
       {/* ── RIGHT PANEL ── */}
-      <div className={`w-full lg:w-1/2 bg-white flex flex-col overflow-y-auto ${showBanner ? "pt-12" : ""}`}>
+      <div className={`w-full lg:w-1/2 bg-white flex flex-col overflow-y-auto lg:overflow-hidden ${showBanner ? "pt-12" : ""}`}>
         {/* Header */}
         <div className="absolute right-6 top-6 hidden sm:flex items-center gap-2 text-sm font-semibold text-slate-600">
           <span>Already have an account?</span>

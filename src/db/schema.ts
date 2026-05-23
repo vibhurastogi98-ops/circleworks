@@ -368,8 +368,14 @@ export const employeeBankAccounts = pgTable('employee_bank_accounts', {
   bankName: text('bank_name').notNull(),
   routingNumber: text('routing_number').notNull(),
   accountNumberMasked: text('account_number_masked').notNull(),
+  accountType: text('account_type').default('checking'),
+  verificationStatus: text('verification_status').default('Pending'),
+  bankLogoUrl: text('bank_logo_url'),
+  plaidAccountId: text('plaid_account_id'),
+  plaidProcessorToken: text('plaid_processor_token'),
   isPrimary: boolean('is_primary').default(true),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // --- ANNOUNCEMENTS ---

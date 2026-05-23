@@ -43,6 +43,13 @@
       "when": 1746403200000,
       "tag": "0005_ewa_advances",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779501600000,
+      "tag": "0006_plaid_bank_verification",
+      "breakpoints": true
     }
   ]
 }

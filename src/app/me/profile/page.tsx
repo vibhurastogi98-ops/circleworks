@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { User, MapPin, Phone, Shield, CreditCard, FileText, Lock, Smartphone, Monitor, Save, Edit2, Eye, EyeOff } from "lucide-react";
+import { User, MapPin, Phone, Shield, CreditCard, FileText, Lock, Smartphone, Monitor, Save, Edit2 } from "lucide-react";
 import { mockEmployeeProfile } from "@/data/mockEmployeePortal";
 import { useEmployeePortal } from "@/hooks/useEmployeePortal";
 import { toast } from "sonner";
@@ -16,14 +16,13 @@ export default function ProfilePage() {
     ...mockEmployeeProfile,
     ...portalProfile,
     fullName: portalProfile ? `${portalProfile.firstName} ${portalProfile.lastName || ""}`.trim() : mockEmployeeProfile.fullName,
-    bankAccount: portalProfile?.bankAccount
-      ? { ...mockEmployeeProfile.bankAccount, ...portalProfile.bankAccount }
+    bankAccount: portalProfile
+      ? portalProfile.bankAccount
       : mockEmployeeProfile.bankAccount,
     startDate: portalProfile?.startDate || mockEmployeeProfile.startDate,
   };
 
   const [editing, setEditing] = useState<string | null>(null);
-  const [showBankDetails, setShowBankDetails] = useState(false);
 
   const [profile, setProfile] = useState({
     phone: p.phone,
@@ -144,10 +143,7 @@ export default function ProfilePage() {
             <h3 className="text-[14px] font-bold text-slate-900 dark:text-white flex items-center gap-2"><CreditCard size={16} className="text-emerald-500" /> Bank Account</h3>
           </div>
           <div className="p-5">
-             <PlaidBankSection initialData={p.bankAccount} onSave={(data: any) => {
-                 setProfile({ ...profile, ...data });
-                 toast.success('Bank account verified instantly — ready for direct deposit');
-             }} />
+             <PlaidBankSection initialData={p.bankAccount} onSave={() => {}} />
           </div>
         </motion.div>
       </div>

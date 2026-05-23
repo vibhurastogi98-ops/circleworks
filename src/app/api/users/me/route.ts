@@ -4,6 +4,18 @@ import { employees, users, employeeBankAccounts, payrollItems, payrolls, compani
 import { desc, eq, sql } from "drizzle-orm";
 import { getSession } from "@/lib/session";
 
+async function ensureBankAccountColumns() {
+  await db.execute(sql`
+    ALTER TABLE employee_bank_accounts
+      ADD COLUMN IF NOT EXISTS account_type text DEFAULT 'checking',
+      ADD COLUMN IF NOT EXISTS verification_status text DEFAULT 'Pending',
+      ADD COLUMN IF NOT EXISTS bank_logo_url text,
+      ADD COLUMN IF NOT EXISTS plaid_account_id text,
+      ADD COLUMN IF NOT EXISTS plaid_processor_token text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now()
+  `);
+}
+
 export async function GET() {
   try {
     const session = await getSession();
@@ -36,10 +48,23 @@ export async function GET() {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    const bankAccount = await db.query.employeeBankAccounts.findFirst({
-      where: eq(employeeBankAccounts.employeeId, currentUserEmployee.id),
-      orderBy: [desc(employeeBankAccounts.createdAt)],
-    });
+    await ensureBankAccountColumns();
+
+    const [bankAccount] = await db
+      .select({
+        bankName: employeeBankAccounts.bankName,
+        routingNumber: employeeBankAccounts.routingNumber,
+        accountNumberMasked: employeeBankAccounts.accountNumberMasked,
+        accountType: employeeBankAccounts.accountType,
+        verificationStatus: employeeBankAccounts.verificationStatus,
+        bankLogoUrl: employeeBankAccounts.bankLogoUrl,
+        createdAt: employeeBankAccounts.createdAt,
+        updatedAt: employeeBankAccounts.updatedAt,
+      })
+      .from(employeeBankAccounts)
+      .where(eq(employeeBankAccounts.employeeId, currentUserEmployee.id))
+      .orderBy(desc(employeeBankAccounts.isPrimary), desc(employeeBankAccounts.updatedAt), desc(employeeBankAccounts.createdAt))
+      .limit(1);
 
     const payStubs = await db
       .select({
@@ -84,10 +109,14 @@ export async function GET() {
         bankAccount: bankAccount
           ? {
               bankName: bankAccount.bankName,
+              bankLogoUrl: bankAccount.bankLogoUrl,
               routingNumber: bankAccount.routingNumber,
               accountNumber: bankAccount.accountNumberMasked,
-              accountType: "Checking",
-              lastUpdated: bankAccount.createdAt?.toISOString().split("T")[0] || new Date().toISOString().split("T")[0],
+              mask: bankAccount.accountNumberMasked.replace(/\D/g, "").slice(-4),
+              accountType: bankAccount.accountType || "checking",
+              verificationStatus: bankAccount.verificationStatus || "Pending",
+              verified: (bankAccount.verificationStatus || "").toLowerCase() === "verified",
+              lastUpdated: (bankAccount.updatedAt || bankAccount.createdAt || new Date()).toISOString().split("T")[0],
             }
           : null,
       },

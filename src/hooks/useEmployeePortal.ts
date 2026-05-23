@@ -18,9 +18,13 @@ export type EmployeeProfile = {
   status?: string;
   bankAccount?: {
     bankName: string;
+    bankLogoUrl?: string | null;
     routingNumber: string;
     accountNumber: string;
+    mask?: string;
     accountType: string;
+    verificationStatus?: string;
+    verified?: boolean;
     lastUpdated: string;
   } | null;
 };
