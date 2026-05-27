@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Play, Search, Bell, ChevronDown } from "lucide-react";
@@ -15,6 +16,9 @@ const TRUST_LOGOS = [
 ];
 
 const MARQUEE_LOGOS = [...TRUST_LOGOS, ...TRUST_LOGOS];
+
+const HERO_BLUR_DATA_URL =
+  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNDAwJyBoZWlnaHQ9JzQwMCcgdmlld0JveD0nMCAwIDQwMCA0MDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHJlY3Qgd2lkdGg9JzQwMCcgaGVpZ2h0PSc0MDAnIGZpbGw9JyMwODEzMjYnLz48Y2lyY2xlIGN4PSczMDAnIGN5PSc5MCcgcj0nMTQwJyBmaWxsPScjMURBRkQ4JyBmaWxsLW9wYWNpdHk9Jy4zJy8+PGNpcmNsZSBjeD0nMTIwJyBjeT0nMjkwJyByPScxNjAnIGZpbGw9JyMxRDRFRDgnIGZpbGwtb3BhY2l0eT0nLjI1Jy8+PC9zdmc+";
 
 const headlineLines = [
   [
@@ -120,6 +124,16 @@ function PayrollDashboardMockup() {
 
   return (
     <div className="hero-float relative mx-auto w-full max-w-[1100px] rounded-[28px] border border-white/10 bg-[#08111f]/90 shadow-[0_32px_120px_rgba(3,10,24,0.85)] backdrop-blur-xl">
+      <Image
+        src="/dashboard-mockup.png"
+        alt=""
+        fill
+        priority
+        placeholder="blur"
+        blurDataURL={HERO_BLUR_DATA_URL}
+        sizes="(min-width: 1280px) 1100px, 100vw"
+        className="pointer-events-none rounded-[28px] object-cover opacity-[0.06]"
+      />
       <div className="pointer-events-none absolute inset-x-[18%] -bottom-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(6,182,212,0.22)_0%,_rgba(29,78,216,0.16)_35%,_rgba(10,22,40,0)_75%)] blur-2xl" />
 
       <div className="flex h-12 items-center gap-3 rounded-t-[28px] border-b border-white/10 bg-[#0d1727] px-4 md:px-5">

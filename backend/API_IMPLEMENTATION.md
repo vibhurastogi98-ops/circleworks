@@ -146,6 +146,7 @@ Password change revocation:
 
 - On password reset/change, all Redis refresh sessions for the user are deleted
 - Other devices lose access on their next refresh attempt
+- `POST /auth/change-password` requires the current password, writes the new bcrypt hash, clears the current refresh cookie, and revokes every Redis refresh session for the user
 - Email event: `Password changed — all other sessions signed out`
 
 Device management:
@@ -201,25 +202,56 @@ Device management:
 
 ## API Pagination
 
-For list endpoints, use query parameters:
+All list endpoints use cursor-based pagination. Do not use offset/page pagination
+for new endpoints.
 
-```
-GET /api/v1/employees?page=1&limit=20&sort=name&order=asc&status=ACTIVE&dept=sales
+Query parameters:
+
+```http
+GET /api/v2/employees?cursor={opaque_cursor}&limit=25&direction=next
 ```
 
-Response format:
+Parameters:
+
+- `cursor`: opaque base64-encoded cursor from the previous response
+- `limit`: positive integer; defaults are `employees=25`, `payroll_runs=20`, and `audit_logs=50`
+- `direction`: `next` or `prev`
+- Maximum `limit`: `100`; larger values return `400`
+
+Response envelope:
 
 ```json
 {
   "data": [...],
   "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 150,
-    "pages": 8
+    "cursor_next": "base64_encoded_cursor",
+    "cursor_prev": "base64_encoded_cursor",
+    "has_next": true,
+    "has_prev": false,
+    "total_count": 1247
   }
 }
 ```
+
+Cursor payload:
+
+```json
+{ "id": "lastItemId", "sort_field": "lastItemSortValue" }
+```
+
+The cursor is base64 encoded, not encrypted. For `created_at DESC, id DESC`
+lists, SQL should use the tuple pattern:
+
+```sql
+WHERE (created_at, id) < (cursor.created_at, cursor.id)
+```
+
+Frontend lists should use TanStack Query `useInfiniteQuery` with a `Load More`
+button or infinite-scroll trigger. Status text should use the returned
+`total_count`, for example: `Showing 25 of 1,247 employees`.
+
+Migration path: `/v1/employees` offset pagination is deprecated. Use
+`/v2/employees` cursor pagination.
 
 ## Error Handling
 
@@ -623,27 +655,29 @@ The limiter runs as a global Nest middleware before route handlers and emits rat
 - Package: `rate-limiter-flexible`
 - Storage: Redis via `REDIS_URL`
 - Fallback: in-memory limiter for local development when Redis is not configured
-- Window model: Redis-backed sliding-window style counters per endpoint category and identity scope
+- Window model: Redis-backed sliding window per endpoint category and identity scope
 
 ### Rate Limit Tiers
 
-| Endpoint type                                                                   | Scope   | Limit                   |
-| ------------------------------------------------------------------------------- | ------- | ----------------------- |
-| Auth endpoints (`/auth/login`, `/auth/signup`, `/auth/register`)                | IP      | 5 requests / minute     |
-| Auth sensitive (`/auth/forgot-password`, `/auth/reset-password`, `/auth/mfa/*`) | IP      | 3 requests / 15 minutes |
-| General authenticated API                                                       | User    | 100 requests / minute   |
-| Payroll processing writes                                                       | Company | 5 requests / minute     |
-| Bulk operations (`/batch`, `/bulk`, `/import`)                                  | Company | 10 requests / hour      |
-| Report generation/export writes                                                 | User    | 20 requests / hour      |
-| Company aggregate                                                               | Company | 1,000 requests / minute |
-| Public API developer keys (`x-api-key`)                                         | Key     | 60 requests / minute    |
+| Endpoint type                                                                   | Scope         | Limit                   |
+| ------------------------------------------------------------------------------- | ------------- | ----------------------- |
+| Auth endpoints (`/auth/login`, `/auth/signup`, `/auth/register`)                | IP            | 5 requests / minute     |
+| Auth sensitive (`/auth/forgot-password`, `/auth/reset-password`, `/auth/mfa/*`) | IP            | 3 requests / 15 minutes |
+| General authenticated API                                                       | User          | 100 requests / minute   |
+| Payroll processing writes                                                       | Company       | 5 requests / minute     |
+| Bulk operations (`/batch`, `/bulk`, `/import`)                                  | Company       | 10 requests / hour      |
+| Report generation/export writes                                                 | User          | 20 requests / hour      |
+| Company aggregate                                                               | Company       | 1,000 requests / minute |
+| Public API developer keys (`x-api-key`)                                         | Developer key | 60 requests / minute    |
 
 ### Redis Key Patterns
 
-- IP-based: `rl:ip:{ip}:{rule}`
-- User-based: `rl:user:{userId}:{rule}`
-- Company-based: `rl:company:{companyId}:{rule}`
-- Public API key-based: `rl:key:{apiKey}:{rule}`
+- IP-based: `rl:ip:{ip}`
+- User-based: `rl:user:{userId}`
+- Company-based: `rl:company:{companyId}`
+- Public API key-based: `rl:key:{apiKey}`
+
+Rule identifiers are appended internally so independent tiers do not consume the same Redis bucket.
 
 ### Response Headers
 

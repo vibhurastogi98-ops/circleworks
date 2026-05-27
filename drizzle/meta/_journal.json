@@ -78,6 +78,13 @@
       "when": 1779516000000,
       "tag": "0010_termination_cascade_records",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779519600000,
+      "tag": "0011_database_indexing_strategy",
+      "breakpoints": true
     }
   ]
 }

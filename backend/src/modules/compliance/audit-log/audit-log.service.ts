@@ -1,8 +1,13 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { AuditLogPiiService } from './audit-log-pii.service';
+import {
+  createCursorPaginationEnvelope,
+  DEFAULT_CURSOR_LIMITS,
+  parseCursorPagination,
+} from '@/common/pagination/cursor-pagination';
 
 interface CreateAuditLogInput {
   companyId: string;
@@ -25,6 +30,7 @@ interface ListAuditLogsInput {
   viewerRole?: string;
   limit?: number;
   cursor?: string;
+  direction?: string;
 }
 
 interface CreateWorkflowAutomationAuditLogInput {
@@ -116,15 +122,69 @@ export class AuditLogService {
   async listAuditLogs(input: ListAuditLogsInput) {
     const viewerRole = await this.resolveViewerRole(input.viewerId, input.companyId, input.viewerRole);
     const auditLogDelegate = this.getAuditLogDelegate();
+    const pagination = parseCursorPagination(
+      {
+        cursor: input.cursor,
+        limit: input.limit,
+        direction: input.direction,
+      },
+      DEFAULT_CURSOR_LIMITS.audit_logs,
+    );
+    const cursorDate = pagination.cursor ? new Date(pagination.cursor.sort_field) : null;
 
-    const logs = await auditLogDelegate.findMany({
-      where: input.companyId ? { companyId: input.companyId } : undefined,
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(input.limit || 50, 100),
-      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+    if (pagination.cursor && (!cursorDate || Number.isNaN(cursorDate.getTime()))) {
+      throw new BadRequestException({
+        error: 'invalid_cursor',
+        message: 'Cursor sort_field must be an ISO date.',
+      });
+    }
+
+    const baseWhere = input.companyId ? { companyId: input.companyId } : {};
+    const cursorWhere = pagination.cursor && cursorDate
+      ? pagination.direction === 'next'
+        ? {
+            OR: [
+              { createdAt: { lt: cursorDate } },
+              { createdAt: cursorDate, id: { lt: pagination.cursor.id } },
+            ],
+          }
+        : {
+            OR: [
+              { createdAt: { gt: cursorDate } },
+              { createdAt: cursorDate, id: { gt: pagination.cursor.id } },
+            ],
+          }
+      : {};
+    const where = Object.keys(cursorWhere).length
+      ? { AND: [baseWhere, cursorWhere] }
+      : baseWhere;
+
+    const [totalCount, logs] = await Promise.all([
+      auditLogDelegate.count({ where: baseWhere }),
+      auditLogDelegate.findMany({
+        where,
+        orderBy: [
+          { createdAt: pagination.direction === 'next' ? 'desc' : 'asc' },
+          { id: pagination.direction === 'next' ? 'desc' : 'asc' },
+        ],
+        take: pagination.limit + 1,
+      }),
+    ]);
+    const hasMore = logs.length > pagination.limit;
+    const pageLogs = logs.slice(0, pagination.limit);
+    const orderedLogs = pagination.direction === 'prev' ? [...pageLogs].reverse() : pageLogs;
+    const serializedLogs = orderedLogs.map((log: any) => this.serializeAuditLog(log, viewerRole));
+
+    return createCursorPaginationEnvelope<any>(serializedLogs, {
+      limit: pagination.limit,
+      totalCount,
+      hasNextPage: pagination.direction === 'next' ? hasMore : Boolean(pagination.cursor),
+      hasPreviousPage: pagination.direction === 'prev' ? hasMore : Boolean(pagination.cursor),
+      getCursorPayload: (log) => ({
+        id: log.id,
+        sort_field: new Date(log.createdAt).toISOString(),
+      }),
     });
-
-    return logs.map((log: any) => this.serializeAuditLog(log, viewerRole));
   }
 
   private serializeAuditLog(log: any, viewerRole: string) {

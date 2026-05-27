@@ -574,8 +574,8 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
   { method: "PUT", prefix: "/api/employees", permission: "edit_employees" },
   { method: "PATCH", prefix: "/api/employees", permission: "edit_employees" },
   { method: "DELETE", prefix: "/api/employees", permission: "terminate_employees" },
-  { prefix: "/api/payroll/runs", permission: "view_payroll" },
   { method: "POST", prefix: "/api/payroll/runs", permission: "run_payroll" },
+  { prefix: "/api/payroll/runs", permission: "view_payroll" },
   { method: "GET", prefix: "/api/payroll/multi-state-allocations", permission: "view_payroll" },
   { method: "POST", prefix: "/api/payroll/multi-state-allocations", permission: "edit_payroll_settings" },
   { prefix: "/api/payroll/funding", permission: "view_payroll_funding" },
@@ -637,6 +637,17 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
   { prefix: "/api/v1/documents", permission: "manage_documents" },
 ];
 
+const apiPermissionPatternRules: Array<{ method?: string; pattern: RegExp; permission: string }> = [
+  { method: "POST", pattern: /^\/api\/payroll\/runs\/[^/]+\/reimbursements\/finalize$/, permission: "finalize_reimbursements" },
+  { method: "POST", pattern: /^\/api\/payroll\/runs\/[^/]+\/ewa-repayments\/finalize$/, permission: "finalize_ewa_repayments" },
+  { method: "POST", pattern: /^\/api\/payroll\/runs\/[^/]+\/time-import$/, permission: "import_time_to_payroll" },
+  { pattern: /^\/api\/payroll\/runs\/[^/]+\/time-import$/, permission: "import_time_to_payroll" },
+  { pattern: /^\/api\/payroll\/runs\/[^/]+\/deductions$/, permission: "view_payroll" },
+  { pattern: /^\/api\/payroll\/runs\/[^/]+\/reimbursements$/, permission: "view_payroll" },
+  { pattern: /^\/api\/payroll\/runs\/[^/]+\/ewa-repayments$/, permission: "view_payroll" },
+  { pattern: /^\/api\/payroll\/runs\/[^/]+\/report-pdf$/, permission: "view_payroll" },
+];
+
 const publicApiPrefixes = [
   "/api/auth/login",
   "/api/auth/logout",
@@ -669,8 +680,22 @@ export function getRequiredApiPermission(pathname: string, method: string) {
   if (!pathname.startsWith("/api") || isPublicApiRoute(pathname)) return undefined;
 
   const normalizedMethod = method.toUpperCase();
-  return apiPermissionRules.find((rule) => {
+  const patternMatch = apiPermissionPatternRules.find((rule) => {
     if (rule.method && rule.method !== normalizedMethod) return false;
-    return pathStartsWith(pathname, rule.prefix);
-  })?.permission ?? "view_me_dashboard";
+    return rule.pattern.test(pathname);
+  });
+  if (patternMatch) return patternMatch.permission;
+
+  const matches = apiPermissionRules
+    .filter((rule) => {
+      if (rule.method && rule.method !== normalizedMethod) return false;
+      return pathStartsWith(pathname, rule.prefix);
+    })
+    .sort((a, b) => {
+      const prefixDiff = b.prefix.length - a.prefix.length;
+      if (prefixDiff !== 0) return prefixDiff;
+      return Number(Boolean(b.method)) - Number(Boolean(a.method));
+    });
+
+  return matches[0]?.permission ?? "view_me_dashboard";
 }

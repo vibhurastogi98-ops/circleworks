@@ -1,16 +1,10 @@
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import type { Metadata } from "next";
 
 import Navbar from "@/components/marketing/Navbar";
 import HeroSection from "@/components/Hero";
-import StatsSection from "@/components/StatsRow";
-import FeaturesSection from "@/components/FeaturesBento";
-import DemoSection from "@/components/DemoSection";
-import TestimonialsSection from "@/components/TestimonialsSection";
-import PricingTeaser from "@/components/PricingTeaser";
-import IntegrationsSection from "@/components/IntegrationsSection";
 import FAQSection from "@/components/FAQSection";
-import CtaSection from "@/components/CtaSection";
 import SiteFooter from "@/components/Footer";
 
 export const metadata: Metadata = {
@@ -140,6 +134,28 @@ function SectionSkeleton({
   );
 }
 
+const StatsSection = dynamic(() => import("@/components/StatsRow"), {
+  loading: () => <SectionSkeleton height="h-40" tone="dark" />,
+});
+const FeaturesSection = dynamic(() => import("@/components/FeaturesBento"), {
+  loading: () => <SectionSkeleton height="h-[720px]" />,
+});
+const DemoSection = dynamic(() => import("@/components/DemoSection"), {
+  loading: () => <SectionSkeleton height="h-[560px]" tone="dark" />,
+});
+const TestimonialsSection = dynamic(() => import("@/components/TestimonialsSection"), {
+  loading: () => <SectionSkeleton height="h-[640px]" />,
+});
+const PricingTeaser = dynamic(() => import("@/components/PricingTeaser"), {
+  loading: () => <SectionSkeleton height="h-[560px]" tone="dark" />,
+});
+const IntegrationsSection = dynamic(() => import("@/components/IntegrationsSection"), {
+  loading: () => <SectionSkeleton height="h-[360px]" />,
+});
+const CtaSection = dynamic(() => import("@/components/CtaSection"), {
+  loading: () => <SectionSkeleton height="h-96" tone="dark" />,
+});
+
 export default function HomePage() {
   return (
     <>
@@ -155,37 +171,23 @@ export default function HomePage() {
           <HeroSection />
         </Suspense>
 
-        <Suspense fallback={<SectionSkeleton height="h-40" tone="dark" />}>
-          <StatsSection />
-        </Suspense>
+        <StatsSection />
 
-        <Suspense fallback={<SectionSkeleton height="h-[720px]" />}>
-          <FeaturesSection />
-        </Suspense>
+        <FeaturesSection />
 
-        <Suspense fallback={<SectionSkeleton height="h-[560px]" tone="dark" />}>
-          <DemoSection />
-        </Suspense>
+        <DemoSection />
 
-        <Suspense fallback={<SectionSkeleton height="h-[640px]" />}>
-          <TestimonialsSection />
-        </Suspense>
+        <TestimonialsSection />
 
-        <Suspense fallback={<SectionSkeleton height="h-[560px]" tone="dark" />}>
-          <PricingTeaser />
-        </Suspense>
+        <PricingTeaser />
 
-        <Suspense fallback={<SectionSkeleton height="h-[360px]" />}>
-          <IntegrationsSection />
-        </Suspense>
+        <IntegrationsSection />
 
         <Suspense fallback={<SectionSkeleton height="h-[640px]" />}>
           <FAQSection />
         </Suspense>
 
-        <Suspense fallback={<SectionSkeleton height="h-96" tone="dark" />}>
-          <CtaSection />
-        </Suspense>
+        <CtaSection />
 
         <Suspense fallback={<SectionSkeleton height="h-64" tone="dark" />}>
           <SiteFooter />

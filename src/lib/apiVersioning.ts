@@ -151,6 +151,13 @@ export function getVersionContract() {
     rate_limits: {
       package: "rate-limiter-flexible",
       storage: "Redis",
+      algorithm: "Redis-backed sliding window",
+      key_patterns: {
+        ip: "rl:ip:{ip}",
+        user: "rl:user:{userId}",
+        company: "rl:company:{companyId}",
+        developer_key: "rl:key:{developerKey}",
+      },
       headers: [
         "X-RateLimit-Limit",
         "X-RateLimit-Remaining",
@@ -158,14 +165,14 @@ export function getVersionContract() {
         "Retry-After",
       ],
       tiers: [
-        { type: "auth_login_signup", scope: "ip", limit: 5, window: "1 minute" },
-        { type: "password_reset_mfa", scope: "ip", limit: 3, window: "15 minutes" },
-        { type: "general_api", scope: "user", limit: 100, window: "1 minute" },
-        { type: "payroll_processing", scope: "company", limit: 5, window: "1 minute" },
-        { type: "bulk_operations", scope: "company", limit: 10, window: "1 hour" },
-        { type: "report_generation", scope: "user", limit: 20, window: "1 hour" },
-        { type: "company_aggregate", scope: "company", limit: 1000, window: "1 minute" },
-        { type: "public_api", scope: "developer_key", limit: 60, window: "1 minute" },
+        { type: "auth_login_signup", routes: ["/auth/login", "/auth/signup", "/auth/register"], scope: "ip", limit: 5, window: "1 minute" },
+        { type: "password_reset_mfa", routes: ["/auth/forgot-password", "/auth/reset-password", "/auth/mfa/*"], scope: "ip", limit: 3, window: "15 minutes" },
+        { type: "general_api", routes: ["authenticated API requests"], scope: "user", limit: 100, window: "1 minute" },
+        { type: "payroll_processing", routes: ["mutating /payroll/* requests"], scope: "company", limit: 5, window: "1 minute" },
+        { type: "bulk_operations", routes: ["*/bulk", "*/batch", "*/import"], scope: "company", limit: 10, window: "1 hour" },
+        { type: "report_generation", routes: ["report generation and export requests"], scope: "user", limit: 20, window: "1 hour" },
+        { type: "company_aggregate", routes: ["company-scoped API requests"], scope: "company", limit: 1000, window: "1 minute" },
+        { type: "public_api", routes: ["requests with x-api-key"], scope: "developer_key", limit: 60, window: "1 minute" },
       ],
       error: {
         status: 429,

@@ -15,6 +15,7 @@ import {
   LoginDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ChangePasswordDto,
   RefreshTokenDto,
   VerifyEmailDto,
   MfaEnableDto,
@@ -247,6 +248,44 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired token');
     }
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.hashedPassword) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.hashedPassword);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { hashedPassword },
+    });
+
+    await this.prisma.refreshToken.updateMany({
+      where: { userId },
+      data: { revokedAt: new Date() },
+    });
+    await this.sessionService.revokeAllUserSessions(userId);
+
+    void this.sessionAlertService.sendPasswordChangedRevocationEmail({
+      id: user.id,
+      email: user.email,
+    });
+
+    return { message: 'Password changed — all other sessions signed out' };
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {

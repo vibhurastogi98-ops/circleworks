@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "analyze": "ANALYZE=true next build --webpack",
+    "check:bundle-budget": "node ./scripts/check-route-bundle-budget.mjs",
     "lhci": "lhci autorun",
     "start": "next start",
     "lint": "eslint",

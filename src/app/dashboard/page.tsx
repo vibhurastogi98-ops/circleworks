@@ -22,7 +22,15 @@ import { useAuth } from "@/context/AuthContext";
 // Recharts client-only
 const PayrollChart = dynamic(
   () => import("@/components/dashboard/PayrollChart"),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full min-h-[430px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/60">
+        <div className="h-5 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="mt-6 h-[320px] animate-pulse rounded-lg bg-slate-100 dark:bg-slate-900/60" />
+      </div>
+    ),
+  }
 );
 
 export default function DashboardPage() {

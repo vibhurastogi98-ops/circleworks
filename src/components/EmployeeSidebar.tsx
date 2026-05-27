@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -244,8 +245,8 @@ export default function EmployeeSidebar() {
         {/* BOTTOM USER PROFILE */}
         <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center w-full group/user cursor-pointer rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 -m-2 transition-colors relative">
-            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
-              <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
+            <div className="relative w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-300 dark:border-slate-600">
+              <Image src={avatarUrl} alt="User" fill sizes="32px" className="object-cover" unoptimized />
             </div>
 
             <div className="absolute left-[62px] bottom-2 px-2.5 py-1.5 bg-slate-800 text-white text-[12px] font-bold rounded opacity-0 invisible lg:group-hover/user:opacity-100 lg:group-hover/user:visible xl:hidden z-50 whitespace-nowrap shadow-xl">

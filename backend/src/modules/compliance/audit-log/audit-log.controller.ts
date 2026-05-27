@@ -13,6 +13,7 @@ export class AuditLogController {
     @Query('companyId') companyId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
+    @Query('direction') direction?: string,
   ) {
     return this.auditLogService.listAuditLogs({
       companyId,
@@ -20,6 +21,7 @@ export class AuditLogController {
       viewerRole: req.user.role,
       limit: limit ? Number(limit) : undefined,
       cursor,
+      direction,
     });
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   Check,
   Copy,
@@ -85,8 +86,47 @@ const builtInRoleState: RoleState[] = builtInRoles.map((role) => ({
   permissions: role.permissions,
 }));
 
+const CUSTOM_ROLES_STORAGE_KEY = "circleworks.customRoles.v1";
+
 function getPermissionCount(permissions: string[]) {
   return new Set(permissions).size;
+}
+
+function defaultRoles() {
+  return [...builtInRoleState, ...starterCustomRoles];
+}
+
+function isRoleState(value: unknown): value is RoleState {
+  if (!value || typeof value !== "object") return false;
+  const role = value as Partial<RoleState>;
+  return (
+    typeof role.id === "string" &&
+    typeof role.name === "string" &&
+    typeof role.description === "string" &&
+    role.type === "Custom" &&
+    typeof role.userCount === "number" &&
+    Array.isArray(role.permissions) &&
+    role.permissions.every((permission) => typeof permission === "string")
+  );
+}
+
+function loadCustomRoles() {
+  if (typeof window === "undefined") return starterCustomRoles;
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_ROLES_STORAGE_KEY);
+    if (!raw) return starterCustomRoles;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return starterCustomRoles;
+    return parsed.filter(isRoleState);
+  } catch {
+    return starterCustomRoles;
+  }
+}
+
+function persistCustomRoles(roles: RoleState[]) {
+  if (typeof window === "undefined") return;
+  const customRoles = roles.filter((role) => role.type === "Custom");
+  window.localStorage.setItem(CUSTOM_ROLES_STORAGE_KEY, JSON.stringify(customRoles));
 }
 
 function createDraftRole(templateName = "Employee"): RoleState {
@@ -103,8 +143,12 @@ function createDraftRole(templateName = "Employee"): RoleState {
 }
 
 export default function RolesSettingsPage() {
-  const [roles, setRoles] = useState<RoleState[]>([...builtInRoleState, ...starterCustomRoles]);
-  const [selectedRoleId, setSelectedRoleId] = useState(roles[0]?.id ?? "");
+  const router = useRouter();
+  const params = useParams();
+  const routeRoleIdParam = params?.id;
+  const routeRoleId = typeof routeRoleIdParam === "string" ? routeRoleIdParam : undefined;
+  const [roles, setRoles] = useState<RoleState[]>(defaultRoles);
+  const [selectedRoleId, setSelectedRoleId] = useState(routeRoleId ?? roles[0]?.id ?? "");
   const [draftRole, setDraftRole] = useState<RoleState | null>(null);
   const [deleteRole, setDeleteRole] = useState<RoleState | null>(null);
 
@@ -118,6 +162,22 @@ export default function RolesSettingsPage() {
       return { permissionModule, grantedCount: granted.length, totalCount: permissionModule.permissions.length };
     });
   }, [selectedPermissions]);
+
+  useEffect(() => {
+    setRoles([...builtInRoleState, ...loadCustomRoles()]);
+  }, []);
+
+  useEffect(() => {
+    if (routeRoleId && roles.some((role) => role.id === routeRoleId) && !draftRole) {
+      setSelectedRoleId(routeRoleId);
+    }
+  }, [draftRole, roles, routeRoleId]);
+
+  const selectRole = (roleId: string) => {
+    if (isEditing) return;
+    setSelectedRoleId(roleId);
+    router.push(`/settings/roles/${roleId}`);
+  };
 
   const startCreate = () => {
     const draft = createDraftRole("Employee");
@@ -182,16 +242,26 @@ export default function RolesSettingsPage() {
 
     const savedRole = { ...draftRole, name: draftRole.name.trim(), description: draftRole.description.trim() };
     const exists = roles.some((role) => role.id === savedRole.id);
-    setRoles((current) => (exists ? current.map((role) => (role.id === savedRole.id ? savedRole : role)) : [...current, savedRole]));
+    setRoles((current) => {
+      const nextRoles = exists ? current.map((role) => (role.id === savedRole.id ? savedRole : role)) : [...current, savedRole];
+      persistCustomRoles(nextRoles);
+      return nextRoles;
+    });
     setSelectedRoleId(savedRole.id);
     setDraftRole(null);
+    router.push(`/settings/roles/${savedRole.id}`);
     toast.success(`Role "${savedRole.name}" saved.`);
   };
 
   const deleteCustomRole = () => {
     if (!deleteRole || deleteRole.type !== "Custom") return;
-    setRoles((current) => current.filter((role) => role.id !== deleteRole.id));
+    setRoles((current) => {
+      const nextRoles = current.filter((role) => role.id !== deleteRole.id);
+      persistCustomRoles(nextRoles);
+      return nextRoles;
+    });
     setSelectedRoleId("owner");
+    router.push("/settings/roles/owner");
     setDeleteRole(null);
     toast.success(`Role "${deleteRole.name}" deleted.`);
   };
@@ -229,9 +299,8 @@ export default function RolesSettingsPage() {
               return (
                 <button
                   key={role.id}
-                  onClick={() => {
-                    if (!isEditing) setSelectedRoleId(role.id);
-                  }}
+                  type="button"
+                  onClick={() => selectRole(role.id)}
                   className={`flex w-full items-start gap-3 p-4 text-left transition-colors ${
                     selected ? "bg-blue-50 dark:bg-blue-950/30" : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
                   } ${isEditing ? "cursor-default" : ""}`}
@@ -287,6 +356,15 @@ export default function RolesSettingsPage() {
                 ) : (
                   <p className="text-sm text-slate-500 dark:text-slate-400">{activeRole.description}</p>
                 )}
+
+                <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
+                  <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+                    <Eye size={14} /> Preview
+                  </div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {summarizePermissions(activeRole.permissions)}
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -331,7 +409,7 @@ export default function RolesSettingsPage() {
                     <button
                       onClick={() => {
                         setDraftRole(null);
-                        setSelectedRoleId(roles[0]?.id ?? "");
+                        setSelectedRoleId(routeRoleId && roles.some((role) => role.id === routeRoleId) ? routeRoleId : roles[0]?.id ?? "");
                       }}
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
@@ -364,9 +442,9 @@ export default function RolesSettingsPage() {
                     ))}
                   </select>
                 </label>
-                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
-                  <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
-                    <Eye size={14} /> Preview
+                <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Template effect
                   </div>
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                     {summarizePermissions(activeRole.permissions)}

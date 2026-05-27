@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -523,7 +524,16 @@ export default function EmployeesDirectoryPage() {
                     </td>
                     <td className="px-6 py-4">
                       <Link href={`/employees/${emp.id}`} className="flex items-center gap-3 w-fit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1 -m-1">
-                        <img src={emp.avatar} alt="" className="w-10 h-10 rounded-full bg-slate-200 border border-slate-200 dark:border-slate-700 object-cover" />
+                        <Image
+                          src={emp.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(`${emp.firstName} ${emp.lastName || ""}`)}&backgroundColor=transparent`}
+                          alt=""
+                          width={40}
+                          height={40}
+                          sizes="40px"
+                          loading="lazy"
+                          className="w-10 h-10 rounded-full bg-slate-200 border border-slate-200 dark:border-slate-700 object-cover"
+                          unoptimized
+                        />
                         <div>
                           <div className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {emp.firstName} {emp.lastName}
@@ -624,7 +634,16 @@ export default function EmployeesDirectoryPage() {
             <div key={emp.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
               <div className="flex justify-between items-start">
                 <Link href={`/employees/${emp.id}`} className="focus:outline-none">
-                  <img src={emp.avatar} alt="" className="w-14 h-14 rounded-full bg-slate-200 border-2 border-white dark:border-slate-800 shadow-sm object-cover" />
+                  <Image
+                    src={emp.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(`${emp.firstName} ${emp.lastName || ""}`)}&backgroundColor=transparent`}
+                    alt=""
+                    width={56}
+                    height={56}
+                    sizes="56px"
+                    loading="lazy"
+                    className="w-14 h-14 rounded-full bg-slate-200 border-2 border-white dark:border-slate-800 shadow-sm object-cover"
+                    unoptimized
+                  />
                 </Link>
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(emp.status || "")}`}>
                   {emp.status}

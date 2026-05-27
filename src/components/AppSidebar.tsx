@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -210,9 +211,9 @@ export default function AppSidebar() {
           onClick={() => setSwitcherOpen(true)}
           className="group relative flex h-[72px] items-center gap-3 border-b border-slate-200 px-4 text-left transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-blue-100 dark:border-slate-700 dark:bg-blue-900/30">
+          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-blue-100 dark:border-slate-700 dark:bg-blue-900/30">
             {companyLogo ? (
-              <img src={companyLogo} alt={companyName} className="h-full w-full object-cover" />
+              <Image src={companyLogo} alt={companyName} fill sizes="32px" className="object-cover" unoptimized />
             ) : (
               <span className="text-xs font-bold text-blue-700 dark:text-blue-200">{getInitials(companyName)}</span>
             )}
@@ -319,8 +320,8 @@ export default function AppSidebar() {
             onClick={() => signOut()}
             className="group relative flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
           >
-            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
-              <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+              <Image src={avatarUrl} alt={displayName} fill sizes="32px" className="object-cover" unoptimized />
             </div>
             <div className="hidden min-w-0 flex-1 lg:hidden xl:block">
               <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{displayName}</div>
@@ -358,9 +359,9 @@ export default function AppSidebar() {
                       : "border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
                   }`}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                  <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
                     {company.logo ? (
-                      <img src={company.logo} alt={company.name} className="h-full w-full object-cover" />
+                      <Image src={company.logo} alt={company.name} fill sizes="40px" className="object-cover" unoptimized />
                     ) : (
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{getInitials(company.name)}</span>
                     )}

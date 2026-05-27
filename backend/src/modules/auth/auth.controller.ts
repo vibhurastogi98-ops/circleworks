@@ -19,6 +19,7 @@ import {
   LoginDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ChangePasswordDto,
   RefreshTokenDto,
   VerifyEmailDto,
   MfaEnableDto,
@@ -105,6 +106,19 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard('jwt'))
+  async changePassword(
+    @Request() req: any,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Response({ passthrough: true }) res: ExpressResponse,
+  ) {
+    const result = await this.authService.changePassword(req.user.id, changePasswordDto);
+    this.clearRefreshTokenCookie(res);
+    return result;
   }
 
   @Post('verify-email')

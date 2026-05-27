@@ -89,6 +89,7 @@ const nextConfig: NextConfig = {
 
   images: {
     deviceSizes: [640, 1024, 1280, 1920],
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       {
         protocol: "https",
@@ -105,6 +106,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "upload.wikimedia.org",
+      },
+      {
+        protocol: "https",
+        hostname: "raw.githubusercontent.com",
       },
     ],
     formats: ["image/avif", "image/webp"],

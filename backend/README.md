@@ -93,8 +93,29 @@ Authorization: Bearer <access_token>
 
 ### Rate Limiting
 
-- **100 requests per minute** per API key (configurable)
-- Returns `429 Too Many Requests` when exceeded
+- Auth login/signup: **5 requests per minute** per IP
+- Password reset/MFA: **3 requests per 15 minutes** per IP
+- General authenticated API: **100 requests per minute** per user
+- Payroll processing: **5 requests per minute** per company
+- Bulk operations: **10 requests per hour** per company
+- Report generation: **20 requests per hour** per user
+- Company aggregate: **1,000 requests per minute** per company
+- Public API developer keys: **60 requests per minute** per key
+- Returns `429 Too Many Requests` with `Retry-After` and `X-RateLimit-*` headers when exceeded
+
+### Cursor Pagination
+
+All list endpoints use cursor pagination:
+
+```http
+GET /api/v2/employees?cursor={opaque_cursor}&limit=25&direction=next
+```
+
+- Default limits: employees `25`, payroll runs `20`, audit logs `50`
+- Maximum limit: `100`; larger values return `400 limit_exceeded`
+- Cursor payload: base64 encoded `{ "id": "lastItemId", "sort_field": "lastItemSortValue" }`
+- Response envelope: `{ data, pagination: { cursor_next, cursor_prev, has_next, has_prev, total_count } }`
+- `/api/v1/employees` offset pagination is deprecated; use `/api/v2/employees`
 
 ### Error Handling
 
@@ -134,7 +155,11 @@ POST   /auth/refresh               Exchange refresh token
 POST   /auth/logout                Invalidate tokens
 POST   /auth/forgot-password       Send password reset email
 POST   /auth/reset-password        Reset password with token
+POST   /auth/change-password       Change password and revoke sessions
 POST   /auth/verify-email          Verify email address
+GET    /auth/sessions              List active devices
+DELETE /auth/sessions/:id          Sign out one device
+POST   /auth/sessions/revoke-others Sign out all other devices
 POST   /auth/mfa/enable            Enable 2FA (TOTP)
 POST   /auth/mfa/verify            Verify MFA setup
 POST   /auth/mfa/disable           Disable 2FA

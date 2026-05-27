@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -180,9 +181,9 @@ export default function EmployeeTopBar() {
                 e.stopPropagation();
                 setIsAvatarMenuOpen(!isAvatarMenuOpen);
               }}
-              className="flex items-center justify-center w-[36px] h-[36px] rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-violet-500 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-offset-slate-900 transition-all cursor-pointer"
+              className="relative flex items-center justify-center w-[36px] h-[36px] rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-violet-500 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-offset-slate-900 transition-all cursor-pointer"
             >
-              <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover bg-slate-100 dark:bg-slate-800" />
+              <Image src={avatarUrl} alt="User Avatar" fill sizes="36px" className="object-cover bg-slate-100 dark:bg-slate-800" unoptimized />
             </button>
 
             <AnimatePresence>

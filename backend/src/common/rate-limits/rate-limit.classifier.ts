@@ -8,6 +8,25 @@ function isBulkPath(path: string) {
   return path.includes('/batch') || path.includes('/bulk') || path.includes('/import');
 }
 
+function isAuthCredentialPath(path: string) {
+  return (
+    path === '/auth/login' ||
+    path === '/auth/signup' ||
+    path.startsWith('/auth/signup/') ||
+    path === '/auth/register' ||
+    path.startsWith('/auth/register/')
+  );
+}
+
+function isAuthSensitivePath(path: string) {
+  return (
+    path === '/auth/forgot-password' ||
+    path === '/auth/reset-password' ||
+    path.startsWith('/auth/password-reset') ||
+    path.startsWith('/auth/mfa')
+  );
+}
+
 function isPayrollProcessingPath(path: string, method: string) {
   if (!path.startsWith('/payroll')) return false;
   return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
@@ -26,15 +45,11 @@ export function classifyRateLimitRules(path: string, method: string, hasApiKey: 
     return [];
   }
 
-  if (normalizedPath === '/auth/login' || normalizedPath === '/auth/signup' || normalizedPath === '/auth/register') {
+  if (isAuthCredentialPath(normalizedPath)) {
     return [RATE_LIMIT_RULES.authCredential];
   }
 
-  if (
-    normalizedPath === '/auth/forgot-password' ||
-    normalizedPath === '/auth/reset-password' ||
-    normalizedPath.startsWith('/auth/mfa')
-  ) {
+  if (isAuthSensitivePath(normalizedPath)) {
     return [RATE_LIMIT_RULES.authSensitive];
   }
 
@@ -59,4 +74,3 @@ export function classifyRateLimitRules(path: string, method: string, hasApiKey: 
   rules.push(RATE_LIMIT_RULES.companyAggregate);
   return rules;
 }
-

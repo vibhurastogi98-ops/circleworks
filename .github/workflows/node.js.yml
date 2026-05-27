@@ -39,20 +39,70 @@ jobs:
 
     steps:
       - name: SecurityHeaders.com scan
+        env:
+          SECURITY_HEADERS_API_KEY: ${{ secrets.SECURITY_HEADERS_API_KEY }}
         run: |
           TARGET="${SECURITY_HEADERS_TARGET:-https://app.circleworks.com}"
           echo "Scanning $TARGET with securityheaders.com; target rating: A+"
-          curl --fail --silent --show-error \
-            "https://securityheaders.com/?q=${TARGET}&followRedirects=on" \
-            --output securityheaders.html
+          if [ -n "${SECURITY_HEADERS_API_KEY:-}" ]; then
+            curl --fail --silent --show-error --location \
+              --header "x-api-key: ${SECURITY_HEADERS_API_KEY}" \
+              --get "https://api.securityheaders.com/" \
+              --data-urlencode "q=${TARGET}" \
+              --data "hide=on" \
+              --data "followRedirects=on" \
+              --output securityheaders.json
+          else
+            curl --fail --silent --show-error --location \
+              --user-agent "CircleWorks-CI-SecurityHeaders" \
+              --dump-header securityheaders.headers \
+              --get "https://securityheaders.com/" \
+              --data-urlencode "q=${TARGET}" \
+              --data "hide=on" \
+              --data "followRedirects=on" \
+              --output securityheaders.html
+          fi
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          if Path("securityheaders.json").exists():
+              result = json.loads(Path("securityheaders.json").read_text())
+              value = result.get("summary", {}).get("grade")
+          else:
+              headers = Path("securityheaders.headers").read_text(errors="ignore")
+              html = Path("securityheaders.html").read_text(errors="ignore")
+              header_match = re.search(r"^x-grade:\s*([A-F][+ -]?)\s*$", headers, re.I | re.M)
+              html_match = re.search(r"(?:Grade|grade)[^A-F]{0,80}(A\+|A|B|C|D|E|F)", html)
+              grade = header_match or html_match
+              value = grade.group(1) if grade else None
+
+          if not value:
+              raise SystemExit("Could not determine securityheaders.com grade from response")
+          value = value.strip().upper()
+          print(f"securityheaders.com grade: {value}")
+          if value != "A+":
+              raise SystemExit(f"securityheaders.com target rating is A+, got {value}")
+          PY
 
       - name: Mozilla Observatory scan
         run: |
           TARGET_HOST="${MOZILLA_OBSERVATORY_HOST:-app.circleworks.com}"
           echo "Scanning $TARGET_HOST with Mozilla Observatory; target rating: A+"
-          curl --fail --silent --show-error \
+          curl --fail --silent --show-error --request POST \
             "https://observatory-api.mdn.mozilla.net/api/v2/scan?host=${TARGET_HOST}" \
             --output mozilla-observatory.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path("mozilla-observatory.json").read_text())
+          grade = result.get("grade")
+          print(f"Mozilla Observatory grade: {grade}")
+          if grade != "A+":
+              raise SystemExit(f"Mozilla Observatory target rating is A+, got {grade}")
+          PY
 
   bundle-analysis:
     runs-on: ubuntu-latest
@@ -68,6 +118,7 @@ jobs:
 
       - run: npm install
       - run: npm run analyze
+      - run: npm run check:bundle-budget
 
       - uses: actions/upload-artifact@v4
         with:

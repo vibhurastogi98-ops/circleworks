@@ -1,9 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { useParams } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, Mail } from "lucide-react";
-import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
+
+const OnboardingWizard = dynamic(() => import("@/components/onboarding/OnboardingWizard"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+      <Loader2 className="mb-4 h-10 w-10 animate-spin text-blue-600" />
+      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Preparing onboarding...</h2>
+    </div>
+  ),
+});
 
 /**
  * Public Welcome / Onboarding Entry Point
