@@ -28,12 +28,14 @@ export async function POST(request: Request) {
       name, 
       email, 
       contactName, 
+      logoUrl,
       billingRateType, 
       markupPercentage, 
       fixedFee, 
       hourlyRate, 
       billingCycle, 
       paymentTerms,
+      accountingSync,
       companyId 
     } = body;
 
@@ -50,12 +52,14 @@ export async function POST(request: Request) {
         name,
         email,
         contactName,
+        logoUrl,
         billingRateType,
         markupPercentage,
         fixedFee,
         hourlyRate,
         billingCycle,
         paymentTerms,
+        accountingSync,
         companyId,
       })
       .returning();

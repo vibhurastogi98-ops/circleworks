@@ -1,5 +1,3 @@
-import { redirect } from 'next/navigation';
+import AgencyClientsSetupPage from "../../../agency/clients/page";
 
-export default function AgencyClientsSettingsRedirect() {
-  redirect('/agency/clients');
-}
+export default AgencyClientsSetupPage;

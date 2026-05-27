@@ -58,8 +58,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   mockAgencyInvoices, 
-  mockAgencyInvoiceItems,
-  mockAgencyClients 
+  mockAgencyClients,
+  agencyAutoInvoicePreview,
+  calculateInvoiceTotals,
+  getInvoiceItems,
+  type AgencyInvoice,
 } from '@/data/mockAgencyBilling';
 import { formatDate } from "@/utils/formatDate";
 import { 
@@ -85,9 +88,9 @@ const billingVolumeData = [
 ];
 
 export default function AgencyBillingDashboard() {
-  const [invoices, setInvoices] = useState<any[]>(mockAgencyInvoices);
+  const [invoices, setInvoices] = useState<AgencyInvoice[]>(mockAgencyInvoices);
   const [clients, setClients] = useState<any[]>(mockAgencyClients);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<AgencyInvoice | null>(null);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -113,9 +116,11 @@ export default function AgencyBillingDashboard() {
         }
 
         // Generate chart data based on loaded clients
-        setRevenueData(currentClients.map((c: any) => ({ 
-          name: c.name, 
-          revenue: Math.floor(Math.random() * 50000 + 20000) 
+        setRevenueData(currentClients.map((client: any) => ({
+          name: client.name,
+          revenue: mockAgencyInvoices
+            .filter((invoice) => invoice.clientId === client.id)
+            .reduce((sum, invoice) => sum + invoice.amount, 0) / 100,
         })));
 
       } catch (error) {
@@ -145,6 +150,9 @@ export default function AgencyBillingDashboard() {
       case 'Draft':
         return <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100 border-none">Draft</Badge>;
       default:
+        if (status === 'Overdue') {
+          return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-none">Overdue</Badge>;
+        }
         return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -162,6 +170,73 @@ export default function AgencyBillingDashboard() {
     status: "Draft"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const outstandingAmount = invoices
+    .filter((invoice) => invoice.status !== 'Paid')
+    .reduce((sum, invoice) => sum + invoice.amount, 0);
+  const collectedAmount = invoices
+    .filter((invoice) => invoice.status === 'Paid')
+    .reduce((sum, invoice) => sum + invoice.amount, 0);
+  const draftCount = invoices.filter((invoice) => invoice.status === 'Draft').length;
+  const overdueInvoices = invoices.filter((invoice) => {
+    const dueDate = new Date(invoice.dueDate);
+    return invoice.status !== 'Paid' && dueDate < new Date("2026-05-27");
+  });
+  const invoiceItemsForSelected = selectedInvoice ? getInvoiceItems(selectedInvoice.id) : [];
+  const selectedTotals = selectedInvoice ? calculateInvoiceTotals(selectedInvoice.id) : null;
+
+  const updateInvoiceStatus = (invoiceId: number, status: AgencyInvoice['status']) => {
+    setInvoices((current) =>
+      current.map((invoice) =>
+        invoice.id === invoiceId
+          ? {
+              ...invoice,
+              status,
+              sentAt: status === 'Sent' ? new Date().toISOString().slice(0, 10) : invoice.sentAt,
+              paidAt: status === 'Paid' ? new Date().toISOString().slice(0, 10) : invoice.paidAt,
+            }
+          : invoice,
+      ),
+    );
+
+    const label =
+      status === 'Approved'
+        ? 'Invoice approved'
+        : status === 'Sent'
+          ? 'Invoice emailed with Stripe payment link'
+          : status === 'Paid'
+            ? 'Invoice marked paid'
+            : 'Invoice moved to draft';
+    toast.success(label);
+  };
+
+  const handleDownloadPdf = (invoice: AgencyInvoice) => {
+    const items = getInvoiceItems(invoice.id);
+    const csv = [
+      ["Invoice", invoice.invoiceNumber],
+      ["Client", invoice.clientName],
+      ["Period", `${invoice.periodStart} to ${invoice.periodEnd}`],
+      [],
+      ["Employee", "Pay Period", "Hours/Salary", "Cost", "Markup", "Total"],
+      ...items.map((item) => [
+        item.employeeName,
+        item.payPeriod,
+        item.hoursOrSalary,
+        item.cost,
+        item.markup,
+        item.total,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${invoice.invoiceNumber}-invoice-export.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success("Invoice export downloaded");
+  };
 
   const handleExportROI = () => {
     // Premium CSV generation and download
@@ -287,7 +362,7 @@ export default function AgencyBillingDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-slate-500">Total Outstanding</p>
-                <p className="text-2xl font-bold mt-1">{formatCurrency(2850000)}</p>
+                <p className="text-2xl font-bold mt-1">{formatCurrency(outstandingAmount)}</p>
                 <div className="flex items-center mt-2 text-xs text-emerald-600">
                   <TrendingUp className="w-3 h-3 mr-1" />
                   <span>+12.5% from last month</span>
@@ -305,7 +380,7 @@ export default function AgencyBillingDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-slate-500">Total Collected (MTD)</p>
-                <p className="text-2xl font-bold mt-1">{formatCurrency(4125000)}</p>
+                <p className="text-2xl font-bold mt-1">{formatCurrency(collectedAmount)}</p>
                 <div className="flex items-center mt-2 text-xs text-emerald-600">
                   <ArrowUpRight className="w-3 h-3 mr-1" />
                   <span>Target: 95%</span>
@@ -323,7 +398,7 @@ export default function AgencyBillingDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-slate-500">Overdue Invoices</p>
-                <p className="text-2xl font-bold mt-1">12</p>
+                <p className="text-2xl font-bold mt-1">{overdueInvoices.length}</p>
                 <div className="flex items-center mt-2 text-xs text-amber-600">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   <span>Avg. 8 days late</span>
@@ -341,7 +416,7 @@ export default function AgencyBillingDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-slate-500">Drafts (Auto-Gen)</p>
-                <p className="text-2xl font-bold mt-1">8</p>
+                <p className="text-2xl font-bold mt-1">{draftCount}</p>
                 <div className="flex items-center mt-2 text-xs text-blue-600">
                   <History className="w-3 h-3 mr-1" />
                   <span>From latest payroll run</span>
@@ -354,6 +429,42 @@ export default function AgencyBillingDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-indigo-200 dark:border-indigo-900 bg-indigo-50/60 dark:bg-indigo-950/20 shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800 shadow-sm">
+                <Receipt className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge className="bg-indigo-600 hover:bg-indigo-600">Agency plan</Badge>
+                  <Badge variant="outline" className="bg-white dark:bg-slate-900">Auto-generated after payroll</Badge>
+                </div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white">Payroll run complete → draft client invoices</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-3xl">
+                  {agencyAutoInvoicePreview.description}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 min-w-[320px]">
+              <div className="rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800 p-3">
+                <p className="text-[10px] font-black uppercase text-slate-400">Payroll run</p>
+                <p className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 mt-1">{agencyAutoInvoicePreview.payrollRunId}</p>
+              </div>
+              <div className="rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800 p-3">
+                <p className="text-[10px] font-black uppercase text-slate-400">Drafts</p>
+                <p className="text-xl font-black text-indigo-600">{agencyAutoInvoicePreview.draftCount}</p>
+              </div>
+              <div className="rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-800 p-3">
+                <p className="text-[10px] font-black uppercase text-slate-400">Trigger</p>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-1">{agencyAutoInvoicePreview.trigger}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="invoices" className="space-y-6">
         <TabsList className="bg-slate-100 dark:bg-slate-900 p-1">
@@ -431,21 +542,24 @@ export default function AgencyBillingDashboard() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                         <DropdownMenuItem className="cursor-pointer">
-                          <Eye className="w-4 h-4 mr-2 text-indigo-500" /> Quick View
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedInvoice(invoice)}>
+                          <Eye className="w-4 h-4 mr-2 text-indigo-500" /> Preview
                         </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => setSelectedInvoice(invoice)}>
                             <Edit3 className="w-4 h-4 mr-2" /> Edit Line Items
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer text-blue-600">
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => updateInvoiceStatus(invoice.id, 'Approved')}>
+                            <CheckCircle className="w-4 h-4 mr-2 text-indigo-600" /> Approve Draft
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer text-blue-600" onClick={() => updateInvoiceStatus(invoice.id, 'Sent')}>
                             <Send className="w-4 h-4 mr-2" /> Send via Email
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="cursor-pointer">
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => updateInvoiceStatus(invoice.id, 'Paid')}>
                             <CheckCircle2 className="w-4 h-4 mr-2" /> Mark as Paid
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">
-                            <Download className="w-4 h-4 mr-2" /> Download CSV
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => handleDownloadPdf(invoice)}>
+                            <Download className="w-4 h-4 mr-2" /> Download PDF
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -512,26 +626,26 @@ export default function AgencyBillingDashboard() {
               <div className="flex justify-between items-center py-8 px-4">
                 <div className="text-center">
                   <p className="text-sm text-slate-500 mb-1">Current</p>
-                  <p className="text-2xl font-bold">{formatCurrency(1250000)}</p>
-                  <Badge variant="outline" className="mt-2">6 Invoices</Badge>
+                  <p className="text-2xl font-bold">{formatCurrency(outstandingAmount)}</p>
+                  <Badge variant="outline" className="mt-2">{invoices.filter((invoice) => invoice.status !== 'Paid').length} Invoices</Badge>
                 </div>
                 <div className="w-px h-16 bg-slate-200"></div>
                 <div className="text-center">
                   <p className="text-sm text-slate-500 mb-1">1-30 Days</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(850000)}</p>
-                  <Badge variant="outline" className="mt-2 text-blue-600 border-blue-200">4 Invoices</Badge>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(invoices.filter((invoice) => invoice.status === 'Sent').reduce((sum, invoice) => sum + invoice.amount, 0))}</p>
+                  <Badge variant="outline" className="mt-2 text-blue-600 border-blue-200">Sent</Badge>
                 </div>
                 <div className="w-px h-16 bg-slate-200"></div>
                 <div className="text-center">
                   <p className="text-sm text-slate-500 mb-1">31-60 Days</p>
-                  <p className="text-2xl font-bold text-amber-600">{formatCurrency(450000)}</p>
-                  <Badge variant="outline" className="mt-2 text-amber-600 border-amber-200">2 Invoices</Badge>
+                  <p className="text-2xl font-bold text-amber-600">{formatCurrency(invoices.filter((invoice) => invoice.status === 'Approved').reduce((sum, invoice) => sum + invoice.amount, 0))}</p>
+                  <Badge variant="outline" className="mt-2 text-amber-600 border-amber-200">Approved</Badge>
                 </div>
                 <div className="w-px h-16 bg-slate-200"></div>
                 <div className="text-center">
                   <p className="text-sm text-slate-500 mb-1">61+ Days</p>
-                  <p className="text-2xl font-bold text-red-600">{formatCurrency(300000)}</p>
-                  <Badge variant="outline" className="mt-2 text-red-600 border-red-200">1 Invoice</Badge>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(overdueInvoices.reduce((sum, invoice) => sum + invoice.amount, 0))}</p>
+                  <Badge variant="outline" className="mt-2 text-red-600 border-red-200">Overdue</Badge>
                 </div>
               </div>
             </CardContent>
@@ -584,6 +698,9 @@ export default function AgencyBillingDashboard() {
 
               <div className="space-y-4 pt-4 border-t">
                 <h4 className="font-semibold text-sm">Automated Client Reminders</h4>
+                <p className="text-xs text-slate-500">
+                  Sent invoice emails include the PDF invoice and a Stripe payment link. Reminder automation sends 7 days before due, on the due date, and 3 days after overdue.
+                </p>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 border rounded-lg bg-emerald-50/50 border-emerald-100">
                     <div className="flex items-center gap-2">
@@ -717,7 +834,7 @@ export default function AgencyBillingDashboard() {
                 <div className="text-right space-y-1">
                   <h1 className="text-4xl font-black text-slate-200 uppercase tracking-tighter">Invoice</h1>
                   <p className="font-mono text-sm">#{selectedInvoice.invoiceNumber}</p>
-                  <p className="text-sm text-slate-500">Issued: {formatDate(selectedInvoice.createdAt)}</p>
+                  <p className="text-sm text-slate-500">Issued: {formatDate(selectedInvoice.sentAt || selectedInvoice.periodEnd)}</p>
                 </div>
               </div>
 
@@ -732,25 +849,30 @@ export default function AgencyBillingDashboard() {
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Payment Terms:</h4>
                   <p className="font-medium">Due Date: {formatDate(selectedInvoice.dueDate)}</p>
                   <p className="text-indigo-600 font-semibold">Status: {selectedInvoice.status}</p>
+                  <p className="text-sm text-slate-500">Stripe link: {selectedInvoice.paymentLink}</p>
                 </div>
               </div>
 
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[400px]">Description</TableHead>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Pay Period</TableHead>
+                    <TableHead>Hours/Salary</TableHead>
                     <TableHead className="text-right">Cost</TableHead>
                     <TableHead className="text-right">Markup</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAgencyInvoiceItems.filter(item => item.invoiceId === selectedInvoice.id || selectedInvoice.id === 1).map((item) => (
+                  {invoiceItemsForSelected.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <div className="font-medium">{item.description}</div>
-                        {item.employeeName && <div className="text-xs text-slate-500">Staff: {item.employeeName}</div>}
+                        <div className="font-medium">{item.employeeName}</div>
+                        <div className="text-xs text-slate-500">{item.description}</div>
                       </TableCell>
+                      <TableCell className="text-sm text-slate-600">{item.payPeriod}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{item.hoursOrSalary}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.cost)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.markup)}</TableCell>
                       <TableCell className="text-right font-bold">{formatCurrency(item.total)}</TableCell>
@@ -761,24 +883,28 @@ export default function AgencyBillingDashboard() {
 
               <div className="flex flex-col items-end space-y-2 pt-6 border-t font-semibold">
                 <div className="flex w-[300px] justify-between text-slate-500">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(selectedInvoice.amount * 0.85)}</span>
+                  <span>Labor Cost</span>
+                  <span>{formatCurrency(selectedTotals?.laborCost || 0)}</span>
                 </div>
                 <div className="flex w-[300px] justify-between text-indigo-600">
-                  <span>Markup (15%)</span>
-                  <span>{formatCurrency(selectedInvoice.amount * 0.15)}</span>
+                  <span>Markup</span>
+                  <span>{formatCurrency(selectedTotals?.markup || 0)}</span>
+                </div>
+                <div className="flex w-[300px] justify-between text-slate-500">
+                  <span>Reimbursable Expenses</span>
+                  <span>{formatCurrency(selectedTotals?.reimbursableExpenses || 0)}</span>
                 </div>
                 <div className="flex w-[300px] justify-between text-2xl font-black mt-4 pt-4 border-t border-slate-900 leading-none">
                   <span>Total Due</span>
-                  <span>{formatCurrency(selectedInvoice.amount)}</span>
+                  <span>{formatCurrency(selectedTotals?.total || selectedInvoice.amount)}</span>
                 </div>
               </div>
             </div>
             <DialogFooter className="bg-slate-50 p-4 rounded-b-lg border-t gap-2">
-              <Button variant="outline" onClick={() => setSelectedInvoice(null)}>
+              <Button variant="outline" onClick={() => handleDownloadPdf(selectedInvoice)}>
                 <Download className="w-4 h-4 mr-2" /> Download PDF
               </Button>
-              <Button className="bg-indigo-600">
+              <Button className="bg-indigo-600" onClick={() => updateInvoiceStatus(selectedInvoice.id, 'Sent')}>
                 <Send className="w-4 h-4 mr-2" /> Send to Client
               </Button>
             </DialogFooter>

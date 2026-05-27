@@ -72,13 +72,17 @@ export default function AgencyClientsSetupPage() {
     name: "",
     email: "",
     contactName: "",
+    logoUrl: "",
+    invoiceTemplateCompanyName: "",
+    invoiceTemplateLogoUrl: "",
     billingRateType: "cost-plus",
     markupPercentage: 15,
     fixedFee: 0,
     hourlyRate: 0,
     billingCycle: "monthly",
     paymentTerms: "Net 30",
-    accountingSync: "None"
+    accountingSync: "None",
+    stripePaymentLink: ""
   });
 
   useEffect(() => {
@@ -126,13 +130,17 @@ export default function AgencyClientsSetupPage() {
       name: client.name,
       email: client.email || "",
       contactName: client.contactName || "",
+      logoUrl: client.logoUrl || "",
+      invoiceTemplateCompanyName: client.invoiceTemplateCompanyName || client.name,
+      invoiceTemplateLogoUrl: client.invoiceTemplateLogoUrl || client.logoUrl || "",
       billingRateType: client.billingRateType,
       markupPercentage: client.markupPercentage || 15,
       fixedFee: client.fixedFee || 0,
       hourlyRate: client.hourlyRate || 0,
       billingCycle: client.billingCycle,
       paymentTerms: client.paymentTerms,
-      accountingSync: client.accountingSync || "None"
+      accountingSync: client.accountingSync || "None",
+      stripePaymentLink: client.stripePaymentLink || ""
     });
     setIsAddDialogOpen(true);
   };
@@ -182,13 +190,17 @@ export default function AgencyClientsSetupPage() {
       name: "",
       email: "",
       contactName: "",
+      logoUrl: "",
+      invoiceTemplateCompanyName: "",
+      invoiceTemplateLogoUrl: "",
       billingRateType: "cost-plus",
       markupPercentage: 15,
       fixedFee: 0,
       hourlyRate: 0,
       billingCycle: "monthly",
       paymentTerms: "Net 30",
-      accountingSync: "None"
+      accountingSync: "None",
+      stripePaymentLink: ""
     });
   };
 
@@ -372,6 +384,15 @@ export default function AgencyClientsSetupPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Client Logo URL</label>
+                  <Input
+                    placeholder="https://..."
+                    value={formData.logoUrl}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, logoUrl: e.target.value})}
+                    className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 h-11 font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Billing Contact Email</label>
                   <Input 
                     type="email" 
@@ -484,16 +505,47 @@ export default function AgencyClientsSetupPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Stripe Payment Link</label>
+                  <Input
+                    placeholder="https://pay.stripe.com/..."
+                    value={formData.stripePaymentLink}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, stripePaymentLink: e.target.value})}
+                    className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 h-11 font-medium"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-4 block">Invoice Template</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Display Company Name</label>
+                  <Input
+                    placeholder={formData.name || "Client company name"}
+                    value={formData.invoiceTemplateCompanyName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, invoiceTemplateCompanyName: e.target.value})}
+                    className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 h-11 font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Template Logo URL</label>
+                  <Input
+                    placeholder={formData.logoUrl || "https://..."}
+                    value={formData.invoiceTemplateLogoUrl}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, invoiceTemplateLogoUrl: e.target.value})}
+                    className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 h-11 font-medium"
+                  />
+                </div>
+              </div>
+
               <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 mb-4 block">Accounting ERP Integration</label>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { id: "QuickBooks", color: "emerald" },
                   { id: "Xero", color: "blue" },
-                  { id: "Sage", color: "indigo" }
+                  { id: "None", color: "slate" }
                 ].map((item) => (
                   <div 
                     key={item.id}
