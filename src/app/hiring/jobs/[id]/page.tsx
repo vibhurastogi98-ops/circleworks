@@ -10,7 +10,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { getJobById, getCandidatesByJob, STAGES, CandidateStage, AtsCandidate, addCandidate, updateCandidateStage } from "@/data/mockAts";
 import { Link as LinkIcon, Plus, Edit, Pause, Play, X, Star, Hand, User, FileText, CheckCircle, Clock, Mail, Activity, MessageSquare, ShieldAlert, ShieldCheck, AlertTriangle, Briefcase, GripVertical, ExternalLink, Search, UserPlus, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { canInitiateBackgroundCheck } from "@/utils/compliance";
+import { validatePayTransparencyPosting } from "@/utils/payTransparency";
 import { formatDate } from "@/utils/formatDate";
 import { toast } from "sonner";
 import { useSocketStore } from "@/store/useSocketStore";
@@ -342,6 +343,12 @@ export default function KanbanBoard() {
   }
 
   if (!isMounted) return null;
+  const payTransparency = validatePayTransparencyPosting({
+    location: job.location,
+    department: job.department,
+    salaryMin: job.salaryMin,
+    salaryMax: job.salaryMax,
+  });
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] relative overflow-hidden -mx-4 sm:-mx-6 -my-6 px-4 sm:px-6 py-6 animate-in fade-in duration-500">
@@ -358,6 +365,12 @@ export default function KanbanBoard() {
             <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
                <span>{job.department}</span> • <span>{job.location}</span> • <span>{job.type}</span> 
             </div>
+            {payTransparency.required && (
+               <div className="mt-2 inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">
+                  <ShieldCheck size={14} />
+                  Public posting pay range: ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}
+               </div>
+            )}
             <div className="flex items-center gap-4 mt-3 text-sm font-medium">
                <div className="text-slate-700 dark:text-slate-300"><span className="text-blue-600 dark:text-blue-400">{candidates.length}</span> Total Applicants</div>
                <div className="text-slate-700 dark:text-slate-300"><span className="text-indigo-600 dark:text-indigo-400">{candidates.filter(c=>c.stage==='Screening').length}</span> Screening</div>
@@ -606,11 +619,10 @@ export default function KanbanBoard() {
                      )}
 
                      {drawerTab === 'Background' && (() => {
-                        const banTheBoxJurisdiction = getBanTheBoxJurisdiction(job.location);
-                        const isEarlyStage = selectedCandidate.stage !== 'Offer' && selectedCandidate.stage !== 'Hired';
-                        const isBanTheBoxRestricted = !!banTheBoxJurisdiction && isEarlyStage;
+                        const backgroundGuard = canInitiateBackgroundCheck(job.location, selectedCandidate.stage);
+                        const isBanTheBoxRestricted = !backgroundGuard.allowed;
                         const status = bgStatuses[selectedCandidate.id] || 'Not Started';
-                        const isNyc = banTheBoxJurisdiction === 'New York';
+                        const isNyc = backgroundGuard.jurisdiction?.fairChanceAssessment === 'nyc';
 
                         const initiateBgCheck = () => {
                            setBgStatuses({...bgStatuses, [selectedCandidate.id]: 'Pending'});
@@ -643,7 +655,7 @@ export default function KanbanBoard() {
                                        </button>
                                        {isBanTheBoxRestricted && (
                                           <div className="absolute bottom-full mb-2 hidden group-hover:block w-64 p-3 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl text-center z-10 animate-in fade-in">
-                                             Background checks in {banTheBoxJurisdiction} can only be initiated after a conditional offer (Offer Stage or later).
+                                             {backgroundGuard.reason} (Offer Extended or later).
                                              <div className="absolute top-full left-1/2 -mt-1 -ml-1 border-4 border-transparent border-t-slate-900"></div>
                                           </div>
                                        )}
@@ -683,17 +695,17 @@ export default function KanbanBoard() {
                                              <AlertTriangle size={24} className="shrink-0" />
                                              <div>
                                                 <h4 className="font-bold">NYC Fair Chance Act Compliance</h4>
-                                                <p className="text-sm mt-1 text-amber-800 dark:text-amber-500">Before you can rescind the offer or take adverse action based on these results, you <b>must</b> complete an Individualized Assessment.</p>
+                                                <p className="text-sm mt-1 text-amber-800 dark:text-amber-500">Before you can rescind the offer or take adverse action based on these NYC results, you <b>must</b> complete an individualized assessment.</p>
                                              </div>
                                           </div>
                                           
                                           <div className="space-y-3 bg-white dark:bg-slate-900/50 p-4 rounded-lg border border-amber-200 dark:border-amber-800/50">
                                              <h5 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Assessment Checklist</h5>
                                              {[
-                                                'Nature and gravity of the offense was evaluated',
+                                                'Nature of crime was evaluated',
                                                 'Time elapsed since the offense was reviewed',
-                                                'Nature of this specific job role was considered',
-                                                'Evidence of rehabilitation / good conduct was requested'
+                                                'Nature of the job was considered',
+                                                'Evidence of rehabilitation was requested'
                                              ].map((item, idx) => (
                                                 <label key={idx} className="flex items-start gap-3 cursor-pointer group">
                                                    <input type="checkbox" className="mt-1 w-4 h-4 rounded text-amber-600 border-amber-300 focus:ring-amber-500" />

@@ -8,7 +8,8 @@ import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") || "/dashboard";
+  const requestedNext = searchParams.get("next");
+  const next = requestedNext?.startsWith("/") ? requestedNext : null;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
@@ -54,7 +55,13 @@ export async function GET(request: NextRequest) {
   // Determine destination before building the response
   let destination: string;
   if (appUser) {
-    destination = `${origin}${next}`;
+    let fallbackNext = "/dashboard";
+    if (appUser.role === "accountant") {
+      fallbackNext = "/accountant-portal";
+    } else if (appUser.role === "contractor") {
+      fallbackNext = "/contractor-portal";
+    }
+    destination = `${origin}${next || fallbackNext}`;
   } else {
     const fullName =
       (user.user_metadata?.full_name as string) ||

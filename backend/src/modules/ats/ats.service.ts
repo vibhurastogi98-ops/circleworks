@@ -278,6 +278,7 @@ export class AtsService {
     this.websocketsService.emitEmployeeAutoCreatedFromAts(result.companyId, {
       employeeId: result.employee.id,
       candidateId: result.candidate.id,
+      personalEmail: result.mapping.personalEmail,
     });
 
     await this.sendPreBoardingInvitation(result);

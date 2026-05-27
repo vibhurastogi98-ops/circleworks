@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { employees, users, employeeBankAccounts, payrollItems, payrolls, companies } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import { getSession } from "@/lib/session";
+import { hasPermission } from "@/lib/rbac";
 
 async function ensureBankAccountColumns() {
   await db.execute(sql`
@@ -102,6 +103,18 @@ export async function GET() {
       .limit(12);
 
     return NextResponse.json({
+      user: {
+        id: session.userId.toString(),
+        email: session.email,
+        role: session.role || "employee",
+        permissions: {
+          assignAssets: hasPermission(session.role, "assign_assets"),
+          manageAssets: hasPermission(session.role, "manage_assets"),
+          returnAssets: hasPermission(session.role, "return_assets"),
+          viewTaxFilings: hasPermission(session.role, "view_tax_filings"),
+          submitTaxFilings: hasPermission(session.role, "submit_tax_filings"),
+        },
+      },
       profile: {
         id: currentUserEmployee.id.toString(),
         firstName: currentUserEmployee.firstName,

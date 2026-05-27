@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createCipheriv, createHash, randomBytes } from "crypto";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { employeeDocuments, users, w4Forms } from "@/db/schema";
 import { getSession } from "@/lib/session";
 
@@ -24,6 +24,28 @@ type W4Payload = {
   signature?: string;
   date?: string;
 };
+
+async function ensureW4CompletionColumns() {
+  await db.execute(sql`
+    ALTER TABLE w4_forms
+      ADD COLUMN IF NOT EXISTS ssn_encrypted text,
+      ADD COLUMN IF NOT EXISTS signature text,
+      ADD COLUMN IF NOT EXISTS signed_at timestamp,
+      ADD COLUMN IF NOT EXISTS status text DEFAULT 'Pending',
+      ADD COLUMN IF NOT EXISTS document_id integer
+  `);
+
+  await db.execute(sql`
+    DO $$ BEGIN
+      ALTER TABLE w4_forms
+        ADD CONSTRAINT w4_forms_document_id_employee_documents_id_fk
+        FOREIGN KEY (document_id) REFERENCES employee_documents(id)
+        ON DELETE SET NULL ON UPDATE NO ACTION;
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$
+  `);
+}
 
 const requiredFields: Array<keyof W4Payload> = [
   "firstName",
@@ -127,6 +149,8 @@ export async function POST(req: Request) {
     }
 
     const data = (await req.json()) as W4Payload;
+    await ensureW4CompletionColumns();
+
     const missing = requiredFields.filter(
       (field) => !String(data[field] || "").trim(),
     );
@@ -167,6 +191,19 @@ export async function POST(req: Request) {
     const encryptedSsn = encryptSsn(data.ssn || "");
     const claimDependents =
       toInt(data.children) * 2000 + toInt(data.otherDependents) * 500;
+    const taxYear = new Date().getFullYear();
+    const [document] = await db
+      .insert(employeeDocuments)
+      .values({
+        employeeId: employee.id,
+        name: `Signed W-4 Form - ${taxYear}`,
+        type: "Tax Form",
+        fileUrl: createSignedW4Pdf(data, encryptedSsn),
+        status: "Signed",
+      })
+      .returning({ id: employeeDocuments.id });
+
+    const signedAt = data.date ? new Date(data.date) : new Date();
     const formValues = {
       employeeId: employee.id,
       filingStatus: data.filingStatus || "",
@@ -176,6 +213,11 @@ export async function POST(req: Request) {
       deductions: toInt(data.deductions),
       extraWithholding: toInt(data.extraWithholding),
       exempt: false,
+      ssnEncrypted: encryptedSsn,
+      signature: data.signature || "",
+      signedAt,
+      status: "Completed",
+      documentId: document?.id || null,
       updatedAt: new Date(),
     };
 
@@ -192,21 +234,9 @@ export async function POST(req: Request) {
       await db.insert(w4Forms).values(formValues);
     }
 
-    const taxYear = new Date().getFullYear();
-    const [document] = await db
-      .insert(employeeDocuments)
-      .values({
-        employeeId: employee.id,
-        name: `Signed W-4 Form - ${taxYear}`,
-        type: "Tax Form",
-        fileUrl: createSignedW4Pdf(data, encryptedSsn),
-        status: "Signed",
-      })
-      .returning({ id: employeeDocuments.id });
-
     return NextResponse.json({
       success: true,
-      status: "Signed",
+      status: "Completed",
       documentId: document?.id,
     });
   } catch (error) {

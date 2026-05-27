@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { assets, assetAssignments } from "@/db/schema";
+import { assets, assetAssignments, employees } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getSession } from "@/lib/session";
+import { getSession, resolveUserContext } from "@/lib/session";
 
 // POST — assign an asset to an employee
 export async function POST(req: NextRequest) {
@@ -10,6 +10,11 @@ export async function POST(req: NextRequest) {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
     }
 
     const body = await req.json();
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     const asset = await db.query.assets.findFirst({
-      where: eq(assets.id, parsedAssetId),
+      where: and(eq(assets.id, parsedAssetId), eq(assets.companyId, ctx.companyId)),
       with: {
         assignments: true,
       },
@@ -41,6 +46,14 @@ export async function POST(req: NextRequest) {
 
     if (!asset) {
       return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+    }
+
+    const employee = await db.query.employees.findFirst({
+      where: and(eq(employees.id, parsedEmployeeId), eq(employees.companyId, ctx.companyId)),
+    });
+
+    if (!employee) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
     const existingActiveAssignment = asset.assignments?.find((entry) => entry.status === "Active");
@@ -55,7 +68,7 @@ export async function POST(req: NextRequest) {
     await db
       .update(assets)
       .set({ status: "Assigned", updatedAt: new Date() })
-      .where(eq(assets.id, parsedAssetId));
+      .where(and(eq(assets.id, parsedAssetId), eq(assets.companyId, ctx.companyId)));
 
     // Create assignment record
     const [assignment] = await db
@@ -87,6 +100,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
     const body = await req.json();
     const { assignmentId } = body;
 
@@ -108,6 +126,9 @@ export async function PATCH(req: NextRequest) {
 
     const assignment = await db.query.assetAssignments.findFirst({
       where: eq(assetAssignments.id, parsedAssignmentId),
+      with: {
+        asset: true,
+      },
     });
 
     if (!assignment) {
@@ -115,6 +136,10 @@ export async function PATCH(req: NextRequest) {
         { error: "Assignment not found" },
         { status: 404 }
       );
+    }
+
+    if (assignment.asset?.companyId !== ctx.companyId) {
+      return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
     }
 
     // Mark assignment as Returned

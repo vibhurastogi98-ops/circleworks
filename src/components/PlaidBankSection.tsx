@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import type { PlaidLinkOnSuccessMetadata } from "react-plaid-link";
 import { usePlaidLink } from "react-plaid-link";
 import { Building2, CheckCircle2, HandCoins, Landmark, Loader2, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -57,11 +58,14 @@ export function PlaidBankSection({ initialData, onSave }: PlaidBankSectionProps)
 
       if (!res.ok) throw new Error(data.error || "Failed to load bank setup");
 
-      setLinkToken(data.link_token);
+      setLinkToken(data.is_mock ? null : data.link_token);
       setIsMockPlaid(!!data.is_mock);
       if (data.bankAccount) {
         setBankData(data.bankAccount);
         onSave(data.bankAccount);
+      } else {
+        setBankData(null);
+        onSave(null);
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to load bank setup.");
@@ -74,11 +78,11 @@ export function PlaidBankSection({ initialData, onSave }: PlaidBankSectionProps)
     fetchBankSetup();
   }, [fetchBankSetup]);
 
-  const onSuccess = useCallback(async (public_token: string, metadata: any) => {
+  const onSuccess = useCallback(async (public_token: string, metadata: PlaidLinkOnSuccessMetadata) => {
     try {
       setLoading(true);
-      const selectedAccount = metadata?.account || metadata?.accounts?.[0] || {};
-      const accountId = metadata?.account_id || selectedAccount.id || selectedAccount.account_id;
+      const selectedAccount = metadata?.accounts?.[0] || {};
+      const accountId = selectedAccount.id;
 
       const res = await fetch("/api/employees/me/bank-account", {
         method: "POST",
@@ -86,6 +90,7 @@ export function PlaidBankSection({ initialData, onSave }: PlaidBankSectionProps)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           public_token,
+          processor_token: public_token,
           account_id: accountId,
           metadata,
         }),
@@ -109,14 +114,20 @@ export function PlaidBankSection({ initialData, onSave }: PlaidBankSectionProps)
   const { open, ready } = usePlaidLink({
     token: linkToken,
     onSuccess,
+    onExit: (error) => {
+      if (error) {
+        toast.error(error.display_message || error.error_message || "Plaid Link was closed before verification finished.");
+      }
+    },
   });
 
   const handleConnect = async () => {
     if (isMockPlaid) {
       await onSuccess("mock_public_token", {
         institution: { name: "Plaid Sandbox Bank" },
-        account: { id: "mock_checking_4821", name: "Plaid Checking", subtype: "checking", mask: "4821" },
-      });
+        accounts: [{ id: "mock_checking_4821", name: "Plaid Checking", type: "depository", subtype: "checking", mask: "4821", verification_status: "" }],
+        link_session_id: "mock_link_session",
+      } as PlaidLinkOnSuccessMetadata);
       return;
     }
 

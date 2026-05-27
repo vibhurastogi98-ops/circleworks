@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
-    const response = NextResponse.json({ success: true });
+    const pendingCookies: { name: string; value: string; options: Record<string, unknown> }[] = [];
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,9 +25,7 @@ export async function POST(req: NextRequest) {
             return req.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options)
-            );
+            cookiesToSet.forEach((cookie) => pendingCookies.push(cookie));
           },
         },
       }
@@ -76,6 +74,18 @@ export async function POST(req: NextRequest) {
         role: appUser.role ?? "employee",
       },
       Boolean(rememberMe)
+    );
+
+    let redirectTo = "/dashboard";
+    if (appUser.role === "accountant") {
+      redirectTo = "/accountant-portal";
+    } else if (appUser.role === "contractor") {
+      redirectTo = "/contractor-portal";
+    }
+    const response = NextResponse.json({ success: true, redirectTo });
+
+    pendingCookies.forEach(({ name, value, options }) =>
+      response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
     );
 
     response.cookies.set(SESSION_COOKIE, sessionToken, {

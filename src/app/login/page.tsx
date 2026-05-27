@@ -53,6 +53,11 @@ export default function LoginPage() {
     return nextPath.startsWith("/") ? nextPath : "/dashboard";
   };
 
+  const hasExplicitNext = () => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).has("next");
+  };
+
   useEffect(() => {
     if (!isLoaded) return;
     if (isSignedIn) {
@@ -70,10 +75,14 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     const supabase = createSupabaseBrowserClient();
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (hasExplicitNext()) {
+      callbackUrl.searchParams.set("next", getNextPath());
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
+        redirectTo: callbackUrl.toString(),
       },
     });
     if (error) {
@@ -118,13 +127,21 @@ export default function LoginPage() {
         }),
       });
 
+      const body = await res.json();
+
       if (res.ok) {
         await refreshUser();
-        router.push(getNextPath());
+        let redirectTo = getNextPath();
+        if (
+          !hasExplicitNext() &&
+          typeof body.redirectTo === "string" &&
+          body.redirectTo.startsWith("/")
+        ) {
+          redirectTo = body.redirectTo;
+        }
+        router.push(redirectTo);
         return;
       }
-
-      const body = await res.json();
 
       if (body.error === "invalid_credentials") {
         setErrorType("invalid_credentials");

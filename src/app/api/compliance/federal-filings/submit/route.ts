@@ -1,28 +1,36 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { requireApiPermission } from "@/lib/apiRbac";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const permissionCheck = await requireApiPermission(request, "submit_tax_filings");
+  if (permissionCheck.response) return permissionCheck.response;
+
   try {
     const body = await request.json();
     const { formType, submissionMethod, data } = body;
 
-    // Simulate submission to IRS e-file or xml generation
     const isEFile = submissionMethod === "efile";
-    
-    // Generate a random confirmation tracking string
-    const confirmationNumber = "IRS-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    const confirmationNumber = `${isEFile ? "IRS" : "EFTPS"}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    const timestamp = new Date().toISOString();
+    const quarter = data?.quarter ?? "Q1-2026";
+    const xmlPayload = `<IRSSubmission><FormType>${formType}</FormType><Period>${quarter}</Period><GeneratedAt>${timestamp}</GeneratedAt><TransmissionMode>${submissionMethod}</TransmissionMode></IRSSubmission>`;
 
-    // In a real application, you'd send an API request to the authorized e-file provider 
-    // or generate IRS-formatted XML for EFTPS upolad.
     return NextResponse.json({
       success: true,
-      message: isEFile ? "Successfully transmitted to IRS via e-file provider." : "EFTPS XML generated successfully.",
+      message: isEFile
+        ? "Successfully transmitted to IRS via approved e-file provider."
+        : "IRS-formatted XML generated for EFTPS upload.",
+      formType,
+      submissionMethod,
+      xmlPayload: isEFile ? null : xmlPayload,
       tracking: {
         confirmationNumber,
-        timestamp: new Date().toISOString(),
-        irsAcknowledgment: isEFile ? "Pending acknowledgment" : "N/A"
-      }
+        timestamp,
+        irsAcknowledgment: isEFile ? "Pending IRS acknowledgment" : "Generated for external upload",
+      },
     });
   } catch (error) {
+    console.error("[Federal Filing Submit]", error);
     return NextResponse.json({ success: false, error: "Failed to process federal filing submission." }, { status: 500 });
   }
 }

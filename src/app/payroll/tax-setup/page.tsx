@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Save, MapPin, Shield, TrendingUp, Calculator,
-  Bell, Globe, Upload, ChevronDown, ChevronRight, Edit3,
+  Bell, Globe, Upload, Edit3,
   AlertTriangle, CheckCircle2, Info, Clock, DollarSign,
-  FileText, ArrowRight, X, BarChart3, Zap, ExternalLink,
+  FileText, ArrowRight, X, BarChart3, Zap,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -20,7 +20,6 @@ import {
   SUI_ALERTS,
   calculateVoluntaryContribution,
   type SUIRateRecord,
-  type ExperienceRating,
   type SUIAlert,
   type MultiStateEntry,
   type VoluntaryContributionResult,
@@ -129,6 +128,13 @@ export default function TaxSetupPage() {
   const [selectedState, setSelectedState] = useState("CA");
   const [editingRate, setEditingRate] = useState<string | null>(null);
   const [editRateValue, setEditRateValue] = useState("");
+  const [rateHistories, setRateHistories] = useState(ALL_RATE_HISTORIES);
+  const [experienceRatings, setExperienceRatings] = useState(EXPERIENCE_RATINGS);
+  const [multiStateView, setMultiStateView] = useState(MULTI_STATE_VIEW);
+  const [alerts, setAlerts] = useState(SUI_ALERTS);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [ocrDraft, setOcrDraft] = useState<SUIRateRecord | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Voluntary Contribution state
   const [vcAmount, setVcAmount] = useState<number>(5000);
@@ -142,48 +148,136 @@ export default function TaxSetupPage() {
   const [uploading, setUploading] = useState(false);
 
   // Memoised data
-  const rateHistory = useMemo(() => ALL_RATE_HISTORIES[selectedState] || [], [selectedState]);
-  const experienceData = useMemo(() => EXPERIENCE_RATINGS.find((e) => e.stateAbbr === selectedState), [selectedState]);
-  const activeAlerts = useMemo(() => SUI_ALERTS.filter((a) => !dismissedAlerts.has(a.id)), [dismissedAlerts]);
+  const rateHistory = useMemo(() => rateHistories[selectedState] || [], [rateHistories, selectedState]);
+  const experienceData = useMemo(() => experienceRatings.find((e) => e.stateAbbr === selectedState), [experienceRatings, selectedState]);
+  const activeAlerts = useMemo(() => alerts.filter((a) => !dismissedAlerts.has(a.id)), [alerts, dismissedAlerts]);
+
+  useEffect(() => {
+    async function hydrateSuiData() {
+      try {
+        const [suiRes, meRes] = await Promise.all([
+          fetch("/api/payroll/sui", { credentials: "include" }),
+          fetch("/api/users/me", { credentials: "include" }),
+        ]);
+
+        if (suiRes.ok) {
+          const data = await suiRes.json();
+          setRateHistories(data.rateHistories || ALL_RATE_HISTORIES);
+          setExperienceRatings(data.experienceRatings || EXPERIENCE_RATINGS);
+          setMultiStateView(data.multiStateView || MULTI_STATE_VIEW);
+          setAlerts(data.alerts || SUI_ALERTS);
+        }
+
+        if (meRes.ok) {
+          const data = await meRes.json();
+          setIsAdmin(data.user?.role === "admin");
+        }
+      } catch (error) {
+        console.error("[SUI setup] Falling back to local SUI fixtures", error);
+      }
+    }
+
+    hydrateSuiData();
+  }, []);
 
   /* ── Handlers ─────────────────────────────────────────────────────────────── */
 
   const handleUpdateRate = useCallback((recordId: string, newRate: string) => {
+    if (!isAdmin) {
+      toast.error("Only admins can update SUI rates.");
+      return;
+    }
+
+    const existingRecord = rateHistory.find((row) => row.id === recordId) || ocrDraft;
+    const numericRate = Number(newRate);
     toast.promise(
       fetch("/api/payroll/sui", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update_rate", stateAbbr: selectedState, taxYear: 2026, newRate }),
-      }).then((r) => r.json()),
+        body: JSON.stringify({
+          action: "update_rate",
+          stateAbbr: selectedState,
+          taxYear: existingRecord?.taxYear || 2026,
+          newRate,
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          setRateHistories((prev) => {
+            const current = prev[selectedState] || [];
+            const nextRecord: SUIRateRecord = {
+              id: recordId,
+              taxYear: existingRecord?.taxYear || 2026,
+              rate: Number.isFinite(numericRate) ? numericRate : existingRecord?.rate || 0,
+              wageBase: existingRecord?.wageBase || 0,
+              annualMaximum: Math.round(((Number.isFinite(numericRate) ? numericRate : existingRecord?.rate || 0) / 100) * (existingRecord?.wageBase || 0)),
+              dateUpdated: new Date().toISOString().slice(0, 10),
+              source: existingRecord?.source || "Manual Entry",
+            };
+            const exists = current.some((row) => row.id === recordId);
+            const updated = exists
+              ? current.map((row) => (row.id === recordId ? { ...row, ...nextRecord } : row))
+              : [nextRecord, ...current];
+            return { ...prev, [selectedState]: updated };
+          });
+          setEditingRate(null);
+          setOcrDraft(null);
+          return data;
+        }),
       {
         loading: "Saving new SUI rate…",
-        success: (d) => { setEditingRate(null); return d.message; },
+        success: (d) => d.message,
         error: "Failed to update rate.",
       }
     );
-  }, [selectedState]);
+  }, [isAdmin, ocrDraft, rateHistory, selectedState]);
 
-  const handleOCRUpload = useCallback(() => {
+  const handleOCRUpload = useCallback((file?: File) => {
+    if (!isAdmin) {
+      toast.error("Only admins can import SUI rate notices.");
+      return;
+    }
+
+    if (file && file.type !== "application/pdf") {
+      toast.error("Upload a PDF SUI rate notice.");
+      return;
+    }
+
     setUploading(true);
     toast.promise(
       fetch("/api/payroll/sui", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "import_notice", stateAbbr: selectedState }),
+        body: JSON.stringify({ action: "import_notice", stateAbbr: selectedState, fileName: file?.name }),
       })
         .then((r) => r.json())
         .then((d) => {
           setUploading(false);
+          if (d.parsed) {
+            const draft: SUIRateRecord = {
+              id: `${d.parsed.state.toLowerCase()}-${d.parsed.taxYear}-ocr-draft`,
+              taxYear: d.parsed.taxYear,
+              rate: d.parsed.rate,
+              wageBase: d.parsed.wageBase,
+              annualMaximum: d.parsed.annualMaximum,
+              dateUpdated: d.parsed.dateUpdated,
+              source: "OCR Import",
+            };
+            setSelectedState(d.parsed.state);
+            setOcrDraft(draft);
+            setEditingRate(draft.id);
+            setEditRateValue(String(draft.rate));
+          }
           return d;
         }),
       {
         loading: "Processing rate notice via OCR…",
         success: (d) =>
-          `Parsed: ${d.parsed.state} ${d.parsed.taxYear} @ ${d.parsed.rate}%. Ready to review.`,
+          `Parsed: ${d.parsed.state} ${d.parsed.taxYear} @ ${d.parsed.rate}% from ${d.parsed.sourceFileName}. Review the pre-filled form.`,
         error: "OCR import failed.",
       }
     );
-  }, [selectedState]);
+  }, [isAdmin, selectedState]);
 
   const handleCalculateVC = useCallback(() => {
     setVcCalculating(true);
@@ -284,6 +378,18 @@ export default function TaxSetupPage() {
           </div>
         </motion.div>
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) handleOCRUpload(file);
+          event.target.value = "";
+        }}
+      />
 
       {/* ─── Tab Content ──────────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
@@ -412,7 +518,7 @@ export default function TaxSetupPage() {
                 gradient="from-indigo-600 to-violet-700"
                 headerRight={
                   <button
-                    onClick={handleOCRUpload}
+                    onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     className="flex items-center gap-2 text-sm font-bold text-white/80 hover:text-white bg-white/15 hover:bg-white/25 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
                   >
@@ -421,6 +527,54 @@ export default function TaxSetupPage() {
                   </button>
                 }
               >
+                {!isAdmin && (
+                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4">
+                    <Info size={18} className="text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-amber-900 dark:text-amber-300">View-only access</p>
+                      <p className="text-xs text-amber-800 dark:text-amber-400 mt-1">
+                        SUI rate rows and rate notice imports are editable by admins only.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {ocrDraft && (
+                  <div className="mb-5 rounded-2xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/10 p-4">
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+                        <div>
+                          <label className="text-[11px] font-bold text-violet-700 dark:text-violet-300 uppercase">Tax Year</label>
+                          <input readOnly value={ocrDraft.taxYear} className="mt-1 w-full rounded-lg border border-violet-200 dark:border-violet-800 bg-white/80 dark:bg-slate-900 px-3 py-2 text-sm font-bold" />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-violet-700 dark:text-violet-300 uppercase">Parsed Rate</label>
+                          <div className="relative mt-1">
+                            <input value={editRateValue} onChange={(event) => setEditRateValue(event.target.value)} className="w-full rounded-lg border border-violet-200 dark:border-violet-800 bg-white/80 dark:bg-slate-900 px-3 py-2 pr-7 text-sm font-bold" />
+                            <span className="absolute right-3 top-2 text-slate-400">%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-violet-700 dark:text-violet-300 uppercase">Wage Base</label>
+                          <input readOnly value={fmt$(ocrDraft.wageBase)} className="mt-1 w-full rounded-lg border border-violet-200 dark:border-violet-800 bg-white/80 dark:bg-slate-900 px-3 py-2 text-sm font-bold" />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-violet-700 dark:text-violet-300 uppercase">Source</label>
+                          <input readOnly value={ocrDraft.source} className="mt-1 w-full rounded-lg border border-violet-200 dark:border-violet-800 bg-white/80 dark:bg-slate-900 px-3 py-2 text-sm font-bold" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleUpdateRate(ocrDraft.id, editRateValue)} className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold transition-colors">
+                          Save Parsed Rate
+                        </button>
+                        <button onClick={() => { setOcrDraft(null); setEditingRate(null); }} className="px-4 py-2 rounded-lg border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-sm font-bold hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead>
@@ -428,7 +582,7 @@ export default function TaxSetupPage() {
                         <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Tax Year</th>
                         <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Rate</th>
                         <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Wage Base</th>
-                        <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Annual Max / EE</th>
+                        <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Annual Maximum</th>
                         <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Date Updated</th>
                         <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">Source</th>
                         <th className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider text-center">Action</th>
@@ -438,9 +592,9 @@ export default function TaxSetupPage() {
                       {rateHistory.map((row, idx) => (
                         <tr
                           key={row.id}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group"
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group ${isAdmin ? "cursor-pointer" : "cursor-default"}`}
                           onClick={() => {
-                            if (editingRate !== row.id) {
+                            if (isAdmin && editingRate !== row.id) {
                               setEditingRate(row.id);
                               setEditRateValue(String(row.rate));
                             }
@@ -455,7 +609,7 @@ export default function TaxSetupPage() {
                             )}
                           </td>
                           <td className="py-4 px-4">
-                            {editingRate === row.id ? (
+                            {editingRate === row.id && isAdmin ? (
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 <input
                                   type="number"
@@ -482,7 +636,7 @@ export default function TaxSetupPage() {
                             ) : (
                               <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                                 {fmtPct(row.rate)}
-                                <Edit3 size={12} className="inline ml-2 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                {isAdmin && <Edit3 size={12} className="inline ml-2 opacity-0 group-hover:opacity-60 transition-opacity" />}
                               </span>
                             )}
                           </td>
@@ -506,10 +660,15 @@ export default function TaxSetupPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!isAdmin) {
+                                  toast.error("Only admins can update SUI rates.");
+                                  return;
+                                }
                                 setEditingRate(row.id);
                                 setEditRateValue(String(row.rate));
                               }}
-                              className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-1.5 rounded-lg transition-colors"
+                              className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:text-slate-400 disabled:bg-slate-100 dark:disabled:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
+                              disabled={!isAdmin}
                             >
                               Edit
                             </button>
@@ -627,7 +786,7 @@ export default function TaxSetupPage() {
                               experienceData.projectedNextRate) /
                               100) *
                               7000 *
-                              (MULTI_STATE_VIEW.find((s) => s.stateAbbr === selectedState)?.employeeCount || 1)
+                              (multiStateView.find((s) => s.stateAbbr === selectedState)?.employeeCount || 1)
                           )
                         )}
                         /yr
@@ -882,18 +1041,18 @@ export default function TaxSetupPage() {
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total States</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{MULTI_STATE_VIEW.length}</p>
+                  <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{multiStateView.length}</p>
                 </div>
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Employees</p>
                   <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-                    {MULTI_STATE_VIEW.reduce((sum, s) => sum + s.employeeCount, 0)}
+                    {multiStateView.reduce((sum, s) => sum + s.employeeCount, 0)}
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                   <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Est. Annual Liability</p>
                   <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
-                    {fmt$(MULTI_STATE_VIEW.reduce((sum, s) => sum + s.annualLiability, 0))}
+                    {fmt$(multiStateView.reduce((sum, s) => sum + s.annualLiability, 0))}
                   </p>
                 </div>
               </div>
@@ -915,7 +1074,7 @@ export default function TaxSetupPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-transparent">
-                    {MULTI_STATE_VIEW.map((row) => (
+                    {multiStateView.map((row) => (
                       <tr
                         key={row.stateAbbr}
                         className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"

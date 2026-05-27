@@ -130,7 +130,12 @@ export const FIELD_VISIBILITY_RULES = [
 ];
 
 export const PII_DEFAULT_VISIBILITY = FIELD_VISIBILITY_RULES.map((rule) =>
-  rule.sensitive ? rule : { ...rule },
+  rule.sensitive
+    ? {
+        ...rule,
+        roles: roles(false, false, true, true),
+      }
+    : { ...rule },
 );
 
 export const normalizeViewerRole = (role: string | null | undefined): ViewerRole => {

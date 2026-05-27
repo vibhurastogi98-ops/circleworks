@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEmployee } from "@/hooks/useEmployees";
-import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus, Activity, Shield, Hash, Save } from "lucide-react";
+import { Briefcase, Calendar, User, Loader2, AlertCircle, Landmark, Laptop, Monitor, Smartphone, Keyboard, CreditCard, CarFront, Package, Plus, Activity, FileText, Shield, Hash, Save } from "lucide-react";
 import { toast } from "sonner";
 import { ASSET_TYPE_ICONS, type AssetType, type Asset, type AssetAssignment } from "@/data/mockAssets";
 import { mockEmployeeUnionMemberships, mockUnions } from "@/data/mockUnionPayroll";
@@ -24,6 +24,41 @@ function AssetIcon({ type, size = 14 }: { type: AssetType; size?: number }) {
   return <>{iconMap[type] || <Package size={size} />}</>;
 }
 
+function getDirectDepositStatus(employee: any) {
+  const status = String(employee?.bankAccount?.verificationStatus || "Unverified");
+  if (status.toLowerCase() === "verified") return "Verified";
+  if (status.toLowerCase() === "pending") return "Pending";
+  return "Unverified";
+}
+
+function directDepositStatusClass(status: string) {
+  if (status === "Verified") {
+    return "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400";
+  }
+
+  if (status === "Pending") {
+    return "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400";
+  }
+
+  return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300";
+}
+
+function getW4Status(employee: any) {
+  return String(employee?.w4Status?.status || "Not Started");
+}
+
+function w4StatusClass(status: string) {
+  if (status === "Completed") {
+    return "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400";
+  }
+
+  if (status === "Pending") {
+    return "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400";
+  }
+
+  return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300";
+}
+
 export default function EmployeeOverviewTab() {
   const { id } = useParams();
   const { data: emp, isLoading, error } = useEmployee(id as string);
@@ -32,6 +67,7 @@ export default function EmployeeOverviewTab() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assetSearch, setAssetSearch] = useState("");
   const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [canAssignAssets, setCanAssignAssets] = useState(false);
 
   // Mock available inventory (In real app, fetch from /api/assets?status=Available)
   const [availableInventory, setAvailableInventory] = useState<Asset[]>([]);
@@ -40,6 +76,8 @@ export default function EmployeeOverviewTab() {
   const [selectedUnionId, setSelectedUnionId] = useState("u-001");
   const [membershipNumber, setMembershipNumber] = useState("");
   const [employeeUnionMemberships, setEmployeeUnionMemberships] = useState<typeof mockEmployeeUnionMemberships>([]);
+  const directDepositStatus = getDirectDepositStatus(emp);
+  const w4Status = getW4Status(emp);
 
   const employeeUnionLookupId = `e-${String(id).padStart(3, "0")}`;
 
@@ -78,6 +116,13 @@ export default function EmployeeOverviewTab() {
   useEffect(() => {
     (async () => {
       try {
+        const meResponse = await fetch("/api/users/me", { credentials: "include" });
+        if (!meResponse.ok) return;
+        const me = await meResponse.json();
+        const canAssign = Boolean(me?.user?.permissions?.assignAssets);
+        setCanAssignAssets(canAssign);
+        if (!canAssign) return;
+
         const response = await fetch("/api/assets?status=Available", { credentials: "include" });
         if (!response.ok) return;
         const assets = await response.json();
@@ -426,12 +471,14 @@ export default function EmployeeOverviewTab() {
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                  <Package size={18} className="text-blue-500" /> Assigned Equipment
               </h3>
-              <button
-                onClick={() => setShowAssignModal(true)}
-                className="text-[10px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 transition-colors"
-              >
-                <Plus size={12} /> Assign
-              </button>
+              {canAssignAssets && (
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  className="text-[10px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 uppercase tracking-wider flex items-center gap-1 transition-colors"
+                >
+                  <Plus size={12} /> Assign
+                </button>
+              )}
             </div>
 
             {currentAssets.length > 0 ? (
@@ -459,18 +506,20 @@ export default function EmployeeOverviewTab() {
             ) : (
               <div className="text-center py-4">
                 <p className="text-sm text-slate-400 italic">No equipment assigned.</p>
-                <button
-                  onClick={() => setShowAssignModal(true)}
-                  className="text-xs text-blue-600 hover:underline mt-1 inline-block"
-                >
-                  Assign first asset →
-                </button>
+                {canAssignAssets && (
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                  >
+                    Assign first asset →
+                  </button>
+                )}
               </div>
             )}
          </div>
 
          {/* ── Assign Asset Modal ───────────────────────────────── */}
-         {showAssignModal && (
+         {showAssignModal && canAssignAssets && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setShowAssignModal(false)} />
                <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
@@ -555,11 +604,30 @@ export default function EmployeeOverviewTab() {
             </h3>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Status</span>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${emp.bankAccount?.verified ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'}`}>
-                {emp.bankAccount?.verified ? 'Verified' : 'Pending'}
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${directDepositStatusClass(directDepositStatus)}`}>
+                {directDepositStatus}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-2">Account details are hidden for security reasons. Only verification status is shown to admins.</p>
+         </div>
+
+         {/* W-4 Completion Status */}
+         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+               <FileText size={18} className="text-amber-500" /> W-4 Tax Withholding
+            </h3>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Completion</span>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${w4StatusClass(w4Status)}`}>
+                {w4Status}
+              </span>
+            </div>
+            {emp.w4Status?.signedAt && (
+              <p className="text-xs text-slate-500 mt-2">Signed on {formatDate(emp.w4Status.signedAt)}. The signed PDF is stored in employee documents.</p>
+            )}
+            {!emp.w4Status?.signedAt && (
+              <p className="text-xs text-slate-500 mt-2">No completed W-4 is on file yet.</p>
+            )}
          </div>
       </div>
     </div>

@@ -17,13 +17,14 @@ const statusIcons: Record<string, React.ElementType> = {
 };
 
 const typeIcons: Record<string, React.ElementType> = {
-  Vacation: Plane, Sick: Thermometer, Personal: UserIcon,
+  Vacation: Plane, Sick: Thermometer, Personal: UserIcon, "Medical Leave": Thermometer, "Parental Leave": UserIcon,
 };
 
 export default function TimeOffPage() {
   const { data } = useEmployeeSelfService();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ type: "Vacation", startDate: "", endDate: "", note: "" });
+  const mayQualifyForStateLeave = ["Sick", "Medical Leave", "Parental Leave", "Personal"].includes(formData.type);
 
   const calcWorkingDays = (start: string, end: string) => {
     if (!start || !end) return 0;
@@ -150,9 +151,18 @@ export default function TimeOffPage() {
                 <div>
                   <label className="text-[12px] font-bold text-slate-600 dark:text-slate-300 mb-1 block">Leave Type</label>
                   <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[13px] text-slate-900 dark:text-white">
-                    <option>Vacation</option><option>Sick</option><option>Personal</option>
+                    <option>Vacation</option><option>Sick</option><option>Personal</option><option>Medical Leave</option><option>Parental Leave</option>
                   </select>
                 </div>
+                {mayQualifyForStateLeave && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/40">
+                    <Info size={15} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-[13px] font-bold text-blue-800 dark:text-blue-300">This may qualify for CA PFL - apply?</p>
+                      <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">PTO and state leave usage will be tracked concurrently if approved.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[12px] font-bold text-slate-600 dark:text-slate-300 mb-1 block">Start Date</label>

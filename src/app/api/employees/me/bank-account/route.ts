@@ -4,6 +4,7 @@ import {
   CountryCode,
   PlaidApi,
   PlaidEnvironments,
+  ProcessorTokenCreateRequestProcessorEnum,
   Products,
 } from "plaid";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -66,6 +67,23 @@ function normalizeMask(value: unknown) {
     : "0000";
 }
 
+function normalizeVerificationStatus(value: unknown) {
+  const status = String(value || "").toLowerCase();
+  if (status === "verified") return "Verified";
+  if (status === "pending") return "Pending";
+  return "Unverified";
+}
+
+function logoDataUri(logo?: string | null) {
+  return logo ? `data:image/png;base64,${logo}` : null;
+}
+
+function normalizeLogoUrl(logo?: string | null) {
+  if (!logo) return null;
+  if (logo.startsWith("data:") || logo.startsWith("http")) return logo;
+  return logoDataUri(logo);
+}
+
 function getSelectedPlaidAccount(metadata: any, accountId?: string | null) {
   const accounts = Array.isArray(metadata?.accounts) ? metadata.accounts : [];
   return (
@@ -88,8 +106,8 @@ function publicBankAccount(
     mask: normalizeMask(row.accountNumberMasked),
     accountNumber: row.accountNumberMasked,
     accountType: row.accountType || "checking",
-    verificationStatus: row.verificationStatus || "Pending",
-    verified: (row.verificationStatus || "").toLowerCase() === "verified",
+    verificationStatus: normalizeVerificationStatus(row.verificationStatus),
+    verified: normalizeVerificationStatus(row.verificationStatus) === "Verified",
     lastUpdated: (row.updatedAt || row.createdAt || new Date())
       .toISOString()
       .split("T")[0],
@@ -123,6 +141,12 @@ export async function GET() {
             products: [Products.Auth],
             country_codes: [CountryCode.Us],
             language: "en",
+            auth: {
+              instant_match_enabled: true,
+              instant_microdeposits_enabled: false,
+              same_day_microdeposits_enabled: false,
+              automated_microdeposits_enabled: false,
+            },
             account_filters: {
               depository: {
                 account_subtypes: ["checking"] as any,
@@ -167,18 +191,21 @@ export async function POST(req: Request) {
     let accountNumberMasked = "0000";
     let verificationStatus = "Verified";
     let plaidAccountId: string | null = body.account_id || null;
-    let plaidProcessorToken: string | null = body.processor_token || null;
+    let plaidProcessorToken: string | null = null;
 
     if (isManual) {
       bankName = String(body.bankName || "Manual bank account").trim();
       routingNumber = String(body.routingNumber || "").trim();
       accountType = String(body.accountType || "checking").toLowerCase();
+      const accountDigits = String(
+        body.accountNumber || body.accountNumberMasked || "",
+      ).replace(/\D/g, "");
       accountNumberMasked = normalizeMask(
         body.accountNumber || body.accountNumberMasked,
       );
       verificationStatus = "Pending";
 
-      if (!bankName || !routingNumber || !accountNumberMasked) {
+      if (!bankName || !routingNumber || !accountDigits) {
         return NextResponse.json(
           {
             error: "Bank name, routing number, and account number are required",
@@ -187,9 +214,14 @@ export async function POST(req: Request) {
         );
       }
     } else {
-      const publicToken = body.public_token || body.publicToken;
+      const publicToken = body.public_token || body.publicToken || body.processor_token;
+      const suppliedProcessorToken =
+        !body.public_token && !body.publicToken && body.processor_token
+          ? String(body.processor_token)
+          : null;
       const metadata = body.metadata || {};
       const selectedAccount = getSelectedPlaidAccount(metadata, plaidAccountId);
+      const institutionId = metadata?.institution?.institution_id;
 
       plaidAccountId =
         plaidAccountId ||
@@ -198,8 +230,9 @@ export async function POST(req: Request) {
         null;
       bankName =
         metadata?.institution?.name || selectedAccount.name || "Verified Bank";
-      bankLogoUrl =
-        metadata?.institution?.logo || metadata?.institution?.logo_url || null;
+      bankLogoUrl = normalizeLogoUrl(
+        metadata?.institution?.logo || metadata?.institution?.logo_url,
+      );
       accountType =
         selectedAccount.subtype || selectedAccount.type || "checking";
       accountNumberMasked = normalizeMask(
@@ -209,6 +242,13 @@ export async function POST(req: Request) {
       if (!plaidAccountId) {
         return NextResponse.json(
           { error: "A checking account must be selected" },
+          { status: 400 },
+        );
+      }
+
+      if (String(accountType).toLowerCase() !== "checking") {
+        return NextResponse.json(
+          { error: "Only checking accounts can be used for direct deposit" },
           { status: 400 },
         );
       }
@@ -223,7 +263,7 @@ export async function POST(req: Request) {
           plaidClient.processorTokenCreate({
             access_token: accessToken,
             account_id: plaidAccountId,
-            processor: "dwolla" as any,
+            processor: ProcessorTokenCreateRequestProcessorEnum.Dwolla,
           }),
           plaidClient.authGet({ access_token: accessToken }),
         ]);
@@ -253,8 +293,27 @@ export async function POST(req: Request) {
           plaidAccount.mask || achNumbers.account,
         );
         routingNumber = achNumbers.routing;
+
+        if (institutionId) {
+          try {
+            const institution = await plaidClient.institutionsGetById({
+              institution_id: institutionId,
+              country_codes: [CountryCode.Us],
+              options: { include_optional_metadata: true },
+            });
+            bankLogoUrl = normalizeLogoUrl(institution.data.institution.logo);
+          } catch (logoError) {
+            console.warn("[Plaid Bank Logo Warning]", logoError);
+          }
+        }
+      } else if (hasPlaidCredentials && !publicToken) {
+        return NextResponse.json(
+          { error: "Plaid public token is required to verify the account" },
+          { status: 400 },
+        );
       } else if (!plaidProcessorToken) {
-        plaidProcessorToken = `mock_processor_${employee.id}_${Date.now()}`;
+        plaidProcessorToken =
+          suppliedProcessorToken || `mock_processor_${employee.id}_${Date.now()}`;
       }
     }
 

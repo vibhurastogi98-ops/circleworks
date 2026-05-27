@@ -1,11 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { employees, employeeBankAccounts, onboardingCases, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { employees, employeeBankAccounts, onboardingCases, users, w4Forms } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { getSession } from "@/lib/session";
 import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
 import { invalidateEmployeeCaches } from "@/lib/redis-cache";
 import { applyEmployeeFieldVisibility } from "@/lib/fieldVisibility";
+
+async function ensureW4CompletionColumns() {
+  await db.execute(sql`
+    ALTER TABLE w4_forms
+      ADD COLUMN IF NOT EXISTS ssn_encrypted text,
+      ADD COLUMN IF NOT EXISTS signature text,
+      ADD COLUMN IF NOT EXISTS signed_at timestamp,
+      ADD COLUMN IF NOT EXISTS status text DEFAULT 'Pending',
+      ADD COLUMN IF NOT EXISTS document_id integer
+  `);
+}
+
+function normalizeBankVerificationStatus(value: unknown) {
+  const status = String(value || "").toLowerCase();
+  if (status === "verified") return "Verified";
+  if (status === "pending") return "Pending";
+  return "Unverified";
+}
+
+function getBankVerificationSummary(bankAccounts?: Array<{ isPrimary?: boolean | null; verificationStatus?: string | null; updatedAt?: Date | null; createdAt?: Date | null }>) {
+  if (!bankAccounts?.length) {
+    return { verificationStatus: "Unverified", verified: false };
+  }
+
+  const primary = [...bankAccounts].sort((a, b) => {
+    if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+    const aDate = a.updatedAt || a.createdAt || new Date(0);
+    const bDate = b.updatedAt || b.createdAt || new Date(0);
+    return bDate.getTime() - aDate.getTime();
+  })[0];
+  const verificationStatus = normalizeBankVerificationStatus(primary.verificationStatus);
+
+  return {
+    verificationStatus,
+    verified: verificationStatus === "Verified",
+  };
+}
+
+function getW4CompletionSummary(w4Form?: typeof w4Forms.$inferSelect | null) {
+  if (!w4Form) {
+    return { status: "Not Started", completed: false };
+  }
+
+  const completed = (w4Form.status || "").toLowerCase() === "completed" || Boolean(w4Form.signedAt);
+
+  return {
+    status: completed ? "Completed" : w4Form.status || "Pending",
+    completed,
+    signedAt: w4Form.signedAt ? w4Form.signedAt.toISOString().split("T")[0] : null,
+    documentId: w4Form.documentId,
+  };
+}
 
 export async function GET(
   req: NextRequest,
@@ -36,27 +88,43 @@ export async function GET(
       requesterEmployeeId = requesterUser.employees?.[0]?.id ?? null;
     }
 
-    const employee = await db.query.employees.findFirst({
-      where: eq(employees.id, employeeId),
-      with: {
-        manager: true,
-        subordinates: true,
-        ptoRequests: true,
-        timesheets: true,
-        documents: true,
-        bankAccounts: true,
-        onboardingCases: true,
-        assetAssignments: {
-          with: {
-            asset: true,
+    await ensureW4CompletionColumns();
+
+    const [employee, w4Form] = await Promise.all([
+      db.query.employees.findFirst({
+        where: eq(employees.id, employeeId),
+        with: {
+          manager: true,
+          subordinates: true,
+          ptoRequests: true,
+          timesheets: true,
+          documents: true,
+          bankAccounts: true,
+          onboardingCases: true,
+          assetAssignments: {
+            with: {
+              asset: true,
+            },
           },
         },
-      }
-    });
+      }),
+      db.query.w4Forms.findFirst({
+        where: eq(w4Forms.employeeId, employeeId),
+      }),
+    ]);
 
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
+
+    const employeeWithSensitiveRelations = employee as typeof employee & {
+      bankAccounts?: Array<{
+        isPrimary?: boolean | null;
+        verificationStatus?: string | null;
+        updatedAt?: Date | null;
+        createdAt?: Date | null;
+      }>;
+    };
 
     const isSelf = requesterEmployeeId === employeeId;
     const isManager = requesterEmployeeId === employee.managerId;
@@ -65,8 +133,15 @@ export async function GET(
       isSelf,
       isManager,
     });
+    const bankAccount = getBankVerificationSummary(employeeWithSensitiveRelations.bankAccounts);
 
-    return NextResponse.json(sanitized);
+    delete (sanitized as Record<string, unknown>).bankAccounts;
+
+    return NextResponse.json({
+      ...sanitized,
+      bankAccount,
+      w4Status: getW4CompletionSummary(w4Form),
+    });
   } catch (error: any) {
     console.error("[Employee GET Error]", error);
     return NextResponse.json({ error: "Failed to fetch employee" }, { status: 500 });

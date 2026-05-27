@@ -4,20 +4,52 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Building2, Users, Calculator, AlertTriangle, CheckCircle2, 
-  ChevronRight, Download, Shield, Calendar, Search, FileText, Info
+  Download, Shield, Calendar, Search, Info
 } from "lucide-react";
 
+interface PaidLeaveState {
+  id: string;
+  stateCode: string;
+  stateName: string;
+  programName: string;
+  employeeRate: number;
+  employerRate: number;
+  wageBase: number | null;
+  employerWageBase?: number | null;
+  wageBaseLabel?: string;
+  employeeCount: number;
+  alert?: string | null;
+  rateNote?: string;
+}
+
+interface EmployeeOption {
+  id: string;
+  firstName?: string;
+  lastName?: string | null;
+  name?: string;
+  location?: string | null;
+}
+
 export default function PaidLeaveTrackerPage() {
-  const [states, setStates] = useState<any[]>([]);
+  const [states, setStates] = useState<PaidLeaveState[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Calculator state
   const [calcStateId, setCalcStateId] = useState<string>("");
   const [calcPayroll, setCalcPayroll] = useState<string>("");
-  const [calcResult, setCalcResult] = useState<any>(null);
+  const [calcResult, setCalcResult] = useState<{
+    eeContribution: number;
+    erContribution: number;
+    totalDue: number;
+    employeeTaxable: number;
+    employerTaxable: number;
+    deductionCode: string;
+    employerCostCode: string;
+  } | null>(null);
 
   // Employee Check state
   const [empSearchId, setEmpSearchId] = useState<string>("EMP-001");
+  const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [empData, setEmpData] = useState<any>(null);
   const [empLoading, setEmpLoading] = useState(false);
 
@@ -39,19 +71,53 @@ export default function PaidLeaveTrackerPage() {
     fetchStates();
   }, []);
 
+  useEffect(() => {
+    async function fetchEmployees() {
+      try {
+        const res = await fetch("/api/employees", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const options = Array.isArray(data)
+          ? data.map((employee: any) => ({
+              id: String(employee.id),
+              firstName: employee.firstName,
+              lastName: employee.lastName,
+              name: employee.name,
+              location: employee.location,
+            }))
+          : [];
+        setEmployeeOptions(options);
+        if (options.length > 0) {
+          setEmpSearchId(options[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    fetchEmployees();
+  }, []);
+
   const handleCalculate = () => {
     const state = states.find(s => s.id === calcStateId);
     const payrollAmt = parseFloat(calcPayroll);
     if (!state || isNaN(payrollAmt)) return;
 
-    const eeContribution = payrollAmt * (state.employeeRate / 100);
-    const erContribution = payrollAmt * (state.employerRate / 100);
+    const employeeTaxable = state.wageBase === null ? payrollAmt : Math.min(payrollAmt, state.wageBase);
+    const employerBase = state.employerWageBase ?? state.wageBase;
+    const employerTaxable = employerBase === null ? payrollAmt : Math.min(payrollAmt, employerBase);
+    const eeContribution = employeeTaxable * (state.employeeRate / 100);
+    const erContribution = employerTaxable * (state.employerRate / 100);
     const totalDue = eeContribution + erContribution;
 
     setCalcResult({
       eeContribution,
       erContribution,
-      totalDue
+      totalDue,
+      employeeTaxable,
+      employerTaxable,
+      deductionCode: `${state.stateCode}_${state.programName.replace(/\W+/g, "_")}_EE`,
+      employerCostCode: `${state.stateCode}_${state.programName.replace(/\W+/g, "_")}_ER`,
     });
   };
 
@@ -181,7 +247,12 @@ export default function PaidLeaveTrackerPage() {
                           </span>
                         </td>
                         <td className="py-4 text-slate-600 dark:text-slate-300">
-                          ${state.wageBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {state.wageBaseLabel ?? (state.wageBase === null ? "No wage cap" : `$${state.wageBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}`)}
+                          {state.rateNote && (
+                            <div className="mt-1 max-w-[12rem] text-[11px] leading-snug text-slate-400">
+                              {state.rateNote}
+                            </div>
+                          )}
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
@@ -292,6 +363,12 @@ export default function PaidLeaveTrackerPage() {
                   >
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
+                        <span className="text-slate-500">Taxable Payroll:</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">
+                          ${calcResult.employeeTaxable.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
                         <span className="text-slate-500">EE Deduction:</span>
                         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                           +${calcResult.eeContribution.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -312,7 +389,7 @@ export default function PaidLeaveTrackerPage() {
                         </div>
                         <div className="flex gap-1.5 items-start mt-1 text-xs text-blue-600 dark:text-blue-300/80 bg-blue-100/50 dark:bg-blue-800/30 p-2 rounded">
                           <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
-                          <p>Auto-adds to payroll deductions and employer costs in payroll run.</p>
+                          <p>Queued as payroll deduction {calcResult.deductionCode} and employer cost {calcResult.employerCostCode}.</p>
                         </div>
                       </div>
                     </div>
@@ -330,13 +407,30 @@ export default function PaidLeaveTrackerPage() {
             </h3>
             
             <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Enter Employee ID (e.g. 1)"
-                value={empSearchId}
-                onChange={(e) => setEmpSearchId(e.target.value)}
-                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
-              />
+              {employeeOptions.length > 0 ? (
+                <select
+                  value={empSearchId}
+                  onChange={(e) => setEmpSearchId(e.target.value)}
+                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                >
+                  {employeeOptions.map((employee) => {
+                    const displayName = employee.name ?? `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim();
+                    return (
+                      <option key={employee.id} value={employee.id}>
+                        {displayName || `Employee ${employee.id}`} {employee.location ? `- ${employee.location}` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Enter Employee ID (e.g. 1)"
+                  value={empSearchId}
+                  onChange={(e) => setEmpSearchId(e.target.value)}
+                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                />
+              )}
               <button 
                 onClick={handleCheckEmployee}
                 disabled={empLoading || !empSearchId}
@@ -359,12 +453,17 @@ export default function PaidLeaveTrackerPage() {
                     </div>
                     <div>
                       <div className="font-bold">{empData.name}</div>
-                      <div className="text-xs text-slate-500">ID: {empData.employeeId} • {empData.ptoBalance} hrs PTO</div>
+                      <div className="text-xs text-slate-500">ID: {empData.employeeId} - {empData.location} - {empData.ptoBalance} hrs PTO</div>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Qualifying Programs</div>
+                    {empData.programs.length === 0 && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-500">
+                        No supported state paid leave program was detected for this employee's work location.
+                      </div>
+                    )}
                     {empData.programs.map((prog: any) => (
                       <div key={prog.id} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
                         <div className="flex items-center justify-between mb-1">
@@ -383,6 +482,9 @@ export default function PaidLeaveTrackerPage() {
                             <span className="text-slate-400 block mb-0.5">Max Benefit</span>
                             <span className="font-medium">{prog.accrued}</span>
                           </div>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500">
+                          {prog.leaveBalance}
                         </div>
                       </div>
                     ))}

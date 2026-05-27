@@ -39,7 +39,7 @@ type StateCompliance = {
   lawName: string;
   effectiveDate: string;
   requirements: string;
-  status: "Compliant" | "Action Required" | "Monitor";
+  status: "Compliant" | "Action Required" | "Not Applicable";
   action: string;
 };
 
@@ -63,6 +63,8 @@ type PayBand = {
   role: string;
   department: string;
   location: string;
+  gender?: string;
+  raceEthnicity?: string;
   bandMin: number;
   bandMid: number;
   bandMax: number;
@@ -73,11 +75,22 @@ type PayBand = {
 
 type DistData = {
   name: string;
+  role: string;
   min: number;
   bottom: number;
   top: number;
   max: number;
+  median: number;
   avg: number;
+  iqr: [number, number];
+};
+
+type AnalysisFilters = {
+  roles: string[];
+  departments: string[];
+  locations: string[];
+  genders: string[];
+  raceEthnicities: string[];
 };
 
 // --- Mock Data fetching simulation ---
@@ -93,6 +106,14 @@ async function fetchAnalysis() {
   return res.json();
 }
 
+const FILTERS = [
+  { id: "role", label: "Role" },
+  { id: "department", label: "Department" },
+  { id: "location", label: "Location" },
+  { id: "gender", label: "Gender" },
+  { id: "raceEthnicity", label: "Race/Ethnicity" },
+] as const;
+
 // Custom Tooltip for Band Chart
 const BandTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -102,13 +123,16 @@ const BandTooltip = ({ active, payload, label }: any) => {
         <p className="font-semibold text-slate-800 dark:text-slate-100 mb-2">{label}</p>
         <div className="space-y-1 text-sm">
           <p className="text-slate-500 dark:text-slate-400">
-            Band Max: <span className="font-medium text-slate-700 dark:text-slate-200">${data.max.toLocaleString()}</span>
+            Whisker: <span className="font-medium text-slate-700 dark:text-slate-200">${data.min.toLocaleString()} - ${data.max.toLocaleString()}</span>
+          </p>
+          <p className="text-slate-500 dark:text-slate-400">
+            IQR: <span className="font-medium text-slate-700 dark:text-slate-200">${data.bottom.toLocaleString()} - ${data.top.toLocaleString()}</span>
           </p>
           <p className="text-slate-500 dark:text-slate-400">
             Average Actual: <span className="font-medium text-blue-600 dark:text-blue-400">${data.avg.toLocaleString()}</span>
           </p>
           <p className="text-slate-500 dark:text-slate-400">
-            Band Min: <span className="font-medium text-slate-700 dark:text-slate-200">${data.min.toLocaleString()}</span>
+            Median: <span className="font-medium text-slate-700 dark:text-slate-200">${data.median.toLocaleString()}</span>
           </p>
         </div>
       </div>
@@ -123,9 +147,23 @@ export default function PayEquityPage() {
   const [payGaps, setPayGaps] = useState<PayGap[]>([]);
   const [payBands, setPayBands] = useState<PayBand[]>([]);
   const [distData, setDistData] = useState<DistData[]>([]);
+  const [filters, setFilters] = useState<AnalysisFilters>({
+    roles: ["All"],
+    departments: ["All"],
+    locations: ["All"],
+    genders: ["All"],
+    raceEthnicities: ["All"],
+  });
   
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("bands");
+  const [activeFilter, setActiveFilter] = useState<(typeof FILTERS)[number]["id"]>("role");
+  const [selectedFilters, setSelectedFilters] = useState({
+    role: "All",
+    department: "All",
+    location: "All",
+    gender: "All",
+    raceEthnicity: "All",
+  });
 
   useEffect(() => {
     Promise.all([fetchStates(), fetchAnalysis()]).then(([states, analysis]) => {
@@ -134,6 +172,7 @@ export default function PayEquityPage() {
       setPayGaps(analysis.payGaps);
       setPayBands(analysis.bands);
       setDistData(analysis.distributionData);
+      setFilters(analysis.filters);
       setLoading(false);
     }).catch(err => {
       console.error(err);
@@ -151,6 +190,24 @@ export default function PayEquityPage() {
 
   // --- Helpers ---
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+  const filterOptions =
+    activeFilter === "role" ? filters.roles :
+    activeFilter === "department" ? filters.departments :
+    activeFilter === "location" ? filters.locations :
+    activeFilter === "gender" ? filters.genders :
+    filters.raceEthnicities;
+  const filteredPayBands = payBands.filter((band) =>
+    (selectedFilters.role === "All" || band.role === selectedFilters.role) &&
+    (selectedFilters.department === "All" || band.department === selectedFilters.department) &&
+    (selectedFilters.location === "All" || band.location === selectedFilters.location) &&
+    (selectedFilters.gender === "All" || (band.gender || "All") === selectedFilters.gender) &&
+    (selectedFilters.raceEthnicity === "All" || (band.raceEthnicity || "All") === selectedFilters.raceEthnicity)
+  );
+  const filteredDistData = distData.filter((row) => {
+    const band = payBands.find((entry) => row.role === entry.role);
+    if (!band) return true;
+    return filteredPayBands.some((entry) => entry.role === band.role);
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -236,16 +293,40 @@ export default function PayEquityPage() {
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Pay Band Distribution</h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Salary ranges and actual averages by role</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-                  <Filter className="h-3.5 w-3.5" /> Filters
-                </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => setActiveFilter(filter.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      activeFilter === filter.id
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
+                    By {filter.label}
+                  </button>
+                ))}
               </div>
+            </div>
+            <div className="px-6 pt-4">
+              <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Filter className="h-3.5 w-3.5" /> Active Filter
+              </label>
+              <select
+                value={selectedFilters[activeFilter]}
+                onChange={(event) => setSelectedFilters((current) => ({ ...current, [activeFilter]: event.target.value }))}
+                className="mt-2 w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              >
+                {filterOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </div>
             
             <div className="p-6 h-[400px]">
               <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                <BarChart data={distData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={40}>
+                <BarChart data={filteredDistData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barSize={40}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
                   <YAxis 
@@ -256,23 +337,22 @@ export default function PayEquityPage() {
                     domain={['dataMin - 10000', 'dataMax + 10000']}
                   />
                   <RechartsTooltip content={<BandTooltip />} cursor={{fill: 'transparent'}} />
-                  {/* Floating bar logic for Recharts: pass array to dataKey */}
-                  <Bar dataKey="range" fill="#e2e8f0" radius={[4, 4, 4, 4]} className="dark:fill-slate-700" />
+                  <Bar dataKey="range" fill="#dbeafe" radius={[4, 4, 4, 4]} />
+                  <Bar dataKey="iqr" fill="#6366f1" radius={[4, 4, 4, 4]} />
                   </BarChart>
               </ResponsiveContainer>
-              {/* Note: I'll refine the Recharts implementation. Standard Recharts can do [min, max] range bar charts natively by passing an array for dataKey if we want. But the user prompt says "box plot showing salary distribution". We'll simplify to layered visuals. */}
             </div>
 
             {/* In a real implementation we could use Recharts composed chart to overlay custom shapes for the IQR / Whiskers. Let's make an approximation using HTML overlays or just keep it illustrative. */}
             <div className="px-6 pb-6 pt-2 bg-slate-50/50 dark:bg-slate-800/10 border-t border-slate-100 dark:border-slate-800/50">
                <div className="flex items-center gap-6 text-sm">
                  <div className="flex items-center gap-2">
-                   <div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded rounded-sm"></div>
-                   <span className="text-slate-600 dark:text-slate-400">Target Band (Min-Max)</span>
+                   <div className="w-4 h-4 bg-blue-100 rounded rounded-sm"></div>
+                   <span className="text-slate-600 dark:text-slate-400">Whisker (Min-Max)</span>
                  </div>
                  <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                   <span className="text-slate-600 dark:text-slate-400">Actual Average</span>
+                   <div className="w-4 h-4 rounded bg-indigo-500"></div>
+                   <span className="text-slate-600 dark:text-slate-400">Box (IQR)</span>
                  </div>
                </div>
             </div>
@@ -295,7 +375,7 @@ export default function PayEquityPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                  {payBands.map((band, idx) => (
+                  {filteredPayBands.map((band, idx) => (
                     <tr key={idx} className="hover:bg-slate-50 hover:dark:bg-slate-800/50 transition-colors">
                       <td className="p-4">
                         <div className="font-medium text-slate-900 dark:text-slate-100">{band.role}</div>
@@ -387,6 +467,10 @@ export default function PayEquityPage() {
                     {st.status === 'Compliant' ? (
                       <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-full">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Compliant
+                      </span>
+                    ) : st.status === 'Not Applicable' ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
+                        Not Applicable
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-full">

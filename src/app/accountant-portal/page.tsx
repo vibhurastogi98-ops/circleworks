@@ -4,10 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Building2, Users, DollarSign, Clock, AlertTriangle,
-  TrendingUp, CalendarDays, ChevronRight, Play, BarChart3,
+  Building2, Users, DollarSign,
+  TrendingUp, CalendarDays, Play, BarChart3,
   Settings, CheckCircle2, ArrowUpRight, Shield, FileText,
-  ExternalLink, Zap, CircleDot
 } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
 
@@ -57,7 +56,7 @@ const STATUS_STYLES = {
     text: "text-emerald-700 dark:text-emerald-400",
     dot: "bg-emerald-500",
     border: "border-emerald-200 dark:border-emerald-500/20",
-    label: "On Time",
+    label: "Payroll On Time",
   },
   action_required: {
     bg: "bg-amber-50 dark:bg-amber-500/10",
@@ -238,26 +237,48 @@ export default function AccountantPortalPage() {
           </div>
         </Link>
 
-        {/* Total Payroll Volume */}
+        {/* Tax Deadlines */}
         <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 p-5 group hover:shadow-lg hover:shadow-emerald-500/5 transition-all hover:-translate-y-0.5">
           <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-bl-[60px]" />
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center">
-              <TrendingUp size={20} className="text-emerald-600 dark:text-emerald-400" />
+              <FileText size={20} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Monthly Volume
+              Tax Deadlines
             </span>
           </div>
           <div>
             <p className="text-[32px] font-extrabold text-slate-900 dark:text-white leading-none">
-              {formatCurrency(summary.totalPayrollVolumeThisMonth)}
+              {summary.taxDeadlines}
             </p>
             <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1">
-              Total payroll across all clients
+              Due in the next 30 days
             </p>
           </div>
         </div>
+      </motion.div>
+
+      <motion.div
+        variants={itemVariants}
+        className="rounded-2xl bg-slate-900 dark:bg-slate-800 border border-slate-800 dark:border-slate-700 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+            <TrendingUp size={20} className="text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-[12px] font-bold uppercase tracking-wider text-slate-400">
+              Aggregate payroll volume this month
+            </p>
+            <p className="text-[24px] font-extrabold text-white leading-tight">
+              {formatCurrency(summary.totalPayrollVolumeThisMonth)}
+            </p>
+          </div>
+        </div>
+        <p className="text-[12px] text-slate-400 sm:text-right">
+          Current run rate across {summary.totalClients} managed client companies
+        </p>
       </motion.div>
 
       {/* ─── CLIENT LIST TABLE + TIMELINE ─── */}
@@ -363,23 +384,26 @@ export default function AccountantPortalPage() {
                         <td className="px-6 py-3.5">
                           <div className="flex items-center justify-end gap-1.5">
                             <Link
-                              href={`/c/${client.slug}/dashboard`}
+                              href={`/c/${client.slug}/dashboard#run-payroll`}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 transition-all"
                               title="Run Payroll"
+                              aria-label={`Run payroll for ${client.name}`}
                             >
                               <Play size={14} />
                             </Link>
                             <Link
-                              href={`/c/${client.slug}/dashboard`}
+                              href={`/c/${client.slug}/dashboard#reports`}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 transition-all"
                               title="View Reports"
+                              aria-label={`View reports for ${client.name}`}
                             >
                               <BarChart3 size={14} />
                             </Link>
                             <Link
-                              href={`/c/${client.slug}/dashboard`}
+                              href={`/c/${client.slug}/dashboard#settings`}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 dark:hover:text-slate-300 transition-all"
                               title="Open Settings"
+                              aria-label={`Open settings for ${client.name}`}
                             >
                               <Settings size={14} />
                             </Link>

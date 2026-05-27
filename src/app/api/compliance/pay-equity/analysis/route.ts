@@ -6,6 +6,8 @@ const payBandAnalysis = {
       role: 'Software Engineer I',
       department: 'Engineering',
       location: 'Remote',
+      gender: 'All',
+      raceEthnicity: 'All',
       bandMin: 85000,
       bandMid: 105000,
       bandMax: 125000,
@@ -17,6 +19,8 @@ const payBandAnalysis = {
       role: 'Software Engineer II',
       department: 'Engineering',
       location: 'Remote',
+      gender: 'All',
+      raceEthnicity: 'All',
       bandMin: 110000,
       bandMid: 135000,
       bandMax: 160000,
@@ -28,6 +32,8 @@ const payBandAnalysis = {
       role: 'Senior Software Engineer',
       department: 'Engineering',
       location: 'Remote',
+      gender: 'All',
+      raceEthnicity: 'All',
       bandMin: 145000,
       bandMid: 175000,
       bandMax: 205000,
@@ -39,6 +45,8 @@ const payBandAnalysis = {
       role: 'Product Manager',
       department: 'Product',
       location: 'New York, NY',
+      gender: 'All',
+      raceEthnicity: 'All',
       bandMin: 120000,
       bandMid: 145000,
       bandMax: 170000,
@@ -50,6 +58,8 @@ const payBandAnalysis = {
       role: 'Marketing Specialist',
       department: 'Marketing',
       location: 'Remote',
+      gender: 'All',
+      raceEthnicity: 'All',
       bandMin: 70000,
       bandMid: 85000,
       bandMax: 100000,
@@ -89,11 +99,11 @@ const payBandAnalysis = {
     },
   ],
   distributionData: [
-    { name: 'SE I', min: 85000, bottom: 95000, top: 110000, max: 125000, avg: 102500, range: [85000, 125000] },
-    { name: 'SE II', min: 110000, bottom: 125000, top: 150000, max: 160000, avg: 141000, range: [110000, 160000] },
-    { name: 'Sr SE', min: 145000, bottom: 160000, top: 190000, max: 205000, avg: 180000, range: [145000, 205000] },
-    { name: 'PM', min: 120000, bottom: 130000, top: 155000, max: 170000, avg: 138000, range: [120000, 170000] },
-    { name: 'Mktg', min: 70000, bottom: 75000, top: 90000, max: 100000, avg: 82000, range: [70000, 100000] },
+    { name: 'SE I', role: 'Software Engineer I', min: 85000, bottom: 95000, median: 104000, top: 110000, max: 125000, avg: 102500, range: [85000, 125000], iqr: [95000, 110000] },
+    { name: 'SE II', role: 'Software Engineer II', min: 110000, bottom: 125000, median: 139000, top: 150000, max: 160000, avg: 141000, range: [110000, 160000], iqr: [125000, 150000] },
+    { name: 'Sr SE', role: 'Senior Software Engineer', min: 145000, bottom: 160000, median: 178000, top: 190000, max: 205000, avg: 180000, range: [145000, 205000], iqr: [160000, 190000] },
+    { name: 'PM', role: 'Product Manager', min: 120000, bottom: 130000, median: 142000, top: 155000, max: 170000, avg: 138000, range: [120000, 170000], iqr: [130000, 155000] },
+    { name: 'Mktg', role: 'Marketing Specialist', min: 70000, bottom: 75000, median: 83500, top: 90000, max: 100000, avg: 82000, range: [70000, 100000], iqr: [75000, 90000] },
   ],
   alerts: [
     {
@@ -128,5 +138,14 @@ const payBandAnalysis = {
 };
 
 export async function GET() {
-  return NextResponse.json(payBandAnalysis);
+  return NextResponse.json({
+    ...payBandAnalysis,
+    filters: {
+      roles: ['All', ...payBandAnalysis.bands.map((band) => band.role)],
+      departments: ['All', ...Array.from(new Set(payBandAnalysis.bands.map((band) => band.department)))],
+      locations: ['All', ...Array.from(new Set(payBandAnalysis.bands.map((band) => band.location)))],
+      genders: ['All', 'Female', 'Male', 'Nonbinary / Not disclosed'],
+      raceEthnicities: ['All', 'Asian', 'Black or African American', 'Hispanic/Latino', 'White', 'Two or more races', 'Not disclosed'],
+    },
+  });
 }

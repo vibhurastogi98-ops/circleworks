@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { assets, assetAssignments } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/session";
+import { and, eq } from "drizzle-orm";
+import { getSession, resolveUserContext } from "@/lib/session";
 
 // GET — fetch single asset with full assignment history
 export async function GET(
@@ -10,6 +10,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
     const { id } = await params;
     const assetId = parseInt(id);
 
@@ -18,7 +28,7 @@ export async function GET(
     }
 
     const asset = await db.query.assets.findFirst({
-      where: eq(assets.id, assetId),
+      where: and(eq(assets.id, assetId), eq(assets.companyId, ctx.companyId)),
       with: {
         assignments: {
           with: {
@@ -53,6 +63,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
     const { id } = await params;
     const assetId = parseInt(id);
     const body = await req.json();
@@ -73,8 +88,12 @@ export async function PATCH(
         notes: body.notes || null,
         updatedAt: new Date(),
       })
-      .where(eq(assets.id, assetId))
+      .where(and(eq(assets.id, assetId), eq(assets.companyId, ctx.companyId)))
       .returning();
+
+    if (!updated) {
+      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+    }
 
     return NextResponse.json(updated);
   } catch (error: any) {
@@ -97,6 +116,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
     const { id } = await params;
     const assetId = parseInt(id);
 
@@ -105,12 +129,19 @@ export async function DELETE(
     }
 
     // Delete assignments first
-    await db
-      .delete(assetAssignments)
-      .where(eq(assetAssignments.assetId, assetId));
+    const [asset] = await db
+      .select({ id: assets.id })
+      .from(assets)
+      .where(and(eq(assets.id, assetId), eq(assets.companyId, ctx.companyId)));
+
+    if (!asset) {
+      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+    }
+
+    await db.delete(assetAssignments).where(eq(assetAssignments.assetId, assetId));
 
     // Delete asset
-    await db.delete(assets).where(eq(assets.id, assetId));
+    await db.delete(assets).where(and(eq(assets.id, assetId), eq(assets.companyId, ctx.companyId)));
 
     return NextResponse.json({ message: "Asset deleted successfully" });
   } catch (error: any) {

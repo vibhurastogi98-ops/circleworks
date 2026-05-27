@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2, Search, Plus, ChevronRight, ChevronDown,
+  Building2, Search, Plus, ChevronRight,
   Users, LogOut, Moon, Sun, Bell, Settings, LayoutGrid,
-  ArrowLeft, Menu, X, CheckCircle2
+  Menu, X, CheckCircle2
 } from "lucide-react";
 
 import { usePlatformStore } from "@/store/usePlatformStore";
@@ -24,7 +24,7 @@ interface ClientCompany {
 }
 
 const STATUS_CONFIG = {
-  on_time: { color: "bg-emerald-500", ring: "ring-emerald-500/20", label: "On Time" },
+  on_time: { color: "bg-emerald-500", ring: "ring-emerald-500/20", label: "Payroll On Time" },
   action_required: { color: "bg-amber-500", ring: "ring-amber-500/20", label: "Action Needed" },
   issue: { color: "bg-red-500", ring: "ring-red-500/20", label: "Issue" },
 };
@@ -35,7 +35,6 @@ export default function AccountantPortalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   // Guest Mode: Authentication disabled
   const signOut = (options?: { redirectUrl?: string }) => { window.location.href = options?.redirectUrl || "/"; };
 
@@ -43,7 +42,6 @@ export default function AccountantPortalLayout({
   const [clients, setClients] = useState<ClientCompany[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [mounted, setMounted] = useState(false);
 
   // Hardcoded guest accountant info
   const displayName = "Senior Accountant";
@@ -51,7 +49,6 @@ export default function AccountantPortalLayout({
 
 
   useEffect(() => {
-    setMounted(true);
     // Sync dark mode  
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -257,6 +254,18 @@ export default function AccountantPortalLayout({
                   {clients.length} companies managed
                 </span>
               </div>
+            </div>
+
+            <div className="hidden md:block relative w-full max-w-md mx-6">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                placeholder="Search clients, payrolls, deadlines..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 pl-9 pr-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800 text-[13px] text-slate-700 dark:text-slate-300 placeholder:text-slate-400 outline-none transition-all"
+                aria-label="Global accountant portal search"
+              />
             </div>
 
             <div className="flex items-center gap-2">

@@ -123,7 +123,7 @@ export class WebsocketsService {
 
   emitEmployeeAutoCreatedFromAts(
     companyId: string,
-    data: { employeeId: string; candidateId: string },
+    data: { employeeId: string; candidateId: string; personalEmail?: string },
   ) {
     this.eventsGateway.emitToCompany(
       companyId,

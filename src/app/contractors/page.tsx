@@ -18,7 +18,7 @@ const SUB_NAV = [
   { label: "Contracts", href: "/contractors/contracts" },
   { label: "Payments", href: "/contractors/payments" },
   { label: "1099s", href: "/contractors/1099s" },
-  { label: "Contractor Portal", href: "/contractors/portal" },
+  { label: "Contractor Portal", href: "/contractor-portal" },
 ];
 
 function ContractorSubNav({ active }: { active: string }) {

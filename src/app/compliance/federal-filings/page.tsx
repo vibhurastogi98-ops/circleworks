@@ -1,17 +1,73 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  FileText, Calendar, Building2, UploadCloud, AlertCircle, CheckCircle2,
-  Download, FileWarning, ArrowRight, Code, ShieldCheck, HelpCircle, Eye
+  FileText, Calendar, Building2, UploadCloud, CheckCircle2,
+  Download, FileWarning, ArrowRight, Code, ShieldCheck, Eye, Map
 } from "lucide-react";
 import { toast } from "sonner";
+
+interface FilingCard {
+  form: string;
+  label: string;
+  dueDate: string;
+  status: "Not Started" | "Draft" | "Filed" | "Amended" | "Not Applicable";
+  amountDue: number;
+}
+
+interface FederalFilingData {
+  quarter: string;
+  year: number;
+  dueDate: string;
+  status: string;
+  amountDue: number;
+  payrollRunCount: number;
+  line1_employees: number;
+  line2_wages: number;
+  line3_federalWithheld: number;
+  line5a_socialSecurity: number;
+  line5c_medicare: number;
+  line5d_additionalMedicare: number;
+  line5e_totalFica: number;
+  line13_deposits: number;
+  line14_balanceDue: number;
+  detailLinks: Record<string, string>;
+  form940: {
+    year: number;
+    status: string;
+    dueDate: string;
+    totalPayments: number;
+    exemptPayments: number;
+    excessWages: number;
+    futaTaxableWages: number;
+    futaGrossTax: number;
+    futaCredit: number;
+    stateCreditReduction: number;
+    taxDue: number;
+    creditReductionStates: Array<{ stateCode: string; taxableWages: number; rate: number; amount: number }>;
+  };
+  dashboardCards: FilingCard[];
+  xmlPreview: string;
+}
+
+function currency(value: number | undefined) {
+  return `$${(value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function statusColor(status: string) {
+  if (status === "Draft") return "text-blue-600 dark:text-blue-400";
+  if (status === "Filed") return "text-emerald-600 dark:text-emerald-400";
+  if (status === "Amended") return "text-purple-600 dark:text-purple-400";
+  if (status === "Not Started") return "text-amber-600 dark:text-amber-400";
+  return "text-slate-500";
+}
 
 export default function FederalFilingsPage() {
   const [activeTab, setActiveTab] = useState<"941" | "940" | "submit">("941");
   const [loading941, setLoading941] = useState(true);
-  const [data941, setData941] = useState<any>(null);
+  const [data941, setData941] = useState<FederalFilingData | null>(null);
+  const [amendmentDraft, setAmendmentDraft] = useState<{ form: string; sourceQuarter: string; status: string } | null>(null);
 
   // E-File State
   const [submitting, setSubmitting] = useState(false);
@@ -44,7 +100,7 @@ export default function FederalFilingsPage() {
         body: JSON.stringify({
           formType: selectedForm,
           submissionMethod,
-          data: { quarter: "Q1-2026" } // Mock payload
+          data: { quarter: data941?.quarter || "Q1-2026" }
         })
       });
       const data = await res.json();
@@ -57,10 +113,22 @@ export default function FederalFilingsPage() {
   };
 
   const handleAmend941 = () => {
+    setAmendmentDraft({
+      form: "941-X",
+      sourceQuarter: data941?.quarter || "Q1-2026",
+      status: "Draft",
+    });
     toast.info("Initiating Form 941-X Amendment Workflow...", {
        description: "Extracting amended differentials from the Q1 payroll corrections."
     });
   };
+
+  const filingCards: FilingCard[] = data941?.dashboardCards ?? [
+    { form: "941", label: "941 (Due Q1)", dueDate: "Apr 30, 2026", status: "Draft", amountDue: 0 },
+    { form: "940", label: "940 (Due Jan 31)", dueDate: "Jan 31, 2027", status: "Not Started", amountDue: 0 },
+    { form: "944", label: "944 (Annual)", dueDate: "Jan 31, 2027", status: "Not Applicable", amountDue: 0 },
+    { form: "state", label: "State Filings", dueDate: "Varies", status: "Draft", amountDue: 0 },
+  ];
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8 pb-32">
@@ -92,63 +160,36 @@ export default function FederalFilingsPage() {
 
       {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {[
-          { 
-            title: "Form 941", 
-            subtitle: "Quarterly Returns", 
-            dueDate: "Apr 30, 2026", 
-            status: "Draft", 
-            amount: "$127,710.00",
-            icon: <FileText className="text-blue-500" size={24} />,
-            bg: "bg-blue-50 dark:bg-blue-500/10",
-            border: "border-blue-100 dark:border-blue-500/20"
-          },
-          { 
-            title: "Form 940", 
-            subtitle: "Annual FUTA", 
-            dueDate: "Jan 31, 2027", 
-            status: "Not Started", 
-            amount: "$TBD",
-            icon: <Calendar className="text-amber-500" size={24} />,
-            bg: "bg-amber-50 dark:bg-amber-500/10",
-            border: "border-amber-100 dark:border-amber-500/20"
-          },
-          { 
-            title: "Form 944", 
-            subtitle: "Annual Returns", 
-            dueDate: "Exempt", 
-            status: "N/A", 
-            amount: "$0.00",
-            icon: <FileWarning className="text-slate-500" size={24} />,
-            bg: "bg-slate-50 dark:bg-slate-800",
-            border: "border-slate-100 dark:border-slate-700"
-          },
-          { 
-            title: "State Filings", 
-            subtitle: "Multiple Tax Types", 
-            dueDate: "Varies", 
-            status: "3 Pending", 
-            amount: "View details",
-            icon: <Building2 className="text-emerald-500" size={24} />,
-            bg: "bg-emerald-50 dark:bg-emerald-500/10",
-            border: "border-emerald-100 dark:border-emerald-500/20"
-          }
-        ].map((card, idx) => (
-          <div 
-             key={idx} 
+        {filingCards.map((card) => {
+          const iconMap: Record<string, React.ReactNode> = {
+            "941": <FileText className="text-blue-500" size={24} />,
+            "940": <Calendar className="text-amber-500" size={24} />,
+            "944": <FileWarning className="text-slate-500" size={24} />,
+            state: <Building2 className="text-emerald-500" size={24} />,
+          };
+          const toneMap: Record<string, { bg: string; border: string; subtitle: string }> = {
+            "941": { bg: "bg-blue-50 dark:bg-blue-500/10", border: "border-blue-100 dark:border-blue-500/20", subtitle: "Quarterly Returns" },
+            "940": { bg: "bg-amber-50 dark:bg-amber-500/10", border: "border-amber-100 dark:border-amber-500/20", subtitle: "Annual FUTA" },
+            "944": { bg: "bg-slate-50 dark:bg-slate-800", border: "border-slate-100 dark:border-slate-700", subtitle: "Annual Returns" },
+            state: { bg: "bg-emerald-50 dark:bg-emerald-500/10", border: "border-emerald-100 dark:border-emerald-500/20", subtitle: "State payroll tax filings" },
+          };
+          const tone = toneMap[card.form] ?? toneMap.state;
+          return (
+          <div
+             key={card.form}
              onClick={() => {
-                if (card.title.includes("941")) setActiveTab("941");
-                else if (card.title.includes("940")) setActiveTab("940");
-                else if (card.title.includes("944")) toast.info("Form 944 currently exempt/Not applicable.", { description: "Your company files quarterly 941s instead." });
+                if (card.form === "941") setActiveTab("941");
+                else if (card.form === "940") setActiveTab("940");
+                else if (card.form === "944") toast.info("Form 944 annual return", { description: "Your company is currently configured for quarterly 941 filing." });
                 else toast.success("Redirecting to detailed State Tax Filings dashboard...");
              }}
              className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300 dark:hover:border-blue-700"
           >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border ${card.bg} ${card.border}`}>
-              {card.icon}
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border ${tone.bg} ${tone.border}`}>
+              {iconMap[card.form]}
             </div>
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">{card.title}</h3>
-            <p className="text-sm text-slate-500">{card.subtitle}</p>
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white">{card.label}</h3>
+            <p className="text-sm text-slate-500">{tone.subtitle}</p>
             
             <div className="mt-5 space-y-2">
                <div className="flex justify-between items-center text-sm">
@@ -157,17 +198,17 @@ export default function FederalFilingsPage() {
                </div>
                <div className="flex justify-between items-center text-sm">
                  <span className="text-slate-500 dark:text-slate-400">Status</span>
-                 <span className={`font-semibold ${card.status === "Draft" ? "text-blue-600 dark:text-blue-400" : card.status === "Not Started" ? "text-amber-600 dark:text-amber-400" : card.status === "3 Pending" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"}`}>
+                 <span className={`font-semibold ${statusColor(card.status)}`}>
                    {card.status}
                  </span>
                </div>
                <div className="flex justify-between items-center text-sm">
                  <span className="text-slate-500 dark:text-slate-400">Amount due</span>
-                 <span className="font-bold text-slate-900 dark:text-white">{card.amount}</span>
+                 <span className="font-bold text-slate-900 dark:text-white">{currency(card.amountDue)}</span>
                </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {/* MAIN CONTENT AREA */}
@@ -208,7 +249,9 @@ export default function FederalFilingsPage() {
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     Employer&apos;s QUARTERLY Federal Tax Return (941)
                   </h2>
-                  <p className="text-slate-500 text-sm mt-1">Review aggregated payroll data auto-populated for {data941?.quarter || "Q1-2026"}.</p>
+                  <p className="text-slate-500 text-sm mt-1">
+                    Review {data941?.payrollRunCount ?? 0} payroll runs auto-populated for {data941?.quarter || "Q1-2026"}.
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => toast.promise(new Promise(resolve => setTimeout(resolve, 1500)), {
@@ -223,6 +266,20 @@ export default function FederalFilingsPage() {
                   </button>
                 </div>
               </div>
+
+              {amendmentDraft && (
+                <div className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-bold text-amber-900 dark:text-amber-300">{amendmentDraft.form} amendment created</div>
+                    <div className="text-xs text-amber-800 dark:text-amber-400 mt-1">
+                      Source filing: {amendmentDraft.sourceQuarter}. Status: {amendmentDraft.status}. Difference lines will be populated from corrected payroll runs.
+                    </div>
+                  </div>
+                  <button onClick={() => setActiveTab("submit")} className="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors">
+                    Submit Amendment
+                  </button>
+                </div>
+              )}
 
               {loading941 ? (
                  <div className="py-20 flex justify-center">
@@ -241,12 +298,15 @@ export default function FederalFilingsPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50 bg-white dark:bg-transparent">
                       {[
-                        { line: "1", desc: "Number of employees who received wages, tips, or other compensation", val: data941?.line1_employees },
-                        { line: "2", desc: "Wages, tips, and other compensation", val: `$${data941?.line2_wages.toLocaleString(undefined, {minimumFractionDigits: 2})}` },
-                        { line: "3", desc: "Federal income tax withheld from wages, tips, etc.", val: `$${data941?.line3_federalWithheld.toLocaleString(undefined, {minimumFractionDigits: 2})}` },
-                        { line: "5a-e", desc: "Total social security and Medicare taxes", val: `$${(data941?.line5a_socialSecurity + data941?.line5c_medicare).toLocaleString(undefined, {minimumFractionDigits: 2})}` },
-                        { line: "13", desc: "Total deposits for this quarter, including overpayment from prior", val: `$${data941?.line13_deposits.toLocaleString(undefined, {minimumFractionDigits: 2})}` },
-                        { line: "14", desc: "Balance due / Overpayment", val: `$${data941?.line14_balanceDue.toLocaleString(undefined, {minimumFractionDigits: 2})}`, highlight: true },
+                        { line: "1", key: "line1", desc: "Number of employees who received wages, tips, or other compensation", val: data941?.line1_employees ?? 0 },
+                        { line: "2", key: "line2", desc: "Wages, tips, and other compensation", val: currency(data941?.line2_wages) },
+                        { line: "3", key: "line3", desc: "Federal income tax withheld from wages, tips, etc.", val: currency(data941?.line3_federalWithheld) },
+                        { line: "5a", key: "line5", desc: "Taxable Social Security wages and employer/employee tax", val: currency(data941?.line5a_socialSecurity) },
+                        { line: "5c", key: "line5", desc: "Taxable Medicare wages and employer/employee tax", val: currency(data941?.line5c_medicare) },
+                        { line: "5d", key: "line5", desc: "Additional Medicare tax withholding", val: currency(data941?.line5d_additionalMedicare) },
+                        { line: "5e", key: "line5", desc: "Total Social Security and Medicare taxes", val: currency(data941?.line5e_totalFica) },
+                        { line: "13", key: "line13", desc: "Total deposits for this quarter, including overpayment from prior", val: currency(data941?.line13_deposits) },
+                        { line: "14", key: "line14", desc: "Balance due / Overpayment", val: currency(data941?.line14_balanceDue), highlight: true },
                       ].map((row, i) => (
                         <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                            <td className="py-4 px-4 font-medium text-slate-500">Line {row.line}</td>
@@ -255,8 +315,8 @@ export default function FederalFilingsPage() {
                               {row.val}
                            </td>
                            <td className="py-4 px-4 text-center">
-                              <button onClick={() => toast.info(`Viewing payroll register breakdown for Line ${row.line}`)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-xs flex items-center justify-center gap-1 mx-auto bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2 py-1 rounded transition-colors">
-                                <Eye size={14} /> Details
+                              <button onClick={() => toast.info(`Line ${row.line} detail`, { description: data941?.detailLinks[row.key] ?? "Payroll register detail" })} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-xs flex items-center justify-center gap-1 mx-auto bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 px-2 py-1 rounded transition-colors">
+                                <Eye size={14} /> View detail
                               </button>
                            </td>
                         </tr>
@@ -284,7 +344,9 @@ export default function FederalFilingsPage() {
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     Employer&apos;s Annual Federal Unemployment (FUTA) Tax Return
                   </h2>
-                  <p className="text-slate-500 text-sm mt-1">Estimations and FUTA wages based on year-to-date payroll runs.</p>
+                  <p className="text-slate-500 text-sm mt-1">
+                    Auto-populated from full-year {data941?.form940.year ?? 2026} payroll, FUTA taxable wages, credits, and tax due.
+                  </p>
                 </div>
               </div>
 
@@ -295,19 +357,31 @@ export default function FederalFilingsPage() {
                        <div className="space-y-4 text-sm">
                           <div className="flex justify-between">
                             <span className="text-slate-600 dark:text-slate-400">Total payments to all employees (Line 3)</span>
-                            <span className="font-bold">$2,100,500.00</span>
+                            <span className="font-bold">{currency(data941?.form940.totalPayments)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600 dark:text-slate-400">Payments exempt from FUTA (Line 4)</span>
-                            <span className="font-bold">$125,000.00</span>
+                            <span className="font-bold">{currency(data941?.form940.exemptPayments)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-600 dark:text-slate-400">Total of payments made to each employee in excess of $7,000 (Line 5)</span>
-                            <span className="font-bold">$1,500,000.00</span>
+                            <span className="font-bold">{currency(data941?.form940.excessWages)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600 dark:text-slate-400">FUTA taxable wages after $7,000 cap</span>
+                            <span className="font-bold">{currency(data941?.form940.futaTaxableWages)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600 dark:text-slate-400">FUTA gross tax at 6.0%</span>
+                            <span className="font-bold">{currency(data941?.form940.futaGrossTax)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-600 dark:text-slate-400">State unemployment credit</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">-{currency(data941?.form940.futaCredit)}</span>
                           </div>
                           <div className="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
                             <span className="text-slate-800 dark:text-slate-200 font-semibold">Total FUTA tax before adjustments (Line 8)</span>
-                            <span className="font-black text-rose-600 dark:text-rose-400">$2,853.00</span>
+                            <span className="font-black text-rose-600 dark:text-rose-400">{currency(data941?.form940.taxDue)}</span>
                           </div>
                        </div>
                     </div>
@@ -316,19 +390,27 @@ export default function FederalFilingsPage() {
                  <div className="space-y-6">
                     <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 p-5 rounded-2xl">
                        <h3 className="font-bold text-amber-900 dark:text-amber-400 mb-2 flex items-center gap-2">
-                         <MapIcon /> State Credit Reduction
+                         <Map size={18} /> State Credit Reduction
                        </h3>
                        <p className="text-xs text-amber-800 dark:text-amber-500 mb-3">
-                         If you paid FUTA wages in a state subject to credit reduction (e.g. CA, NY), additional taxes may apply. Schedule A (Form 940) will automatically calculate.
+                         If payroll was run in a credit-reduction state, Schedule A amounts are added to the Form 940 preview.
                        </p>
                        <div className="bg-white/60 dark:bg-slate-900/40 p-3 rounded-lg border border-amber-200 dark:border-amber-800/50">
-                          <div className="flex justify-between text-sm font-medium text-slate-800 dark:text-slate-300">
-                             <span>CA (Rate 0.6%)</span>
-                             <span className="text-amber-600 dark:text-amber-400">$645.00</span>
-                          </div>
-                          <div className="flex justify-between text-sm font-medium text-slate-800 dark:text-slate-300 mt-1">
-                             <span>NY (Rate 0.6%)</span>
-                             <span className="text-amber-600 dark:text-amber-400">$215.00</span>
+                          {data941?.form940.creditReductionStates.length ? (
+                            data941.form940.creditReductionStates.map((state) => (
+                              <div key={state.stateCode} className="flex justify-between text-sm font-medium text-slate-800 dark:text-slate-300 mt-1 first:mt-0">
+                                <span>{state.stateCode} (Rate {(state.rate * 100).toFixed(1)}%)</span>
+                                <span className="text-amber-600 dark:text-amber-400">{currency(state.amount)}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                              No credit reduction states detected for this payroll year.
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-white mt-3 pt-3 border-t border-amber-200 dark:border-amber-800/50">
+                            <span>Total credit reduction</span>
+                            <span>{currency(data941?.form940.stateCreditReduction)}</span>
                           </div>
                        </div>
                     </div>
@@ -358,9 +440,10 @@ export default function FederalFilingsPage() {
                        onChange={(e) => setSelectedForm(e.target.value)}
                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
                      >
-                        <option value="941">Form 941 (Quarterly) - Q1 2026</option>
-                        <option value="940">Form 940 (Annual) - 2026</option>
-                        <option value="944">Form 944 (Annual) - 2026</option>
+                        <option value="941">Form 941 (Quarterly) - {data941?.quarter ?? "Q1-2026"}</option>
+                        <option value="940">Form 940 (Annual) - {data941?.year ?? 2026}</option>
+                        <option value="944">Form 944 (Annual) - {data941?.year ?? 2026}</option>
+                        {amendmentDraft && <option value="941-X">Form 941-X Amendment - {amendmentDraft.sourceQuarter}</option>}
                      </select>
                   </div>
 
@@ -385,13 +468,23 @@ export default function FederalFilingsPage() {
                      <CheckCircle2 size={18} /> Payload Built Successfully
                   </h3>
                   <div className="text-sm font-mono bg-black/40 p-4 rounded-xl border border-white/10 mb-4 h-32 overflow-y-auto">
-                     <span className="text-blue-300">&lt;IRSSubmission&gt;</span>{'\n'}
-                     &nbsp;&nbsp;<span className="text-blue-300">&lt;TaxYear&gt;</span>2026<span className="text-blue-300">&lt;/TaxYear&gt;</span>{'\n'}
-                     &nbsp;&nbsp;<span className="text-blue-300">&lt;Quarter&gt;</span>1<span className="text-blue-300">&lt;/Quarter&gt;</span>{'\n'}
-                     &nbsp;&nbsp;<span className="text-slate-400">&lt;!-- Auto-generated from Payroll Run ID PRL-9020 --&gt;</span>{'\n'}
-                     &nbsp;&nbsp;<span className="text-blue-300">&lt;EIN&gt;</span>XX-XXXXXXX<span className="text-blue-300">&lt;/EIN&gt;</span>{'\n'}
-                     &nbsp;&nbsp;<span className="text-blue-300">&lt;FormData&gt;</span>...<span className="text-blue-300">&lt;/FormData&gt;</span>{'\n'}
-                     <span className="text-blue-300">&lt;/IRSSubmission&gt;</span>
+                     <pre className="whitespace-pre-wrap text-blue-200">
+                       {data941?.xmlPreview ?? "<IRSSubmission><FormType>941</FormType><Status>Building</Status></IRSSubmission>"}
+                     </pre>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-4">
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <span className="block text-slate-400 mb-1">Provider</span>
+                      <span className="font-semibold">{submissionMethod === "efile" ? "Approved e-file transmitter" : "EFTPS XML export"}</span>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <span className="block text-slate-400 mb-1">Tracking</span>
+                      <span className="font-semibold">Confirmation, timestamp, IRS acknowledgment</span>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <span className="block text-slate-400 mb-1">Source</span>
+                      <span className="font-semibold">{data941?.payrollRunCount ?? 0} payroll runs reconciled</span>
+                    </div>
                   </div>
                   
                   {!submitResult ? (
@@ -428,6 +521,11 @@ export default function FederalFilingsPage() {
                                 {submitResult.tracking.irsAcknowledgment}
                               </div>
                            </div>
+                           {submitResult.xmlPayload && (
+                             <pre className="mt-3 max-h-20 overflow-y-auto rounded-lg bg-black/30 p-2 text-[11px] text-emerald-100 border border-white/10">
+                               {submitResult.xmlPayload}
+                             </pre>
+                           )}
                         </div>
                      </motion.div>
                   )}
@@ -440,26 +538,4 @@ export default function FederalFilingsPage() {
       </div>
     </div>
   );
-}
-
-// Simple Map Icon placeholder component
-function MapIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-      <line x1="9" x2="9" y1="3" y2="18" />
-      <line x1="15" x2="15" y1="6" y2="21" />
-    </svg>
-  )
 }

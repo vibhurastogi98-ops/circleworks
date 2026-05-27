@@ -14,6 +14,7 @@ import {
   stringifyAnnouncementAttachments,
 } from "@/lib/announcements";
 import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
+import { hasPermission } from "@/lib/rbac";
 import { getSession, resolveUserContext } from "@/lib/session";
 
 type AnnouncementReadWithEmployee = {
@@ -96,6 +97,13 @@ function validateAttachmentPayload(body: any) {
   return null;
 }
 
+function getAnnouncementId(req: NextRequest, body?: any) {
+  const fromQuery = req.nextUrl.searchParams.get("id");
+  const raw = body?.id ?? body?.announcementId ?? fromQuery;
+  const id = Number.parseInt(String(raw ?? ""), 10);
+  return Number.isNaN(id) ? null : id;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession(req);
@@ -114,6 +122,13 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const filter = searchParams.get("filter") || "All";
     const scope = searchParams.get("scope") || "employee";
+
+    if (scope === "admin" && !hasPermission(session.role, "manage_notifications")) {
+      return NextResponse.json(
+        { error: "insufficient_permissions", required: "manage_notifications" },
+        { status: 403 },
+      );
+    }
 
     const [employee, companyEmployees, items] = await Promise.all([
       db.query.employees.findFirst({
@@ -189,6 +204,13 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    if (!hasPermission(session.role, "manage_notifications")) {
+      return NextResponse.json(
+        { error: "insufficient_permissions", required: "manage_notifications" },
+        { status: 403 },
+      );
+    }
+
     const title = String(body.title ?? "").trim();
     const content = String(body.body ?? "").trim();
 
@@ -265,6 +287,173 @@ export async function POST(req: NextRequest) {
     console.error("[Announcements POST Error]", error);
     return NextResponse.json(
       { error: "Failed to create announcement" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!hasPermission(session.role, "manage_notifications")) {
+      return NextResponse.json(
+        { error: "insufficient_permissions", required: "manage_notifications" },
+        { status: 403 },
+      );
+    }
+
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 },
+      );
+    }
+
+    const body = await req.json();
+    const annId = getAnnouncementId(req, body);
+    if (!annId) {
+      return NextResponse.json(
+        { error: "Announcement id is required." },
+        { status: 400 },
+      );
+    }
+
+    const title = String(body.title ?? "").trim();
+    const content = String(body.body ?? "").trim();
+
+    if (!title || !content) {
+      return NextResponse.json(
+        { error: "Title and body are required." },
+        { status: 400 },
+      );
+    }
+    if (title.length > 100) {
+      return NextResponse.json(
+        { error: "Title must be 100 characters or fewer." },
+        { status: 400 },
+      );
+    }
+
+    const attachmentError = validateAttachmentPayload(body);
+    if (attachmentError) {
+      return NextResponse.json({ error: attachmentError }, { status: 400 });
+    }
+
+    const publishAt = body.publishAt ? new Date(body.publishAt) : null;
+    const expireAt = body.expireAt ? new Date(body.expireAt) : null;
+    const nextStatus =
+      body.status === "Draft"
+        ? "Draft"
+        : normalizeAnnouncementStatus({
+            status: body.status ?? "Published",
+            publishAt,
+            expireAt,
+          });
+
+    const [updated] = await db
+      .update(announcements)
+      .set({
+        title,
+        body: content,
+        audience: body.audience || "All Employees",
+        department:
+          body.audience === "By Department" || body.audience === "Custom Group"
+            ? body.audienceValue || null
+            : null,
+        location:
+          body.audience === "By Location" ? body.audienceValue || null : null,
+        priority: body.priority || "Normal",
+        status: nextStatus,
+        publishAt,
+        expireAt,
+        isPinned: !!body.isPinned,
+        attachments: stringifyAnnouncementAttachments(
+          Array.isArray(body.attachments) ? body.attachments : [],
+        ),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(announcements.id, annId),
+          eq(announcements.companyId, ctx.companyId),
+        ),
+      )
+      .returning();
+
+    if (!updated) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (isAnnouncementActive(updated)) {
+      recordCompanyRealtimeEvent(ctx.companyId, "announcement.published", {
+        announcementId: updated.id,
+        title: updated.title,
+        priority: updated.priority,
+      });
+    }
+
+    return NextResponse.json({
+      ...updated,
+      status: normalizeAnnouncementStatus(updated),
+      attachments: parseAnnouncementAttachments(updated.attachments),
+    });
+  } catch (error) {
+    console.error("[Announcements PATCH Error]", error);
+    return NextResponse.json(
+      { error: "Failed to update announcement" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!hasPermission(session.role, "manage_notifications")) {
+      return NextResponse.json(
+        { error: "insufficient_permissions", required: "manage_notifications" },
+        { status: 403 },
+      );
+    }
+
+    const ctx = await resolveUserContext(session);
+    if (!ctx) {
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 },
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const annId = getAnnouncementId(req, body);
+    if (!annId) {
+      return NextResponse.json(
+        { error: "Announcement id is required." },
+        { status: 400 },
+      );
+    }
+
+    await db
+      .delete(announcements)
+      .where(
+        and(
+          eq(announcements.id, annId),
+          eq(announcements.companyId, ctx.companyId),
+        ),
+      );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[Announcements DELETE Error]", error);
+    return NextResponse.json(
+      { error: "Failed to delete announcement" },
       { status: 500 },
     );
   }

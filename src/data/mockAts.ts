@@ -47,7 +47,7 @@ export const STAGES: { id: CandidateStage; title: string; color: string }[] = [
   { id: 'Screening', title: 'Phone Screen', color: 'bg-purple-500' },
   { id: 'Take-Home', title: 'Take-Home Test', color: 'bg-orange-500' },
   { id: 'Onsite', title: 'Onsite Interview', color: 'bg-indigo-500' },
-  { id: 'Offer', title: 'Offer Stage', color: 'bg-green-500' },
+  { id: 'Offer', title: 'Offer Extended', color: 'bg-green-500' },
   { id: 'Hired', title: 'Hired', color: 'bg-emerald-600' },
   { id: 'Withdrawn', title: 'Withdrawn / Rejected', color: 'bg-red-500' },
 ];

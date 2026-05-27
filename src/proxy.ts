@@ -46,6 +46,7 @@ export default async function proxy(request: NextRequest) {
     "/learning",
     "/performance",
     "/contractors",
+    "/contractor-portal",
     "/accountant-portal",
     "/c/",
   ];

@@ -8,11 +8,13 @@ import {
   getAnnouncementDepartmentBreakdown,
   getAnnouncementReadPercent,
   isAnnouncementActive,
+  matchesAnnouncementAudience,
   parseAnnouncementAttachments,
   stringifyAnnouncementAttachments,
   normalizeAnnouncementStatus,
 } from "@/lib/announcements";
 import { recordCompanyRealtimeEvent } from "@/lib/realtime-event-log";
+import { hasPermission } from "@/lib/rbac";
 import { getSession, resolveUserContext } from "@/lib/session";
 
 type AnnouncementReadWithEmployee = {
@@ -69,7 +71,7 @@ export async function GET(
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    const [item, employeeCount] = await Promise.all([
+    const [item, companyEmployees, employee] = await Promise.all([
       db.query.announcements.findFirst({
         where: and(
           eq(announcements.id, annId),
@@ -89,14 +91,36 @@ export async function GET(
           eq(employees.status, "active"),
         ),
       }),
+      db.query.employees.findFirst({
+        where: eq(employees.id, ctx.employeeId),
+      }),
     ]);
 
     if (!item) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    const canManageAnnouncements = hasPermission(
+      session.role,
+      "manage_notifications",
+    );
+    if (!canManageAnnouncements && !matchesAnnouncementAudience(item, employee)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     const reads = (item.reads ?? []) as AnnouncementReadWithEmployee[];
     const isRead = reads.some((read) => read.employeeId === ctx.employeeId);
+    const analytics = canManageAnnouncements
+      ? {
+          totalViews: item.viewsCount ?? 0,
+          uniqueReaders: item.uniqueReaders ?? 0,
+          readPercent: getAnnouncementReadPercent(
+            item.uniqueReaders ?? 0,
+            companyEmployees.length,
+          ),
+          departmentBreakdown: getAnnouncementDepartmentBreakdown(reads),
+        }
+      : undefined;
 
     return NextResponse.json({
       ...item,
@@ -105,15 +129,7 @@ export async function GET(
       audienceLabel: formatAnnouncementAudience(item),
       isRead,
       isUnread: !isRead,
-      analytics: {
-        totalViews: item.viewsCount ?? 0,
-        uniqueReaders: item.uniqueReaders ?? 0,
-        readPercent: getAnnouncementReadPercent(
-          item.uniqueReaders ?? 0,
-          employeeCount.length,
-        ),
-        departmentBreakdown: getAnnouncementDepartmentBreakdown(reads),
-      },
+      analytics,
     });
   } catch (error) {
     console.error("[Announcement GET Error]", error);

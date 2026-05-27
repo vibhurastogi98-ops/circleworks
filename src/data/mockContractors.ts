@@ -605,14 +605,16 @@ export const mock1099s: NEC1099[] = [
 export function getContractorStats() {
   const active = mockContractors.filter(c => c.status === "Active").length;
   const pendingW9 = mockContractors.filter(c => c.w9Status === "Pending" || c.w9Status === "Not Submitted").length;
-  const paymentsThisMonth = mockInvoices
-    .filter(inv => inv.status === "Approved" || inv.status === "Paid")
+  const approvedOrPaid = mockInvoices.filter(inv => inv.status === "Approved" || inv.status === "Paid");
+  const currentMonthPayments = approvedOrPaid
     .filter(inv => {
       const d = new Date(inv.submittedDate);
       const now = new Date();
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     })
     .reduce((sum, inv) => sum + inv.amount, 0);
+  const paymentsThisMonth =
+    currentMonthPayments || approvedOrPaid.reduce((sum, inv) => sum + inv.amount, 0);
   const necs1099Due = mock1099s.filter(n => n.status === "Draft" || n.status === "Ready").length;
 
   return { active, pendingW9, paymentsThisMonth, necs1099Due };

@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, ChevronLeft, Check, Sparkles, GripVertical, Plus, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { containsCriminalHistoryQuestion, getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { validatePayTransparencyPosting } from "@/utils/payTransparency";
 import { createJob } from "@/data/mockAts";
 import { toast } from "sonner";
 
@@ -27,8 +28,25 @@ export default function CreateJobWizard() {
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
   const banTheBoxJurisdiction = getBanTheBoxJurisdiction(formData.location);
+  const payTransparency = validatePayTransparencyPosting(formData);
 
   const handleFinish = () => {
+    if (banTheBoxJurisdiction && containsCriminalHistoryQuestion(formData.questions)) {
+      toast.error("Criminal history question blocked", {
+        description: `Criminal history questions are restricted in ${banTheBoxJurisdiction}.`,
+      });
+      setCurrentStep(2);
+      return;
+    }
+
+    if (!payTransparency.canPublish) {
+      toast.error("Pay range required", {
+        description: payTransparency.errors[0],
+      });
+      setCurrentStep(0);
+      return;
+    }
+
     setIsSubmitting(true);
     
     // Simulate API call and persist to mock data
@@ -125,13 +143,36 @@ export default function CreateJobWizard() {
                            <input type="text" value={formData.location} onChange={e=>setFormData({...formData, location: e.target.value})} className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. San Francisco, CA or Remote" />
                         </div>
                         <div>
-                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Salary Min</label>
+                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                              Pay Range Min {payTransparency.required && <span className="text-red-500">*</span>}
+                           </label>
                            <input type="number" value={formData.salaryMin} onChange={e=>setFormData({...formData, salaryMin: e.target.value})} className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="80000" />
                         </div>
                         <div>
-                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Salary Max</label>
+                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                              Pay Range Max {payTransparency.required && <span className="text-red-500">*</span>}
+                           </label>
                            <input type="number" value={formData.salaryMax} onChange={e=>setFormData({...formData, salaryMax: e.target.value})} className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="120000" />
                         </div>
+                        {payTransparency.required && (
+                           <div className={`sm:col-span-2 rounded-xl border p-4 text-sm ${
+                              payTransparency.errors.length
+                                 ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+                                 : payTransparency.warnings.length
+                                   ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                                   : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+                           }`}>
+                              <div className="flex gap-2">
+                                 <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                                 <div>
+                                    <div className="font-bold">Pay transparency rule active: {payTransparency.state?.label}</div>
+                                    <div className="mt-1">
+                                       {payTransparency.errors[0] || payTransparency.warnings[0] || `Range matches internal ${formData.department || "General"} band.`}
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        )}
                      </div>
                   </div>
                )}
@@ -163,7 +204,7 @@ export default function CreateJobWizard() {
                            <AlertCircle size={20} className="shrink-0 mt-0.5" />
                            <div className="text-sm">
                               <span className="font-bold block mb-1">Ban-the-Box Compliance Notice</span>
-                              Criminal history questions are restricted in <b>{banTheBoxJurisdiction}</b>. You cannot add background check or criminal history questions to this application form.
+                              Criminal history questions are restricted in <b>{banTheBoxJurisdiction}</b>. CircleWorks blocks criminal history questions on application forms in this jurisdiction.
                            </div>
                         </div>
                      )}
@@ -207,6 +248,12 @@ export default function CreateJobWizard() {
                            disabled={!!banTheBoxJurisdiction}
                            title={banTheBoxJurisdiction ? `Criminal history questions are restricted in ${banTheBoxJurisdiction}` : 'Add a standard criminal history question'}
                            onClick={() => {
+                              if (banTheBoxJurisdiction) {
+                                 toast.error("Criminal history question blocked", {
+                                    description: `Criminal history questions are restricted in ${banTheBoxJurisdiction}.`,
+                                 });
+                                 return;
+                              }
                               const newId = formData.questions.length ? Math.max(...formData.questions.map(q=>q.id)) + 1 : 1;
                               setFormData({...formData, questions: [...formData.questions, {id: newId, text: 'Have you ever been convicted of a felony?', type: 'Yes/No', required: true}]});
                            }}
@@ -293,7 +340,7 @@ export default function CreateJobWizard() {
                ) : (
                   <button 
                      onClick={handleFinish}
-                     disabled={isSubmitting}
+                     disabled={isSubmitting || (currentStep === STEPS.length - 1 && !payTransparency.canPublish)}
                      className="px-8 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-colors flex items-center gap-2 shadow-blue-500/30"
                   >
                      {isSubmitting ? "Publishing..." : "Publish Job Post"} 

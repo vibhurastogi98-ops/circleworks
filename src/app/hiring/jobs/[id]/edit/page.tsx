@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronRight, ChevronLeft, Check, Save, Sparkles, GripVertical, Plus, AlertCircle, Briefcase, ArrowLeft } from "lucide-react";
 import { getJobById, AtsJob, mockAtsJobs } from "@/data/mockAts";
-import { getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { containsCriminalHistoryQuestion, getBanTheBoxJurisdiction } from "@/utils/compliance";
+import { validatePayTransparencyPosting } from "@/utils/payTransparency";
 import { toast } from "sonner";
 
 const STEPS = ["Job Details", "Description", "Application Form", "Posting Settings"];
@@ -47,8 +48,25 @@ export default function EditJobPage() {
   }, [id]);
 
   const banTheBoxJurisdiction = getBanTheBoxJurisdiction(formData.location);
+  const payTransparency = validatePayTransparencyPosting(formData);
 
   const handleSave = () => {
+    if (banTheBoxJurisdiction && containsCriminalHistoryQuestion(formData.questions)) {
+      toast.error("Criminal history question blocked", {
+        description: `Criminal history questions are restricted in ${banTheBoxJurisdiction}.`,
+      });
+      setCurrentStep(2);
+      return;
+    }
+
+    if (!payTransparency.canPublish) {
+      toast.error("Pay range required", {
+        description: payTransparency.errors[0],
+      });
+      setCurrentStep(0);
+      return;
+    }
+
     setIsSubmitting(true);
     setTimeout(() => {
       // In real app, this would be a PATCH request
@@ -180,13 +198,36 @@ export default function EditJobPage() {
                            <input type="text" value={formData.location} onChange={e=>setFormData({...formData, location: e.target.value})} className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
-                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Salary Min</label>
+                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                              Pay Range Min {payTransparency.required && <span className="text-red-500">*</span>}
+                           </label>
                            <input type="number" value={formData.salaryMin} onChange={e=>setFormData({...formData, salaryMin: e.target.value})} className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                         <div>
-                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Salary Max</label>
+                           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                              Pay Range Max {payTransparency.required && <span className="text-red-500">*</span>}
+                           </label>
                            <input type="number" value={formData.salaryMax} onChange={e=>setFormData({...formData, salaryMax: e.target.value})} className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
+                        {payTransparency.required && (
+                           <div className={`sm:col-span-2 rounded-xl border p-4 text-sm ${
+                              payTransparency.errors.length
+                                 ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+                                 : payTransparency.warnings.length
+                                   ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+                                   : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+                           }`}>
+                              <div className="flex gap-2">
+                                 <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                                 <div>
+                                    <div className="font-bold">Pay transparency rule active: {payTransparency.state?.label}</div>
+                                    <div className="mt-1">
+                                       {payTransparency.errors[0] || payTransparency.warnings[0] || `Range matches internal ${formData.department || "General"} band.`}
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        )}
                      </div>
                   </div>
                )}
@@ -218,7 +259,7 @@ export default function EditJobPage() {
                            <AlertCircle size={20} className="shrink-0 mt-0.5" />
                            <div className="text-sm">
                               <span className="font-bold block mb-1">Regional Compliance Active</span>
-                              This job location (<b>{banTheBoxJurisdiction}</b>) has restrictions on criminal history inquiries. We have automatically blocked those fields from the form editor.
+                              Criminal history questions are restricted in <b>{banTheBoxJurisdiction}</b>. CircleWorks blocks those fields from the application form.
                            </div>
                         </div>
                      )}
@@ -250,6 +291,23 @@ export default function EditJobPage() {
                         className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-slate-400 font-bold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                      >
                         <Plus size={18} /> Add Custom Question
+                     </button>
+                     <button
+                        disabled={!!banTheBoxJurisdiction}
+                        title={banTheBoxJurisdiction ? `Criminal history questions are restricted in ${banTheBoxJurisdiction}` : "Add a standard criminal history question"}
+                        onClick={() => {
+                           if (banTheBoxJurisdiction) {
+                              toast.error("Criminal history question blocked", {
+                                 description: `Criminal history questions are restricted in ${banTheBoxJurisdiction}.`,
+                              });
+                              return;
+                           }
+                           const next = [...formData.questions, { id: Date.now(), text: "Have you ever been convicted of a felony?", type: "Yes/No", required: true }];
+                           setFormData({...formData, questions: next});
+                        }}
+                        className={`w-full py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${banTheBoxJurisdiction ? "cursor-not-allowed bg-slate-50 dark:bg-slate-800 text-slate-400 opacity-60" : "text-slate-400 hover:bg-slate-50"}`}
+                     >
+                        <Plus size={18} /> Add Criminal History
                      </button>
                   </div>
                )}
@@ -306,7 +364,7 @@ export default function EditJobPage() {
                ) : (
                   <button 
                      onClick={handleSave}
-                     disabled={isSubmitting}
+                     disabled={isSubmitting || (currentStep === STEPS.length - 1 && !payTransparency.canPublish)}
                      className="px-8 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-colors flex items-center gap-2 shadow-blue-500/30"
                   >
                      {isSubmitting ? "Syncing..." : "Finalize Changes"} 

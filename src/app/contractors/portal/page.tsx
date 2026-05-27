@@ -20,7 +20,7 @@ export default function ContractorPortalPreview() {
         </div>
       </div>
 
-      <ContractorSubNav active="/contractors/portal" />
+      <ContractorSubNav active="/contractor-portal" />
 
       {/* Simulator Frame */}
       <div className="bg-slate-200 dark:bg-slate-800 p-2 sm:p-6 rounded-3xl mt-4">

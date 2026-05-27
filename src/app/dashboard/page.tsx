@@ -36,6 +36,9 @@ export default function DashboardPage() {
     if (userRole === "accountant") {
       router.push("/accountant-portal");
     }
+    if (userRole === "contractor") {
+      router.push("/contractor-portal");
+    }
     if (userRole === "employee") {
       router.push("/me");
     }

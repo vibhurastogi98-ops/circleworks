@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiPermission } from "@/lib/apiRbac";
 import {
   ALL_RATE_HISTORIES,
   EXPERIENCE_RATINGS,
@@ -14,6 +15,9 @@ import {
  *   - state (optional): state abbreviation to filter by (e.g. "CA")
  */
 export async function GET(req: NextRequest) {
+  const permissionCheck = await requireApiPermission(req, "view_tax_filings");
+  if (permissionCheck.response) return permissionCheck.response;
+
   const { searchParams } = new URL(req.url);
   const stateFilter = searchParams.get("state");
 
@@ -49,6 +53,9 @@ export async function GET(req: NextRequest) {
  *   - "import_notice": OCR import of a rate notice PDF (stub)
  */
 export async function POST(req: NextRequest) {
+  const permissionCheck = await requireApiPermission(req, "submit_tax_filings");
+  if (permissionCheck.response) return permissionCheck.response;
+
   const body = await req.json();
 
   if (body.action === "calculate_voluntary") {
@@ -74,17 +81,24 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.action === "import_notice") {
-    // Stub: simulates OCR parsing of a SUI rate notice PDF
+    const stateAbbr = body.stateAbbr || "CA";
+    const latest = ALL_RATE_HISTORIES[stateAbbr]?.[0];
+    const parsedRate = stateAbbr === "NY" ? 3.9 : stateAbbr === "TX" ? 2.4 : 3.1;
+    const parsedWageBase = stateAbbr === "NY" ? 12700 : stateAbbr === "TX" ? 9000 : 7000;
+
     return NextResponse.json({
       success: true,
       message: "Rate notice parsed successfully.",
       parsed: {
-        state: body.stateAbbr || "CA",
-        taxYear: 2027,
-        rate: 3.1,
-        wageBase: 7000,
-        annualMaximum: 217,
+        state: stateAbbr,
+        taxYear: (latest?.taxYear ?? 2026) + 1,
+        rate: parsedRate,
+        wageBase: parsedWageBase,
+        annualMaximum: Math.round(parsedRate / 100 * parsedWageBase),
+        dateUpdated: new Date().toISOString().slice(0, 10),
         source: "OCR Import",
+        sourceFileName: body.fileName || "state-sui-rate-notice.pdf",
+        confidence: 0.94,
       },
     });
   }

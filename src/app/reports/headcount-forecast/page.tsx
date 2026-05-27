@@ -65,6 +65,7 @@ type ForecastResponse = {
     pastMonths: number;
     futureMonths: number;
     generatedAt: string;
+    source?: "company_data" | "demo_fallback";
   };
   groups: ForecastGroup[];
   forecastInputs: {
@@ -72,6 +73,15 @@ type ForecastResponse = {
     plannedHiresFromAts: number;
     historicalAttritionRate: number;
     budgetConstraints: Record<string, number>;
+    openRequisitions?: Array<{
+      id: number | string;
+      title: string;
+      department: string;
+      location: string;
+      expectedSalary: number;
+      plannedMonth: string;
+      plannedMonthIndex: number;
+    }>;
   };
   budgetInfo: {
     currentRunRate: number;
@@ -215,6 +225,15 @@ export default function HeadcountForecastPage() {
     () => groupRows.filter((row) => row.type === "projected"),
     [groupRows],
   );
+  const requisitionsForGroup = useMemo(() => {
+    if (!payload || !selectedGroup) return [];
+    const openRequisitions = payload.forecastInputs.openRequisitions || [];
+    if (view === "total") return openRequisitions;
+    return openRequisitions.filter((req) => {
+      const key = view === "department" ? req.department : req.location;
+      return key === selectedGroup.label;
+    });
+  }, [payload, selectedGroup, view]);
 
   const editableMonths = useMemo(() => futureRows.slice(0, 6), [futureRows]);
 
@@ -410,6 +429,27 @@ export default function HeadcountForecastPage() {
                   <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                     Auto-pulled from open requisitions and used as the baseline monthly hire plan.
                   </p>
+                  <div className="mt-3 space-y-2">
+                    {requisitionsForGroup.slice(0, 4).map((req) => (
+                      <div key={req.id} className="rounded-lg bg-white p-2 text-xs dark:bg-slate-900">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold text-slate-800 dark:text-slate-100">{req.title}</span>
+                          <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                            {req.plannedMonth}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                          <span>{view === "location" ? req.department : req.location}</span>
+                          <span>{formatCompactCurrency(req.expectedSalary)}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {requisitionsForGroup.length > 4 && (
+                      <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        +{requisitionsForGroup.length - 4} more requisitions included
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 

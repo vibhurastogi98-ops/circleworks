@@ -16,6 +16,8 @@ const settingsTabs = [
   { label: "Bank", href: "/settings/bank" },
   { label: "Integrations", href: "/settings/integrations" },
   { label: "Notifications", href: "/settings/notifications" },
+  { label: "Announcements", href: "/settings/announcements" },
+  { label: "Assets", href: "/settings/assets" },
   { label: "Billing", href: "/settings/billing" },
   { label: "SSO", href: "/settings/sso" },
   { label: "API", href: "/settings/api" },

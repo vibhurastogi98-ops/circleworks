@@ -47,9 +47,17 @@ export default function CustomFieldsSettingsPage() {
 
   const applyPIIDefaults = () => {
     setVisibilities(prev => prev.map(v => {
-      const defaultRule = FIELD_VISIBILITY_RULES.find((rule) => rule.id === v.id);
-      if (defaultRule?.sensitive) {
-        return { ...v, roles: { ...defaultRule.roles } };
+      if (v.sensitive) {
+        return {
+          ...v,
+          roles: {
+            employee: false,
+            manager: false,
+            hr: true,
+            admin: true,
+            everyone: false,
+          },
+        };
       }
       return v;
     }));
@@ -143,7 +151,7 @@ export default function CustomFieldsSettingsPage() {
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div>
               <h3 className="text-base font-semibold text-slate-900 dark:text-white">Directory & Profile Privacy</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure which roles can view specific fields on an employee's profile.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure which roles can view specific fields on an employee's profile. Employee access applies to their own profile.</p>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -152,7 +160,7 @@ export default function CustomFieldsSettingsPage() {
                 <tr>
                   <th className="px-6 py-3">Field Name</th>
                   <th className="px-4 py-3">Field Type</th>
-                  <th className="px-4 py-3 text-center">Employee (Own)</th>
+                  <th className="px-4 py-3 text-center">Employee</th>
                   <th className="px-4 py-3 text-center">Manager</th>
                   <th className="px-4 py-3 text-center">HR</th>
                   <th className="px-4 py-3 text-center">Admin</th>
