@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Queue } from "bullmq";
-import { bullmqConnectionFromEnv } from "@/lib/bullmq-redis";
+import { QUEUE_PDF_GENERATION, bullmqConnectionFromEnv } from "@/lib/bullmq-redis";
 
 export const runtime = "nodejs";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     let jobId: string | undefined;
 
     if (conn) {
-      const queue = new Queue("pdf-generation", { connection: conn });
+      const queue = new Queue(QUEUE_PDF_GENERATION, { connection: conn });
       try {
         const job = await queue.add(
           "new-hire-packet",
@@ -27,6 +27,9 @@ export async function POST(req: Request) {
             employeeName: body.employeeName,
             companyName: body.companyName,
             startDate: body.startDate,
+            officeLocation: body.officeLocation,
+            hrContactEmail: body.hrContactEmail,
+            hrContactPhone: body.hrContactPhone,
             signedDocuments: body.signedDocuments,
             documentFolder: body.documentFolder,
           },

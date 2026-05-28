@@ -80,9 +80,18 @@ interface NewHirePacketProps {
   companyName: string;
   startDate?: string;
   officeLocation?: string;
+  hrContactEmail?: string;
+  hrContactPhone?: string;
 }
 
-const NewHirePacket = ({ employeeName, companyName, startDate = "your first day", officeLocation = "Company headquarters" }: NewHirePacketProps) => (
+const NewHirePacket = ({
+  employeeName,
+  companyName,
+  startDate = "your first day",
+  officeLocation = "Company headquarters",
+  hrContactEmail = "people@circleworks.com",
+  hrContactPhone = "(555) 123-4567",
+}: NewHirePacketProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Header */}
@@ -197,8 +206,8 @@ const NewHirePacket = ({ employeeName, companyName, startDate = "your first day"
         <Text style={styles.text}>
           If you have any questions before your start date, please reach out to our People Operations team:
         </Text>
-        <Text style={styles.text}><Text style={styles.bold}>Email:</Text> people@circleworks.com</Text>
-        <Text style={styles.text}><Text style={styles.bold}>Phone:</Text> (555) 123-4567</Text>
+        <Text style={styles.text}><Text style={styles.bold}>Email:</Text> {hrContactEmail}</Text>
+        <Text style={styles.text}><Text style={styles.bold}>Phone:</Text> {hrContactPhone}</Text>
       </View>
 
       {/* Footer */}

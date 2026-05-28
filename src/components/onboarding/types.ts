@@ -35,6 +35,11 @@ export interface OnboardingData {
     attested: boolean;
   };
   docs: string[];
+  completion?: {
+    packetQueued: boolean;
+    packetJobId?: string;
+    documentFolder?: string;
+  };
 }
 
 export interface OnboardingMetadata {
@@ -48,4 +53,6 @@ export interface OnboardingMetadata {
   managerPhotoUrl: string;
   officeLocation: string;
   workState: string;
+  hrContactEmail?: string;
+  hrContactPhone?: string;
 }

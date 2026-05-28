@@ -158,13 +158,6 @@ function ReportCard({ report, onRun }: { report: StandardReport; onRun: (report:
         >
           <Play size={12} /> Run Report
         </button>
-        <Link
-          href={reportHref(report)}
-          target="_blank"
-          className="w-full flex justify-center items-center gap-1.5 px-3 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-        >
-          <ExternalLink size={12} /> Open in new tab
-        </Link>
       </div>
     </div>
   );

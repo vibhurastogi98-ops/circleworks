@@ -19,6 +19,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  brandRow: { flexDirection: "row", alignItems: "center" },
+  logoMark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 9,
+  },
+  logoText: { color: navy, fontSize: 8, fontFamily: "Helvetica-Bold" },
   brand: { color: "#ffffff", fontSize: 18, fontFamily: "Helvetica-Bold" },
   brandSub: { color: "#94a3b8", fontSize: 9, marginTop: 4 },
   coverTitle: { fontSize: 22, fontFamily: "Helvetica-Bold", marginTop: 32, color: navy },
@@ -63,6 +74,23 @@ const styles = StyleSheet.create({
   },
 });
 
+function Header({ label }: { label: string }) {
+  return (
+    <View style={styles.headerBar}>
+      <View style={styles.brandRow}>
+        <View style={styles.logoMark}>
+          <Text style={styles.logoText}>CW</Text>
+        </View>
+        <View>
+          <Text style={styles.brand}>CircleWorks</Text>
+          <Text style={styles.brandSub}>Payroll run report</Text>
+        </View>
+      </View>
+      <Text style={{ color: "#e2e8f0", fontSize: 10 }}>{label}</Text>
+    </View>
+  );
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
@@ -75,13 +103,7 @@ export function PayrollRunReportPdf({ data }: { data: PayrollRunReportData }) {
   return (
     <Document title={`Payroll Report ${data.runIdLabel}`} author="CircleWorks">
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.headerBar}>
-          <View>
-            <Text style={styles.brand}>CircleWorks</Text>
-            <Text style={styles.brandSub}>Payroll run report</Text>
-          </View>
-          <Text style={{ color: "#e2e8f0", fontSize: 10 }}>{data.runIdLabel}</Text>
-        </View>
+        <Header label={data.runIdLabel} />
         <Text style={styles.coverTitle}>Payroll register</Text>
         <Text style={styles.coverMeta}>{data.companyName}</Text>
         <Text style={styles.coverMeta}>Pay period: {data.payPeriodLabel}</Text>
@@ -92,10 +114,7 @@ export function PayrollRunReportPdf({ data }: { data: PayrollRunReportData }) {
       </Page>
 
       <Page size="LETTER" style={styles.page}>
-        <View style={styles.headerBar}>
-          <Text style={styles.brand}>CircleWorks</Text>
-          <Text style={{ color: "#e2e8f0", fontSize: 10 }}>Summary</Text>
-        </View>
+        <Header label="Summary" />
         <Text style={styles.sectionTitle}>Summary</Text>
         <View style={styles.summaryBox}>
           <View style={styles.summaryRow}>
@@ -140,12 +159,7 @@ export function PayrollRunReportPdf({ data }: { data: PayrollRunReportData }) {
 
       {empChunks.map((rows, pageIdx) => (
         <Page key={pageIdx} size="LETTER" style={styles.page}>
-          <View style={styles.headerBar}>
-            <Text style={styles.brand}>CircleWorks</Text>
-            <Text style={{ color: "#e2e8f0", fontSize: 10 }}>
-              Employees ({pageIdx + 1}/{empChunks.length})
-            </Text>
-          </View>
+          <Header label={`Employees (${pageIdx + 1}/${empChunks.length})`} />
           <Text style={styles.sectionTitle}>Employee detail</Text>
           <View style={styles.th}>
             <Text style={[styles.thText, styles.cellName]}>Employee</Text>
@@ -169,10 +183,7 @@ export function PayrollRunReportPdf({ data }: { data: PayrollRunReportData }) {
 
       {data.glMappingConfigured && data.journalLines.length > 0 ? (
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.headerBar}>
-            <Text style={styles.brand}>CircleWorks</Text>
-            <Text style={{ color: "#e2e8f0", fontSize: 10 }}>GL</Text>
-          </View>
+          <Header label="GL" />
           <Text style={styles.sectionTitle}>Journal entry preview</Text>
           <Text style={{ fontSize: 8, color: muted, marginBottom: 10 }}>
             Based on configured payroll → GL mapping. Final entry may vary by cash posting date.
@@ -195,10 +206,7 @@ export function PayrollRunReportPdf({ data }: { data: PayrollRunReportData }) {
         </Page>
       ) : (
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.headerBar}>
-            <Text style={styles.brand}>CircleWorks</Text>
-            <Text style={{ color: "#e2e8f0", fontSize: 10 }}>GL</Text>
-          </View>
+          <Header label="GL" />
           <Text style={styles.sectionTitle}>Journal entry preview</Text>
           <Text style={{ fontSize: 10, color: muted, marginTop: 12 }}>
             GL mapping is not configured for this company. Map accounts under Payroll → GL Mapping to include a journal

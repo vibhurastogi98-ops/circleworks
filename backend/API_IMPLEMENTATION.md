@@ -760,7 +760,7 @@ Application code must write audit events through `AuditLogService.createAuditLog
 POST /api/v1/webhooks
 {
   "url": "https://your-domain.com/webhook",
-  "events": ["payroll.run.processed", "employee.created"],
+  "events": ["payroll.completed", "employee.created"],
   "secret": "optional-secret"
 }
 ```

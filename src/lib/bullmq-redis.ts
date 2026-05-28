@@ -1,5 +1,7 @@
 import type { ConnectionOptions } from "bullmq";
 
+export const QUEUE_PDF_GENERATION = "pdf-generation";
+
 /** Parse `REDIS_URL` for BullMQ (matches backend `queues.module.ts`). */
 export function bullmqConnectionFromEnv(): ConnectionOptions | null {
   const urlStr = process.env.REDIS_URL;

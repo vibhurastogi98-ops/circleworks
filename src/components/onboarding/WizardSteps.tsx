@@ -37,6 +37,9 @@ export function WelcomeScreen({ onNext, metadata }: StepProps) {
       <p className="text-slate-600 dark:text-slate-400 max-w-md mb-8">
         Complete these 5 steps before {formatStartDate(metadata.startDate)} so you're ready to go on day one.
       </p>
+      <p className="mb-8 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-[13px] font-semibold text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-300">
+        No existing account required. We'll create your account in Step 1.
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg mb-10">
         <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-start gap-3 text-left">
@@ -120,7 +123,7 @@ export function PersonalInfoStep({ onNext, onBack, data, metadata }: StepProps) 
       <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
         <User size={20} className="text-blue-500" /> Personal Information
       </h3>
-      <p className="text-slate-500 text-[14px] mb-6">Let's start with your basics for our HR system.</p>
+      <p className="text-slate-500 text-[14px] mb-6">Let's start with your basics for our HR system. Submitting this step creates your CircleWorks account from the magic link.</p>
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -618,6 +621,7 @@ export function SignDocumentsStep({ onNext, onBack, data, metadata }: StepProps)
     setSubmitting(true);
     setSubmitError("");
     try {
+      const documentFolder = `employees/${metadata.employeeId}/documents`;
       const res = await fetch("/api/preboarding/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -627,14 +631,25 @@ export function SignDocumentsStep({ onNext, onBack, data, metadata }: StepProps)
           companyName: metadata.companyName,
           employeeName: metadata.employeeName,
           startDate: metadata.startDate,
+          officeLocation: metadata.officeLocation,
+          hrContactEmail: metadata.hrContactEmail,
+          hrContactPhone: metadata.hrContactPhone,
           signedDocuments: signedDocs,
-          documentFolder: `employees/${metadata.employeeId}/documents`,
+          documentFolder,
         }),
       });
 
       if (!res.ok) throw new Error("Unable to complete pre-boarding");
+      const result = await res.json();
       setSubmitting(false);
-      onNext({ docs: signedDocs });
+      onNext({
+        docs: signedDocs,
+        completion: {
+          packetQueued: result.pdf_queue === "queued",
+          packetJobId: result.packet_job_id,
+          documentFolder: result.documents_saved_to || documentFolder,
+        },
+      });
     } catch (error) {
       setSubmitting(false);
       setSubmitError(error instanceof Error ? error.message : "Unable to complete pre-boarding");
@@ -699,7 +714,7 @@ export function SignDocumentsStep({ onNext, onBack, data, metadata }: StepProps)
 // ---------------------------------------------------------
 // STEP 6: Completion Screen
 // ---------------------------------------------------------
-export function CompletionScreen({ metadata }: StepProps) {
+export function CompletionScreen({ data, metadata }: StepProps) {
   return (
     <div className="flex flex-col items-center text-center py-8">
       <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6 text-emerald-600 dark:text-emerald-400">
@@ -718,12 +733,17 @@ export function CompletionScreen({ metadata }: StepProps) {
         </p>
         
         <PDFDownloadLink 
-          document={<NewHirePacket employeeName={metadata.employeeName} companyName={metadata.companyName} startDate={metadata.startDate} officeLocation={metadata.officeLocation} />} 
+          document={<NewHirePacket employeeName={metadata.employeeName} companyName={metadata.companyName} startDate={metadata.startDate} officeLocation={metadata.officeLocation} hrContactEmail={metadata.hrContactEmail} hrContactPhone={metadata.hrContactPhone} />}
           fileName={`${metadata.employeeName.replace(/\s+/g, '_')}_New_Hire_Packet.pdf`}
           className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
         >
-          {({ loading }) => loading ? 'Generating Packet...' : 'Download Your New Hire Packet'}
+          {({ loading }) => loading ? 'Generating Packet...' : 'Your New Hire Packet'}
         </PDFDownloadLink>
+        <p className="mt-3 text-[12px] text-blue-700 dark:text-blue-300">
+          {data.completion?.packetQueued
+            ? `Auto-assembly queued via pdf-generation${data.completion.packetJobId ? ` (job ${data.completion.packetJobId})` : ""}.`
+            : "Packet PDF is ready for download. Add REDIS_URL to queue background assembly."}
+        </p>
       </div>
 
       <div className="text-slate-500 text-[14px]">

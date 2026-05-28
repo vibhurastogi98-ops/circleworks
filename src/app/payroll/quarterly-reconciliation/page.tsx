@@ -7,6 +7,7 @@ type QuarterKey = 1 | 2 | 3 | 4;
 
 type TaxLine = {
   taxType: string;
+  form941Line: string;
   expected: number;
   actual: number;
 };
@@ -17,10 +18,10 @@ const QUARTERS: { key: QuarterKey; label: string; range: string; rows: TaxLine[]
     label: "Q1 2026",
     range: "Jan 1 – Mar 31, 2026",
     rows: [
-      { taxType: "Federal income tax withheld", expected: 125_400, actual: 125_400 },
-      { taxType: "Social Security tax", expected: 78_250, actual: 78_250 },
-      { taxType: "Medicare tax", expected: 18_300, actual: 18_300 },
-      { taxType: "State income tax (CA)", expected: 45_600, actual: 45_200 },
+      { taxType: "Federal income tax withheld", form941Line: "Line 3", expected: 125_400, actual: 125_400 },
+      { taxType: "Social Security tax", form941Line: "Line 5a", expected: 78_250, actual: 78_250 },
+      { taxType: "Medicare tax", form941Line: "Line 5c", expected: 18_300, actual: 18_300 },
+      { taxType: "State income tax (CA)", form941Line: "State deposit register", expected: 45_600, actual: 45_200 },
     ],
   },
   {
@@ -28,10 +29,10 @@ const QUARTERS: { key: QuarterKey; label: string; range: string; rows: TaxLine[]
     label: "Q2 2026",
     range: "Apr 1 – Jun 30, 2026",
     rows: [
-      { taxType: "Federal income tax withheld", expected: 128_100, actual: 128_100 },
-      { taxType: "Social Security tax", expected: 79_800, actual: 79_800 },
-      { taxType: "Medicare tax", expected: 18_650, actual: 18_650 },
-      { taxType: "State income tax (CA)", expected: 46_200, actual: 46_200 },
+      { taxType: "Federal income tax withheld", form941Line: "Line 3", expected: 128_100, actual: 128_100 },
+      { taxType: "Social Security tax", form941Line: "Line 5a", expected: 79_800, actual: 79_800 },
+      { taxType: "Medicare tax", form941Line: "Line 5c", expected: 18_650, actual: 18_650 },
+      { taxType: "State income tax (CA)", form941Line: "State deposit register", expected: 46_200, actual: 46_200 },
     ],
   },
   {
@@ -39,10 +40,10 @@ const QUARTERS: { key: QuarterKey; label: string; range: string; rows: TaxLine[]
     label: "Q3 2026",
     range: "Jul 1 – Sep 30, 2026",
     rows: [
-      { taxType: "Federal income tax withheld", expected: 129_400, actual: 129_400 },
-      { taxType: "Social Security tax", expected: 80_100, actual: 80_050 },
-      { taxType: "Medicare tax", expected: 18_900, actual: 18_900 },
-      { taxType: "State income tax (CA)", expected: 46_500, actual: 46_500 },
+      { taxType: "Federal income tax withheld", form941Line: "Line 3", expected: 129_400, actual: 129_400 },
+      { taxType: "Social Security tax", form941Line: "Line 5a", expected: 80_100, actual: 80_050 },
+      { taxType: "Medicare tax", form941Line: "Line 5c", expected: 18_900, actual: 18_900 },
+      { taxType: "State income tax (CA)", form941Line: "State deposit register", expected: 46_500, actual: 46_500 },
     ],
   },
   {
@@ -50,16 +51,20 @@ const QUARTERS: { key: QuarterKey; label: string; range: string; rows: TaxLine[]
     label: "Q4 2026",
     range: "Oct 1 – Dec 31, 2026",
     rows: [
-      { taxType: "Federal income tax withheld", expected: 130_200, actual: 130_200 },
-      { taxType: "Social Security tax", expected: 80_400, actual: 80_400 },
-      { taxType: "Medicare tax", expected: 19_050, actual: 19_050 },
-      { taxType: "State income tax (CA)", expected: 46_800, actual: 46_800 },
+      { taxType: "Federal income tax withheld", form941Line: "Line 3", expected: 130_200, actual: 130_200 },
+      { taxType: "Social Security tax", form941Line: "Line 5a", expected: 80_400, actual: 80_400 },
+      { taxType: "Medicare tax", form941Line: "Line 5c", expected: 19_050, actual: 19_050 },
+      { taxType: "State income tax (CA)", form941Line: "State deposit register", expected: 46_800, actual: 46_800 },
     ],
   },
 ];
 
 function money(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function csvCell(value: string | number) {
+  return `"${String(value).replaceAll('"', '""')}"`;
 }
 
 export default function QuarterlyReconciliationPage() {
@@ -89,17 +94,33 @@ export default function QuarterlyReconciliationPage() {
     setTimeout(() => {
       setWorksheetBusy(false);
       setWorksheetDone(true);
+      const worksheetRows = quarter.rows.map((row) => {
+        const variance = row.actual - row.expected;
+        return [
+          row.taxType,
+          row.form941Line,
+          row.expected.toFixed(2),
+          row.actual.toFixed(2),
+          variance.toFixed(2),
+          Math.abs(variance) > 0.009 ? "Discrepancy" : "Matched",
+        ].map(csvCell).join(",");
+      });
       const body = [
-        "Form 941 reconciliation worksheet (stub)",
-        `Quarter: ${quarter.label}`,
+        ["CircleWorks 941 reconciliation worksheet"].map(csvCell).join(","),
+        ["Quarter", quarter.label].map(csvCell).join(","),
+        ["Period", quarter.range].map(csvCell).join(","),
         "",
-        "Totals from CircleWorks liability vs. deposit registers should be reviewed before filing.",
+        ["Tax type", "941 mapping", "Expected deposits", "Actual deposits", "Variance", "Status"].map(csvCell).join(","),
+        ...worksheetRows,
+        "",
+        ["Quarter total", "", totals.expected.toFixed(2), totals.actual.toFixed(2), variance.toFixed(2), Math.abs(variance) > 0.009 ? "Discrepancy" : "Matched"].map(csvCell).join(","),
+        ["Review note", "Attach payroll liability register and deposit confirmations before filing Form 941."].map(csvCell).join(","),
       ].join("\n");
-      const blob = new Blob([body], { type: "text/plain" });
+      const blob = new Blob([body], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `941-reconciliation-${quarter.label.replace(/\s+/g, "-").toLowerCase()}.txt`;
+      a.download = `941-reconciliation-${quarter.label.replace(/\s+/g, "-").toLowerCase()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       setTimeout(() => setWorksheetDone(false), 2500);
@@ -192,6 +213,7 @@ export default function QuarterlyReconciliationPage() {
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
                 <th className="text-left px-4 py-3 font-semibold">Tax type</th>
+                <th className="text-left px-4 py-3 font-semibold">941 mapping</th>
                 <th className="text-right px-4 py-3 font-semibold">Expected (calc)</th>
                 <th className="text-right px-4 py-3 font-semibold">Actual (records)</th>
                 <th className="text-right px-4 py-3 font-semibold">Variance</th>
@@ -205,6 +227,7 @@ export default function QuarterlyReconciliationPage() {
                 return (
                   <tr key={row.taxType} className={bad ? "bg-red-50/50 dark:bg-red-900/10" : undefined}>
                     <td className={`px-4 py-3 font-medium ${bad ? "text-red-900 dark:text-red-400" : ""}`}>{row.taxType}</td>
+                    <td className={`px-4 py-3 ${bad ? "text-red-900 dark:text-red-400" : "text-slate-500 dark:text-slate-400"}`}>{row.form941Line}</td>
                     <td className={`px-4 py-3 text-right font-mono ${bad ? "text-red-900 dark:text-red-400" : ""}`}>{money(row.expected)}</td>
                     <td className={`px-4 py-3 text-right font-mono ${bad ? "text-red-900 dark:text-red-400" : ""}`}>{money(row.actual)}</td>
                     <td className={`px-4 py-3 text-right font-mono font-bold ${bad ? "text-red-600" : "text-slate-500"}`}>{money(v)}</td>
@@ -226,6 +249,7 @@ export default function QuarterlyReconciliationPage() {
             <tfoot className="bg-slate-50 dark:bg-slate-800/80 font-bold border-t-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
               <tr>
                 <td className="px-4 py-3">Quarter total</td>
+                <td className="px-4 py-3 text-slate-500">Form 941 worksheet</td>
                 <td className="px-4 py-3 text-right font-mono">{money(totals.expected)}</td>
                 <td className="px-4 py-3 text-right font-mono">{money(totals.actual)}</td>
                 <td className={`px-4 py-3 text-right font-mono ${Math.abs(variance) > 0.009 ? "text-red-600" : "text-slate-500"}`}>

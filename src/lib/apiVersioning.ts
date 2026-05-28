@@ -142,10 +142,16 @@ export function getVersionContract() {
       sunset_date: value.sunsetDate,
     })),
     versioning_strategy: {
+      current: "/v1/",
+      current_status: "stable",
+      current_support_policy: "Supported for at least 18 months after deprecation notice.",
+      next: "/v2/",
+      next_policy: "Introduced alongside /v1/ for breaking changes only.",
       major: "Path-based (/v1/, /v2/). Breaking changes only.",
+      minor_header: "API-Version: 2025-01-01",
       minor: "Header-based (API-Version: YYYY-MM-DD). Non-breaking additions.",
       deprecation_policy: "Minimum 18 months support after deprecation notice.",
-      deprecation_headers: ["Deprecation: true", "Sunset: <ISO-date>"],
+      deprecation_headers: ["Deprecation: true", "Sunset: [date]"],
     },
     docs: "https://docs.circleworks.io/api",
     rate_limits: {

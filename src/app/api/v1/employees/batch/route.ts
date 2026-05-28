@@ -5,10 +5,10 @@
  * Section 35: Batch Endpoints
  */
 
-import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { employees, onboardingCases, users } from "@/db/schema";
 import { getSession } from "@/lib/session";
+import { versionedResponse } from "@/lib/apiVersioning";
 import { eq, inArray } from "drizzle-orm";
 import { dispatchWebhook } from "../../../../../lib/webhooks";
 
@@ -20,9 +20,11 @@ export async function GET(req: Request) {
     const idsParam = searchParams.get("ids");
 
     if (!idsParam) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "missing_parameter", message: "Query param 'ids' is required (comma-separated)." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
@@ -32,16 +34,20 @@ export async function GET(req: Request) {
       .filter((id) => !isNaN(id));
 
     if (ids.length === 0) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "invalid_ids", message: "No valid numeric IDs provided." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
     if (ids.length > BATCH_CREATE_LIMIT) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "batch_limit_exceeded", message: `Maximum ${BATCH_CREATE_LIMIT} IDs per request.` },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
@@ -50,14 +56,14 @@ export async function GET(req: Request) {
       .from(employees)
       .where(inArray(employees.id, ids));
 
-    return NextResponse.json({
+    return versionedResponse({
       data: results,
       count: results.length,
       requested: ids.length,
-    });
+    }, "v1", req);
   } catch (error: any) {
     console.error("[Batch GET /employees/batch]", error);
-    return NextResponse.json({ error: "internal_error", message: error.message }, { status: 500 });
+    return versionedResponse({ error: "internal_error", message: error.message }, "v1", req, 500);
   }
 }
 
@@ -67,25 +73,31 @@ export async function POST(req: Request) {
 
     // Validate top-level structure
     if (!Array.isArray(body.employees)) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "invalid_body", message: "Body must contain an 'employees' array." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
     const records: typeof body.employees = body.employees;
 
     if (records.length === 0) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "empty_batch", message: "Employees array must not be empty." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
     if (records.length > BATCH_CREATE_LIMIT) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "batch_limit_exceeded", message: `Maximum ${BATCH_CREATE_LIMIT} employees per batch request.` },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
@@ -97,9 +109,11 @@ export async function POST(req: Request) {
     });
 
     if (validationErrors.length > 0) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "validation_failed", validationErrors },
-        { status: 422 }
+        "v1",
+        req,
+        422
       );
     }
 
@@ -116,9 +130,11 @@ export async function POST(req: Request) {
 
     const companyId = userEmployee?.companyId || body.companyId;
     if (!companyId) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "company_not_found", message: "Could not resolve company for this user." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
@@ -167,15 +183,17 @@ export async function POST(req: Request) {
 
     console.log(`[Batch POST /employees/batch] Created ${created.length} employees for company ${companyId}`);
 
-    return NextResponse.json(
+    return versionedResponse(
       {
         created: created.length,
         data: created,
       },
-      { status: 201 }
+      "v1",
+      req,
+      201
     );
   } catch (error: any) {
     console.error("[Batch POST /employees/batch]", error);
-    return NextResponse.json({ error: "internal_error", message: error.message }, { status: 500 });
+    return versionedResponse({ error: "internal_error", message: error.message }, "v1", req, 500);
   }
 }

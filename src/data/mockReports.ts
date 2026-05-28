@@ -1,4 +1,5 @@
 // ─── REPORT CATEGORIES & STANDARD REPORTS ────────────────────────────
+// Sec. 26 source of truth: see Sec_26_Standard_Report_Specifications.md.
 
 export type ReportCategory =
   | "Payroll"

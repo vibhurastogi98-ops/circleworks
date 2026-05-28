@@ -4,7 +4,7 @@ import { Queue } from "bullmq";
 import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
 import { eq } from "drizzle-orm";
 import { requireApiPermission } from "@/lib/apiRbac";
-import { bullmqConnectionFromEnv } from "@/lib/bullmq-redis";
+import { QUEUE_PDF_GENERATION, bullmqConnectionFromEnv } from "@/lib/bullmq-redis";
 import { db } from "@/db";
 import { employees, users } from "@/db/schema";
 import { buildPayrollRunReportData } from "@/lib/payroll/build-payroll-run-report-data";
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const conn = bullmqConnectionFromEnv();
     let jobId: string | undefined;
     if (conn) {
-      const queue = new Queue("pdf-generation", { connection: conn });
+      const queue = new Queue(QUEUE_PDF_GENERATION, { connection: conn });
       try {
         const job = await queue.add(
           "payroll-run-report",

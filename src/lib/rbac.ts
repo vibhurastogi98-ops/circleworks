@@ -660,8 +660,13 @@ const publicApiPrefixes = [
   "/api/webinars",
   "/api/partners/apply",
   "/api/verify-token",
+  "/api/preboarding",
   "/api/circe",
   "/api/plaid",
+];
+
+const publicApiPaths = [
+  "/api/v1",
 ];
 
 function pathStartsWith(pathname: string, prefix: string) {
@@ -669,7 +674,10 @@ function pathStartsWith(pathname: string, prefix: string) {
 }
 
 export function isPublicApiRoute(pathname: string) {
-  return publicApiPrefixes.some((prefix) => pathStartsWith(pathname, prefix));
+  return (
+    publicApiPaths.includes(pathname) ||
+    publicApiPrefixes.some((prefix) => pathStartsWith(pathname, prefix))
+  );
 }
 
 export function getRequiredScreenPermission(pathname: string) {

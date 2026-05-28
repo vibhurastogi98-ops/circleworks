@@ -4,10 +4,10 @@
  * Section 35: Batch Endpoints
  */
 
-import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { payrolls } from "@/db/schema";
-import { inArray, eq } from "drizzle-orm";
+import { versionedResponse } from "@/lib/apiVersioning";
+import { inArray } from "drizzle-orm";
 import { dispatchWebhook } from "../../../../../lib/webhooks";
 
 export async function POST(req: Request) {
@@ -15,18 +15,22 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     if (!Array.isArray(body.runIds) || body.runIds.length === 0) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "invalid_body", message: "Body must contain a non-empty 'runIds' array." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
     const runIds: number[] = body.runIds.map(Number).filter((id: number) => !isNaN(id));
 
     if (runIds.length > 50) {
-      return NextResponse.json(
+      return versionedResponse(
         { error: "batch_limit_exceeded", message: "Maximum 50 payroll runs per batch-approve request." },
-        { status: 400 }
+        "v1",
+        req,
+        400
       );
     }
 
@@ -41,14 +45,16 @@ export async function POST(req: Request) {
     const notFound = runIds.filter((id) => !runsToApprove.find((r) => r.id === id));
 
     if (pendingRuns.length === 0) {
-      return NextResponse.json(
+      return versionedResponse(
         {
           error: "no_approvable_runs",
           message: "None of the provided run IDs are in 'pending' status.",
           skipped,
           notFound,
         },
-        { status: 422 }
+        "v1",
+        req,
+        422
       );
     }
 
@@ -73,14 +79,14 @@ export async function POST(req: Request) {
 
     console.log(`[Batch POST /payroll/batch-approve] Approved ${pendingRuns.length} runs`);
 
-    return NextResponse.json({
+    return versionedResponse({
       approved: pendingRuns.length,
       approvedIds: pendingIds,
       skipped,
       notFound,
-    });
+    }, "v1", req);
   } catch (error: any) {
     console.error("[Batch POST /payroll/batch-approve]", error);
-    return NextResponse.json({ error: "internal_error", message: error.message }, { status: 500 });
+    return versionedResponse({ error: "internal_error", message: error.message }, "v1", req, 500);
   }
 }

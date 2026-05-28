@@ -5,7 +5,6 @@
  * Section 35: API Versioning Strategy
  */
 
-import { NextResponse } from "next/server";
 import { getVersionContract, versionedResponse } from "@/lib/apiVersioning";
 import { getUploadLimitsSummary } from "@/lib/uploadLimits";
 
@@ -57,7 +56,7 @@ export async function GET(req: Request) {
           documentId: "number",
           documentType: "string",
           employeeId: "number | null",
-          signedAt: "ISO8601 | null",
+          signedAt: "ISO8601",
           companyId: "number | null",
         },
       },

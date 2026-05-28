@@ -87,7 +87,6 @@ export function validateUpload(
         {
           error: "file_too_large",
           max_size_mb: limits.maxSizeMb,
-          received_size_mb: parseFloat((sizeBytes / 1024 / 1024).toFixed(2)),
         },
         { status: 413 }
       ),

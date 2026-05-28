@@ -14,6 +14,8 @@ export interface InvitePayload {
   managerPhotoUrl?: string;
   officeLocation?: string;
   workState?: string;
+  hrContactEmail?: string;
+  hrContactPhone?: string;
 }
 
 /**

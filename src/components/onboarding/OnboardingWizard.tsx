@@ -52,7 +52,8 @@ export default function OnboardingWizard({ payload }: Props) {
        alienRegistrationNumber: "",
        attested: false
     },
-    docs: []
+    docs: [],
+    completion: undefined,
   });
 
   const metadata: OnboardingMetadata = {
@@ -68,6 +69,8 @@ export default function OnboardingWizard({ payload }: Props) {
       "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent",
     officeLocation: payload.officeLocation || "Headquarters, 548 Market St, San Francisco, CA",
     workState: payload.workState || "CA",
+    hrContactEmail: payload.hrContactEmail || "people@circleworks.com",
+    hrContactPhone: payload.hrContactPhone || "(555) 123-4567",
   };
 
   const handleNext = (stepData: Partial<OnboardingData>) => {

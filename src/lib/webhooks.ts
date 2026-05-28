@@ -52,7 +52,7 @@ export interface DocumentSignedPayload {
   documentId: number;
   documentType: string;
   employeeId: number | null;
-  signedAt: string | null;
+  signedAt: string;
   companyId: number | null;
 }
 
