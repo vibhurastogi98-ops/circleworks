@@ -408,8 +408,10 @@ export default function WebinarsClient({
                 </label>
                 <input
                   id="mailing-email"
+                  name="email"
                   required
                   type="email"
+                  autoComplete="email"
                   value={mailingEmail}
                   onChange={(event) => setMailingEmail(event.target.value)}
                   placeholder="you@company.com"
@@ -432,22 +434,27 @@ export default function WebinarsClient({
                 <h3 className="text-xl font-black mb-2">Suggest a webinar topic</h3>
                 <div className="mt-5 space-y-3">
                   <input
+                    name="name"
                     required
                     type="text"
+                    autoComplete="name"
                     value={suggestion.name}
                     onChange={(event) => setSuggestion({ ...suggestion, name: event.target.value })}
                     placeholder="Name"
                     className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white text-[#0A1628] placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-300/30 outline-none"
                   />
                   <input
+                    name="email"
                     required
                     type="email"
+                    autoComplete="email"
                     value={suggestion.email}
                     onChange={(event) => setSuggestion({ ...suggestion, email: event.target.value })}
                     placeholder="Work email"
                     className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white text-[#0A1628] placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-300/30 outline-none"
                   />
                   <textarea
+                    name="topic"
                     required
                     rows={3}
                     value={suggestion.topic}
@@ -574,8 +581,10 @@ function CaptureInputs({
       <div>
         <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
         <input
+          name="name"
           required
           type="text"
+          autoComplete="name"
           value={capture.name}
           onChange={(event) => setCapture({ ...capture, name: event.target.value })}
           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
@@ -585,8 +594,10 @@ function CaptureInputs({
       <div>
         <label className="block text-sm font-bold text-slate-700 mb-1">Work Email</label>
         <input
+          name="email"
           required
           type="email"
+          autoComplete="email"
           value={capture.email}
           onChange={(event) => setCapture({ ...capture, email: event.target.value })}
           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
@@ -598,7 +609,9 @@ function CaptureInputs({
           <label className="block text-sm font-bold text-slate-700 mb-1">Company Name</label>
           <input
             required
+            name="company"
             type="text"
+            autoComplete="organization"
             value={capture.company}
             onChange={(event) => setCapture({ ...capture, company: event.target.value })}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"

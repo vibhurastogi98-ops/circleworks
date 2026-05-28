@@ -222,8 +222,10 @@ export default function TemplateDownloadButton({
                       First name
                     </span>
                     <input
+                      name="firstName"
                       required
                       type="text"
+                      autoComplete="given-name"
                       value={formData.firstName}
                       onChange={(event) =>
                         setFormData({
@@ -241,8 +243,10 @@ export default function TemplateDownloadButton({
                       Work email
                     </span>
                     <input
+                      name="email"
                       required
                       type="email"
+                      autoComplete="email"
                       value={formData.email}
                       onChange={(event) =>
                         setFormData({
@@ -260,7 +264,9 @@ export default function TemplateDownloadButton({
                       Company size
                     </span>
                     <select
+                      name="companySize"
                       required
+                      autoComplete="organization-title"
                       value={formData.companySize}
                       onChange={(event) =>
                         setFormData({

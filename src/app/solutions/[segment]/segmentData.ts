@@ -1,10 +1,18 @@
 export interface SegmentContent {
   title: string;
-  sub: string;
+  sub: string | [string, string];
   ctaHero: string;
   ctaSub: string;
   heroGradient: string;
   ogImage?: string;
+  heroMockup?: {
+    stats: { label: string; value: string; change: string }[];
+    payrollTitle: string;
+    payrollBadge: string;
+    payrollRows: { title: string; date: string; status: string; amount: string }[];
+    complianceRows: { task: string; status: string; tone: "success" | "warning" | "info" }[];
+    actionLabel: string;
+  };
   painPoints: { icon: string; title: string; description: string }[];
   features: { name: string; description: string; icon: string }[];
   testimonial: { quote: string; author: string; role: string; avatar: string };
@@ -17,23 +25,46 @@ export interface SegmentContent {
 export const segments: Record<string, SegmentContent> = {
   agencies: {
     title: "Run payroll for all your clients from one dashboard",
-    sub: "The command center for agencies. Manage every client's team, automate billing-hour payroll sync, and deliver white-label reports — without ever logging out.",
+    sub: [
+      "Manage every client team, payroll run, and filing from one secure agency workspace.",
+      "Sync billable hours, automate multi-state compliance, and send polished client-ready reports.",
+    ],
     ctaHero: "Start Free Trial",
     ctaSub: "See Agency Features",
     heroGradient: "from-blue-600 via-indigo-500 to-purple-600",
     ogImage: "/og/agencies.png",
+    heroMockup: {
+      stats: [
+        { label: "Client Payrolls", value: "34", change: "8 due this week" },
+        { label: "Billable Hours", value: "4,820", change: "+18% synced" },
+        { label: "Margin Watch", value: "92%", change: "healthy accounts" },
+      ],
+      payrollTitle: "Client Payroll Queue",
+      payrollBadge: "8 runs ready",
+      payrollRows: [
+        { title: "Peak Retail Payroll", date: "Client: Peak Retail", status: "Review", amount: "$84,220.00" },
+        { title: "Northstar Contractors", date: "1099 batch", status: "Draft", amount: "$27,480.00" },
+        { title: "Brightline Services", date: "White-label report", status: "Approved", amount: "$62,910.00" },
+      ],
+      complianceRows: [
+        { task: "CA client filing package", status: "Completed", tone: "success" },
+        { task: "NY unemployment registration", status: "Review Required", tone: "warning" },
+        { task: "Client permission audit", status: "In Progress", tone: "info" },
+      ],
+      actionLabel: "Add Client",
+    },
     painPoints: [
       { icon: "building", title: "Client Multi-Tenancy", description: "Switching between dozens of client logins is slow and error-prone. One mistake and you're filing in the wrong account." },
       { icon: "clock", title: "Billable Hour Prep", description: "Syncing time tracking data to payroll and invoicing manually eats hours you should be billing to clients." },
       { icon: "tag", title: "Project Costing", description: "Without true labor cost visibility, fixed-fee projects quietly eat into your agency's margins." }
     ],
     features: [
-      { name: "Multi-Client Dashboard", description: "One login to rule them all. Toggle between every client account from a sleek, centralized hub — no re-authentication required.", icon: "keyboard" },
-      { name: "Unified Time Sync", description: "Connect with Harvest, Toggl, or Everhour to auto-import billable hours directly into each client's payroll run.", icon: "clock" },
-      { name: "White-Label Reporting", description: "Your brand, our engine. Send professional, branded payroll and cost reports to clients with your logo front and center.", icon: "tag" },
-      { name: "Partner-Level Access", description: "Invite your accountant or a client's bookkeeper with scoped, read-only access to specific financial reports.", icon: "users" },
-      { name: "Multi-State Tax Filings", description: "We handle nexus complexity. Automated state tax registrations and filings for every jurisdiction your clients operate in.", icon: "map" },
-      { name: "Profitability Dashboard", description: "See the true cost of labor per project and client. Instantly know which accounts are profitable and which are leaking.", icon: "chart" }
+      { name: "Multi-Client Dashboard", description: "Toggle between isolated client workspaces from one secure agency login.", icon: "keyboard" },
+      { name: "Unified Time Sync", description: "Import approved billable hours from Harvest, Toggl, or Everhour into payroll.", icon: "clock" },
+      { name: "White-Label Reporting", description: "Send client-ready payroll and cost reports with your agency branding.", icon: "tag" },
+      { name: "Partner-Level Access", description: "Give bookkeepers and client admins scoped permissions by company.", icon: "users" },
+      { name: "Multi-State Tax Filings", description: "Automate registrations and filings for every client jurisdiction.", icon: "map" },
+      { name: "Profitability Dashboard", description: "Track labor cost, utilization, and margin by client or project.", icon: "chart" }
     ],
     testimonial: {
       quote: "CircleWorks is the perfect fit. It's clean, professional, and handles both our internal consulting payouts and our client accounts perfectly.",
@@ -133,23 +164,46 @@ export const segments: Record<string, SegmentContent> = {
   },
   creators: {
     title: "Pay your talent, track royalties, and file 1099s — all in one place",
-    sub: "The all-in-one financial stack for creators, influencers, and production houses. Get back to creating while we handle every payment, form, and filing.",
+    sub: [
+      "Centralize payouts for editors, producers, musicians, and collaborators before every launch.",
+      "CircleWorks tracks royalties, W-9s, project costs, and 1099 filings without another spreadsheet.",
+    ],
     ctaHero: "Start Free Trial",
     ctaSub: "See Creator Features",
     heroGradient: "from-pink-500 via-rose-500 to-orange-500",
     ogImage: "/og/creators.png",
+    heroMockup: {
+      stats: [
+        { label: "Active Talent", value: "42", change: "12 paid today" },
+        { label: "Royalty Splits", value: "18", change: "matched to projects" },
+        { label: "1099 Readiness", value: "94%", change: "W-9s complete" },
+      ],
+      payrollTitle: "Talent Payouts",
+      payrollBadge: "Same-day ACH",
+      payrollRows: [
+        { title: "Editor Retainer", date: "Project: Launch video", status: "Scheduled", amount: "$4,800.00" },
+        { title: "Podcast Royalty Split", date: "Episode 214", status: "Ready", amount: "$1,240.00" },
+        { title: "Thumbnail Batch", date: "Contractor payout", status: "Paid", amount: "$720.00" },
+      ],
+      complianceRows: [
+        { task: "W-9 collection for new talent", status: "Completed", tone: "success" },
+        { task: "1099-NEC threshold check", status: "Review Required", tone: "warning" },
+        { task: "Royalty statement export", status: "In Progress", tone: "info" },
+      ],
+      actionLabel: "Pay Talent",
+    },
     painPoints: [
       { icon: "dollar", title: "Talent Payout Hell", description: "Manually Venmo-ing your editor, thumbnail designer, and voiceover artist every month is a full-time job in itself." },
       { icon: "file", title: "1099 Season Chaos", description: "Scrambling to report income for dozens of collaborators in January — while missing half the payment records." },
       { icon: "chart", title: "No Cost Visibility", description: "Not knowing whether each video or campaign turned a profit because expenses are scattered across cards and DMs." }
     ],
     features: [
-      { name: "Automated 1099-NEC Filing", description: "We track every contractor payment throughout the year and e-file 1099-NECs automatically each January — zero effort from you.", icon: "file" },
-      { name: "Talent Self-Service Portals", description: "Your collaborators upload their W-9, set their bank account, and track every payout — all without emailing you.", icon: "video" },
-      { name: "Instant & Scheduled Payouts", description: "Send money to your team immediately or schedule recurring payments. Same-day ACH and international wire both supported.", icon: "zap" },
-      { name: "Royalty & Revenue Tracking", description: "Connect YouTube, Spotify, or Patreon revenue streams and track how much each property is generating vs. its production cost.", icon: "film" },
-      { name: "Project-Based Cost Center", description: "Create a budget for each video, podcast, or campaign. CircleWorks tracks spend against it in real time.", icon: "chart" },
-      { name: "Expense Categorization", description: "Auto-categorize business expenses from linked cards. Keep personal and professional finances cleanly separated for tax time.", icon: "dollar" }
+      { name: "Automated 1099-NEC Filing", description: "Track contractor payments year-round and e-file 1099s in January.", icon: "file" },
+      { name: "Talent Self-Service Portals", description: "Let collaborators upload W-9s, bank details, and payout preferences.", icon: "video" },
+      { name: "Instant & Scheduled Payouts", description: "Send same-day ACH or schedule recurring talent payments.", icon: "zap" },
+      { name: "Royalty & Revenue Tracking", description: "Match platform revenue to collaborators, shows, videos, and campaigns.", icon: "film" },
+      { name: "Project-Based Cost Center", description: "Track spend and margin by video, episode, tour, or campaign.", icon: "chart" },
+      { name: "Expense Categorization", description: "Auto-classify production expenses from linked cards and accounts.", icon: "dollar" }
     ],
     testimonial: {
       quote: "Before CircleWorks, I spent two days a month just paying my editors. Now it's automated. It's life-changing.",
@@ -175,23 +229,46 @@ export const segments: Record<string, SegmentContent> = {
   },
   startups: {
     title: "The payroll platform built for hypergrowth",
-    sub: "Scale from your first hire to Series C without breaking HR. CircleWorks handles equity payroll, automated state nexus, and R&D tax credit tracking — at startup speed.",
+    sub: [
+      "Hire across states, sync equity events, and keep payroll-ready R&D records from day one.",
+      "CircleWorks gives founders and finance teams one clean workflow for every stage of growth.",
+    ],
     ctaHero: "Start Free Trial",
     ctaSub: "See Startup Features",
     heroGradient: "from-blue-400 via-cyan-400 to-emerald-400",
     ogImage: "/og/startups.png",
+    heroMockup: {
+      stats: [
+        { label: "New States", value: "4", change: "auto-registered" },
+        { label: "R&D Payroll", value: "$284K", change: "qualified this quarter" },
+        { label: "Equity Events", value: "11", change: "withholding synced" },
+      ],
+      payrollTitle: "Growth Payroll",
+      payrollBadge: "Series A ready",
+      payrollRows: [
+        { title: "Engineering Payroll", date: "R&D eligible", status: "Review", amount: "$142,300.00" },
+        { title: "Option Exercise Withholding", date: "Carta sync", status: "Ready", amount: "$38,940.00" },
+        { title: "New State Registration", date: "Colorado", status: "Filed", amount: "$0.00" },
+      ],
+      complianceRows: [
+        { task: "Colorado withholding registration", status: "Completed", tone: "success" },
+        { task: "R&D credit documentation", status: "In Progress", tone: "info" },
+        { task: "Equity payroll review", status: "Review Required", tone: "warning" },
+      ],
+      actionLabel: "Add Hire",
+    },
     painPoints: [
       { icon: "rocket", title: "Rapid Multi-State Hiring", description: "Onboarding engineers in 3 new states this quarter? Each state requires separate tax registrations or you're exposed to massive penalties." },
       { icon: "award", title: "Equity Payroll Complexity", description: "Stock option exercises and RSU vests create complex withholding requirements that legacy payroll systems simply can't handle." },
       { icon: "trending-down", title: "Unclaimed R&D Credits", description: "Most VC-backed startups qualify for significant R&D tax credits but leave millions on the table because no one is tracking qualifying payroll." }
     ],
     features: [
-      { name: "Equity Payroll Sync", description: "Connect with Carta or Pulley to automate withholding calculations for option exercises, RSU vests, and secondary sales.", icon: "chart" },
-      { name: "Auto-State Registration", description: "Hire anywhere in the US and we auto-register your company for payroll taxes in every new state — zero paperwork from you.", icon: "map" },
-      { name: "R&D Credit Tracking", description: "Automatically identify and document payroll expenses that qualify for federal and state R&D tax credits. Integrated with your CPA workflow.", icon: "activity" },
-      { name: "Offer Letter Automation", description: "Generate, send, and track legally compliant offer letters and employment agreements directly from the HR dashboard.", icon: "file" },
-      { name: "Benefits Benchmarking", description: "See how your benefits stack compares to similar-stage startups in your market. Stay competitive in the talent war without overspending.", icon: "award" },
-      { name: "Global EOR Hiring", description: "Hire top talent in 150+ countries in minutes without setting up legal entities. Our EOR handles local compliance end-to-end.", icon: "globe" }
+      { name: "Equity Payroll Sync", description: "Automate withholding for Carta or Pulley equity events.", icon: "chart" },
+      { name: "Auto-State Registration", description: "Register payroll taxes automatically as you hire in new states.", icon: "map" },
+      { name: "R&D Credit Tracking", description: "Identify qualifying payroll costs and package CPA-ready records.", icon: "activity" },
+      { name: "Offer Letter Automation", description: "Generate compliant offers and route approvals from one dashboard.", icon: "file" },
+      { name: "Benefits Benchmarking", description: "Compare plans against similar-stage startups before renewals.", icon: "award" },
+      { name: "Global EOR Hiring", description: "Hire full-time talent abroad without opening local entities.", icon: "globe" }
     ],
     testimonial: {
       quote: "CircleWorks is the only platform that moved at our speed. They handled our expansion into 12 states in one month.",
@@ -217,23 +294,46 @@ export const segments: Record<string, SegmentContent> = {
   },
   healthcare: {
     title: "Compliant payroll built for medicine",
-    sub: "Handle shift differentials, 8/80 overtime rules, and credential tracking without the manual work. Stay audit-ready with a fully HIPAA-compliant HR platform.",
+    sub: [
+      "Run shift differentials, 8/80 overtime, and credential tracking without manual rework.",
+      "Keep clinical payroll, sensitive records, and audit trails organized in a HIPAA-ready workspace.",
+    ],
     ctaHero: "Start Free Trial",
     ctaSub: "See Healthcare Features",
     heroGradient: "from-emerald-500 via-teal-500 to-blue-500",
     ogImage: "/og/healthcare.png",
+    heroMockup: {
+      stats: [
+        { label: "Credential Alerts", value: "12", change: "renewals queued" },
+        { label: "Differential Hours", value: "486", change: "auto-rated" },
+        { label: "8/80 Checks", value: "100%", change: "validated" },
+      ],
+      payrollTitle: "Clinical Payroll",
+      payrollBadge: "8/80 enabled",
+      payrollRows: [
+        { title: "Night Shift Differential", date: "Nursing team", status: "Approved", amount: "$18,420.00" },
+        { title: "PRN Float Pool", date: "Per-diem batch", status: "Review", amount: "$31,880.00" },
+        { title: "On-Call Weekend Pay", date: "Clinical support", status: "Ready", amount: "$9,640.00" },
+      ],
+      complianceRows: [
+        { task: "RN license renewal queue", status: "Review Required", tone: "warning" },
+        { task: "HIPAA access audit", status: "Completed", tone: "success" },
+        { task: "8/80 overtime validation", status: "Completed", tone: "success" },
+      ],
+      actionLabel: "Add Shift",
+    },
     painPoints: [
       { icon: "building", title: "Complex Shift Differentials", description: "Manually calculating night, weekend, on-call, and holiday pay multipliers for every nurse and tech leads to costly payroll errors." },
       { icon: "briefcase", title: "License & Credential Expiry", description: "A lapsed nursing license or expired CPR cert discovered mid-shift creates both legal liability and dangerous care gaps." },
       { icon: "shield", title: "Healthcare-Specific Overtime", description: "The FLSA 8/80 rule and state-level healthcare overtime laws are rarely supported by generic payroll platforms — leading to compliance violations." }
     ],
     features: [
-      { name: "Shift Differential Engine", description: "Configure unlimited pay rules — nights, weekends, holidays, on-call, and charge nurse rates. Payroll pulls them automatically each period.", icon: "clock" },
-      { name: "8/80 Overtime Compliance", description: "Our rules engine is fully configurable for the healthcare 8/80 overtime method and all state-level healthcare wage laws.", icon: "shield" },
-      { name: "Credential & License Tracker", description: "Automated alerts 30, 60, and 90 days before any staff certification or license expires — with integrated renewal workflow.", icon: "id" },
-      { name: "HIPAA-Compliant Data Storage", description: "All employee health and HR records are stored in our encrypted, HIPAA-certified cloud with full audit logging and access controls.", icon: "lock" },
-      { name: "Schedule-to-Payroll Sync", description: "Import approved schedules from Kronos, ADP Scheduling, or your EHR's staffing module. Hours flow to payroll with zero re-entry.", icon: "activity" },
-      { name: "PRN & Per-Diem Management", description: "Easily manage float pools, PRN staff, and agency workers alongside your permanent team. Each workforce type gets the right tax treatment.", icon: "users" }
+      { name: "Shift Differential Engine", description: "Apply night, weekend, holiday, on-call, and charge rates automatically.", icon: "clock" },
+      { name: "8/80 Overtime Compliance", description: "Run healthcare overtime rules with configurable state-law checks.", icon: "shield" },
+      { name: "Credential & License Tracker", description: "Alert staff and managers before any certification expires.", icon: "id" },
+      { name: "HIPAA-Compliant Data Storage", description: "Protect sensitive HR records with encryption and audit logs.", icon: "lock" },
+      { name: "Schedule-to-Payroll Sync", description: "Import approved clinical schedules without re-keying hours.", icon: "activity" },
+      { name: "PRN & Per-Diem Management", description: "Manage float pools and agency staff with correct tax treatment.", icon: "users" }
     ],
     testimonial: {
       quote: "The shift differential automation alone saved our billing department 20 hours a week. It's built for medicine.",
@@ -259,23 +359,46 @@ export const segments: Record<string, SegmentContent> = {
   },
   tech: {
     title: "The workforce OS for modern tech companies",
-    sub: "Payroll, benefits, and IT provisioning unified in one platform. Onboard a developer in any country, ship their laptop, and grant 50+ app accesses — all in one workflow.",
+    sub: [
+      "Unify payroll, benefits, app access, and device workflows for distributed technical teams.",
+      "Onboard developers anywhere, ship hardware, and keep SOC-2 evidence clean from one system.",
+    ],
     ctaHero: "Start Free Trial",
     ctaSub: "See Tech Features",
     heroGradient: "from-slate-800 via-blue-900 to-indigo-900",
     ogImage: "/og/tech.png",
+    heroMockup: {
+      stats: [
+        { label: "Apps Provisioned", value: "57", change: "per new hire" },
+        { label: "Devices Tracked", value: "312", change: "98% assigned" },
+        { label: "Access Revokes", value: "100%", change: "same-day" },
+      ],
+      payrollTitle: "Tech Workforce Runs",
+      payrollBadge: "Global ready",
+      payrollRows: [
+        { title: "Remote Engineering Payroll", date: "US + Canada", status: "Review", amount: "$284,500.00" },
+        { title: "Global Contractor Batch", date: "12 currencies", status: "Ready", amount: "$66,140.00" },
+        { title: "Device Recovery Holds", date: "Offboarding workflow", status: "Synced", amount: "$4,200.00" },
+      ],
+      complianceRows: [
+        { task: "GitHub access review", status: "Completed", tone: "success" },
+        { task: "Laptop return exception", status: "Review Required", tone: "warning" },
+        { task: "SOC-2 access export", status: "In Progress", tone: "info" },
+      ],
+      actionLabel: "Provision",
+    },
     painPoints: [
       { icon: "globe", title: "Remote Onboarding Chaos", description: "Coordinating laptop shipping, SSO access, Slack invites, and GitHub org membership manually for each new hire wastes days of engineering time." },
       { icon: "monitor", title: "Asset Visibility Blind Spot", description: "You have no idea which MacBook is with which remote employee — or if company hardware was returned after an engineer quit." },
       { icon: "shield", title: "SOC-2 Access Risk", description: "Manually managing least-privilege access across dozens of SaaS tools is error-prone and fails your SOC-2 Type II auditor every time." }
     ],
     features: [
-      { name: "Device Lifecycle Management", description: "Order, ship, track, and retrieve employee laptops and peripherals directly from the HR dashboard. MDM enrollment is automatic.", icon: "monitor" },
-      { name: "1-Click App Provisioning", description: "Grant access to GitHub, Jira, Notion, Slack, and 1,000+ other apps the moment an offer is signed — no IT tickets required.", icon: "keyboard" },
-      { name: "1-Click Offboarding", description: "Instantly revoke access to every SaaS app, transfer data ownership, and generate equipment return labels in one workflow.", icon: "ban" },
-      { name: "Global EOR Hiring", description: "Hire full-time engineers and designers in 150+ countries without local entities. Local payroll, benefits, and compliance handled completely.", icon: "globe" },
-      { name: "SOC-2 Access Audit Logs", description: "Every access grant, revocation, and permission change is logged with timestamp and approver — ready to export for your SOC-2 auditor.", icon: "shield" },
-      { name: "Benefits & Equity Integration", description: "Sync equity schedules from Carta and health benefits from your broker. Employees see everything — vesting, PTO, health — in one self-service portal.", icon: "award" }
+      { name: "Device Lifecycle Management", description: "Order, ship, track, and retrieve employee hardware from HR.", icon: "monitor" },
+      { name: "1-Click App Provisioning", description: "Grant GitHub, Jira, Slack, and SSO access when offers are signed.", icon: "keyboard" },
+      { name: "1-Click Offboarding", description: "Revoke SaaS access, transfer data, and trigger return labels.", icon: "ban" },
+      { name: "Global EOR Hiring", description: "Hire engineers in 150+ countries without opening entities.", icon: "globe" },
+      { name: "SOC-2 Access Audit Logs", description: "Export every permission change with approver and timestamp.", icon: "shield" },
+      { name: "Benefits & Equity Integration", description: "Show equity, benefits, PTO, and pay in one employee portal.", icon: "award" }
     ],
     testimonial: {
       quote: "The IT provisioning integration is absolute magic. We onboarded 15 developers in a week without a single manual invite.",
@@ -301,23 +424,46 @@ export const segments: Record<string, SegmentContent> = {
   },
   restaurants: {
     title: "Payroll that understands hospitality",
-    sub: "Handle tip credit, multiple pay rates, and front-of-house turnover without the headache. Built for the realities of kitchens, bars, and multi-location restaurant groups.",
+    sub: [
+      "Handle tip credit, dual rates, split shifts, and fast turnover without payroll fire drills.",
+      "Sync POS data, validate tipped minimum wage, and consolidate every location before payday.",
+    ],
     ctaHero: "Start Free Trial",
     ctaSub: "See Restaurant Features",
     heroGradient: "from-orange-500 via-red-500 to-rose-600",
     ogImage: "/og/restaurants.png",
+    heroMockup: {
+      stats: [
+        { label: "POS Tip Syncs", value: "128", change: "ready for payroll" },
+        { label: "Locations", value: "7", change: "consolidated" },
+        { label: "OT Alerts", value: "5", change: "before cutoff" },
+      ],
+      payrollTitle: "Hospitality Payroll",
+      payrollBadge: "POS synced",
+      payrollRows: [
+        { title: "FOH Tip Pool", date: "Toast import", status: "Review", amount: "$18,920.00" },
+        { title: "Dual-Rate Overtime", date: "Server + bartender", status: "Ready", amount: "$6,480.00" },
+        { title: "Multi-Location Payroll", date: "7 restaurants", status: "Draft", amount: "$112,750.00" },
+      ],
+      complianceRows: [
+        { task: "Tipped minimum wage validation", status: "Completed", tone: "success" },
+        { task: "Overtime threshold alert", status: "Review Required", tone: "warning" },
+        { task: "Form 8846 tip credit export", status: "In Progress", tone: "info" },
+      ],
+      actionLabel: "Import POS",
+    },
     painPoints: [
       { icon: "dollar", title: "Tip Credit Calculations", description: "Getting the FICA tip credit math wrong doesn't just mean less savings — it means penalties. Manual tip credit calculation is a liability." },
       { icon: "users", title: "Revolving Door Turnover", description: "Restaurants see 70%+ annual staff turnover. Manually onboarding and offboarding staff every week consumes hours your managers can't spare." },
       { icon: "clock", title: "Split Shifts & Dual Rates", description: "An employee serving tables at $2.13/hr and then bartending at $8/hr in one shift creates payroll complexity that generic systems can't handle." }
     ],
     features: [
-      { name: "POS-to-Payroll Sync", description: "Pull tip totals, sales data, and declared tips directly from Toast, Square, Clover, or Breadcrumb. No manual entry, no missed tips.", icon: "keyboard" },
-      { name: "FICA Tip Credit Engine", description: "Automatically calculate your Section 45B FICA tip credit each period and generate Form 8846 documentation at year-end. Leave no money on the table.", icon: "dollar" },
-      { name: "Dual-Rate & Role Tracking", description: "Assign multiple roles and pay rates to a single employee. CircleWorks correctly calculates blended overtime when they cross into a different role mid-shift.", icon: "clock" },
-      { name: "5-Minute Mobile Onboarding", description: "New hires complete their W-4, I-9, and direct deposit on their smartphone before their first shift. No paperwork, no delay.", icon: "smartphone" },
-      { name: "Predictive Staffing Alerts", description: "CircleWorks flags approaching overtime thresholds and minimum wage violations before they happen — giving managers time to adjust the schedule.", icon: "activity" },
-      { name: "Multi-Location Payroll Consolidation", description: "Manage payroll across every location from one dashboard. Each site reports independently but rolls up to a single consolidated view for ownership.", icon: "building" }
+      { name: "POS-to-Payroll Sync", description: "Pull tips, sales, and clock data from Toast, Square, or Clover.", icon: "keyboard" },
+      { name: "FICA Tip Credit Engine", description: "Calculate Section 45B credits and generate Form 8846 support.", icon: "dollar" },
+      { name: "Dual-Rate & Role Tracking", description: "Track blended overtime across serving, bar, kitchen, and host roles.", icon: "clock" },
+      { name: "5-Minute Mobile Onboarding", description: "Let new hires finish W-4, I-9, and direct deposit by phone.", icon: "smartphone" },
+      { name: "Predictive Staffing Alerts", description: "Flag overtime and minimum-wage risks before schedules lock.", icon: "activity" },
+      { name: "Multi-Location Payroll Consolidation", description: "Run every location separately while giving ownership one view.", icon: "building" }
     ],
     testimonial: {
       quote: "Running three restaurants meant three times the payroll stress. CircleWorks consolidated everything and automated our tip credits.",

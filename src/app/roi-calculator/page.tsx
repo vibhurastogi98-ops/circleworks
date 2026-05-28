@@ -191,7 +191,10 @@ function ResultCard({
   };
 
   return (
-    <div className={`rounded-lg border p-5 shadow-sm ${styles[accent]}`}>
+    <div
+      className={`rounded-lg border p-5 shadow-sm ${styles[accent]}`}
+      aria-live="polite"
+    >
       <p className="text-sm font-semibold opacity-75">{label}</p>
       <p className="mt-2 text-3xl font-black tracking-tight">{value}</p>
       <p className="mt-2 text-xs font-medium opacity-70">{note}</p>
@@ -277,6 +280,11 @@ export default function ROICalculatorPage() {
         "",
         `Employees: ${employees}`,
         `Current tools: ${selectedTools.join(", ") || "None selected"}`,
+        `Hours/month on manual HR tasks: ${manualHours}`,
+        `Hourly rate of HR staff: ${formatCurrency(hourlyRate)}/hr`,
+        `Payroll errors per month: ${payrollErrors}`,
+        `Average cost per error: ${formatCurrency(averageErrorCost)}`,
+        "",
         `Current Annual HR Admin Cost: ${formatCurrency(
           calculations.currentAnnualCost
         )}`,
@@ -429,7 +437,7 @@ export default function ROICalculatorPage() {
                   accent="green"
                   label="Estimated Annual Savings"
                   value={formatCurrency(calculations.estimatedAnnualSavings)}
-                  note="Current cost minus Pro and remaining admin time"
+                  note="Current cost minus Pro plan and remaining admin time"
                 />
                 <ResultCard
                   label="Time Saved Per Month"
@@ -518,7 +526,7 @@ export default function ROICalculatorPage() {
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h2 className="text-2xl font-black tracking-normal">
-                      Save {savingsText} this year
+                      Save {savingsText} this year &mdash; Start your free trial
                     </h2>
                     <p className="mt-2 text-sm leading-6 text-slate-300">
                       Start your free trial and bring HR, payroll, benefits,

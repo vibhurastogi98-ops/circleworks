@@ -46,6 +46,8 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
   if (!data) return {};
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://circleworks.com";
+  const pageUrl = `${baseUrl}/solutions/${segment}`;
+  const ogImageUrl = `${pageUrl}/opengraph-image`;
 
   return {
     metadataBase: new URL(baseUrl),
@@ -55,17 +57,25 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
       title: data.seoTitle,
       description: data.seoDesc,
       type: "website",
-      url: `${baseUrl}/solutions/${segment}`,
+      url: pageUrl,
       siteName: "CircleWorks",
-      images: data.ogImage
-        ? [{ url: `${baseUrl}${data.ogImage}`, width: 1200, height: 630, alt: data.seoTitle }]
-        : [{ url: `${baseUrl}/og/default.png`, width: 1200, height: 630, alt: "CircleWorks" }],
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${data.seoTitle} preview`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: data.seoTitle,
       description: data.seoDesc,
-      images: data.ogImage ? [`${baseUrl}${data.ogImage}`] : [`${baseUrl}/og/default.png`],
+      images: [ogImageUrl],
+    },
+    alternates: {
+      canonical: pageUrl,
     },
   };
 }
@@ -78,6 +88,8 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
   if (!data) {
     notFound();
   }
+
+  const subLines = Array.isArray(data.sub) ? data.sub : [data.sub];
 
   return (
     <main className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-navy">
@@ -104,9 +116,11 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
               <h1 className="text-5xl lg:text-7xl font-black tracking-tight leading-[1.05]">
                 {data.title}
               </h1>
-              <p className="text-xl text-blue-100 font-medium leading-relaxed max-w-xl">
-                {data.sub}
-              </p>
+              <div className="max-w-xl space-y-2 text-xl font-medium leading-relaxed text-blue-100">
+                {subLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link href="/signup" className="px-8 py-4 bg-white text-blue-600 font-black rounded-2xl hover:scale-105 transition-all shadow-xl shadow-black/10 text-center">
                   {data.ctaHero}
@@ -124,6 +138,7 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
                     accent="#2563eb" 
                     moduleName={segment}
                     initialTab={heroTabs[segment] ?? "dashboard"}
+                    mockup={data.heroMockup}
                 />
               </div>
             </div>
@@ -204,88 +219,130 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
       <section className="py-24 bg-[#0A1628] text-white overflow-hidden relative">
          <div className="absolute top-0 right-0 p-32 opacity-10 blur-3xl bg-blue-500 rounded-full" />
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-               <div className="space-y-10">
-                  <div className="inline-flex gap-1">
-                     {[1, 2, 3, 4, 5].map(i => <Star key={i} size={18} fill="#fbbf24" className="text-yellow-400" />)}
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+              <div className="space-y-10">
+                <div className="inline-flex gap-1">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Star
+                      key={i}
+                      size={18}
+                      fill="#fbbf24"
+                      className="text-yellow-400"
+                    />
+                  ))}
+                </div>
+                <div className="relative">
+                  <Quote
+                    size={48}
+                    className="absolute -left-8 -top-12 text-blue-500/20"
+                  />
+                  <p className="text-3xl font-bold italic leading-tight lg:text-4xl">
+                    &quot;{data.testimonial.quote}&quot;
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-4 border-white/10 bg-blue-600 text-xl font-black italic shadow-lg">
+                    {data.testimonial.avatar === "user" ? (
+                      <Users size={24} className="text-white/80" />
+                    ) : (
+                      data.testimonial.avatar
+                    )}
                   </div>
-                  <div className="relative">
-                     <Quote size={48} className="absolute -top-12 -left-8 text-blue-500/20" />
-                     <p className="text-3xl lg:text-4xl font-bold leading-tight italic">
-                        &quot;{data.testimonial.quote}&quot;
-                     </p>
+                  <div>
+                    <div className="text-lg font-black">
+                      {data.testimonial.author}
+                    </div>
+                    <div className="text-sm font-bold uppercase tracking-wide text-blue-400">
+                      {data.testimonial.role}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                     <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center font-black text-xl italic border-4 border-white/10 shadow-lg overflow-hidden">
-                        {data.testimonial.avatar === "user" ? (
-                          <Users size={24} className="text-white/80" />
-                        ) : (
-                          data.testimonial.avatar
-                        )}
-                     </div>
-                     <div>
-                        <div className="text-lg font-black">{data.testimonial.author}</div>
-                        <div className="text-blue-400 font-bold text-sm tracking-wide uppercase">{data.testimonial.role}</div>
-                     </div>
-                  </div>
-               </div>
-               
-                <div className="grid grid-cols-2 gap-6">
-                  {data.partners.map((partner, i) => {
-                     const IconMap: Record<string, LucideIcon> = {
-                       Shopify: ShoppingBag,
-                       QuickBooks: Landmark,
-                       Slack: MessageSquare,
-                       Okta: ShieldCheck,
-                       GitHub: Terminal,
-                       YouTube: MonitorPlay,
-                       Stripe: CreditCard,
-                       Toast: Zap,
-                       Clover: Layers,
-                       Square: Landmark,
-                       NetSuite: Terminal,
-                       Workday: Globe,
-                       Patreon: Star,
-                       Twitch: MessageSquare,
-                       Carta: ShieldCheck,
-                       Pulley: Layers,
-                       Harvest: Clock,
-                       Toggl: Clock,
-                       Xero: Landmark,
-                       "7shifts": Clock,
-                       Google: Globe,
-                       Microsoft: Terminal,
-                       "G-Suite": Globe,
-                       "Google Workspace": Globe,
-                       Jira: Layers,
-                       Azure: Terminal,
-                       "Microsoft Azure": Terminal,
-                       Salesforce: Globe,
-                       DonorDrive: Heart,
-                       Gave: Heart,
-                       Everhour: Clock,
-                       Guideline: ShieldCheck,
-                       "HSA Bank": Landmark,
-                       Plaid: Landmark,
-                     };
-                     
-                     const Icon = IconMap[partner.name] || Globe;
+                </div>
+              </div>
 
-                     return (
-                      <div key={i} className="aspect-video bg-white/5 border border-white/10 rounded-3xl flex flex-col items-center justify-center p-6 hover:bg-white/10 hover:border-white/20 transition-all group/partner cursor-default">
-                          <div 
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg mb-3 group-hover/partner:scale-110 transition-transform"
-                            style={{ backgroundColor: partner.color }}
-                          >
-                            <Icon size={24} />
-                          </div>
-                          <div className="text-xs font-black text-white/40 tracking-widest uppercase group-hover/partner:text-white/60 transition-colors">
-                            {partner.name}
-                          </div>
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/10">
+                <div className="mb-4 text-xs font-black uppercase tracking-widest text-white/40">
+                  Industry workflow partners
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+                  {data.partners.map((partner) => {
+                    const IconMap: Record<string, LucideIcon> = {
+                      Shopify: ShoppingBag,
+                      QuickBooks: Landmark,
+                      Slack: MessageSquare,
+                      Okta: ShieldCheck,
+                      GitHub: Terminal,
+                      YouTube: MonitorPlay,
+                      Stripe: CreditCard,
+                      Toast: Zap,
+                      Clover: Layers,
+                      Square: Landmark,
+                      NetSuite: Terminal,
+                      Workday: Globe,
+                      Patreon: Star,
+                      Twitch: MessageSquare,
+                      Carta: ShieldCheck,
+                      Pulley: Layers,
+                      Harvest: Clock,
+                      Toggl: Clock,
+                      Xero: Landmark,
+                      "7shifts": Clock,
+                      Google: Globe,
+                      Microsoft: Terminal,
+                      "G-Suite": Globe,
+                      "Google Workspace": Globe,
+                      Jira: Layers,
+                      Azure: Terminal,
+                      "Microsoft Azure": Terminal,
+                      Salesforce: Globe,
+                      DonorDrive: Heart,
+                      Gave: Heart,
+                      Everhour: Clock,
+                      Guideline: ShieldCheck,
+                      "HSA Bank": Landmark,
+                      Plaid: Landmark,
+                    };
+
+                    const Icon = IconMap[partner.name] || Globe;
+
+                    return (
+                      <div
+                        key={partner.name}
+                        className="flex h-24 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 transition-all hover:border-white/20 hover:bg-white/10"
+                      >
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg"
+                          style={{ backgroundColor: partner.color }}
+                        >
+                          <Icon size={22} />
+                        </div>
+                        <div className="min-w-0 text-sm font-black uppercase tracking-widest text-white/60">
+                          {partner.name}
+                        </div>
                       </div>
-                     );
+                    );
                   })}
                 </div>
+              </div>
+            </div>
+         </div>
+      </section>
+
+      {/* PRICING CALLOUT CTA */}
+      <section className="py-24 bg-blue-600 text-white text-center">
+         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl lg:text-6xl font-black mb-8 tracking-tight italic">
+               Starting at $8/employee/month
+            </h2>
+            <p className="text-xl text-blue-100 font-medium mb-12 max-w-2xl mx-auto">
+               Ready to automate your {segmentLabel} payroll? Join thousands of companies using CircleWorks to run error-free payroll in minutes.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+               <Link href="/signup" className="px-10 py-5 bg-white text-blue-600 font-black rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-blue-900/40 w-full sm:w-auto">
+                 Start Free Trial
+               </Link>
+               <Link href="/pricing" className="px-10 py-5 bg-blue-700 text-white font-black rounded-2xl hover:bg-blue-800 transition-all w-full sm:w-auto">
+                 View Full Pricing
+               </Link>
             </div>
          </div>
       </section>
@@ -308,26 +365,6 @@ export default async function SegmentPage({ params }: { params: Promise<{ segmen
               ))}
            </div>
         </div>
-      </section>
-
-      {/* PRICING CALLOUT CTA */}
-      <section className="py-24 bg-blue-600 text-white text-center">
-         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl lg:text-6xl font-black mb-8 tracking-tight italic">
-               Starting at $8/employee/month
-            </h2>
-            <p className="text-xl text-blue-100 font-medium mb-12 max-w-2xl mx-auto">
-               Ready to automate your {segmentLabel} payroll? Join thousands of companies using CircleWorks to run error-free payroll in minutes.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-               <Link href="/signup" className="px-10 py-5 bg-white text-blue-600 font-black rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-blue-900/40 w-full sm:w-auto">
-                 Create Your Account
-               </Link>
-               <Link href="/pricing" className="px-10 py-5 bg-blue-700 text-white font-black rounded-2xl hover:bg-blue-800 transition-all w-full sm:w-auto">
-                 View Full Pricing
-               </Link>
-            </div>
-         </div>
       </section>
 
       <Footer />

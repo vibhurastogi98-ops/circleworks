@@ -33,6 +33,16 @@ function getAppUrl(req: Request) {
   return configuredUrl;
 }
 
+function hasUsablePostmarkToken() {
+  const token = process.env.POSTMARK_API_KEY || process.env.POSTMARK_SERVER_TOKEN;
+
+  return Boolean(
+    token &&
+      token !== "your_postmark_api_key_here" &&
+      token !== "dummy_postmark_key",
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as DownloadPayload;
@@ -64,7 +74,7 @@ export async function POST(req: Request) {
     }
 
     const downloadUrl = `${getAppUrl(req)}/templates/${template.slug}?download=1`;
-    const emailConfigured = Boolean(process.env.POSTMARK_API_KEY);
+    const emailConfigured = hasUsablePostmarkToken();
     const emailQueued = emailConfigured
       ? await sendEmail({
           to: email,

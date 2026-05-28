@@ -304,7 +304,7 @@ export default function AccountantPartnerPage() {
                 onClick={scrollToApply}
                 className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
               >
-                List your firm here
+                List your firm here <ArrowRight className="inline h-4 w-4" />
               </button>
             </div>
 
@@ -379,6 +379,8 @@ export default function AccountantPartnerPage() {
                     <input 
                       required
                       type="text" 
+                      name="name"
+                      autoComplete="name"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
@@ -390,6 +392,8 @@ export default function AccountantPartnerPage() {
                     <input 
                       required
                       type="text" 
+                      name="firm"
+                      autoComplete="organization"
                       value={formData.firm}
                       onChange={(e) => setFormData({...formData, firm: e.target.value})}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
@@ -402,6 +406,8 @@ export default function AccountantPartnerPage() {
                       <input 
                         required
                         type="email" 
+                        name="email"
+                        autoComplete="email"
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
@@ -413,6 +419,8 @@ export default function AccountantPartnerPage() {
                       <input 
                         required
                         type="tel" 
+                        name="phone"
+                        autoComplete="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
@@ -423,6 +431,7 @@ export default function AccountantPartnerPage() {
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Number of Payroll Clients</label>
                     <select 
+                      name="payrollClients"
                       value={formData.payrollClients}
                       onChange={(e) => setFormData({...formData, payrollClients: e.target.value})}
                       className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"

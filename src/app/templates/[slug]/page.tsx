@@ -22,10 +22,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!template) return {};
 
   return {
+    metadataBase: new URL("https://circleworks.com"),
     title: `${template.title} | Free HR Download | CircleWorks`,
     description: template.description,
     alternates: {
       canonical: `https://circleworks.com/templates/${template.slug}`,
+    },
+    openGraph: {
+      title: `${template.title} | Free HR Download`,
+      description: template.description,
+      url: `https://circleworks.com/templates/${template.slug}`,
+      siteName: "CircleWorks",
+      type: "article",
+    },
+    twitter: {
+      card: "summary",
+      title: `${template.title} | Free HR Download`,
+      description: template.description,
     },
   };
 }

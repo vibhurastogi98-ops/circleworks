@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { contactRequests } from "@/db/schema";
 
 type ContactPayload = {
-  requestType?: "contact" | "demo";
+  requestType?: "contact" | "demo" | "migration";
   name?: string;
   email?: string;
   company?: string;
@@ -20,6 +20,12 @@ function clean(value: unknown) {
   return String(value || "").trim();
 }
 
+function getRequestLabel(type: ContactPayload["requestType"]) {
+  if (type === "demo") return "Demo request";
+  if (type === "migration") return "Migration request";
+  return "Contact request";
+}
+
 function buildStoredMessage(body: ContactPayload) {
   const lines = [
     clean(body.message),
@@ -27,7 +33,7 @@ function buildStoredMessage(body: ContactPayload) {
     body.phone ? `Phone: ${clean(body.phone)}` : "",
     body.currentTool ? `Current tool: ${clean(body.currentTool)}` : "",
     body.demoSlot ? `Requested demo slot: ${clean(body.demoSlot)}` : "",
-    `Request type: ${body.requestType === "demo" ? "Demo" : "Contact"}`,
+    `Request type: ${getRequestLabel(body.requestType).replace(" request", "")}`,
   ].filter(Boolean);
 
   return lines.join("\n");
@@ -48,8 +54,7 @@ async function sendPostmarkEmail(body: ContactPayload, storedMessage: string) {
     process.env.SALES_TO_EMAIL ||
     "support@circleworks.com";
   const from = process.env.POSTMARK_FROM_EMAIL || "support@circleworks.com";
-  const requestLabel =
-    body.requestType === "demo" ? "Demo request" : "Contact request";
+  const requestLabel = getRequestLabel(body.requestType);
 
   await client.sendEmail({
     From: from,
@@ -85,6 +90,7 @@ export async function POST(req: Request) {
     const email = clean(body.email);
     const companySize = clean(body.companySize);
     const storedMessage = buildStoredMessage(body);
+    let stored = false;
 
     if (!name || !email || !storedMessage) {
       return NextResponse.json(
@@ -93,19 +99,31 @@ export async function POST(req: Request) {
       );
     }
 
-    await db.insert(contactRequests).values({
-      name,
-      email,
-      companySize,
-      message: storedMessage,
-    });
+    try {
+      await db.insert(contactRequests).values({
+        name,
+        email,
+        companySize,
+        message: storedMessage,
+      });
+      stored = true;
+    } catch (error) {
+      console.warn("[Contact API] Database insert failed.", error);
+    }
 
     const emailSent = await sendPostmarkEmail(
       { ...body, name, email, companySize },
       storedMessage,
     );
 
-    return NextResponse.json({ success: true, emailSent });
+    if (!stored && !emailSent && process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        { success: false, error: "Unable to save or send request" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true, emailSent, stored });
   } catch (error) {
     console.error("[Contact API Error]", error);
     return NextResponse.json(

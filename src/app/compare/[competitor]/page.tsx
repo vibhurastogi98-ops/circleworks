@@ -16,7 +16,7 @@ import Footer from "@/components/Footer";
 export const dynamicParams = false;
 
 const SITE_URL = "https://circleworks.com";
-const LAST_UPDATED = "May 23, 2026";
+const LAST_UPDATED = "May 28, 2026";
 const EMPLOYEE_COUNTS = [10, 25, 50, 100] as const;
 
 const COMPETITORS = [
@@ -605,6 +605,7 @@ export async function generateMetadata({
   const title = `CircleWorks vs ${data.name}: Side-by-Side Comparison`;
 
   return {
+    metadataBase: new URL(SITE_URL),
     title,
     description: data.metaDescription,
     alternates: {
@@ -615,6 +616,11 @@ export async function generateMetadata({
       description: data.metaDescription,
       url: `${SITE_URL}/compare/${data.slug}`,
       type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: data.metaDescription,
     },
   };
 }

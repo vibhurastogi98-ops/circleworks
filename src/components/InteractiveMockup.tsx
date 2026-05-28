@@ -10,18 +10,48 @@ import {
 
 type MockTab = "dashboard" | "employees" | "payroll" | "benefits" | "compliance" | "hiring";
 
+interface MockupStat {
+  label: string;
+  value: string;
+  change: string;
+}
+
+interface MockupPayrollRow {
+  title: string;
+  date: string;
+  status: string;
+  amount: string;
+}
+
+interface MockupComplianceRow {
+  task: string;
+  status: string;
+  tone: "success" | "warning" | "info";
+}
+
+export interface InteractiveMockupContent {
+  stats?: MockupStat[];
+  payrollTitle?: string;
+  payrollBadge?: string;
+  payrollRows?: MockupPayrollRow[];
+  complianceRows?: MockupComplianceRow[];
+  actionLabel?: string;
+}
+
 interface InteractiveMockupProps {
   accentColor?: string;
   accent?: string;
   moduleName?: string;
   initialTab?: MockTab | "payroll" | "dashboard";
+  mockup?: InteractiveMockupContent;
 }
 
 export default function InteractiveMockup({ 
   accentColor = "#3B82F6", 
   accent,
   moduleName = "Payroll",
-  initialTab = "dashboard"
+  initialTab = "dashboard",
+  mockup,
 }: InteractiveMockupProps) {
   const finalAccent = accent || accentColor;
   const [activeTab, setActiveTab] = useState<MockTab>(initialTab as MockTab);
@@ -34,6 +64,27 @@ export default function InteractiveMockup({
     { id: "benefits", label: "Benefits", icon: Heart },
     { id: "compliance", label: "Compliance", icon: ShieldCheck },
   ];
+
+  const stats = mockup?.stats ?? [
+    { label: "Active Employees", value: "124", change: "+12% vs last month" },
+    { label: "Avg. Payroll", value: "$182K", change: "+4% vs last month" },
+    { label: "Open Roles", value: "8", change: "-2 vs last month" },
+  ];
+  const payrollRows = mockup?.payrollRows ?? [
+    { title: "Off-cycle Bonus Run", date: "June 14, 2026", status: "Review", amount: "$42,500.00" },
+    { title: "Standard Semi-Monthly", date: "June 15, 2026", status: "Draft", amount: "$182,490.12" },
+  ];
+  const complianceRows = mockup?.complianceRows ?? [
+    { task: "Federal 941 Quarterly", status: "Completed", tone: "success" as const },
+    { task: "State Unemployment Tax", status: "Review Required", tone: "warning" as const },
+    { task: "Labor Law Poster (Remote)", status: "Completed", tone: "success" as const },
+    { task: "EEO-1 Diversity Reporting", status: "In Progress", tone: "info" as const },
+  ];
+  const toneStyles = {
+    success: { className: "text-emerald-400", icon: ShieldCheck },
+    warning: { className: "text-amber-400", icon: Bell },
+    info: { className: "text-blue-400", icon: Clock },
+  };
 
   return (
     <div className="w-full aspect-[4/3] rounded-2xl bg-[#0F1C2E] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col group/mockup">
@@ -90,7 +141,7 @@ export default function InteractiveMockup({
           <div className="flex items-center justify-between mb-8">
              <div>
                <h3 className="text-lg font-bold text-white capitalize">{activeTab}</h3>
-               <p className="text-[12px] text-slate-500">Manage your company {activeTab} operations.</p>
+               <p className="text-[12px] text-slate-500">Manage {moduleName.toLowerCase()} {activeTab} operations.</p>
              </div>
              <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400">
@@ -104,7 +155,7 @@ export default function InteractiveMockup({
                   className="text-white text-[11px] font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all opacity-90 hover:opacity-100 shadow-lg shadow-blue-900/20"
                   style={{ backgroundColor: finalAccent }}
                 >
-                  <Plus size={14} /> New Entry
+                  <Plus size={14} /> {mockup?.actionLabel ?? "New Entry"}
                 </button>
              </div>
           </div>
@@ -120,16 +171,12 @@ export default function InteractiveMockup({
               >
                 {/* SEO Update ── Mobile responsiveness ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 shrink-0">
-                  {[
-                    { label: "Active Employees", val: "124", change: "+12%" },
-                    { label: "Avg. Payroll", val: "$182K", change: "+4%" },
-                    { label: "Open Roles", val: "8", change: "-2" },
-                  ].map((stat, i) => (
+                  {stats.map((stat, i) => (
                     <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 transition-colors hover:bg-white/10">
                       <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</div>
-                      <div className="text-lg md:text-xl font-black text-white mt-0.5 md:mt-1">{stat.val}</div>
-                      <div className={`text-[9px] md:text-[10px] mt-0.5 md:mt-1 ${stat.change.startsWith("+") ? "text-emerald-400" : "text-amber-400"}`}>
-                        {stat.change} vs last month
+                      <div className="text-lg md:text-xl font-black text-white mt-0.5 md:mt-1">{stat.value}</div>
+                      <div className={`text-[9px] md:text-[10px] mt-0.5 md:mt-1 ${stat.change.startsWith("-") ? "text-amber-400" : "text-emerald-400"}`}>
+                        {stat.change}
                       </div>
                     </div>
                   ))}
@@ -166,14 +213,11 @@ export default function InteractiveMockup({
               >
                 <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase text-slate-400">Active Payroll Batches</span>
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">2 Runs in Progress</span>
+                      <span className="text-xs font-black uppercase text-slate-400">{mockup?.payrollTitle ?? "Active Payroll Batches"}</span>
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">{mockup?.payrollBadge ?? "2 Runs in Progress"}</span>
                    </div>
                    <div className="divide-y divide-white/5">
-                      {[
-                        { title: "Off-cycle Bonus Run", date: "June 14, 2026", status: "Review", amount: "$42,500.00" },
-                        { title: "Standard Semi-Monthly", date: "June 15, 2026", status: "Draft", amount: "$182,490.12" },
-                      ].map((batch, i) => (
+                      {payrollRows.map((batch, i) => (
                         <div key={i} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors cursor-pointer group">
                            <div className="flex gap-4 items-center">
                               <div className="w-8 h-8 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform" style={{ backgroundColor: finalAccent + '22', color: finalAccent }}>
@@ -274,20 +318,20 @@ export default function InteractiveMockup({
               <motion.div key="compliance" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
                  <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                     <div className="divide-y divide-white/5">
-                       {[
-                         { task: "Federal 941 Quarterly", status: "Completed", icon: ShieldCheck, color: "text-emerald-400" },
-                         { task: "State Unemployment Tax", status: "Review Required", icon: Bell, color: "text-amber-400" },
-                         { task: "Labor Law Poster (Remote)", status: "Completed", icon: ShieldCheck, color: "text-emerald-400" },
-                         { task: "EEO-1 Diversity Reporting", status: "In Progress", icon: Clock, color: "text-blue-400" },
-                       ].map((item, i) => (
-                         <div key={i} className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                               <item.icon size={16} className={item.color} />
-                               <span className="text-[13px] font-medium text-white">{item.task}</span>
-                            </div>
-                            <span className={`text-[10px] font-bold ${item.color}`}>{item.status}</span>
-                         </div>
-                       ))}
+                       {complianceRows.map((item, i) => {
+                         const tone = toneStyles[item.tone];
+                         const StatusIcon = tone.icon;
+
+                         return (
+                           <div key={i} className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                 <StatusIcon size={16} className={tone.className} />
+                                 <span className="text-[13px] font-medium text-white">{item.task}</span>
+                              </div>
+                              <span className={`text-[10px] font-bold ${tone.className}`}>{item.status}</span>
+                           </div>
+                         );
+                       })}
                     </div>
                  </div>
               </motion.div>

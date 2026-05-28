@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: WebinarDetailParams): Promise
   if (!webinar) return {};
 
   return {
+    metadataBase: new URL("https://circleworks.com"),
     title: `${webinar.title} | CircleWorks Webinars`,
     description: webinar.description,
     alternates: {
@@ -40,8 +41,16 @@ export async function generateMetadata({ params }: WebinarDetailParams): Promise
     openGraph: {
       title: webinar.title,
       description: webinar.description,
+      url: `https://circleworks.com/webinars/${webinar.slug}`,
+      siteName: "CircleWorks",
       images: [{ url: webinar.thumbnail }],
       type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: webinar.title,
+      description: webinar.description,
+      images: [webinar.thumbnail],
     },
   };
 }

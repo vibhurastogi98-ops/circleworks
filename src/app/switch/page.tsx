@@ -18,6 +18,7 @@ import {
 
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import MigrationInterestForm from "./MigrationInterestForm";
 
 export const metadata: Metadata = {
   title: "Switch to CircleWorks | Payroll Migration Support",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
   },
 };
 
-const bookingHref = "/demo?intent=migration";
+const bookingHref = "#migration-interest";
 
 const fears = [
   {
@@ -196,36 +197,6 @@ export default function SwitchPage() {
         </div>
       </section>
 
-      <section className="border-b border-slate-200 bg-slate-50 px-6 py-14">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">
-                Data import support
-              </p>
-              <h2 className="mt-2 text-2xl font-black text-slate-950 md:text-3xl">
-                Bring your records from the tools you already use.
-              </h2>
-            </div>
-            <p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">
-              We support direct exports, structured files, and guided cleanup
-              for messy historical payroll data.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {providers.map((provider) => (
-              <div
-                key={provider}
-                className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
-              >
-                <Check className="h-5 w-5 flex-shrink-0 text-emerald-600" />
-                <span className="font-black text-slate-800">{provider}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="bg-white px-6 py-20 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-3xl text-center">
@@ -317,6 +288,36 @@ export default function SwitchPage() {
         </div>
       </section>
 
+      <section className="border-b border-slate-200 bg-white px-6 py-14">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">
+                Data import support
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-slate-950 md:text-3xl">
+                Bring your records from the tools you already use.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">
+              We support direct exports, structured files, and guided cleanup
+              for messy historical payroll data.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {providers.map((provider) => (
+              <div
+                key={provider}
+                className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
+              >
+                <Check className="h-5 w-5 flex-shrink-0 text-emerald-600" />
+                <span className="font-black text-slate-800">{provider}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="bg-white px-6 py-16">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 rounded-lg border border-emerald-200 bg-emerald-50 p-6 md:flex-row md:items-center md:justify-between md:p-8">
           <div className="flex gap-4">
@@ -337,35 +338,13 @@ export default function SwitchPage() {
             href={bookingHref}
             className="inline-flex h-12 flex-shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-6 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-emerald-800"
           >
-            Talk to a specialist
+            Talk to a migration specialist
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
 
-      <section className="bg-[#0A1628] px-6 py-20 text-center lg:py-24">
-        <div className="mx-auto max-w-4xl">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-blue-200">
-            <Calendar className="h-7 w-7" />
-          </div>
-          <h2 className="text-3xl font-black tracking-tight text-white md:text-5xl">
-            Talk to a migration specialist
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
-            Book a 30-minute session to review your current provider, export
-            path, first payroll date, and parallel run plan.
-          </p>
-          <div className="mt-9 flex justify-center">
-            <Link
-              href={bookingHref}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-black text-[#0A1628] shadow-lg transition hover:-translate-y-0.5 hover:bg-blue-50"
-            >
-              Talk to a migration specialist
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      <MigrationInterestForm />
 
       <Footer />
     </main>

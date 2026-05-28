@@ -13,7 +13,9 @@ import {
 // Initialize the Postmark client. 
 // Uses a dummy key "server_token" in dev/testing if env var isn't explicitly set locally.
 const client = new postmark.ServerClient(
-  process.env.POSTMARK_API_KEY || "dummy_postmark_key"
+  process.env.POSTMARK_API_KEY ||
+    process.env.POSTMARK_SERVER_TOKEN ||
+    "dummy_postmark_key"
 );
 
 type EmailTemplateVariables = Record<
