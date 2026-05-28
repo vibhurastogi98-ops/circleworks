@@ -67,7 +67,11 @@ export async function GET(request: NextRequest) {
       (user.user_metadata?.full_name as string) ||
       (user.user_metadata?.name as string) ||
       "";
-    const params = new URLSearchParams({ mode: "google", email: normalizedEmail, name: fullName });
+    const authProvider =
+      typeof user.app_metadata?.provider === "string" ? user.app_metadata.provider : "";
+    const signupMode =
+      authProvider === "azure" || authProvider === "microsoft" ? "microsoft" : "google";
+    const params = new URLSearchParams({ mode: signupMode, email: normalizedEmail, name: fullName });
     destination = `${origin}/signup?${params.toString()}`;
   }
 

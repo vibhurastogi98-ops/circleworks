@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
+const SIGNUP_DRAFT_COOKIE = "cw_signup_partial";
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -51,13 +53,17 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       if (googleAuth) {
-        // Google user already has an account — just mint a session and succeed
+        // OAuth user already has an account; just mint a session and succeed.
         const token = await createSessionToken({
           userId: existing.id,
           email: existing.email,
           role: existing.role ?? "employee",
         });
         const res = NextResponse.json({ success: true });
+        res.cookies.set(SIGNUP_DRAFT_COOKIE, "", {
+          path: "/",
+          maxAge: 0,
+        });
         res.cookies.set(SESSION_COOKIE, token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
@@ -73,15 +79,15 @@ export async function POST(req: NextRequest) {
     let supabaseUserId: string;
 
     if (googleAuth) {
-      // Google OAuth user — already authenticated; get Supabase user from session
+      // OAuth user is already authenticated; get Supabase user from session.
       const supabaseServer = await createSupabaseServerClient();
       const { data: { user: oauthUser } } = await supabaseServer.auth.getUser();
 
       if (!oauthUser) {
-        return NextResponse.json({ error: "Google authentication session not found. Please sign in with Google again." }, { status: 401 });
+        return NextResponse.json({ error: "OAuth session not found. Please sign in again." }, { status: 401 });
       }
       if (oauthUser.email?.toLowerCase().trim() !== email) {
-        return NextResponse.json({ error: "Email mismatch with Google account." }, { status: 400 });
+        return NextResponse.json({ error: "Email mismatch with OAuth account." }, { status: 400 });
       }
       supabaseUserId = oauthUser.id;
     } else {
@@ -166,6 +172,10 @@ export async function POST(req: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true });
+    response.cookies.set(SIGNUP_DRAFT_COOKIE, "", {
+      path: "/",
+      maxAge: 0,
+    });
 
     if (!googleAuth) {
       // Email/password flow — auto sign-in to set Supabase session cookies

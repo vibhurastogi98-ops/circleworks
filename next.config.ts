@@ -67,6 +67,11 @@ const immutableCacheHeader = {
   value: "public, max-age=31536000, immutable",
 };
 
+const devCacheHeader = {
+  key: "Cache-Control",
+  value: "no-store, max-age=0, must-revalidate",
+};
+
 const publicStaticAssets = [
   "/dashboard-mockup.png",
   "/favicon.svg",
@@ -118,13 +123,17 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
-      {
-        source: "/_next/static/:path*",
-        headers: [immutableCacheHeader],
-      },
+      ...(isDevelopment
+        ? []
+        : [
+            {
+              source: "/_next/static/:path*",
+              headers: [immutableCacheHeader],
+            },
+          ]),
       ...publicStaticAssets.map((source) => ({
         source,
-        headers: [immutableCacheHeader],
+        headers: [isDevelopment ? devCacheHeader : immutableCacheHeader],
       })),
       {
         source: "/(.*)",
