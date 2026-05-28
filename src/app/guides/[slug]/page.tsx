@@ -5,6 +5,11 @@ import { ArrowRight, Building2, CheckCircle2, FileText, Landmark, ShieldCheck } 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import statesJson from "../../../../data/states.json";
+import {
+  createBreadcrumbJsonLd,
+  getRelatedStateGuideLinks,
+  getStateGuideSlug,
+} from "@/lib/internal-links";
 
 export const revalidate = 604800;
 export const dynamicParams = false;
@@ -43,7 +48,7 @@ const sectionLabels = [
 ];
 
 function getState(slug: string) {
-  return states.find((state) => state.slug === slug);
+  return states.find((state) => state.slug === slug || getStateGuideSlug(state) === slug);
 }
 
 function buildFaqs(state: StatePayrollData) {
@@ -84,7 +89,10 @@ function buildFaqs(state: StatePayrollData) {
 }
 
 export function generateStaticParams() {
-  return states.map((state) => ({ slug: state.slug }));
+  return states.flatMap((state) => [
+    { slug: state.slug },
+    { slug: getStateGuideSlug(state) },
+  ]);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -100,12 +108,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `How to Run Payroll in ${state.name} - 2025 Complete Guide | CircleWorks`,
     description: `Learn ${state.name} payroll taxes, minimum wage, pay frequency rules, new hire reporting, workers comp, paid leave, final pay rules, and how CircleWorks helps.`,
     alternates: {
-      canonical: `https://circleworks.vercel.app/guides/${state.slug}`,
+      canonical: `https://circleworks.com/guides/${getStateGuideSlug(state)}`,
     },
     openGraph: {
       title: `How to Run Payroll in ${state.name} - 2025 Complete Guide`,
       description: `A practical 2025 ${state.name} payroll guide for US employers covering tax, wage, leave, and agency requirements.`,
-      url: `https://circleworks.vercel.app/guides/${state.slug}`,
+      url: `https://circleworks.com/guides/${getStateGuideSlug(state)}`,
       type: "article",
     },
   };
@@ -126,6 +134,12 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
   if (!state) notFound();
 
   const faqs = buildFaqs(state);
+  const relatedGuides = getRelatedStateGuideLinks(state);
+  const breadcrumbJsonLd = createBreadcrumbJsonLd([
+    { label: "Home", href: "/" },
+    { label: "Guides", href: "/guides" },
+    { label: `${state.name} payroll guide`, href: `/guides/${getStateGuideSlug(state)}` },
+  ]);
   const howToSchema = {
     "@context": "https://schema.org",
     "@type": "HowTo",
@@ -151,6 +165,10 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <section className="bg-[#0A1628] px-6 pb-20 pt-36 text-white lg:pt-44">
@@ -204,17 +222,34 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
           <article className="space-y-12">
             <section id="state-income-tax">
               <h2 className="text-3xl font-black tracking-tight">State income tax</h2>
-              <p className="mt-4 text-lg leading-relaxed text-slate-600">{state.incomeTaxRates}. Employers running payroll in {state.name} should collect the correct withholding setup, validate employee work and residence locations, and remit withholding on the schedule assigned by the state.</p>
+              <p className="mt-4 text-lg leading-relaxed text-slate-600">
+                {state.incomeTaxRates}. Employers running payroll in {state.name} should collect the correct{" "}
+                <Link href="/glossary/state-income-tax" className="font-bold text-blue-700 hover:text-blue-900">
+                  state income tax
+                </Link>{" "}
+                withholding setup, validate employee work and residence locations, and remit withholding on the schedule assigned by the state.
+              </p>
             </section>
 
             <section id="state-payroll-tax">
               <h2 className="text-3xl font-black tracking-tight">State payroll tax</h2>
-              <p className="mt-4 text-lg leading-relaxed text-slate-600">{state.payrollTax} {state.suiRate}.</p>
+              <p className="mt-4 text-lg leading-relaxed text-slate-600">
+                {state.payrollTax} CircleWorks Payroll helps employers manage{" "}
+                <Link href="/product/payroll" className="font-bold text-blue-700 hover:text-blue-900">
+                  SUTA/SUI setup
+                </Link>
+                , wage bases, and payroll tax workflows. {state.suiRate}.
+              </p>
             </section>
 
             <section id="minimum-wage">
               <h2 className="text-3xl font-black tracking-tight">Minimum wage</h2>
-              <p className="mt-4 text-lg leading-relaxed text-slate-600">{state.minimumWage}. {state.localMinimumWage} Employers should apply the highest federal, state, or local wage rate that covers the employee.</p>
+              <p className="mt-4 text-lg leading-relaxed text-slate-600">
+                <Link href="/glossary/minimum-wage" className="font-bold text-blue-700 hover:text-blue-900">
+                  Minimum wage
+                </Link>{" "}
+                in {state.name}: {state.minimumWage}. {state.localMinimumWage} Employers should apply the highest federal, state, or local wage rate that covers the employee.
+              </p>
             </section>
 
             <section id="pay-frequency-requirements">
@@ -224,7 +259,12 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
 
             <section id="new-hire-reporting">
               <h2 className="text-3xl font-black tracking-tight">New hire reporting</h2>
-              <p className="mt-4 text-lg leading-relaxed text-slate-600">{state.newHireReporting} Keep the employee name, address, SSN, start date, and employer account details available for audit support.</p>
+              <p className="mt-4 text-lg leading-relaxed text-slate-600">
+                <Link href="/glossary/new-hire-report" className="font-bold text-blue-700 hover:text-blue-900">
+                  New hire reporting
+                </Link>{" "}
+                in {state.name}: {state.newHireReporting} Keep the employee name, address, SSN, start date, and employer account details available for audit support.
+              </p>
             </section>
 
             <section id="workers-comp">
@@ -257,10 +297,16 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
                 CircleWorks keeps {state.name} payroll setup, agency accounts, tax withholding, pay schedules,
                 new hire tasks, leave policies, final pay workflows, and payroll audit history connected in one place.
               </p>
-              <Link href="/signup" className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-bold text-white transition hover:bg-blue-700">
-                Let CircleWorks handle {state.name} payroll for you - Start Free
-                <ArrowRight size={16} />
-              </Link>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link href="/product/payroll" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-[#0A1628] transition hover:bg-blue-50">
+                  Explore payroll software
+                  <ArrowRight size={16} />
+                </Link>
+                <Link href="/signup" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-bold text-white transition hover:bg-blue-700">
+                  Start Free
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
             </section>
 
             <section id="faq">
@@ -274,6 +320,24 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
                     </summary>
                     <p className="mt-3 text-sm leading-relaxed text-slate-600">{faq.answer}</p>
                   </details>
+                ))}
+              </div>
+            </section>
+
+            <section id="related-guides">
+              <h2 className="text-3xl font-black tracking-tight">Related payroll guides</h2>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {relatedGuides.map((guide) => (
+                  <Link
+                    key={guide.href}
+                    href={guide.href}
+                    className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                  >
+                    <span className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+                      State guide
+                    </span>
+                    <h3 className="mt-3 text-lg font-black text-[#0A1628]">{guide.label}</h3>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -291,10 +355,16 @@ export default async function StatePayrollGuidePage({ params }: { params: Promis
             <h2 className="mt-3 text-3xl font-black tracking-tight">Let CircleWorks handle {state.name} payroll for you.</h2>
             <p className="mt-2 max-w-2xl text-slate-600">Run payroll with built-in workflows for taxes, new hires, pay schedules, compliance tasks, and employee records.</p>
           </div>
-          <Link href="/signup" className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-bold text-white transition hover:bg-blue-700">
-            Start Free
-            <ArrowRight size={16} />
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/product/payroll" className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-bold text-[#0A1628] ring-1 ring-slate-200 transition hover:bg-blue-50">
+              Explore Payroll
+              <ArrowRight size={16} />
+            </Link>
+            <Link href="/signup" className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-bold text-white transition hover:bg-blue-700">
+              Start Free
+              <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
       </section>
 

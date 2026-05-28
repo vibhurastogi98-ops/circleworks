@@ -6,10 +6,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CircleWorks Pricing — Simple Payroll & HR Plans",
     description: "Plans from $8/employee/mo. Full-service payroll, HRIS & benefits for every US company. No setup fees, cancel anytime.",
-    url: "https://circleworks.vercel.app/pricing",
+    url: "https://circleworks.com/pricing",
   },
   alternates: {
-    canonical: "https://circleworks.vercel.app/pricing",
+    canonical: "https://circleworks.com/pricing",
   },
 };
 

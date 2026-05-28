@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://circleworks.vercel.app"),
+  metadataBase: new URL("https://circleworks.com"),
   title: {
     default:
       "CircleWorks — THE ONLY PAYROLL & HR PLATFORM FOR CREATORS, AGENCIES & COMPANIES",
@@ -32,6 +32,9 @@ export const metadata: Metadata = {
   },
   description:
     "Run payroll in 3 clicks. All 50 states, auto tax filing, HRIS, ATS & benefits — one platform.",
+  alternates: {
+    canonical: "./",
+  },
 };
 
 const GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
@@ -50,7 +53,7 @@ export default function RootLayout({
         <link
           rel="alternate"
           hrefLang="en-us"
-          href="https://circleworks.vercel.app/"
+          href="https://circleworks.com"
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>

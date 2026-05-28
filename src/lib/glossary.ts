@@ -18,6 +18,8 @@ export type GlossaryTerm = {
   slug: string;
   category: GlossaryCategory;
   shortDefinition: string;
+  productPath: string;
+  relatedSlugs: string[];
 };
 
 type TermEntry = readonly [term: string, category: GlossaryCategory, shortDefinition: string];
@@ -302,7 +304,20 @@ const termEntries = [
   ["Zero-Dollar Payroll", "Payroll", "A payroll run with no net wages, often used for corrections or tax-only adjustments."],
 ] as const satisfies readonly TermEntry[];
 
-export const glossaryTerms: GlossaryTerm[] = termEntries
+const productPathByCategory: Record<GlossaryCategory, string> = {
+  Payroll: "/product/payroll",
+  "Payroll Tax": "/product/payroll",
+  Compliance: "/product/compliance",
+  Benefits: "/product/benefits",
+  HR: "/product/hris",
+  Hiring: "/product/ats",
+  Time: "/product/time",
+  Leave: "/product/time",
+  Reporting: "/product/analytics",
+  Security: "/product/compliance",
+};
+
+const baseGlossaryTerms = termEntries
   .map(([term, category, shortDefinition]) => ({
     term,
     slug: slugifyGlossaryTerm(term),
@@ -311,6 +326,21 @@ export const glossaryTerms: GlossaryTerm[] = termEntries
   }))
   .sort((a, b) => a.term.localeCompare(b.term, "en", { numeric: true }));
 
+export const glossaryTerms: GlossaryTerm[] = baseGlossaryTerms.map((term) => ({
+  ...term,
+  productPath: productPathByCategory[term.category],
+  relatedSlugs: [
+    ...baseGlossaryTerms
+      .filter((candidate) => candidate.category === term.category && candidate.slug !== term.slug)
+      .slice(0, 3),
+    ...baseGlossaryTerms
+      .filter((candidate) => candidate.category !== term.category && candidate.slug !== term.slug)
+      .slice(0, 3),
+  ]
+    .slice(0, 3)
+    .map((candidate) => candidate.slug),
+}));
+
 export const glossaryTermCount = glossaryTerms.length;
 
 export function getGlossaryTerm(slug: string) {
@@ -318,14 +348,23 @@ export function getGlossaryTerm(slug: string) {
 }
 
 export function getRelatedGlossaryTerms(term: GlossaryTerm, limit = 4) {
+  const relatedFromMetadata = term.relatedSlugs
+    .map((slug) => getGlossaryTerm(slug))
+    .filter((candidate): candidate is GlossaryTerm => Boolean(candidate));
   const sameCategory = glossaryTerms.filter(
-    (candidate) => candidate.category === term.category && candidate.slug !== term.slug,
+    (candidate) =>
+      candidate.category === term.category &&
+      candidate.slug !== term.slug &&
+      !term.relatedSlugs.includes(candidate.slug),
   );
   const fallback = glossaryTerms.filter(
-    (candidate) => candidate.category !== term.category && candidate.slug !== term.slug,
+    (candidate) =>
+      candidate.category !== term.category &&
+      candidate.slug !== term.slug &&
+      !term.relatedSlugs.includes(candidate.slug),
   );
 
-  return [...sameCategory, ...fallback].slice(0, limit);
+  return [...relatedFromMetadata, ...sameCategory, ...fallback].slice(0, limit);
 }
 
 export function getCircleWorksFeature(term: GlossaryTerm) {

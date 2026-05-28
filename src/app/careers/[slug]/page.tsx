@@ -5,6 +5,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getJobBySlug, jobs } from "@/data/careers";
 
+const SITE_URL = "https://circleworks.com";
+
 type RolePageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -26,6 +28,15 @@ export async function generateMetadata({ params }: RolePageProps) {
   return {
     title: `${job.title} | Careers at CircleWorks`,
     description: job.description,
+    alternates: {
+      canonical: `${SITE_URL}/careers/${job.slug}`,
+    },
+    openGraph: {
+      title: `${job.title} | Careers at CircleWorks`,
+      description: job.description,
+      url: `${SITE_URL}/careers/${job.slug}`,
+      type: "article",
+    },
   };
 }
 

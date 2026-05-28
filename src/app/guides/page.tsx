@@ -14,6 +14,10 @@ import statesJson from "../../../data/states.json";
 const categories = ["All", "Onboarding", "Payroll", "Compliance", "Hiring", "Benefits", "Templates", "Checklists"];
 const statePayrollGuides = statesJson as Array<{ name: string; abbreviation: string; slug: string }>;
 
+function getStateGuideSlug(state: { slug: string }) {
+  return `${state.slug.replace(/^payroll-/, "")}-payroll-guide`;
+}
+
 const allGuides = [
   { id: 1, format: "DOCX", cat: "Onboarding", title: "New Hire Offer Letter Template", desc: "Attorney-reviewed standard offer letter compliant across all 50 states.", downloads: "12,450", color: "blue" },
   { id: 2, format: "XLSX", cat: "Payroll", title: "Monthly Overtime Calculator", desc: "Instantly calculate daily and weekly overtime under California and Federal rules.", downloads: "8,234", color: "green" },
@@ -216,7 +220,7 @@ function GuidesContent() {
             {statePayrollGuides.map((state) => (
               <Link
                 key={state.slug}
-                href={`/guides/${state.slug}`}
+                href={`/guides/${getStateGuideSlug(state)}`}
                 className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 hover:shadow-sm"
               >
                 <span>{state.name}</span>

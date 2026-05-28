@@ -7,6 +7,8 @@ import ResourceCTA from "@/components/ResourceCTA";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+const SITE_URL = "https://circleworks.com";
+
 // Define Props Type
 interface Props {
   params: Promise<{ "state-name": string }>;
@@ -26,6 +28,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${state.name} Payroll Tax Guide 2026 | CircleWorks`,
     description: `Learn payroll taxes, employer rules, and compliance requirements in ${state.name}. Everything from SUI to minimum wage.`,
+    alternates: {
+      canonical: `${SITE_URL}/resources/state-tax-guides/${state.id}`,
+    },
+    openGraph: {
+      title: `${state.name} Payroll Tax Guide 2026 | CircleWorks`,
+      description: `Learn payroll taxes, employer rules, and compliance requirements in ${state.name}. Everything from SUI to minimum wage.`,
+      url: `${SITE_URL}/resources/state-tax-guides/${state.id}`,
+      type: "article",
+    },
   };
 }
 

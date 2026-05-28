@@ -6,10 +6,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "About CircleWorks — Payroll & HR Built for America",
     description: "Learn how CircleWorks is simplifying payroll and HR for 5,000+ US companies. Our mission: run payroll the American way.",
-    url: "https://circleworks.vercel.app/about",
+    url: "https://circleworks.com/about",
   },
   alternates: {
-    canonical: "https://circleworks.vercel.app/about",
+    canonical: "https://circleworks.com/about",
   },
 };
 

@@ -14,6 +14,12 @@ import {
 } from "../blogData";
 import BlogProgress from "./BlogProgress";
 import ShareButtons from "./ShareButtons";
+import {
+  autoLinkGlossaryTerms,
+  createBreadcrumbJsonLd,
+  getBlogProductLink,
+  getBlogStateGuideLinks,
+} from "@/lib/internal-links";
 
 const siteUrl = "https://circleworks.com";
 
@@ -114,6 +120,14 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const relatedPosts = getRelatedPosts(post.slug);
   const canonical = `${siteUrl}/blog/${post.slug}`;
+  const linkedContent = autoLinkGlossaryTerms(post.content);
+  const productLink = getBlogProductLink(post);
+  const stateGuideLinks = getBlogStateGuideLinks(post);
+  const breadcrumbJsonLd = createBreadcrumbJsonLd([
+    { label: "Home", href: "/" },
+    { label: "Blog", href: "/blog" },
+    { label: post.title, href: `/blog/${post.slug}` },
+  ]);
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -144,6 +158,10 @@ export default async function BlogPostPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <Navbar />
       <main className="min-h-screen bg-white">
@@ -214,7 +232,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </aside>
 
             <article className="prose prose-slate max-w-none prose-headings:text-[#0A1628] prose-h2:mt-14 prose-h2:text-3xl prose-h2:font-black prose-p:text-lg prose-p:leading-8 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:font-bold prose-a:text-blue-600">
-              <MDXRemote source={post.content} />
+              <MDXRemote source={linkedContent} />
             </article>
 
             <aside className="hidden xl:block">
@@ -227,6 +245,44 @@ export default async function BlogPostPage({ params }: PageProps) {
                 </div>
               </div>
             </aside>
+          </div>
+        </section>
+
+        <section className="border-y border-slate-200 bg-white px-6 py-14 lg:px-8">
+          <div className="mx-auto max-w-5xl">
+            <p className="text-sm font-black uppercase tracking-wider text-blue-600">
+              Related resources
+            </p>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <Link
+                href={productLink.href}
+                className="rounded-2xl border border-blue-100 bg-blue-50 p-5 transition hover:border-blue-200 hover:bg-blue-100"
+              >
+                <span className="text-xs font-black uppercase tracking-wider text-blue-700">
+                  Product
+                </span>
+                <h2 className="mt-3 text-xl font-black text-slate-950">
+                  {productLink.label}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {productLink.description}
+                </p>
+              </Link>
+              {stateGuideLinks.map((guide) => (
+                <Link
+                  key={guide.href}
+                  href={guide.href}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:border-blue-200 hover:bg-white hover:shadow-sm"
+                >
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    State guide
+                  </span>
+                  <h2 className="mt-3 text-xl font-black text-slate-950">
+                    {guide.label}
+                  </h2>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
 

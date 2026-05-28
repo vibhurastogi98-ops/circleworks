@@ -9,13 +9,13 @@ export const metadata: Metadata = {
   description:
     "Explore 200+ plain-English HR, payroll, tax, benefits, compliance, hiring, and workforce terms from CircleWorks.",
   alternates: {
-    canonical: "https://circleworks.vercel.app/glossary",
+    canonical: "https://circleworks.com/glossary",
   },
   openGraph: {
     title: "HR & Payroll Glossary - 200+ Terms Defined",
     description:
       "Plain-English definitions for HR, payroll, compliance, benefits, hiring, time, and workforce terms.",
-    url: "https://circleworks.vercel.app/glossary",
+    url: "https://circleworks.com/glossary",
   },
 };
 

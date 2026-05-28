@@ -80,6 +80,7 @@ const publicStaticAssets = [
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  trailingSlash: false,
   outputFileTracingIncludes: {
     "/*": ["./src/emails/templates/**/*.mjml"],
   },
@@ -128,6 +129,26 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+    ];
+  },
+
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.circleworks.com" }],
+        destination: "https://circleworks.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [
+          { type: "host", value: "circleworks.com" },
+          { type: "header", key: "x-forwarded-proto", value: "http" },
+        ],
+        destination: "https://circleworks.com/:path*",
+        permanent: true,
       },
     ];
   },

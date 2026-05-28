@@ -14,6 +14,9 @@ import Link from "next/link";
 import { MODULE_DATA, MODULE_SLUGS, ModuleSlug } from "./moduleData";
 import InteractiveMockup from "@/components/InteractiveMockup";
 import FeatureVisual from "@/components/FeatureVisual";
+import { getAllStateGuideLinks } from "@/lib/internal-links";
+
+const SITE_URL = "https://circleworks.com";
 
 export function generateStaticParams() {
   return MODULE_SLUGS.map((slug) => ({ module: slug }));
@@ -44,10 +47,10 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `https://circleworks.vercel.app/product/${module}`,
+      url: `${SITE_URL}/product/${module}`,
     },
     alternates: {
-      canonical: `https://circleworks.vercel.app/product/${module}`,
+      canonical: `${SITE_URL}/product/${module}`,
     },
   };
 }
@@ -60,6 +63,7 @@ export default async function ModulePage({
   const { module } = await params;
   const modKey = module as ModuleSlug;
   const mod = MODULE_DATA[modKey];
+  const stateGuideLinks = modKey === "payroll" ? getAllStateGuideLinks() : [];
 
   if (!mod) {
     notFound();
@@ -369,6 +373,35 @@ export default async function ModulePage({
               <p className="text-slate-900 text-lg font-medium leading-relaxed relative z-10">
                 {mod.complianceNote}
               </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {modKey === "payroll" && (
+        <section className="border-y border-slate-200 bg-white py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl">
+              <p className="text-sm font-black uppercase tracking-wider text-blue-600">
+                50-state payroll guides
+              </p>
+              <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">
+                Payroll rules for every state.
+              </h2>
+              <p className="mt-4 text-lg leading-8 text-slate-600">
+                Use these state payroll guides to understand withholding, SUTA/SUI, minimum wage, new hire reporting, paid leave, final pay, and local requirements before your next payroll run.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {stateGuideLinks.map((guide) => (
+                <Link
+                  key={guide.href}
+                  href={guide.href}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  {guide.label}
+                </Link>
+              ))}
             </div>
           </div>
         </section>

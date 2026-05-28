@@ -25,6 +25,8 @@ import Navbar from "@/components/Navbar";
 import { generateSlug, integrations } from "@/data/integrations";
 import type { Integration } from "@/data/integrations";
 
+const SITE_URL = "https://circleworks.com";
+
 const integrationIcons: Record<string, LucideIcon> = {
   QuickBooks: Landmark,
   Slack: MessageSquare,
@@ -141,9 +143,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
+  const canonicalPath = `/integrations/${generateSlug(integration.name)}`;
+
   return {
     title: `${integration.name} Integration | CircleWorks`,
     description: integration.desc,
+    alternates: {
+      canonical: `${SITE_URL}${canonicalPath}`,
+    },
+    openGraph: {
+      title: `${integration.name} Integration | CircleWorks`,
+      description: integration.desc,
+      url: `${SITE_URL}${canonicalPath}`,
+      type: "website",
+    },
   };
 }
 

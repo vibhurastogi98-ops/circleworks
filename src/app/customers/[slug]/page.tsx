@@ -7,6 +7,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CASE_STUDIES, getRelatedStudies } from "../customersData";
 
+const SITE_URL = "https://circleworks.com";
+
 export function generateStaticParams() {
   return CASE_STUDIES.map(s => ({ slug: s.slug }));
 }
@@ -22,6 +24,15 @@ export async function generateMetadata({
   return {
     title: `${study.company} Customer Story | CircleWorks`,
     description: study.headlineQuote,
+    alternates: {
+      canonical: `${SITE_URL}/customers/${study.slug}`,
+    },
+    openGraph: {
+      title: `${study.company} Customer Story | CircleWorks`,
+      description: study.headlineQuote,
+      url: `${SITE_URL}/customers/${study.slug}`,
+      type: "article",
+    },
   };
 }
 

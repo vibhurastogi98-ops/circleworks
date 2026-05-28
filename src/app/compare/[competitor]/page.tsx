@@ -12,23 +12,13 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { COMPETITORS, type Competitor } from "../competitors";
 
 export const dynamicParams = false;
 
 const SITE_URL = "https://circleworks.com";
 const LAST_UPDATED = "May 28, 2026";
 const EMPLOYEE_COUNTS = [10, 25, 50, 100] as const;
-
-const COMPETITORS = [
-  "gusto",
-  "rippling",
-  "adp",
-  "paychex",
-  "paycom",
-  "bamboohr",
-] as const;
-
-type Competitor = (typeof COMPETITORS)[number];
 type FeatureValue = boolean | string;
 
 type Feature = {

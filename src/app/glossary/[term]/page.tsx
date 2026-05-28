@@ -11,8 +11,9 @@ import {
   getRelatedGlossaryTerms,
   glossaryTerms,
 } from "@/lib/glossary";
+import { createBreadcrumbJsonLd, getGlossaryResourceLinks } from "@/lib/internal-links";
 
-const baseUrl = "https://circleworks.vercel.app";
+const baseUrl = "https://circleworks.com";
 
 export function generateStaticParams() {
   return glossaryTerms.map((term) => ({ term: term.slug }));
@@ -63,8 +64,14 @@ export default async function GlossaryTermPage({
   }
 
   const paragraphs = getDefinitionParagraphs(term);
-  const relatedTerms = getRelatedGlossaryTerms(term);
+  const relatedTerms = getRelatedGlossaryTerms(term, 3);
   const featureText = getCircleWorksFeature(term);
+  const resourceLinks = getGlossaryResourceLinks(term);
+  const breadcrumbJsonLd = createBreadcrumbJsonLd([
+    { label: "Home", href: "/" },
+    { label: "Glossary", href: "/glossary" },
+    { label: term.term, href: `/glossary/${term.slug}` },
+  ]);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "DefinedTerm",
@@ -85,6 +92,10 @@ export default async function GlossaryTermPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <section
@@ -135,10 +146,10 @@ export default async function GlossaryTermPage({
                     {featureText}
                   </p>
                   <Link
-                    href="/product/payroll"
+                    href={term.productPath}
                     className="mt-5 inline-flex items-center gap-2 text-base font-black text-blue-700 transition hover:text-blue-900"
                   >
-                    CircleWorks handles {term.term} automatically
+                    See CircleWorks handle {term.term}
                     <ArrowRight size={18} />
                   </Link>
                 </div>
@@ -158,6 +169,21 @@ export default async function GlossaryTermPage({
                   {related.term}
                 </Link>
               ))}
+            </div>
+
+            <div className="mt-8 border-t border-slate-200 pt-6">
+              <h2 className="text-xl font-black text-slate-950">Further reading</h2>
+              <div className="mt-4 space-y-3">
+                {resourceLinks.map((resource) => (
+                  <Link
+                    key={resource.href}
+                    href={resource.href}
+                    className="block rounded-xl border border-slate-200 bg-white p-4 text-sm font-bold leading-6 text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    {resource.label}
+                  </Link>
+                ))}
+              </div>
             </div>
           </aside>
         </div>

@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ segment: 
   
   if (!data) return {};
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://circleworks.com";
+  const baseUrl = "https://circleworks.com";
   const pageUrl = `${baseUrl}/solutions/${segment}`;
   const ogImageUrl = `${pageUrl}/opengraph-image`;
 
