@@ -1,33 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SignJWT } from "jose";
-import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
-);
+import { sendTransactionalEmail } from "@/lib/email";
+import {
+  createPasswordResetToken,
+  getPasswordResetRateLimit,
+} from "@/lib/password-reset";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL
   ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, "")
   : "http://localhost:3000";
 
-const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
-const RATE_LIMIT_LIMIT = 3;
-const RATE_LIMIT_BLOCK_MS = 10 * 60 * 1000;
-
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email(),
 });
-
-type RateLimitEntry = {
-  timestamps: number[];
-  blockedUntil: number | null;
-};
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
 
 function getClientIp(req: NextRequest) {
   return (
@@ -37,29 +26,11 @@ function getClientIp(req: NextRequest) {
   );
 }
 
-function checkRateLimit(key: string) {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key) ?? { timestamps: [], blockedUntil: null };
-
-  if (entry.blockedUntil && entry.blockedUntil > now) {
-    return {
-      limited: true,
-      retryAfterSeconds: Math.ceil((entry.blockedUntil - now) / 1000),
-    };
-  }
-
-  const timestamps = entry.timestamps.filter(
-    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS
-  );
-
-  if (timestamps.length >= RATE_LIMIT_LIMIT) {
-    const blockedUntil = now + RATE_LIMIT_BLOCK_MS;
-    rateLimitStore.set(key, { timestamps, blockedUntil });
-    return { limited: true, retryAfterSeconds: RATE_LIMIT_BLOCK_MS / 1000 };
-  }
-
-  rateLimitStore.set(key, { timestamps: [...timestamps, now], blockedUntil: null });
-  return { limited: false, retryAfterSeconds: 0 };
+function successResponse() {
+  return NextResponse.json({
+    success: true,
+    message: "If email exists, a reset link has been sent.",
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -74,12 +45,13 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = parsed.data.email.toLowerCase();
-    const rateLimit = checkRateLimit(`${getClientIp(req)}:${normalizedEmail}`);
+    const rateLimit = getPasswordResetRateLimit(`${getClientIp(req)}:${normalizedEmail}`);
 
     if (rateLimit.limited) {
       return NextResponse.json(
         {
-          error: "Too many requests. Try again in 10 minutes.",
+          error:
+            "Too many requests. Please wait 10 minutes before requesting another reset link.",
           retryAfterSeconds: rateLimit.retryAfterSeconds,
         },
         {
@@ -89,28 +61,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
+    const [user] = await db
+      .select({ id: users.id, passwordHash: users.passwordHash })
+      .from(users)
+      .where(eq(users.email, normalizedEmail));
 
     if (!user) {
-      return NextResponse.json({
-        success: true,
-        message: "If email exists, a reset link has been sent.",
-      });
+      return successResponse();
     }
 
-    const token = await new SignJWT({ sub: String(user.id), type: "password-reset" })
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(SECRET);
-
+    const token = await createPasswordResetToken(user.id, user.passwordHash);
     const resetUrl = `${APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
-    console.log(`[Password Reset] send reset link to ${normalizedEmail}: ${resetUrl}`);
 
-    return NextResponse.json({
-      success: true,
-      message: "If email exists, a reset link has been sent.",
+    console.log(`[Password Reset] send reset link to ${normalizedEmail}: ${resetUrl}`);
+    await sendTransactionalEmail({
+      to: normalizedEmail,
+      template: "password-reset",
+      variables: { reset_url: resetUrl },
+      messageStream: "outbound",
     });
+
+    return successResponse();
   } catch (error) {
     console.error("[Forgot Password Error]", error);
     return NextResponse.json({ error: "Unable to process request" }, { status: 500 });

@@ -1,164 +1,159 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BadgeDollarSign, Building2, CheckCircle2, Copy, Share2 } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  DollarSign,
+  Share2,
+  UserCheck,
+} from "lucide-react";
 
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Referral Program | CircleWorks",
-  description: "Refer a company to CircleWorks and earn $300 in account credit after their first payroll run.",
+  description:
+    "Refer a company to CircleWorks and earn $300 in account credit after their first paid payroll run.",
 };
 
 const steps = [
   {
-    title: "Share link",
-    description: "Send your referral link to a business that needs cleaner payroll and HR operations.",
+    title: "Share your unique link",
+    description:
+      "Copy your personal referral URL, share via email, LinkedIn, or Twitter.",
     icon: Share2,
   },
   {
-    title: "Company signs up",
-    description: "Your referred company creates a CircleWorks account and starts onboarding payroll.",
-    icon: Building2,
+    title: "Your contact signs up",
+    description:
+      "They create a CircleWorks account using your link.",
+    icon: UserCheck,
   },
   {
-    title: "You earn $300",
-    description: "Credit is added after the company completes its first payroll run.",
-    icon: BadgeDollarSign,
+    title: "You earn $300 credit",
+    description:
+      "Credit is applied to your account when they complete their first paid payroll run.",
+    icon: DollarSign,
   },
 ];
 
-export default function ReferralPage() {
+const programDetails = [
+  "You earn $300 account credit once your referral completes their first payroll run.",
+  "No limit on referrals.",
+  "Credits apply to your monthly subscription.",
+  "Cash out after $600 accumulated (every 2 referrals).",
+  "Your referral gets 1 month free on Pro plan.",
+];
+
+export default async function ReferralPage() {
+  const session = await getSession();
+  const referralHref = session ? "/me/referrals" : "/login?next=/me/referrals";
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <Navbar />
 
-      <section className="border-b border-blue-100 bg-white pt-32 pb-20 lg:pt-40">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
-          <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-700">
-              CircleWorks Referral Program
-            </div>
-            <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-[#0A1628] sm:text-5xl lg:text-6xl">
-              Refer a company. Earn $300 credit.
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              Know a business struggling with payroll? Send them CircleWorks and earn rewards.
+      <section className="bg-white pt-32 pb-20 lg:pt-40 lg:pb-24">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-black text-blue-700">
+            CircleWorks Referral Program
+          </div>
+          <h1 className="mx-auto max-w-4xl text-4xl font-black leading-tight tracking-tight text-[#0A1628] sm:text-5xl lg:text-6xl">
+            Refer a company. Earn $300 credit.
+          </h1>
+          <p className="mx-auto mt-6 max-w-3xl text-lg font-medium leading-8 text-slate-600">
+            Know a business struggling with payroll? Send them CircleWorks and earn real
+            rewards when they run their first payroll.
+          </p>
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href={referralHref}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-blue-600 px-6 text-sm font-black text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            >
+              Get My Referral Link
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href="#terms"
+              className="inline-flex h-12 items-center justify-center rounded-full border border-slate-300 px-6 text-sm font-black text-slate-800 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            >
+              See Terms
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-200 bg-slate-50 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-12 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">
+              How It Works
             </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/me/referrals"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
-              >
-                Open referral portal
-                <ArrowRight size={17} />
-              </Link>
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-6 py-3 text-sm font-bold text-slate-800 transition-colors hover:bg-slate-50"
-              >
-                Start CircleWorks
-              </Link>
-            </div>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628] md:text-4xl">
+              Three steps to referral credit
+            </h2>
           </div>
 
-          <div className="rounded-lg border border-blue-100 bg-blue-50 p-6 shadow-sm">
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Reward value</p>
-                  <p className="mt-1 text-4xl font-black text-[#0A1628]">$300</p>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600 text-white">
-                  <BadgeDollarSign size={24} />
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                {[
-                  "No limit on referrals",
-                  "Credits apply to your subscription",
-                  "Cash out after $600 accumulated",
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-                    <CheckCircle2 size={17} className="text-blue-600" />
-                    {item}
+          <div className="relative grid gap-6 md:grid-cols-3">
+            <div className="absolute left-[16.5%] right-[16.5%] top-10 hidden h-1 rounded-full bg-blue-100 md:block" />
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className="relative rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm"
+                >
+                  <div className="relative z-10 mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+                    <Icon className="h-9 w-9" aria-hidden="true" />
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 flex items-end justify-between gap-6">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-blue-700">How it works</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">Three steps to referral credit</h2>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <div key={step.title} className="rounded-lg border border-slate-200 bg-white p-6">
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-                    <step.icon size={22} />
+                  <div className="mt-6 text-sm font-black uppercase tracking-[0.18em] text-blue-600">
+                    Step {index + 1}
                   </div>
-                  <span className="text-sm font-black text-blue-200">0{index + 1}</span>
+                  <h3 className="mt-3 text-xl font-black text-[#0A1628]">{step.title}</h3>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+                    {step.description}
+                  </p>
                 </div>
-                <h3 className="text-lg font-black text-[#0A1628]">{step.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{step.description}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="border-y border-blue-100 bg-blue-50 py-20">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-blue-700">Program details</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">Simple rewards. Clear timing.</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <p className="text-sm leading-7 text-slate-700">
-                You earn $300 account credit when your referred company completes their first payroll run.
-              </p>
+      <section id="terms" className="bg-white py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-blue-100 border-l-4 border-l-blue-600 bg-white p-8 shadow-sm">
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-blue-600">
+              Program Details
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">
+              Simple rewards. Clear timing.
+            </h2>
+            <div className="mt-7 grid gap-4">
+              {programDetails.map((detail) => (
+                <div key={detail} className="flex items-start gap-3 text-base font-semibold text-slate-700">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" aria-hidden="true" />
+                  <span>{detail}</span>
+                </div>
+              ))}
             </div>
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <p className="text-sm leading-7 text-slate-700">
-                No limit on referrals. Credits apply to your subscription. Cash out after $600 accumulated.
-              </p>
-            </div>
           </div>
-        </div>
-      </section>
 
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-start justify-between gap-5 rounded-lg border border-slate-200 p-6 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-sm font-bold text-[#0A1628]">Referral credit applies within 30 days of first payroll run.</p>
-              <p className="mt-1 text-sm text-slate-500">See full referral terms.</p>
-            </div>
-            <div className="flex gap-3">
-              <Link
-                href="/me/referrals"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
-              >
-                <Copy size={16} />
-                Get referral link
-              </Link>
-              <Link
-                href="/terms"
-                className="inline-flex items-center rounded-lg border border-slate-300 px-5 py-3 text-sm font-bold text-slate-800 transition-colors hover:bg-slate-50"
-              >
-                Full terms
-              </Link>
-            </div>
+          <div className="mt-10 rounded-2xl bg-[#0A1628] p-8 text-center text-white">
+            <h2 className="text-2xl font-black">Ready to share CircleWorks?</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-300">
+              Generate your link, track referral status, and see credit progress in your
+              referral portal.
+            </p>
+            <Link
+              href={referralHref}
+              className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-black text-[#0A1628] transition hover:bg-blue-50"
+            >
+              Get My Link
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </section>

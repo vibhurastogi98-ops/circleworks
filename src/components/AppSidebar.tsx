@@ -21,6 +21,7 @@ import {
   Target,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -137,6 +138,10 @@ export default function AppSidebar() {
     setOpenGroups(nextOpenGroups);
   }, [activeRoute]);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
+
   const displayName = user?.email?.split("@")[0] || "User";
   const displayEmail = user?.email || "";
   const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(displayEmail)}&backgroundColor=transparent`;
@@ -195,7 +200,8 @@ export default function AppSidebar() {
     <>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+          aria-hidden="true"
+          className="fixed inset-0 z-[45] bg-slate-900/50 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -206,29 +212,39 @@ export default function AppSidebar() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } w-[240px]`}
       >
-        <button
-          type="button"
-          onClick={() => setSwitcherOpen(true)}
-          className="group relative flex h-[72px] items-center gap-3 border-b border-slate-200 px-4 text-left transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
-        >
-          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-blue-100 dark:border-slate-700 dark:bg-blue-900/30">
-            {companyLogo ? (
-              <Image src={companyLogo} alt={companyName} fill sizes="32px" className="object-cover" unoptimized />
-            ) : (
-              <span className="text-xs font-bold text-blue-700 dark:text-blue-200">{getInitials(companyName)}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1 overflow-hidden lg:hidden xl:block">
-            <div className="truncate text-sm font-bold text-slate-900 dark:text-white">{companyName}</div>
-            <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-              Switch company
-              <ChevronDown size={12} className="transition-transform group-hover:translate-y-0.5" />
+        <div className="relative border-b border-slate-200 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => setSwitcherOpen(true)}
+            className="group relative flex h-[72px] w-full items-center gap-3 px-4 pr-12 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 lg:pr-4"
+          >
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-blue-100 dark:border-slate-700 dark:bg-blue-900/30">
+              {companyLogo ? (
+                <Image src={companyLogo} alt={companyName} fill sizes="32px" className="object-cover" unoptimized />
+              ) : (
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-200">{getInitials(companyName)}</span>
+              )}
             </div>
-          </div>
-          <div className="pointer-events-none absolute left-[78px] rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
-            {companyName}
-          </div>
-        </button>
+            <div className="min-w-0 flex-1 overflow-hidden lg:hidden xl:block">
+              <div className="truncate text-sm font-bold text-slate-900 dark:text-white">{companyName}</div>
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                Switch company
+                <ChevronDown size={12} className="transition-transform group-hover:translate-y-0.5" />
+              </div>
+            </div>
+            <div className="pointer-events-none absolute left-[78px] hidden rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
+              {companyName}
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="flex flex-col gap-1">
@@ -256,7 +272,7 @@ export default function AppSidebar() {
                 <>
                   {active && <span className="absolute left-0 top-1 bottom-1 w-1 rounded-r-full bg-blue-600 dark:bg-blue-400" />}
                   <item.icon size={20} className={`shrink-0 ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"}`} />
-                  <div className="ml-3 hidden min-w-0 flex-1 items-center justify-between gap-3 lg:hidden xl:flex">
+                  <div className="ml-3 flex min-w-0 flex-1 items-center justify-between gap-3 lg:hidden xl:flex">
                     <span className={`truncate text-sm font-medium ${active ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}>
                       {item.label}
                     </span>
@@ -267,7 +283,7 @@ export default function AppSidebar() {
                       )}
                     </div>
                   </div>
-                  <div className="pointer-events-none absolute left-[56px] rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
+                  <div className="pointer-events-none absolute left-[56px] hidden rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
                     {item.label}
                   </div>
                 </>
@@ -286,7 +302,7 @@ export default function AppSidebar() {
                   )}
 
                   {hasChildren && expanded && (
-                    <div className="hidden pb-2 pl-11 pt-1 lg:hidden xl:block">
+                    <div className="pb-2 pl-11 pt-1 lg:hidden xl:block">
                       <div className="flex flex-col gap-1">
                         {item.children!.map((child) => {
                           const childActive = activeRoute.startsWith(child.href);
@@ -323,12 +339,12 @@ export default function AppSidebar() {
             <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
               <Image src={avatarUrl} alt={displayName} fill sizes="32px" className="object-cover" unoptimized />
             </div>
-            <div className="hidden min-w-0 flex-1 lg:hidden xl:block">
+            <div className="min-w-0 flex-1 lg:hidden xl:block">
               <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">{displayName}</div>
               <div className="truncate text-xs text-slate-500 dark:text-slate-400">{displayEmail}</div>
             </div>
-            <LogOut size={16} className="hidden text-slate-400 transition-colors group-hover:text-slate-700 dark:group-hover:text-slate-200 lg:hidden xl:block" />
-            <div className="pointer-events-none absolute left-[70px] rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
+            <LogOut size={16} className="text-slate-400 transition-colors group-hover:text-slate-700 dark:group-hover:text-slate-200 lg:hidden xl:block" />
+            <div className="pointer-events-none absolute left-[70px] hidden rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 lg:block xl:hidden">
               {displayName}
             </div>
           </button>

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { AlertTriangle, ArrowLeft, Check, Eye, EyeOff, Loader2, X } from "lucide-react";
+import { AlertTriangle, Check, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,27 +12,27 @@ import { z } from "zod";
 const passwordRequirements = [
   {
     id: "length",
-    label: "8+ chars",
+    label: "At least 8 characters",
     test: (value: string) => value.length >= 8,
   },
   {
     id: "uppercase",
-    label: "Uppercase",
+    label: "One uppercase letter (A-Z)",
     test: (value: string) => /[A-Z]/.test(value),
   },
   {
     id: "lowercase",
-    label: "Lowercase",
+    label: "One lowercase letter (a-z)",
     test: (value: string) => /[a-z]/.test(value),
   },
   {
     id: "number",
-    label: "Number",
+    label: "One number (0-9)",
     test: (value: string) => /[0-9]/.test(value),
   },
   {
     id: "special",
-    label: "Special char",
+    label: "One special character (!@#$%...)",
     test: (value: string) => /[^A-Za-z0-9]/.test(value),
   },
 ] as const;
@@ -63,15 +63,21 @@ const resetPasswordSchema = z
   });
 
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
-type TokenState = "checking" | "valid" | "expired";
+type TokenState = "checking" | "valid" | "expired" | "used";
+
+type ApiError = {
+  error?: string;
+  status?: string;
+};
 
 function CircleWorksLogo() {
   return (
     <Link
       href="/"
-      className="inline-flex items-center gap-3 rounded-lg text-[#0A1628] transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+      className="inline-flex items-center justify-center gap-3 rounded-lg text-[#0A1628] transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+      aria-label="CircleWorks home"
     >
-      <svg width="34" height="34" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 36 36" fill="none" aria-hidden="true">
         <circle cx="18" cy="18" r="14" stroke="currentColor" strokeWidth="3" />
         <path
           d="M18 9.5a8.5 8.5 0 0 0 0 17"
@@ -82,6 +88,30 @@ function CircleWorksLogo() {
       </svg>
       <span className="text-2xl font-black">CircleWorks</span>
     </Link>
+  );
+}
+
+function ExpiredTokenState({ used = false }: { used?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-6 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-700">
+        <AlertTriangle className="h-7 w-7" aria-hidden="true" />
+      </div>
+      <h1 className="mt-5 text-2xl font-bold text-[#0A1628]">
+        {used ? "This reset link has already been used." : "This link has expired."}
+      </h1>
+      <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+        {used
+          ? "Request a new one to create another password."
+          : "Reset links are valid for 15 minutes."}
+      </p>
+      <Link
+        href="/forgot-password"
+        className="mt-7 inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+      >
+        Request New Link
+      </Link>
+    </div>
   );
 }
 
@@ -100,9 +130,11 @@ function ResetPasswordInner() {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors, touchedFields },
   } = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
     defaultValues: { password: "", confirmPassword: "" },
   });
 
@@ -127,12 +159,23 @@ function ResetPasswordInner() {
       }
 
       setTokenState("checking");
+
       try {
         const response = await fetch(
-          `/api/auth/reset-password?token=${encodeURIComponent(token)}`,
+          `/api/auth/validate-reset-token?token=${encodeURIComponent(token)}`,
           { cache: "no-store" }
         );
-        if (!cancelled) setTokenState(response.ok ? "valid" : "expired");
+        const body = (await response.json().catch(() => ({}))) as ApiError;
+
+        if (cancelled) return;
+
+        if (response.ok) {
+          setTokenState("valid");
+        } else if (response.status === 409 || body.status === "used") {
+          setTokenState("used");
+        } else {
+          setTokenState("expired");
+        }
       } catch {
         if (!cancelled) setTokenState("expired");
       }
@@ -162,10 +205,15 @@ function ResetPasswordInner() {
         body: JSON.stringify({ token, ...values }),
       });
 
-      const body = (await response.json()) as { error?: string };
+      const body = (await response.json().catch(() => ({}))) as ApiError;
 
       if (!response.ok) {
-        if (response.status === 401) {
+        if (response.status === 409 || body.status === "used") {
+          setTokenState("used");
+          return;
+        }
+
+        if (response.status === 401 || body.status === "expired") {
           setTokenState("expired");
           return;
         }
@@ -174,7 +222,7 @@ function ResetPasswordInner() {
         return;
       }
 
-      router.replace("/login?passwordUpdated=1");
+      router.replace("/login?reset=success");
     } catch {
       setFormError("Network error. Please try again.");
     } finally {
@@ -184,7 +232,7 @@ function ResetPasswordInner() {
 
   if (tokenState === "checking") {
     return (
-      <div className="py-10 text-center">
+      <div className="py-10 text-center" aria-live="polite">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" aria-hidden="true" />
         <p className="mt-4 text-sm font-medium text-slate-500">Validating your reset link...</p>
       </div>
@@ -192,37 +240,27 @@ function ResetPasswordInner() {
   }
 
   if (tokenState === "expired") {
-    return (
-      <div className="py-6 text-center">
-        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-red-100 text-red-700">
-          <AlertTriangle className="h-7 w-7" aria-hidden="true" />
-        </div>
-        <h2 className="text-2xl font-bold text-[#0A1628]">Link expired.</h2>
-        <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-          Request a new one.
-        </p>
-        <Link
-          href="/forgot-password"
-          className="mt-7 inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-        >
-          Request a new one
-        </Link>
-      </div>
-    );
+    return <ExpiredTokenState />;
+  }
+
+  if (tokenState === "used") {
+    return <ExpiredTokenState used />;
   }
 
   return (
     <>
-      <header className="mb-7 text-center">
-        <h2 className="text-2xl font-bold text-[#0A1628]">Set new password</h2>
-        <p className="mt-2 text-sm font-medium text-slate-500">
+      <header className="text-center">
+        <h1 className="text-[28px] font-bold leading-tight text-[#0A1628]">
+          Create new password
+        </h1>
+        <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
           Choose a strong password for your CircleWorks account.
         </p>
       </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-7 space-y-5">
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-sm font-bold text-slate-800">
+          <label htmlFor="password" className="mb-2 block text-sm font-bold text-slate-800">
             New password
           </label>
           <div className="relative">
@@ -232,8 +270,8 @@ function ResetPasswordInner() {
               autoComplete="new-password"
               autoFocus
               {...register("password")}
-              className={`h-12 w-full rounded-lg border bg-white px-3 pr-11 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
-                errors.password ? "border-red-400 bg-red-50" : "border-slate-300"
+              className={`h-12 w-full rounded-lg border bg-white px-4 pr-11 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
+                errors.password ? "border-red-500 bg-red-50" : "border-slate-300"
               }`}
               aria-invalid={Boolean(errors.password)}
               aria-describedby="password-requirements"
@@ -252,27 +290,19 @@ function ResetPasswordInner() {
               )}
             </button>
           </div>
-        </div>
 
-        <div
-          id="password-requirements"
-          className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-        >
-          <p className="mb-3 text-xs font-bold uppercase text-slate-600">
-            Password requirements
-          </p>
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
+          <div id="password-requirements" className="mt-3 space-y-2">
             {requirementState.map((requirement) => (
               <div
                 key={requirement.id}
-                className={`flex items-center gap-2 font-semibold ${
+                className={`flex items-center gap-2 text-sm font-semibold ${
                   requirement.met ? "text-green-700" : "text-slate-500"
                 }`}
               >
                 {requirement.met ? (
-                  <Check className="h-4 w-4" aria-hidden="true" />
+                  <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
                 ) : (
-                  <X className="h-4 w-4" aria-hidden="true" />
+                  <X className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
                 )}
                 {requirement.label}
               </div>
@@ -283,7 +313,7 @@ function ResetPasswordInner() {
         <div>
           <label
             htmlFor="confirmPassword"
-            className="mb-1.5 block text-sm font-bold text-slate-800"
+            className="mb-2 block text-sm font-bold text-slate-800"
           >
             Confirm password
           </label>
@@ -293,8 +323,8 @@ function ResetPasswordInner() {
               type={showConfirmPassword ? "text" : "password"}
               autoComplete="new-password"
               {...register("confirmPassword")}
-              className={`h-12 w-full rounded-lg border bg-white px-3 pr-11 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
-                errors.confirmPassword ? "border-red-400 bg-red-50" : "border-slate-300"
+              className={`h-12 w-full rounded-lg border bg-white px-4 pr-11 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
+                errors.confirmPassword ? "border-red-500 bg-red-50" : "border-slate-300"
               }`}
               aria-invalid={Boolean(errors.confirmPassword)}
               aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
@@ -313,8 +343,8 @@ function ResetPasswordInner() {
               )}
             </button>
           </div>
-          {errors.confirmPassword && (
-            <p id="confirmPassword-error" role="alert" className="mt-1.5 text-sm font-medium text-red-600">
+          {touchedFields.confirmPassword && errors.confirmPassword && (
+            <p id="confirmPassword-error" role="alert" className="mt-2 text-sm font-medium text-red-600">
               {errors.confirmPassword.message}
             </p>
           )}
@@ -340,7 +370,7 @@ function ResetPasswordInner() {
               Updating...
             </>
           ) : (
-            "Set new password"
+            "Set New Password"
           )}
         </button>
       </form>
@@ -351,17 +381,23 @@ function ResetPasswordInner() {
 export default function ResetPasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-5 py-10 text-slate-950 selection:bg-blue-200">
-      <div className="w-full max-w-md">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
-          className="rounded-lg border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60"
-        >
-          <div className="mb-8 flex justify-center">
-            <CircleWorksLogo />
-          </div>
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18 }}
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-10 shadow-lg shadow-slate-200/70"
+      >
+        <div className="text-center">
+          <CircleWorksLogo />
+          <Link
+            href="/login"
+            className="mt-6 inline-flex text-sm font-bold text-blue-600 transition-colors hover:text-blue-800 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            ← Back to Login
+          </Link>
+        </div>
 
+        <div className="mt-8" aria-live="polite">
           <Suspense
             fallback={
               <div className="py-10 text-center">
@@ -371,18 +407,8 @@ export default function ResetPasswordPage() {
           >
             <ResetPasswordInner />
           </Suspense>
-        </motion.div>
-
-        <div className="mt-6 text-center">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-lg text-sm font-bold text-slate-500 transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to login
-          </Link>
         </div>
-      </div>
+      </motion.section>
     </main>
   );
 }

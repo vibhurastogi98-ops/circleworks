@@ -17,7 +17,6 @@ import {
   HeartPulse,
   Loader2,
   Mail,
-  Shield,
   Users,
   X,
 } from "lucide-react";
@@ -28,7 +27,7 @@ import { z } from "zod";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
-const DRAFT_KEY = "cw_signup_draft";
+const DRAFT_KEY = "signup_in_progress";
 const STEP_COUNT = 5;
 
 const WIZARD_STEPS = [
@@ -37,6 +36,30 @@ const WIZARD_STEPS = [
   { title: "Payroll", detail: "Schedule basics" },
   { title: "Employees", detail: "First team member" },
   { title: "Ready", detail: "Launch CircleWorks" },
+];
+
+const TESTIMONIALS = [
+  {
+    quote:
+      "CircleWorks helped us replace disconnected payroll, HR, and benefits workflows with one clean operating system.",
+    name: "Avery Morgan",
+    role: "People Ops, Meridian Health",
+    initials: "AM",
+  },
+  {
+    quote:
+      "We opened payroll in three states without adding another admin hire. The setup flow made every next step obvious.",
+    name: "Priya Shah",
+    role: "COO, Northstar Labs",
+    initials: "PS",
+  },
+  {
+    quote:
+      "Our first run was approved in minutes, and the compliance defaults saved us from a dozen spreadsheets.",
+    name: "Marcus Lee",
+    role: "Founder, Bluebird Retail",
+    initials: "ML",
+  },
 ];
 
 const US_STATES = [
@@ -90,16 +113,43 @@ const US_STATES = [
   "West Virginia",
   "Wisconsin",
   "Wyoming",
+  "District of Columbia",
 ];
 
-const COMPANY_SIZES = ["1-10", "11-50", "51-250", "251-1000", "1000+"];
+const COMPANY_SIZES = ["1–10", "11–50", "51–250", "251–1,000", "1,000+"];
 const INDUSTRIES = [
   "Technology",
   "Healthcare",
   "Retail",
   "Professional Services",
   "Construction",
+  "Non-Profit",
   "Other",
+];
+
+const FEDERAL_HOLIDAYS = [
+  "2026-01-01",
+  "2026-01-19",
+  "2026-02-16",
+  "2026-05-25",
+  "2026-06-19",
+  "2026-07-03",
+  "2026-09-07",
+  "2026-10-12",
+  "2026-11-11",
+  "2026-11-26",
+  "2026-12-25",
+  "2027-01-01",
+  "2027-01-18",
+  "2027-02-15",
+  "2027-05-31",
+  "2027-06-18",
+  "2027-07-05",
+  "2027-09-06",
+  "2027-10-11",
+  "2027-11-11",
+  "2027-11-25",
+  "2027-12-24",
 ];
 
 const PAY_SCHEDULES = [
@@ -156,9 +206,10 @@ type WizardData = {
   };
   step4: {
     isAdminEmployee: boolean;
-    employeeName: string;
-    employeeEmail: string;
-    title: string;
+    firstName: string;
+    lastName: string;
+    workEmail: string;
+    jobTitle: string;
     startDate: string;
     payType: "salary" | "hourly";
     payRate: string;
@@ -189,9 +240,10 @@ const INITIAL_DATA: WizardData = {
   },
   step4: {
     isAdminEmployee: true,
-    employeeName: "",
-    employeeEmail: "",
-    title: "Founder",
+    firstName: "",
+    lastName: "",
+    workEmail: "",
+    jobTitle: "Founder",
     startDate: "",
     payType: "salary",
     payRate: "",
@@ -282,9 +334,10 @@ const step3Schema = z
 const step4Schema = z
   .object({
     isAdminEmployee: z.boolean(),
-    employeeName: z.string(),
-    employeeEmail: z.string(),
-    title: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
+    workEmail: z.string(),
+    jobTitle: z.string(),
     startDate: z.string(),
     payType: z.enum(["salary", "hourly"]),
     payRate: z.string(),
@@ -293,28 +346,36 @@ const step4Schema = z
   .superRefine((data, ctx) => {
     if (data.skip) return;
 
-    if (data.employeeName.trim().length < 2) {
+    if (data.firstName.trim().length < 1) {
       ctx.addIssue({
         code: "custom",
-        path: ["employeeName"],
-        message: data.isAdminEmployee ? "Confirm your name" : "Employee name is required",
+        path: ["firstName"],
+        message: "First name is required",
       });
     }
 
-    const emailResult = z.string().email().safeParse(data.employeeEmail.trim());
+    if (data.lastName.trim().length < 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["lastName"],
+        message: "Last name is required",
+      });
+    }
+
+    const emailResult = z.string().email().safeParse(data.workEmail.trim());
     if (!emailResult.success) {
       ctx.addIssue({
         code: "custom",
-        path: ["employeeEmail"],
-        message: "Enter a valid employee email",
+        path: ["workEmail"],
+        message: "Enter a valid work email",
       });
     }
 
-    if (!data.title.trim()) {
+    if (!data.jobTitle.trim()) {
       ctx.addIssue({
         code: "custom",
-        path: ["title"],
-        message: "Title is required",
+        path: ["jobTitle"],
+        message: "Job title is required",
       });
     }
 
@@ -352,8 +413,12 @@ function getPasswordStrength(password: string) {
   if (!password) return { score: 0, label: "", color: "bg-slate-200" };
   if (score <= 2) return { score: 1, label: "Weak", color: "bg-red-500" };
   if (score === 3) return { score: 2, label: "Fair", color: "bg-amber-500" };
-  if (score === 4) return { score: 3, label: "Good", color: "bg-blue-500" };
-  return { score: 4, label: "Strong", color: "bg-green-500" };
+  if (score === 4) return { score: 3, label: "Strong", color: "bg-blue-500" };
+  return { score: 4, label: "Very Strong", color: "bg-green-500" };
+}
+
+function isFederalHoliday(date: Date) {
+  return FEDERAL_HOLIDAYS.includes(formatDateInput(date));
 }
 
 function addBusinessDays(date: Date, days: number) {
@@ -362,7 +427,7 @@ function addBusinessDays(date: Date, days: number) {
   while (added < days) {
     result.setDate(result.getDate() + 1);
     const day = result.getDay();
-    if (day !== 0 && day !== 6) added += 1;
+    if (day !== 0 && day !== 6 && !isFederalHoliday(result)) added += 1;
   }
   return result;
 }
@@ -460,34 +525,18 @@ function InlineError({ id, message }: { id: string; message?: string }) {
 }
 
 function StepProgress({ step }: { step: number }) {
+  const progress = ((step + 1) / STEP_COUNT) * 100;
+
   return (
     <div className="mb-8 lg:mb-5">
-      <div className="grid grid-cols-5 gap-2" aria-label="Signup progress">
-        {WIZARD_STEPS.map((wizardStep, index) => {
-          const complete = index < step;
-          const active = index === step;
-          return (
-            <div key={wizardStep.title} className="min-w-0 text-center">
-              <div
-                className={`flex h-9 items-center justify-center rounded-lg text-sm font-bold transition-colors lg:h-7 lg:text-xs ${
-                  complete
-                    ? "bg-green-500 text-white"
-                    : active
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-400"
-                }`}
-              >
-                {complete ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
-              </div>
-              <p className="mt-2 hidden truncate text-center text-xs font-semibold text-slate-500 sm:block lg:mt-1">
-                {wizardStep.title}
-              </p>
-            </div>
-          );
-        })}
+      <div className="h-1 overflow-hidden rounded-full bg-slate-100" aria-label="Signup progress">
+        <div
+          className="h-full rounded-full bg-blue-600 transition-all duration-300 ease-out"
+          style={{ width: `${progress}%` }}
+        />
       </div>
       <p className="mt-3 text-sm font-semibold text-slate-500 lg:mt-2 lg:text-xs">
-        Step {step + 1} of {STEP_COUNT}: {WIZARD_STEPS[step].detail}
+        Step {step + 1} of {STEP_COUNT}
       </p>
     </div>
   );
@@ -495,14 +544,14 @@ function StepProgress({ step }: { step: number }) {
 
 function LeftStepRail({ step }: { step: number }) {
   return (
-    <ol className="space-y-4">
+    <ol className="space-y-2.5">
       {WIZARD_STEPS.map((wizardStep, index) => {
         const complete = index < step;
         const active = index === step;
         return (
           <li key={wizardStep.title} className="flex items-center gap-3">
             <span
-              className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold ${
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold xl:h-8 xl:w-8 xl:text-sm ${
                 complete
                   ? "bg-green-500 text-white"
                   : active
@@ -513,15 +562,57 @@ function LeftStepRail({ step }: { step: number }) {
               {complete ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
             </span>
             <span>
-              <span className={`block text-sm font-bold ${active ? "text-white" : "text-white/70"}`}>
+              <span className={`block text-[13px] font-bold ${active ? "text-white" : "text-white/70"}`}>
                 {wizardStep.title}
               </span>
-              <span className="block text-xs text-white/45">{wizardStep.detail}</span>
+              <span className="block text-[11px] leading-4 text-white/45">{wizardStep.detail}</span>
             </span>
           </li>
         );
       })}
     </ol>
+  );
+}
+
+function RotatingTestimonial() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setIndex((current) => (current + 1) % TESTIMONIALS.length);
+    }, 6000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const testimonial = TESTIMONIALS[index];
+
+  return (
+    <div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={testimonial.name}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.35 }}
+          className="space-y-3.5"
+        >
+          <p className="max-w-md text-[13px] leading-5 text-blue-100">
+            &ldquo;{testimonial.quote}&rdquo;
+          </p>
+          <div className="flex items-center gap-3 border-t border-white/15 pt-3.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-sm font-bold">
+              {testimonial.initials}
+            </span>
+            <span>
+              <span className="block text-sm font-bold leading-5">{testimonial.name}</span>
+              <span className="block text-xs leading-5 text-blue-100">{testimonial.role}</span>
+            </span>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -589,7 +680,7 @@ function Step1Form({
           ) : (
             <GoogleLogo />
           )}
-          Sign up with Google
+          Continue with Google
         </button>
         <button
           type="button"
@@ -602,13 +693,13 @@ function Step1Form({
           ) : (
             <MicrosoftLogo />
           )}
-          Sign up with Microsoft
+          Continue with Microsoft
         </button>
       </div>
 
       <div className="flex items-center gap-3 text-sm font-semibold text-slate-400 lg:text-xs">
         <span className="h-px flex-1 bg-slate-200" />
-        <span>or use email</span>
+        <span>— or sign up with email —</span>
         <span className="h-px flex-1 bg-slate-200" />
       </div>
 
@@ -736,14 +827,16 @@ function Step1Form({
               onChange: () => clearErrors("agreedToTerms"),
             })}
             className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+            aria-invalid={Boolean(errors.agreedToTerms)}
+            aria-describedby={errors.agreedToTerms ? "terms-error" : undefined}
           />
           <span>
             I agree to{" "}
-            <Link href="/terms" className="font-bold text-blue-700 hover:underline">
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-700 hover:underline">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link href="/privacy" className="font-bold text-blue-700 hover:underline">
+            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-700 hover:underline">
               Privacy Policy
             </Link>
           </span>
@@ -751,16 +844,18 @@ function Step1Form({
         <InlineError id="terms-error" message={errors.agreedToTerms?.message} />
       </div>
 
-      <button
-        type="submit"
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
-      >
-        Continue
-        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-      </button>
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
 
-      <p className="text-center text-sm font-semibold text-slate-500 lg:text-xs">
-        Start for free — no credit card
+      <p className="text-center text-sm italic text-slate-500 lg:text-xs">
+        Start for free — no credit card required
       </p>
     </form>
   );
@@ -768,11 +863,9 @@ function Step1Form({
 
 function Step2Form({
   data,
-  onBack,
   onComplete,
 }: {
   data: WizardData["step2"];
-  onBack: () => void;
   onComplete: (data: WizardData["step2"]) => void;
 }) {
   const {
@@ -903,19 +996,17 @@ function Step2Form({
         </div>
       </fieldset>
 
-      <WizardActions onBack={onBack} />
+      <WizardActions />
     </form>
   );
 }
 
 function Step3Form({
   data,
-  onBack,
   onComplete,
   onSkip,
 }: {
   data: WizardData["step3"];
-  onBack: () => void;
   onComplete: (data: WizardData["step3"]) => void;
   onSkip: () => void;
 }) {
@@ -993,7 +1084,14 @@ function Step3Form({
                   className={`mb-3 h-5 w-5 lg:mb-2 lg:h-4 lg:w-4 ${active ? "text-blue-700" : "text-slate-500"}`}
                   aria-hidden="true"
                 />
-                <span className="block text-sm font-bold text-slate-900">{label}</span>
+                <span className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                  {label}
+                  {value === "bi-weekly" && (
+                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                      Most popular
+                    </span>
+                  )}
+                </span>
                 <span className="mt-1 block text-sm text-slate-500 lg:text-xs">{detail}</span>
               </button>
             );
@@ -1015,10 +1113,13 @@ function Step3Form({
           aria-invalid={Boolean(errors.firstPayrollDate)}
           aria-describedby={errors.firstPayrollDate ? "firstPayrollDate-error" : undefined}
         />
+        <p className="mt-1.5 text-xs font-medium text-slate-500">
+          We need 4 business days to process your first run.
+        </p>
         <InlineError id="firstPayrollDate-error" message={errors.firstPayrollDate?.message} />
       </div>
 
-      <WizardActions onBack={onBack} />
+      <WizardActions />
 
       <button
         type="button"
@@ -1036,7 +1137,6 @@ function Step4Form({
   adminName,
   data,
   loading,
-  onBack,
   onComplete,
   onSkip,
 }: {
@@ -1044,10 +1144,10 @@ function Step4Form({
   adminName: string;
   data: WizardData["step4"];
   loading: boolean;
-  onBack: () => void;
   onComplete: (data: WizardData["step4"]) => void;
   onSkip: () => void;
 }) {
+  const adminNameParts = useMemo(() => splitName(adminName), [adminName]);
   const {
     register,
     handleSubmit,
@@ -1058,18 +1158,36 @@ function Step4Form({
     resolver: zodResolver(step4Schema),
     defaultValues: {
       ...data,
-      employeeName: data.employeeName || adminName,
-      employeeEmail: data.employeeEmail || adminEmail,
+      firstName: data.firstName || adminNameParts.firstName,
+      lastName: data.lastName || adminNameParts.lastName,
+      workEmail: data.workEmail || adminEmail,
       skip: false,
     },
   });
   const isAdminEmployee = watch("isAdminEmployee");
+  const payType = watch("payType");
+  const payRate = watch("payRate");
+  const numericPayRate = Number(payRate.replace(/[$,\s]/g, ""));
+  const convertedPay = Number.isFinite(numericPayRate) && numericPayRate > 0
+    ? payType === "hourly"
+      ? `${new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(numericPayRate * 2080)} per year`
+      : `${new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 2,
+        }).format(numericPayRate / 2080)} per hour`
+    : "";
 
   useEffect(() => {
     if (!isAdminEmployee) return;
-    setValue("employeeName", adminName, { shouldDirty: true });
-    setValue("employeeEmail", adminEmail, { shouldDirty: true });
-  }, [adminEmail, adminName, isAdminEmployee, setValue]);
+    setValue("firstName", adminNameParts.firstName, { shouldDirty: true });
+    setValue("lastName", adminNameParts.lastName, { shouldDirty: true });
+    setValue("workEmail", adminEmail, { shouldDirty: true });
+  }, [adminEmail, adminNameParts.firstName, adminNameParts.lastName, isAdminEmployee, setValue]);
 
   return (
     <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["step4"]))} noValidate className="space-y-5 lg:space-y-4">
@@ -1083,11 +1201,11 @@ function Step4Form({
       </header>
 
       <fieldset>
-        <legend className={labelBase}>Who should we add first?</legend>
+        <legend className={labelBase}>Is one of the employees you?</legend>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Myself", value: true },
-            { label: "Employee", value: false },
+            { label: "Yes", value: true },
+            { label: "No", value: false },
           ].map((option) => {
             const active = isAdminEmployee === option.value;
             return (
@@ -1113,52 +1231,102 @@ function Step4Form({
         </div>
       </fieldset>
 
-      <div>
-        <label htmlFor="employeeName" className={labelBase}>
-          {isAdminEmployee ? "Your name" : "Employee name"}
-        </label>
-        <input
-          id="employeeName"
-          autoComplete="name"
-          {...register("employeeName")}
-          className={fieldClass(Boolean(errors.employeeName))}
-          aria-invalid={Boolean(errors.employeeName)}
-          aria-describedby={errors.employeeName ? "employeeName-error" : undefined}
-        />
-        <InlineError id="employeeName-error" message={errors.employeeName?.message} />
-      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="firstName" className={labelBase}>
+            First name
+          </label>
+          <input
+            id="firstName"
+            autoComplete="given-name"
+            {...register("firstName")}
+            className={fieldClass(Boolean(errors.firstName))}
+            aria-invalid={Boolean(errors.firstName)}
+            aria-describedby={errors.firstName ? "firstName-error" : undefined}
+          />
+          <InlineError id="firstName-error" message={errors.firstName?.message} />
+        </div>
 
-      <div>
-        <label htmlFor="employeeEmail" className={labelBase}>
-          Email
-        </label>
-        <input
-          id="employeeEmail"
-          type="email"
-          autoComplete="email"
-          {...register("employeeEmail")}
-          className={fieldClass(Boolean(errors.employeeEmail))}
-          aria-invalid={Boolean(errors.employeeEmail)}
-          aria-describedby={errors.employeeEmail ? "employeeEmail-error" : undefined}
-        />
-        <InlineError id="employeeEmail-error" message={errors.employeeEmail?.message} />
+        <div>
+          <label htmlFor="lastName" className={labelBase}>
+            Last name
+          </label>
+          <input
+            id="lastName"
+            autoComplete="family-name"
+            {...register("lastName")}
+            className={fieldClass(Boolean(errors.lastName))}
+            aria-invalid={Boolean(errors.lastName)}
+            aria-describedby={errors.lastName ? "lastName-error" : undefined}
+          />
+          <InlineError id="lastName-error" message={errors.lastName?.message} />
+        </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="title" className={labelBase}>
-            Title
+          <label htmlFor="workEmail" className={labelBase}>
+            Work email
           </label>
           <input
-            id="title"
-            {...register("title")}
-            className={fieldClass(Boolean(errors.title))}
-            aria-invalid={Boolean(errors.title)}
-            aria-describedby={errors.title ? "title-error" : undefined}
+            id="workEmail"
+            type="email"
+            autoComplete="email"
+            {...register("workEmail")}
+            className={fieldClass(Boolean(errors.workEmail))}
+            aria-invalid={Boolean(errors.workEmail)}
+            aria-describedby={errors.workEmail ? "workEmail-error" : undefined}
           />
-          <InlineError id="title-error" message={errors.title?.message} />
+          <InlineError id="workEmail-error" message={errors.workEmail?.message} />
         </div>
 
+        <div>
+          <label htmlFor="jobTitle" className={labelBase}>
+            Job title
+          </label>
+          <input
+            id="jobTitle"
+            {...register("jobTitle")}
+            className={fieldClass(Boolean(errors.jobTitle))}
+            aria-invalid={Boolean(errors.jobTitle)}
+            aria-describedby={errors.jobTitle ? "jobTitle-error" : undefined}
+          />
+          <InlineError id="jobTitle-error" message={errors.jobTitle?.message} />
+        </div>
+      </div>
+
+      <fieldset>
+        <legend className={labelBase}>Pay type</legend>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Salary", value: "salary" as const },
+            { label: "Hourly", value: "hourly" as const },
+          ].map((option) => {
+            const active = payType === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("payType", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`h-12 rounded-lg border text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="startDate" className={labelBase}>
             Start date
@@ -1173,50 +1341,39 @@ function Step4Form({
           />
           <InlineError id="startDate-error" message={errors.startDate?.message} />
         </div>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor="payType" className={labelBase}>
-            Pay type
-          </label>
-          <select id="payType" {...register("payType")} className={selectClass(false)}>
-            <option value="salary">Salary</option>
-            <option value="hourly">Hourly</option>
-          </select>
-        </div>
 
         <div>
           <label htmlFor="payRate" className={labelBase}>
             Pay rate
           </label>
-          <input
-            id="payRate"
-            inputMode="decimal"
-            placeholder="75000"
-            {...register("payRate")}
-            className={fieldClass(Boolean(errors.payRate))}
-            aria-invalid={Boolean(errors.payRate)}
-            aria-describedby={errors.payRate ? "payRate-error" : undefined}
-          />
+          <div className="relative">
+            <input
+              id="payRate"
+              inputMode="decimal"
+              placeholder={payType === "hourly" ? "35" : "75000"}
+              {...register("payRate")}
+              className={`${fieldClass(Boolean(errors.payRate))} pr-24`}
+              aria-invalid={Boolean(errors.payRate)}
+              aria-describedby={errors.payRate ? "payRate-error" : "payRate-conversion"}
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
+              {payType === "hourly" ? "per hour" : "per year"}
+            </span>
+          </div>
+          {convertedPay && (
+            <p id="payRate-conversion" className="mt-1.5 text-xs font-medium text-slate-500">
+              Equivalent to {convertedPay}
+            </p>
+          )}
           <InlineError id="payRate-error" message={errors.payRate?.message} />
         </div>
       </div>
 
-      <div className="flex gap-3 pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={loading}
-          className="flex h-12 items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-60 lg:h-10"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          Back
-        </button>
+      <div className="flex justify-end pt-1">
         <button
           type="submit"
           disabled={loading}
-          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
+          className="flex h-12 min-w-40 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
         >
           {loading ? (
             <>
@@ -1225,7 +1382,7 @@ function Step4Form({
             </>
           ) : (
             <>
-              Complete setup
+              Submit
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </>
           )}
@@ -1250,15 +1407,7 @@ function Step5Success({ data }: { data: WizardData }) {
   useEffect(() => {
     if (fired.current) return;
     fired.current = true;
-
-    const colors = ["#2563EB", "#10B981", "#06B6D4", "#F97316"];
-    const end = Date.now() + 2200;
-    const frame = () => {
-      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors });
-      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    };
-    frame();
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
   }, []);
 
   const payrollDate = data.step3.skipPayroll
@@ -1274,20 +1423,23 @@ function Step5Success({ data }: { data: WizardData }) {
 
   const actionCards = [
     {
-      title: "Run your first payroll",
-      href: "/payroll/run",
+      title: "Run Your First Payroll",
+      description: "Review your pay schedule and launch your first run.",
+      href: "/app/payroll/run",
       icon: CircleDollarSign,
       tone: "bg-blue-50 text-blue-700 border-blue-100",
     },
     {
-      title: "Add employees",
-      href: "/employees",
+      title: "Add Employees",
+      description: "Invite your team and finish employee records.",
+      href: "/app/employees/new",
       icon: Users,
       tone: "bg-green-50 text-green-700 border-green-100",
     },
     {
-      title: "Set up benefits",
-      href: "/benefits/enrollment",
+      title: "Set Up Benefits",
+      description: "Configure medical, dental, vision, and 401k options.",
+      href: "/app/benefits",
       icon: HeartPulse,
       tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
     },
@@ -1296,12 +1448,11 @@ function Step5Success({ data }: { data: WizardData }) {
   return (
     <div className="space-y-7 lg:space-y-5">
       <header className="text-center">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-green-100 text-green-700 lg:h-12 lg:w-12">
-          <Check className="h-8 w-8 lg:h-6 lg:w-6" aria-hidden="true" />
-        </span>
-        <h2 className="mt-5 text-3xl font-bold text-[#0A1628] lg:mt-3 lg:text-2xl">You&apos;re ready!</h2>
-        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
-          Your CircleWorks workspace is ready to launch.
+        <h2 className="text-[40px] font-bold leading-tight text-[#0A1628]">
+          🎉 You&apos;re all set!
+        </h2>
+        <p className="mt-3 text-base font-medium text-slate-500 lg:mt-2 lg:text-sm">
+          {data.step2.companyName || "Your company"} is on the Starter plan. Estimated first payroll date: {payrollDate}.
         </p>
       </header>
 
@@ -1319,23 +1470,30 @@ function Step5Success({ data }: { data: WizardData }) {
         ))}
       </dl>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {actionCards.map(({ title, href, icon: Icon, tone }) => (
+      <div className="grid gap-3 lg:grid-cols-3">
+        {actionCards.map(({ title, description, href, icon: Icon, tone }) => (
           <Link
             key={href}
             href={href}
-            className={`rounded-lg border p-4 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${tone}`}
+            className={`group rounded-lg border p-4 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${tone}`}
           >
             <Icon className="h-6 w-6" aria-hidden="true" />
             <span className="mt-3 block text-sm font-bold leading-tight text-slate-900">
               {title}
+            </span>
+            <span className="mt-2 block text-xs leading-5 text-slate-600">
+              {description}
+            </span>
+            <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-700">
+              Continue
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </span>
           </Link>
         ))}
       </div>
 
       <Link
-        href="/dashboard"
+        href="/app"
         className="flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
       >
         Go to dashboard
@@ -1344,22 +1502,14 @@ function Step5Success({ data }: { data: WizardData }) {
   );
 }
 
-function WizardActions({ onBack }: { onBack: () => void }) {
+function WizardActions({ label = "Next" }: { label?: string }) {
   return (
-    <div className="flex gap-3 pt-1">
-      <button
-        type="button"
-        onClick={onBack}
-        className="flex h-12 items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10"
-      >
-        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        Back
-      </button>
+    <div className="flex justify-end pt-1">
       <button
         type="submit"
-        className="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
+        className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
       >
-        Continue
+        {label}
         <ChevronRight className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
@@ -1384,18 +1534,16 @@ function sanitizeDraft(data: WizardData) {
 }
 
 function toCompletePayload(data: WizardData, signupMode: SignupMode) {
-  const employeeName = splitName(data.step4.employeeName);
-
   return {
     step1: data.step1,
     step2: data.step2,
     step3: data.step3,
     step4: {
       isAdminEmployee: data.step4.isAdminEmployee,
-      firstName: employeeName.firstName,
-      lastName: employeeName.lastName,
-      employeeEmail: data.step4.employeeEmail,
-      title: data.step4.title,
+      firstName: data.step4.firstName,
+      lastName: data.step4.lastName,
+      employeeEmail: data.step4.workEmail,
+      title: data.step4.jobTitle,
       startDate: data.step4.startDate,
       payType: data.step4.payType,
       payRate: data.step4.payRate,
@@ -1417,6 +1565,14 @@ function getSignupMode(rawMode: string | null): SignupMode {
   return "email";
 }
 
+function getStepFromSearch(rawStep: string | null) {
+  if (!rawStep) return null;
+  const parsed = Number(rawStep);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= STEP_COUNT
+    ? parsed - 1
+    : null;
+}
+
 function SignupWizardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1424,8 +1580,9 @@ function SignupWizardInner() {
   const isOAuthSignup = signupMode !== "email";
   const oauthEmail = searchParams.get("email") || "";
   const oauthName = searchParams.get("name") || "";
+  const requestedStep = getStepFromSearch(searchParams.get("step"));
 
-  const [step, setStep] = useState(isOAuthSignup ? 1 : 0);
+  const [step, setStep] = useState(requestedStep ?? (isOAuthSignup ? 1 : 0));
   const [direction, setDirection] = useState(1);
   const [wizardData, setWizardData] = useState<WizardData>(() => ({
     ...INITIAL_DATA,
@@ -1441,8 +1598,9 @@ function SignupWizardInner() {
     step4: isOAuthSignup
       ? {
           ...INITIAL_DATA.step4,
-          employeeName: oauthName,
-          employeeEmail: oauthEmail,
+          firstName: splitName(oauthName).firstName,
+          lastName: splitName(oauthName).lastName,
+          workEmail: oauthEmail,
         }
       : INITIAL_DATA.step4,
   }));
@@ -1454,11 +1612,27 @@ function SignupWizardInner() {
 
   const hasProgress = step > 0 && step < 4;
 
+  const updateStepUrl = useCallback(
+    (nextStep: number) => {
+      const params = new URLSearchParams(window.location.search);
+      params.set("step", String(nextStep + 1));
+      router.replace(`/signup?${params.toString()}`, { scroll: false });
+    },
+    [router]
+  );
+
   const goTo = useCallback((nextStep: number, nextDirection = 1) => {
     setDirection(nextDirection);
     setStep(nextStep);
+    updateStepUrl(nextStep);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "auto" });
-  }, []);
+  }, [updateStepUrl]);
+
+  useEffect(() => {
+    if (!searchParams.get("step")) {
+      updateStepUrl(step);
+    }
+  }, [searchParams, step, updateStepUrl]);
 
   const saveDraftLocal = useCallback((nextStep: number, nextData: WizardData) => {
     try {
@@ -1697,7 +1871,7 @@ function SignupWizardInner() {
         )}
       </AnimatePresence>
 
-      <aside className="hidden w-1/2 flex-col justify-between overflow-hidden bg-[#0A1628] px-10 py-10 text-white lg:flex xl:px-14">
+      <aside className="hidden h-screen w-1/2 flex-col overflow-hidden bg-[#0A1628] px-8 py-7 text-white lg:flex xl:px-12">
         <div>
           <Link
             href="/"
@@ -1707,46 +1881,37 @@ function SignupWizardInner() {
             <span className="sr-only">Home</span>
           </Link>
 
-          <div className="mt-10">
+          <h1 className="mt-8 max-w-md text-[38px] font-bold leading-[1.1] xl:text-[42px]">
+            Join 5,000+ US companies
+          </h1>
+        </div>
+
+        <div className="mt-8 space-y-5">
+          <div>
             <p className="text-sm font-bold uppercase text-blue-200">Signup progress</p>
-            <div className="mt-5">
+            <div className="mt-3">
               <LeftStepRail step={step} />
             </div>
           </div>
-        </div>
 
-        <div className="space-y-5">
-          <div>
-            <p className="text-3xl font-bold leading-tight xl:text-4xl">Join 5,000+ US companies</p>
-            <p className="mt-3 max-w-md text-sm leading-6 text-blue-100 xl:text-base xl:leading-7">
-              &ldquo;CircleWorks helped us replace disconnected payroll, HR, and benefits
-              workflows with one clean operating system.&rdquo;
-            </p>
-          </div>
-          <div className="flex items-center gap-3 border-t border-white/15 pt-5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500 text-sm font-bold">
-              AM
-            </span>
-            <span>
-              <span className="block text-sm font-bold">Avery Morgan</span>
-              <span className="block text-sm text-blue-100">People Ops, Meridian Health</span>
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <span className="inline-flex items-center gap-2 rounded-lg border border-white/25 px-3 py-2 text-sm font-semibold">
-              <Shield className="h-4 w-4 text-blue-200" aria-hidden="true" />
-              SOC 2
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-lg border border-white/25 px-3 py-2 text-sm font-semibold">
-              <HeartPulse className="h-4 w-4 text-blue-200" aria-hidden="true" />
-              HIPAA
-            </span>
-          </div>
+          <RotatingTestimonial />
         </div>
       </aside>
 
       <section className="relative flex min-h-screen min-w-0 w-full flex-col overflow-x-hidden bg-white lg:h-screen lg:w-1/2 lg:overflow-hidden">
-        <div className="flex items-center justify-end px-5 py-5 sm:px-8">
+        <div className="sticky top-0 z-20 flex items-center justify-between bg-white px-5 py-5 sm:px-8">
+          {step > 0 && step < 4 ? (
+            <button
+              type="button"
+              onClick={() => goTo(step - 1, -1)}
+              className="inline-flex items-center gap-2 rounded-lg px-1 py-2 text-sm font-bold text-slate-600 transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Back
+            </button>
+          ) : (
+            <span aria-hidden="true" />
+          )}
           <Link
             href="/login"
             className="rounded-lg bg-[#0A1628] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
@@ -1790,7 +1955,6 @@ function SignupWizardInner() {
               {step === 1 && (
                 <Step2Form
                   data={wizardData.step2}
-                  onBack={() => goTo(0, -1)}
                   onComplete={(step2) => void advance({ step2 }, 2)}
                 />
               )}
@@ -1798,7 +1962,6 @@ function SignupWizardInner() {
               {step === 2 && (
                 <Step3Form
                   data={wizardData.step3}
-                  onBack={() => goTo(1, -1)}
                   onComplete={(step3) => void advance({ step3 }, 3)}
                   onSkip={() =>
                     void advance(
@@ -1822,7 +1985,6 @@ function SignupWizardInner() {
                   adminName={wizardData.step1.fullName}
                   data={wizardData.step4}
                   loading={completionLoading}
-                  onBack={() => goTo(2, -1)}
                   onComplete={handleStep4Complete}
                   onSkip={handleStep4Skip}
                 />

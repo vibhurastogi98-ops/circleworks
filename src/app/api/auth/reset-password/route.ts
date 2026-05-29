@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { jwtVerify } from "jose";
-import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
-import { SESSION_COOKIE } from "@/lib/session";
-
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
-);
+import {
+  markPasswordResetTokenUsed,
+  validatePasswordResetToken,
+} from "@/lib/password-reset";
+import { invalidateUserSessions, SESSION_COOKIE } from "@/lib/session";
 
 const resetPasswordSchema = z
   .object({
@@ -41,41 +40,35 @@ function getSupabaseAdmin() {
   });
 }
 
-async function verifyResetToken(token: string) {
-  const { payload } = await jwtVerify(token, SECRET);
+function invalidTokenResponse() {
+  return NextResponse.json(
+    {
+      error: "This link has expired.",
+      message: "Reset links are valid for 15 minutes.",
+      status: "expired",
+    },
+    { status: 401 }
+  );
+}
 
-  if (payload.type !== "password-reset") {
-    return null;
-  }
-
-  const userId = Number(payload.sub);
-  if (!userId) return null;
-
-  const [user] = await db
-    .select({ id: users.id, clerkUserId: users.clerkUserId })
-    .from(users)
-    .where(eq(users.id, userId));
-
-  return user ?? null;
+function usedTokenResponse() {
+  return NextResponse.json(
+    {
+      error: "This reset link has already been used. Request a new one.",
+      status: "used",
+    },
+    { status: 409 }
+  );
 }
 
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get("token");
+  const token = req.nextUrl.searchParams.get("token") || "";
+  const validation = await validatePasswordResetToken(token);
 
-  if (!token) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-  }
+  if (validation.status === "used") return usedTokenResponse();
+  if (validation.status !== "valid") return invalidTokenResponse();
 
-  try {
-    const user = await verifyResetToken(token);
-    if (!user) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
-    return NextResponse.json({ valid: true });
-  } catch {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-  }
+  return NextResponse.json({ valid: true, status: "valid" });
 }
 
 export async function POST(req: NextRequest) {
@@ -89,20 +82,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await verifyResetToken(parsed.data.token);
+    const validation = await validatePasswordResetToken(parsed.data.token);
 
-    if (!user) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
+    if (validation.status === "used") return usedTokenResponse();
+    if (validation.status !== "valid" || !validation.user) return invalidTokenResponse();
 
     const passwordHash = hashPassword(parsed.data.password);
 
     await db
       .update(users)
       .set({ passwordHash })
-      .where(eq(users.id, user.id));
+      .where(eq(users.id, validation.user.id));
 
-    if (user.clerkUserId) {
+    if (validation.user.clerkUserId) {
       const supabaseAdmin = getSupabaseAdmin();
 
       if (!supabaseAdmin) {
@@ -112,9 +104,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(user.clerkUserId, {
-        password: parsed.data.password,
-      });
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
+        validation.user.clerkUserId,
+        { password: parsed.data.password }
+      );
 
       if (error) {
         console.error("[Reset Password] Supabase password update failed:", error.message);
@@ -124,6 +117,9 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+
+    markPasswordResetTokenUsed(parsed.data.token);
+    invalidateUserSessions(validation.user.id);
 
     const response = NextResponse.json({
       success: true,
@@ -139,6 +135,6 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (error) {
     console.error("[Reset Password Error]", error);
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
+    return invalidTokenResponse();
   }
 }

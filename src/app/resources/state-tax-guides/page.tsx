@@ -7,19 +7,42 @@ import Breadcrumb from "@/components/Breadcrumb";
 import ResourceCTA from "@/components/ResourceCTA";
 import Link from "next/link";
 import { useState, useMemo } from "react";
-import { stateGuides } from "@/data/states";
+import {
+  getStateGuideHref,
+  statePayrollGuides,
+  type StatePayrollGuide,
+} from "@/lib/state-payroll-guides";
+
+function hasIncomeTax(state: StatePayrollGuide) {
+  return !state.incomeTaxRates.some(
+    (bracket) => bracket.rate === "0%" && bracket.bracket === "All wage income",
+  );
+}
+
+function taxType(state: StatePayrollGuide): "Progressive" | "Flat" | "None" {
+  if (!hasIncomeTax(state)) return "None";
+  return state.incomeTaxRates.length === 1 ? "Flat" : "Progressive";
+}
+
+function hasLocalTaxRisk(state: StatePayrollGuide) {
+  return (
+    state.minimumWage.majorCities.length > 0 ||
+    state.uniqueRules.some((rule) => /local|city|municipal|NYC|Yonkers/i.test(rule))
+  );
+}
 
 export default function StateTaxGuidesRoot() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"All" | "No Tax" | "Progressive" | "Flat">("All");
 
   const filteredStates = useMemo(() => {
-    return stateGuides.filter(state => {
-      const matchSearch = state.name.toLowerCase().includes(search.toLowerCase());
+    return statePayrollGuides.filter(state => {
+      const stateTaxType = taxType(state);
+      const matchSearch = state.stateName.toLowerCase().includes(search.toLowerCase());
       const matchFilter = activeFilter === "All" 
-        || (activeFilter === "No Tax" && !state.hasIncomeTax)
-        || (activeFilter === "Progressive" && state.taxType === "Progressive")
-        || (activeFilter === "Flat" && state.taxType === "Flat");
+        || (activeFilter === "No Tax" && !hasIncomeTax(state))
+        || (activeFilter === "Progressive" && stateTaxType === "Progressive")
+        || (activeFilter === "Flat" && stateTaxType === "Flat");
       return matchSearch && matchFilter;
     });
   }, [search, activeFilter]);
@@ -82,7 +105,7 @@ export default function StateTaxGuidesRoot() {
                   className="w-full bg-[#111A29] border-2 border-white/5 focus:border-cyan-500/50 pl-14 pr-6 py-5 rounded-2xl text-white font-bold outline-none transition-all shadow-2xl placeholder:text-slate-600 focus:bg-[#152033]" 
                />
                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-600 tracking-wider">
-                  {filteredStates.length} / 50 States
+                  {filteredStates.length} / 51 Guides
                </div>
             </div>
 
@@ -108,7 +131,7 @@ export default function StateTaxGuidesRoot() {
                {filteredStates.map((state) => (
                   <motion.div 
                      layout
-                     key={state.id}
+                     key={state.slug}
                      initial={{ opacity: 0, scale: 0.95 }}
                      animate={{ opacity: 1, scale: 1 }}
                      exit={{ opacity: 0, scale: 0.95 }}
@@ -118,32 +141,32 @@ export default function StateTaxGuidesRoot() {
                      <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/5 rounded-full group-hover:bg-cyan-500/20 transition-all duration-700" />
                      
                      <div className="mb-6">
-                        <h3 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors">{state.name}</h3>
+                        <h3 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors">{state.stateName}</h3>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                           {state.id.toUpperCase()} • 2026 Guide
+                           {state.abbreviation} • 2026 Guide
                         </p>
                      </div>
 
                      <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8 flex-1 line-clamp-2">
-                        {state.summary}
+                        {state.incomeTaxSummary}
                      </p>
 
                      <div className="flex flex-wrap gap-2 mb-8">
-                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${state.hasIncomeTax ? "bg-red-400/5 border-red-400/20 text-red-400" : "bg-emerald-400/5 border-emerald-400/20 text-emerald-400"}`}>
-                           {state.hasIncomeTax ? "Income Tax" : "No Inc. Tax"}
+                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${hasIncomeTax(state) ? "bg-red-400/5 border-red-400/20 text-red-400" : "bg-emerald-400/5 border-emerald-400/20 text-emerald-400"}`}>
+                           {hasIncomeTax(state) ? "Income Tax" : "No Inc. Tax"}
                         </span>
-                        {state.localTax && (
+                        {hasLocalTaxRisk(state) && (
                            <span className="bg-blue-400/5 border border-blue-400/20 text-blue-400 text-[9px] font-black uppercase px-2.5 py-1 rounded-full">
                               Local Tax
                            </span>
                         )}
                         <span className="bg-white/5 border border-white/10 text-slate-500 text-[9px] font-black uppercase px-2.5 py-1 rounded-full">
-                           {state.taxType}
+                           {taxType(state)}
                         </span>
                      </div>
 
                      <Link 
-                        href={`/resources/state-tax-guides/${state.id}`} 
+                        href={getStateGuideHref(state)}
                         className="w-full py-4 bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-widest rounded-2xl group-hover:bg-white group-hover:text-[#0A1628] group-hover:border-white transition-all text-center"
                      >
                         View Guide &rarr;

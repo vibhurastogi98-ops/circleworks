@@ -1,0 +1,228 @@
+{
+  "generatedAt": "2026-05-28T08:00:00.000Z",
+  "startsOn": "2026-02-28",
+  "components": [
+    {
+      "id": "payroll-processing",
+      "name": "Payroll Processing",
+      "betterUptimeName": "Payroll Processing",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 44, "status": "D", "uptime": 99.21 },
+          { "offset": 45, "status": "D", "uptime": 99.42 }
+        ]
+      }
+    },
+    {
+      "id": "direct-deposit-ach",
+      "name": "Direct Deposit (ACH)",
+      "betterUptimeName": "Direct Deposit ACH",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 30, "status": "M", "uptime": 99.82 }
+        ]
+      }
+    },
+    {
+      "id": "tax-filing-engine",
+      "name": "Tax Filing Engine",
+      "betterUptimeName": "Tax Filing Engine",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 44, "status": "D", "uptime": 99.35 }
+        ]
+      }
+    },
+    {
+      "id": "platform-api",
+      "name": "Platform API",
+      "betterUptimeName": "Platform API",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 53, "status": "D", "uptime": 98.94 }
+        ]
+      }
+    },
+    {
+      "id": "employee-portal",
+      "name": "Employee Portal (app.)",
+      "betterUptimeName": "Employee Portal",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": []
+      }
+    },
+    {
+      "id": "mobile-app",
+      "name": "Mobile App",
+      "betterUptimeName": "Mobile App",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 70, "status": "D", "uptime": 99.12 }
+        ]
+      }
+    },
+    {
+      "id": "email-notifications",
+      "name": "Email Notifications",
+      "betterUptimeName": "Email Notifications",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 74, "status": "D", "uptime": 98.72 }
+        ]
+      }
+    },
+    {
+      "id": "background-jobs",
+      "name": "Background Jobs",
+      "betterUptimeName": "Background Jobs",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 53, "status": "D", "uptime": 99.08 }
+        ]
+      }
+    },
+    {
+      "id": "compliance-engine",
+      "name": "Compliance Engine",
+      "betterUptimeName": "Compliance Engine",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": [
+          { "offset": 44, "status": "D", "uptime": 99.28 }
+        ]
+      }
+    },
+    {
+      "id": "file-storage",
+      "name": "File Storage",
+      "betterUptimeName": "File Storage",
+      "currentStatus": "Operational",
+      "history": {
+        "days": 90,
+        "default": "O",
+        "overrides": []
+      }
+    }
+  ],
+  "incidents": [
+    {
+      "id": "inc-2026-05-13-email-delay",
+      "title": "Delayed email notifications",
+      "severity": "minor",
+      "startedAt": "2026-05-13T16:04:00.000Z",
+      "endedAt": "2026-05-13T16:42:00.000Z",
+      "duration": "38 minutes",
+      "affectedComponents": ["Email Notifications"],
+      "timeline": [
+        {
+          "status": "Investigating",
+          "timestamp": "2026-05-13T16:04:00.000Z",
+          "message": "We observed delayed transactional and payroll notification delivery."
+        },
+        {
+          "status": "Identified",
+          "timestamp": "2026-05-13T16:14:00.000Z",
+          "message": "A third-party email queue was processing slower than expected."
+        },
+        {
+          "status": "Monitoring",
+          "timestamp": "2026-05-13T16:31:00.000Z",
+          "message": "Queue throughput returned to normal and delayed messages began draining."
+        },
+        {
+          "status": "Resolved",
+          "timestamp": "2026-05-13T16:42:00.000Z",
+          "message": "All delayed notifications were delivered and normal delivery latency was restored."
+        }
+      ]
+    },
+    {
+      "id": "inc-2026-04-22-api-latency",
+      "title": "Elevated API latency",
+      "severity": "minor",
+      "startedAt": "2026-04-22T19:12:00.000Z",
+      "endedAt": "2026-04-22T19:40:00.000Z",
+      "duration": "28 minutes",
+      "affectedComponents": ["Platform API", "Background Jobs"],
+      "timeline": [
+        {
+          "status": "Investigating",
+          "timestamp": "2026-04-22T19:12:00.000Z",
+          "message": "We investigated elevated p95 API latency and delayed background job starts."
+        },
+        {
+          "status": "Identified",
+          "timestamp": "2026-04-22T19:23:00.000Z",
+          "message": "A database read replica was serving slower responses than expected."
+        },
+        {
+          "status": "Monitoring",
+          "timestamp": "2026-04-22T19:33:00.000Z",
+          "message": "Traffic was moved to healthy replicas and latency returned to baseline."
+        },
+        {
+          "status": "Resolved",
+          "timestamp": "2026-04-22T19:40:00.000Z",
+          "message": "API and background job performance remained stable after rerouting."
+        }
+      ]
+    },
+    {
+      "id": "inc-2026-03-30-ach-maintenance",
+      "title": "Scheduled ACH maintenance",
+      "severity": "maintenance",
+      "startedAt": "2026-03-30T07:00:00.000Z",
+      "endedAt": "2026-03-30T07:45:00.000Z",
+      "duration": "45 minutes",
+      "affectedComponents": ["Direct Deposit (ACH)"],
+      "timeline": [
+        {
+          "status": "Investigating",
+          "timestamp": "2026-03-30T07:00:00.000Z",
+          "message": "Scheduled ACH provider maintenance began. Payroll runs could still be prepared."
+        },
+        {
+          "status": "Identified",
+          "timestamp": "2026-03-30T07:11:00.000Z",
+          "message": "ACH file submission was temporarily queued during the provider window."
+        },
+        {
+          "status": "Monitoring",
+          "timestamp": "2026-03-30T07:36:00.000Z",
+          "message": "The provider completed maintenance and queued files started processing."
+        },
+        {
+          "status": "Resolved",
+          "timestamp": "2026-03-30T07:45:00.000Z",
+          "message": "Direct deposit processing returned to normal."
+        }
+      ]
+    }
+  ]
+}

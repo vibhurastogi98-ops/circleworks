@@ -1,16 +1,29 @@
-import React from "react";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, MapPin, Users, Quote } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  CalendarDays,
+  CheckCircle2,
+  MapPin,
+  Quote,
+  Users,
+} from "lucide-react";
 import Footer from "@/components/Footer";
-import { CASE_STUDIES, getRelatedStudies } from "../customersData";
+import Navbar from "@/components/Navbar";
+import { CustomerLogo } from "../CustomerLogo";
+import {
+  CUSTOMER_STORIES,
+  getCustomerStory,
+  getRelatedStudies,
+} from "../customersData";
 
 const SITE_URL = "https://circleworks.com";
 
 export function generateStaticParams() {
-  return CASE_STUDIES.map(s => ({ slug: s.slug }));
+  return CUSTOMER_STORIES.map((story) => ({ slug: story.slug }));
 }
 
 export async function generateMetadata({
@@ -19,18 +32,24 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const study = CASE_STUDIES.find(s => s.slug === slug);
-  if (!study) return { title: "Not Found" };
+  const story = getCustomerStory(slug);
+
+  if (!story) {
+    return {
+      title: "Customer Story Not Found | CircleWorks",
+    };
+  }
+
   return {
-    title: `${study.company} Customer Story | CircleWorks`,
-    description: study.headlineQuote,
+    title: `${story.company} Customer Story | CircleWorks`,
+    description: story.quoteExcerpt,
     alternates: {
-      canonical: `${SITE_URL}/customers/${study.slug}`,
+      canonical: `${SITE_URL}/customers/${story.slug}`,
     },
     openGraph: {
-      title: `${study.company} Customer Story | CircleWorks`,
-      description: study.headlineQuote,
-      url: `${SITE_URL}/customers/${study.slug}`,
+      title: `${story.company} Customer Story | CircleWorks`,
+      description: story.quoteExcerpt,
+      url: `${SITE_URL}/customers/${story.slug}`,
       type: "article",
     },
   };
@@ -42,164 +61,282 @@ export default async function CaseStudyPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const study = CASE_STUDIES.find(s => s.slug === slug);
-  if (!study) notFound();
+  const story = getCustomerStory(slug);
 
-  const related = getRelatedStudies(slug);
+  if (!story) notFound();
+
+  const related = getRelatedStudies(story.slug);
+  const reviewJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    itemReviewed: {
+      "@type": "SoftwareApplication",
+      name: "CircleWorks",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+    },
+    author: {
+      "@type": "Person",
+      name: story.attribution.name,
+      jobTitle: story.attribution.title,
+      worksFor: {
+        "@type": "Organization",
+        name: story.company,
+      },
+    },
+    reviewBody: story.fullQuote,
+    publisher: {
+      "@type": "Organization",
+      name: "CircleWorks",
+    },
+  };
 
   return (
-    <main className="min-h-screen bg-white font-sans">
+    <main className="min-h-screen bg-white font-sans selection:bg-blue-200 selection:text-[#0A1628]">
       <Navbar />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewJsonLd) }}
+      />
 
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <section className={`pt-32 pb-24 bg-gradient-to-br ${study.coverGradient} relative overflow-hidden`}>
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
-          <Link href="/customers" className="inline-flex items-center gap-2 text-white/80 text-sm font-bold mb-8 hover:text-white transition-colors">
-            <ArrowLeft size={16} /> All Customer Stories
+      <section className="bg-[#0A1628] pt-28 text-white lg:pt-32">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <Link
+            href="/customers"
+            className="mb-8 inline-flex items-center gap-2 text-sm font-black text-blue-100 transition hover:text-white focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            All customer stories
           </Link>
 
-          <div className="flex items-center gap-4 mb-6">
-            <div className={`w-14 h-14 rounded-2xl ${study.accentColor} border-4 border-white/30 flex items-center justify-center text-white font-black text-xl shadow-lg`}>
-              {study.logoInitials}
+          <div className="grid gap-10 lg:grid-cols-[0.95fr_1.2fr] lg:items-center">
+            <div className="rounded-2xl border border-white/15 bg-white p-7 shadow-xl shadow-black/20">
+              <CustomerLogo story={story} variant="detail" />
+              <div className="mt-8 grid gap-4 text-sm font-bold text-slate-700">
+                <div className="flex items-center gap-3">
+                  <BriefcaseBusiness className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                  {story.industry}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                  {story.size}
+                </div>
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                  Customer since {story.customerSince}
+                </div>
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-blue-600" aria-hidden="true" />
+                  {story.location}
+                </div>
+              </div>
             </div>
+
             <div>
-              <h1 className="text-xl font-black text-white">{study.company}</h1>
-              <div className="flex items-center gap-3 text-white/70 text-sm font-medium mt-0.5">
-                <span className="flex items-center gap-1"><MapPin size={12} />{study.location}</span>
-                <span>·</span>
-                <span className="flex items-center gap-1"><Users size={12} />{study.employees}</span>
-                <span>·</span>
-                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{study.industry}</span>
+              <div className="mb-5 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-blue-100">
+                {story.segment} · {story.industry}
+              </div>
+              <h1 className="text-4xl font-black leading-tight tracking-tight md:text-5xl">
+                How {story.company} runs on CircleWorks
+              </h1>
+              <p className="mt-6 text-xl font-semibold leading-9 text-slate-200">
+                &ldquo;{story.quoteExcerpt}&rdquo;
+              </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {story.keyMetrics.map((metric) => (
+                  <div
+                    key={metric}
+                    className="rounded-2xl border border-white/15 bg-white/10 p-4 text-sm font-black text-white"
+                  >
+                    {metric}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <blockquote className="text-3xl md:text-4xl font-black text-white leading-tight">
-            &ldquo;{study.headlineQuote}&rdquo;
+      <section className="bg-white py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-blue-600">
+              Before CircleWorks
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">
+              The challenge
+            </h2>
+          </div>
+          <div className="grid gap-4">
+            {story.challengePainPoints.map((point) => (
+              <div
+                key={point}
+                className="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5"
+              >
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-red-500" aria-hidden="true" />
+                <p className="text-base font-semibold leading-7 text-slate-700">{point}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-200 bg-slate-50 py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 max-w-3xl">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-blue-600">
+              The Solution
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">
+              CircleWorks modules used
+            </h2>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {story.solutionModules.map((module) => (
+              <div
+                key={module.name}
+                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <BriefcaseBusiness className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <h3 className="text-xl font-black text-[#0A1628]">{module.name}</h3>
+                <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+                  {module.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 max-w-3xl">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-blue-600">
+              Results
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">
+              Measurable impact after launch
+            </h2>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {story.results.map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-2xl border border-slate-200 bg-white p-7 shadow-md"
+              >
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-5xl font-black tracking-tight text-transparent">
+                  {metric.value}
+                </div>
+                <h3 className="mt-4 text-lg font-black text-[#0A1628]">{metric.label}</h3>
+                <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+                  {metric.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#0A1628] py-20 text-white">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <blockquote className="relative rounded-2xl border border-white/15 bg-white/10 p-8 md:p-10">
+            <Quote
+              className="absolute left-6 top-5 h-16 w-16 text-white/10"
+              aria-hidden="true"
+            />
+            <p className="relative text-2xl font-bold leading-10 md:text-3xl md:leading-[1.45]">
+              &ldquo;{story.fullQuote}&rdquo;
+            </p>
+            <footer className="relative mt-8 flex items-center gap-4">
+              <div
+                className="flex h-14 w-14 items-center justify-center rounded-full text-base font-black text-white shadow-md"
+                style={{ backgroundColor: story.logoColor }}
+                aria-hidden="true"
+              >
+                {story.attribution.initials}
+              </div>
+              <div>
+                <div className="font-black text-white">{story.attribution.name}</div>
+                <div className="mt-1 text-sm font-semibold text-slate-300">
+                  {story.attribution.title}, {story.attribution.company}
+                </div>
+              </div>
+            </footer>
           </blockquote>
         </div>
       </section>
 
-      {/* ── METRICS ──────────────────────────────────────────────────── */}
-      <section className="bg-white border-b border-slate-100">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 -mt-8">
-            {study.metrics.map(({ value, label }, i) => (
-              <div
-                key={label}
-                className={`bg-white rounded-2xl shadow-xl border border-slate-100 p-8 text-center mx-2 md:mx-0 mb-4 md:mb-0
-                  ${i === 1 ? "md:scale-105 md:z-10 relative shadow-2xl border-blue-100" : ""}`}
-              >
-                <div className={`text-4xl md:text-5xl font-black mb-2 bg-gradient-to-r ${study.coverGradient} bg-clip-text text-transparent`}>
-                  {value}
-                </div>
-                <div className="text-slate-600 font-semibold text-[15px]">{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── BODY ─────────────────────────────────────────────────────── */}
-      <section className="py-20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-
-          {/* Challenge */}
-          <div className="mb-14">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 font-black text-sm flex items-center justify-center">1</div>
-              <h2 className="text-2xl font-black text-slate-900">The Challenge</h2>
-            </div>
-            <p className="text-slate-600 text-lg leading-relaxed">{study.challenge}</p>
-          </div>
-
-          {/* Solution */}
-          <div className="mb-14">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-black text-sm flex items-center justify-center">2</div>
-              <h2 className="text-2xl font-black text-slate-900">The Solution</h2>
-            </div>
-            <p className="text-slate-600 text-lg leading-relaxed">{study.solution}</p>
-          </div>
-
-          {/* Results narrative */}
-          <div className="mb-16">
-            <div className="flex items-center gap-3 mb-5">
-              <div className={`w-8 h-8 rounded-full text-white font-black text-sm flex items-center justify-center bg-gradient-to-br ${study.coverGradient}`}>3</div>
-              <h2 className="text-2xl font-black text-slate-900">The Results</h2>
-            </div>
-            <p className="text-slate-600 text-lg leading-relaxed">{study.resultsNarrative}</p>
-          </div>
-
-          {/* Pull Quote */}
-          <div className={`bg-gradient-to-br ${study.coverGradient} rounded-3xl p-10 relative overflow-hidden mb-16`}>
-            <Quote size={80} className="absolute -top-4 -left-4 text-white/10" />
-            <p className="text-white text-2xl md:text-3xl font-bold leading-snug mb-8 relative z-10">
-              &ldquo;{study.pullQuote}&rdquo;
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center md:p-12">
+            <h2 className="text-3xl font-black tracking-tight text-[#0A1628]">
+              Try CircleWorks free
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-600">
+              Launch payroll, HR, benefits, and compliance with guided setup and no credit
+              card required.
             </p>
-            <div className="flex items-center gap-4 relative z-10">
-              <div className={`w-12 h-12 rounded-full ${study.accentColor} border-4 border-white/30 flex items-center justify-center text-white font-black text-lg`}>
-                {study.author[0]}
-              </div>
-              <div>
-                <div className="text-white font-black">{study.author}</div>
-                <div className="text-white/70 text-sm font-medium">{study.authorRole}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA Box */}
-          <div className="bg-slate-50 rounded-3xl border border-slate-200 p-10 text-center">
-            <h3 className="text-2xl font-black text-slate-900 mb-3">Start your own success story</h3>
-            <p className="text-slate-500 mb-7">Set up CircleWorks in under 48 hours. No contracts. No setup fees.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/signup" className={`px-8 py-3.5 rounded-full bg-gradient-to-r ${study.coverGradient} text-white font-bold text-[15px] hover:shadow-lg transition-shadow`}>
-                Start Free
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link
+                href="/signup"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-blue-600 px-6 text-sm font-black text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
+                Start Free Trial
               </Link>
-              <Link href="/contact" className="px-8 py-3.5 rounded-full border border-slate-300 text-slate-700 font-bold text-[15px] hover:bg-slate-100 transition-colors">
+              <Link
+                href="/contact"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-slate-300 px-6 text-sm font-black text-slate-700 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
                 Talk to Sales
               </Link>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── RELATED STORIES ──────────────────────────────────────────── */}
-      <section className="py-20 bg-slate-50 border-t border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-black text-slate-900 mb-10">More customer stories</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {related.map(r => (
+          <div className="mt-16">
+            <div className="mb-8 flex items-end justify-between gap-6">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.22em] text-blue-600">
+                  Related Case Studies
+                </p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-[#0A1628]">
+                  More customer stories
+                </h2>
+              </div>
               <Link
-                key={r.slug}
-                href={`/customers/${r.slug}`}
-                className="group flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                href="/customers"
+                className="hidden items-center gap-2 text-sm font-black text-blue-600 transition hover:gap-3 md:inline-flex"
               >
-                <div className={`h-36 bg-gradient-to-br ${r.coverGradient} relative p-5 flex items-end`}>
-                  <div className={`w-9 h-9 rounded-xl ${r.accentColor} border-4 border-white/20 flex items-center justify-center text-white font-black text-sm`}>
-                    {r.logoInitials}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">{r.industry}</div>
-                  <h3 className="text-lg font-black text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">{r.company}</h3>
-                  <p className="text-slate-500 text-sm mb-4 line-clamp-2 italic">&ldquo;{r.headlineQuote}&rdquo;</p>
-                  <div className={`text-xs font-black px-3 py-1.5 rounded-lg text-white bg-gradient-to-r ${r.coverGradient} inline-block mb-4`}>
-                    {r.metricHighlight}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-blue-600 font-bold text-sm group-hover:gap-2.5 transition-all">
-                    Read Story <ArrowRight size={15} />
-                  </div>
-                </div>
+                View all <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
-            ))}
-          </div>
+            </div>
 
-          <div className="text-center mt-12">
-            <Link href="/customers" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full border-2 border-slate-200 text-slate-700 font-bold hover:border-slate-400 transition-colors">
-              View All Stories <ArrowRight size={18} />
-            </Link>
+            <div className="grid gap-5 md:grid-cols-3">
+              {related.map((relatedStory) => (
+                <Link
+                  key={relatedStory.slug}
+                  href={`/customers/${relatedStory.slug}`}
+                  className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg"
+                >
+                  <CustomerLogo story={relatedStory} variant="card" interactive className="mb-6" />
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                    {relatedStory.segment} · {relatedStory.industry}
+                  </div>
+                  <h3 className="mt-3 text-xl font-black text-[#0A1628] transition group-hover:text-blue-600">
+                    {relatedStory.company}
+                  </h3>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+                    &ldquo;{relatedStory.quoteExcerpt}&rdquo;
+                  </p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-600 transition group-hover:gap-3">
+                    Read full story <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>

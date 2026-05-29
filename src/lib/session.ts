@@ -11,6 +11,7 @@ const SECRET = new TextEncoder().encode(
 );
 
 export const SESSION_COOKIE = "cw_session";
+const sessionInvalidatedAtByUser = new Map<number, number>();
 
 export interface SessionUser {
   userId: number;
@@ -29,14 +30,26 @@ export async function createSessionToken(user: SessionUser, rememberMe = false):
 export async function verifySessionToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, SECRET);
+    const userId = payload.userId as number;
+    const tokenIssuedAt = typeof payload.iat === "number" ? payload.iat : 0;
+    const invalidatedAt = sessionInvalidatedAtByUser.get(userId);
+
+    if (invalidatedAt && tokenIssuedAt < invalidatedAt) {
+      return null;
+    }
+
     return {
-      userId: payload.userId as number,
+      userId,
       email: payload.email as string,
       role: payload.role as string,
     };
   } catch {
     return null;
   }
+}
+
+export function invalidateUserSessions(userId: number) {
+  sessionInvalidatedAtByUser.set(userId, Math.floor(Date.now() / 1000));
 }
 
 async function resolveSessionFromSupabase(req?: NextRequest): Promise<SessionUser | null> {

@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  type ClipboardEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
-  ArrowLeft,
   Eye,
   EyeOff,
   FileText,
   Loader2,
   LockKeyhole,
   Shield,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,31 +29,34 @@ import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
-const QUOTES = [
+const TESTIMONIALS = [
   {
     quote:
       "CircleWorks gave our finance and people teams one trusted place to run payroll, benefits, and onboarding.",
-    author: "Priya S.",
-    role: "VP People, Northstar Health",
+    name: "Priya Shah",
+    company: "Northstar Health",
+    initials: "PS",
   },
   {
     quote:
       "We cut payroll close from two days to an afternoon, with audit trails our compliance team actually likes.",
-    author: "Marcus L.",
-    role: "Controller, Apex Studio",
+    name: "Marcus Lee",
+    company: "Apex Studio",
+    initials: "ML",
   },
   {
     quote:
       "The employee experience feels polished, and the back office finally has the controls we needed.",
-    author: "Elena T.",
-    role: "COO, Kinetic Labs",
+    name: "Elena Torres",
+    company: "Kinetic Labs",
+    initials: "ET",
   },
 ];
 
-const SECURITY_BADGES = [
-  { label: "SOC 2", icon: FileText },
-  { label: "HIPAA", icon: Shield },
-  { label: "256-bit encryption", icon: LockKeyhole },
+const TRUST_BADGES = [
+  { label: "SOC 2 Type II", icon: FileText },
+  { label: "HIPAA Ready", icon: Shield },
+  { label: "256-bit AES", icon: LockKeyhole },
 ];
 
 const loginSchema = z.object({
@@ -67,7 +76,13 @@ const mfaSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 type MfaFormValues = z.infer<typeof mfaSchema>;
 type AuthStep = "credentials" | "mfa";
-type LoginError = "none" | "invalid_credentials" | "locked" | "mfa" | "server";
+type LoginError =
+  | "none"
+  | "invalid_credentials"
+  | "locked"
+  | "unverified"
+  | "mfa"
+  | "server";
 type SsoProvider = Extract<Provider, "google" | "azure">;
 
 type LoginResponseBody = {
@@ -107,9 +122,21 @@ function isLockedError(body: LoginResponseBody, status: number) {
   return (
     status === 423 ||
     status === 429 ||
+    text.includes("account_locked") ||
     text.includes("locked") ||
     text.includes("too many") ||
     text.includes("rate limit")
+  );
+}
+
+function isUnverifiedEmailError(body: LoginResponseBody, status: number) {
+  const text = getErrorText(body.error, body.message).toLowerCase();
+  return (
+    status === 403 ||
+    text.includes("unverified") ||
+    text.includes("email_not_confirmed") ||
+    text.includes("email not confirmed") ||
+    text.includes("verify your email")
   );
 }
 
@@ -185,10 +212,76 @@ function Spinner({ className = "h-4 w-4" }: { className?: string }) {
   return <Loader2 className={`${className} animate-spin`} aria-hidden="true" />;
 }
 
+function ErrorBanner({
+  errorMessage,
+  errorType,
+  onDismiss,
+  onResendVerification,
+}: {
+  errorMessage: string;
+  errorType: LoginError;
+  onDismiss: () => void;
+  onResendVerification: () => void;
+}) {
+  if (errorType === "none") return null;
+
+  const tone =
+    errorType === "locked"
+      ? "border-orange-200 bg-orange-50 text-orange-900"
+      : errorType === "unverified"
+        ? "border-yellow-200 bg-yellow-50 text-yellow-900"
+        : "border-red-200 bg-red-50 text-red-700";
+
+  return (
+    <div
+      role="alert"
+      aria-live="assertive"
+      className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm font-semibold ${tone}`}
+    >
+      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        {errorType === "invalid_credentials" && "Incorrect email or password. Please try again."}
+        {errorType === "locked" && (
+          <>
+            Account temporarily locked. Wait 15 minutes or{" "}
+            <Link href="/forgot-password" className="font-bold underline underline-offset-2">
+              Reset Password
+            </Link>
+            .
+          </>
+        )}
+        {errorType === "unverified" && (
+          <>
+            Please verify your email.{" "}
+            <button
+              type="button"
+              onClick={onResendVerification}
+              className="font-bold text-yellow-950 underline underline-offset-2"
+            >
+              Resend verification →
+            </button>
+          </>
+        )}
+        {errorType === "mfa" && (errorMessage || "That code did not work. Try again.")}
+        {errorType === "server" &&
+          (errorMessage || "Internal server error. Please try again.")}
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md opacity-70 transition hover:bg-black/5 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        aria-label="Dismiss error"
+      >
+        <X className="h-4 w-4" aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export function LoginPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn, refreshUser } = useAuth();
-  const [activeQuote, setActiveQuote] = useState(0);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [step, setStep] = useState<AuthStep>("credentials");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -196,6 +289,11 @@ export function LoginPage() {
   const [errorType, setErrorType] = useState<LoginError>("none");
   const [errorMessage, setErrorMessage] = useState("");
   const [pendingLogin, setPendingLogin] = useState<LoginFormValues | null>(null);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [useBackupCode, setUseBackupCode] = useState(false);
+  const mfaPanelRef = useRef<HTMLDivElement>(null);
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -214,21 +312,85 @@ export function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("passwordUpdated") !== "1") return;
 
-    toast.success("Password updated!");
-    params.delete("passwordUpdated");
+    if (params.get("reset") === "success" || params.get("passwordUpdated") === "1") {
+      toast.success("Password updated successfully! Please sign in.");
+      params.delete("reset");
+      params.delete("passwordUpdated");
+    }
+
+    if (params.get("error") === "oauth_failed") {
+      setErrorType("server");
+      setErrorMessage("SSO sign-in failed. Please try again.");
+      params.delete("error");
+    }
+
     const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
     window.history.replaceState(null, "", nextUrl);
   }, []);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setActiveQuote((current) => (current + 1) % QUOTES.length);
+      setActiveTestimonial((current) => (current + 1) % TESTIMONIALS.length);
     }, 5000);
 
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (step !== "mfa") return;
+
+    setResendSeconds(60);
+    const timer = window.setInterval(() => {
+      setResendSeconds((seconds) => {
+        if (seconds <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== "mfa") return;
+    const timer = window.setTimeout(() => otpRefs.current[0]?.focus(), 50);
+    return () => window.clearTimeout(timer);
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== "mfa") return;
+
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const panel = mfaPanelRef.current;
+      if (!panel) return;
+
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element.offsetParent !== null);
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [step]);
 
   const clearError = () => {
     setErrorType("none");
@@ -272,6 +434,8 @@ export function LoginPage() {
       if (response.ok && (body.mfaRequired || body.requiresMfa)) {
         setPendingLogin(data);
         setStep("mfa");
+        setOtpDigits(["", "", "", "", "", ""]);
+        setUseBackupCode(false);
         mfaForm.reset({ code: "" });
         return;
       }
@@ -284,6 +448,8 @@ export function LoginPage() {
 
       if (isLockedError(body, response.status)) {
         setErrorType("locked");
+      } else if (isUnverifiedEmailError(body, response.status)) {
+        setErrorType("unverified");
       } else if (mfaCode && isInvalidCredentialsError(body, response.status)) {
         setErrorType("mfa");
         setErrorMessage("That code did not work. Try again.");
@@ -346,12 +512,89 @@ export function LoginPage() {
     void submitLogin(pendingLogin, data.code);
   };
 
+  const syncOtpDigits = (nextDigits: string[]) => {
+    setOtpDigits(nextDigits);
+    mfaForm.setValue("code", nextDigits.join(""), {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    if (errorType === "mfa") clearError();
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const nextDigits = [...otpDigits];
+
+    if (!digits) {
+      nextDigits[index] = "";
+      syncOtpDigits(nextDigits);
+      return;
+    }
+
+    digits
+      .slice(0, 6 - index)
+      .split("")
+      .forEach((digit, offset) => {
+        nextDigits[index + offset] = digit;
+      });
+
+    syncOtpDigits(nextDigits);
+    const nextIndex = Math.min(index + digits.length, 5);
+    otpRefs.current[nextIndex]?.focus();
+  };
+
+  const handleOtpKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
+      const nextDigits = [...otpDigits];
+      nextDigits[index - 1] = "";
+      syncOtpDigits(nextDigits);
+      otpRefs.current[index - 1]?.focus();
+    }
+
+    if (event.key === "ArrowLeft" && index > 0) {
+      event.preventDefault();
+      otpRefs.current[index - 1]?.focus();
+    }
+
+    if (event.key === "ArrowRight" && index < 5) {
+      event.preventDefault();
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (event: ClipboardEvent<HTMLInputElement>) => {
+    const pastedDigits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pastedDigits) return;
+
+    event.preventDefault();
+    const nextDigits = ["", "", "", "", "", ""];
+    pastedDigits.split("").forEach((digit, index) => {
+      nextDigits[index] = digit;
+    });
+    syncOtpDigits(nextDigits);
+    otpRefs.current[Math.min(pastedDigits.length, 6) - 1]?.focus();
+  };
+
   const goBackToCredentials = () => {
     setStep("credentials");
     setPendingLogin(null);
+    setOtpDigits(["", "", "", "", "", ""]);
+    setUseBackupCode(false);
     mfaForm.reset({ code: "" });
     clearError();
   };
+
+  const handleResendCode = () => {
+    if (resendSeconds > 0) return;
+    setResendSeconds(60);
+    toast.success("Verification code resent.");
+  };
+
+  const handleResendVerification = () => {
+    toast.success("Verification email resent.");
+  };
+
+  const testimonial = TESTIMONIALS[activeTestimonial];
 
   return (
     <main
@@ -362,7 +605,7 @@ export function LoginPage() {
         aria-label="CircleWorks"
         className="relative hidden w-1/2 overflow-hidden bg-[#0A1628] text-white lg:flex lg:flex-col lg:justify-between"
       >
-        <div className="flex h-full flex-col justify-between p-12 pb-32 xl:p-16 xl:pb-36">
+        <div className="flex h-full flex-col justify-between p-12 xl:p-16">
           <div>
             <Link
               href="/"
@@ -371,41 +614,35 @@ export function LoginPage() {
               <CircleWorksLogo />
               <span className="sr-only">Home</span>
             </Link>
-            <p className="mt-8 max-w-md text-4xl font-semibold leading-tight text-white">
-              Payroll, HR, and compliance for teams that move carefully.
-            </p>
-            <p className="mt-4 max-w-sm text-base leading-7 text-blue-100">
-              Trusted controls, clear workflows, and a calmer way to run the back office.
-            </p>
+            <h1 className="mt-10 max-w-md text-4xl font-bold leading-tight text-white">
+              Payroll & HR. Simplified for America.
+            </h1>
           </div>
 
           <div className="max-w-xl">
-            <div className="relative min-h-48">
+            <div className="relative min-h-52">
               <AnimatePresence mode="wait">
                 <motion.figure
-                  key={activeQuote}
+                  key={testimonial.name}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.35 }}
                   className="absolute inset-0 flex flex-col justify-end"
                 >
-                  <blockquote className="text-xl font-medium leading-8 text-white">
-                    &ldquo;{QUOTES[activeQuote].quote}&rdquo;
+                  <blockquote className="text-lg font-medium leading-8 text-white">
+                    &ldquo;{testimonial.quote}&rdquo;
                   </blockquote>
                   <figcaption className="mt-6 flex items-center gap-4">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-500 text-sm font-bold text-white">
-                      {QUOTES[activeQuote].author
-                        .split(" ")
-                        .map((part) => part[0])
-                        .join("")}
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500 text-sm font-bold text-white">
+                      {testimonial.initials}
                     </span>
                     <span>
                       <span className="block text-sm font-bold text-white">
-                        {QUOTES[activeQuote].author}
+                        {testimonial.name}
                       </span>
                       <span className="block text-sm text-blue-100">
-                        {QUOTES[activeQuote].role}
+                        {testimonial.company}
                       </span>
                     </span>
                   </figcaption>
@@ -415,12 +652,12 @@ export function LoginPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {SECURITY_BADGES.map(({ label, icon: Icon }) => (
+            {TRUST_BADGES.map(({ label, icon: Icon }) => (
               <div
                 key={label}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/5 px-3 py-2 text-sm font-semibold text-white"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-white"
               >
-                <Icon className="h-4 w-4 text-blue-200" aria-hidden="true" />
+                <Icon className="h-4 w-4 text-white" aria-hidden="true" />
                 {label}
               </div>
             ))}
@@ -428,42 +665,12 @@ export function LoginPage() {
         </div>
       </section>
 
-      <section className="flex min-h-screen min-w-0 w-full flex-col justify-center overflow-x-hidden bg-white px-5 pb-56 pt-10 sm:px-8 sm:py-8 lg:w-1/2 lg:px-14 xl:px-24">
-        <div className="mx-auto w-full max-w-[350px] sm:max-w-md">
-          <div aria-live="assertive" aria-atomic="true" className="mb-5 min-h-0">
-            {errorType !== "none" && (
-              <div
-                role="alert"
-                className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm font-semibold ${
-                  errorType === "locked"
-                    ? "border-amber-200 bg-amber-50 text-amber-900"
-                    : "border-red-200 bg-red-50 text-red-700"
-                }`}
-              >
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <div>
-                  {errorType === "invalid_credentials" && "Incorrect email or password."}
-                  {errorType === "locked" && (
-                    <>
-                      Too many attempts. Wait 15 minutes or{" "}
-                      <Link href="/forgot-password" className="underline underline-offset-2">
-                        reset password
-                      </Link>
-                      .
-                    </>
-                  )}
-                  {errorType === "mfa" && (errorMessage || "That code did not work. Try again.")}
-                  {errorType === "server" &&
-                    (errorMessage || "Internal server error. Please try again.")}
-                </div>
-              </div>
-            )}
-          </div>
-
+      <section className="flex min-h-screen min-w-0 w-full flex-col justify-center overflow-x-hidden bg-white px-5 py-10 sm:px-8 lg:w-1/2 lg:px-14 xl:px-24">
+        <div className="mx-auto w-full max-w-sm">
           {step === "credentials" ? (
             <>
               <header className="mb-7">
-                <h2 className="text-3xl font-bold leading-tight text-[#0A1628]">
+                <h2 className="text-[32px] font-bold leading-tight text-[#0A1628]">
                   Welcome back
                 </h2>
                 <p className="mt-2 text-base font-medium text-slate-500">
@@ -476,7 +683,7 @@ export function LoginPage() {
                   type="button"
                   onClick={() => void handleSsoLogin("google")}
                   disabled={loading || ssoLoading !== null}
-                  className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 text-base font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {ssoLoading === "google" ? <Spinner /> : <GoogleLogo />}
                   Continue with Google
@@ -486,7 +693,7 @@ export function LoginPage() {
                   type="button"
                   onClick={() => void handleSsoLogin("azure")}
                   disabled={loading || ssoLoading !== null}
-                  className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 text-base font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {ssoLoading === "azure" ? <Spinner /> : <MicrosoftLogo />}
                   Continue with Microsoft
@@ -507,7 +714,7 @@ export function LoginPage() {
                       type="email"
                       autoComplete="email"
                       autoFocus
-                      placeholder="Work email address"
+                      placeholder=" "
                       aria-invalid={Boolean(loginForm.formState.errors.email)}
                       aria-describedby={
                         loginForm.formState.errors.email ? "email-error" : undefined
@@ -547,7 +754,7 @@ export function LoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
-                      placeholder="Password"
+                      placeholder=" "
                       aria-invalid={Boolean(loginForm.formState.errors.password)}
                       aria-describedby={
                         loginForm.formState.errors.password ? "password-error" : undefined
@@ -606,7 +813,7 @@ export function LoginPage() {
 
                   <Link
                     href="/forgot-password"
-                    className="text-sm font-bold text-blue-700 hover:text-blue-800 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                    className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                   >
                     Forgot password?
                   </Link>
@@ -615,7 +822,7 @@ export function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || ssoLoading !== null}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
                     <>
@@ -626,6 +833,13 @@ export function LoginPage() {
                     "Sign In"
                   )}
                 </button>
+
+                <ErrorBanner
+                  errorMessage={errorMessage}
+                  errorType={errorType}
+                  onDismiss={clearError}
+                  onResendVerification={handleResendVerification}
+                />
               </form>
 
               <p className="mt-8 text-center text-sm font-medium text-slate-500">
@@ -639,39 +853,45 @@ export function LoginPage() {
               </p>
             </>
           ) : (
-            <div aria-live="polite">
+            <div ref={mfaPanelRef}>
               <header className="mb-7">
-                <h2 className="text-3xl font-bold leading-tight text-[#0A1628]">
-                  Enter verification code
+                <h2 className="text-[32px] font-bold leading-tight text-[#0A1628]">
+                  Two-factor authentication
                 </h2>
                 <p className="mt-2 text-base font-medium leading-7 text-slate-500">
-                  Use the 6-digit code from your authenticator app or SMS.
+                  Enter the 6-digit code from your authenticator app (or sent via SMS).
                 </p>
               </header>
 
               <form onSubmit={mfaForm.handleSubmit(onMfaSubmit)} noValidate className="space-y-5">
                 <div>
-                  <label htmlFor="mfa-code" className="mb-2 block text-sm font-bold text-slate-800">
-                    6-digit code
+                  <label className="mb-3 block text-sm font-bold text-slate-800">
+                    {useBackupCode ? "Backup code" : "Authentication code"}
                   </label>
-                  <input
-                    id="mfa-code"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    autoFocus
-                    aria-invalid={Boolean(mfaForm.formState.errors.code)}
-                    aria-describedby={mfaForm.formState.errors.code ? "mfa-code-error" : undefined}
-                    {...mfaForm.register("code", {
-                      onChange: (event) => {
-                        event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
-                      },
-                    })}
-                    className={`h-14 w-full rounded-lg border bg-white px-4 text-center text-2xl font-bold text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
-                      mfaForm.formState.errors.code ? "border-red-500" : "border-slate-300"
-                    }`}
-                  />
+                  <input type="hidden" {...mfaForm.register("code")} />
+                  <div className="grid grid-cols-6 gap-2">
+                    {otpDigits.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(node) => {
+                          otpRefs.current[index] = node;
+                        }}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        maxLength={1}
+                        value={digit}
+                        onChange={(event) => handleOtpChange(index, event.target.value)}
+                        onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                        onPaste={handleOtpPaste}
+                        aria-label={`Digit ${index + 1}`}
+                        aria-invalid={Boolean(mfaForm.formState.errors.code)}
+                        className={`h-12 rounded-lg border bg-white text-center text-xl font-bold text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
+                          mfaForm.formState.errors.code ? "border-red-500" : "border-slate-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
                   {mfaForm.formState.errors.code && (
                     <p
                       id="mfa-code-error"
@@ -686,7 +906,7 @@ export function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? (
                     <>
@@ -697,16 +917,46 @@ export function LoginPage() {
                     "Verify code"
                   )}
                 </button>
+
+                <ErrorBanner
+                  errorMessage={errorMessage}
+                  errorType={errorType}
+                  onDismiss={clearError}
+                  onResendVerification={handleResendVerification}
+                />
               </form>
 
-              <button
-                type="button"
-                onClick={goBackToCredentials}
-                className="mt-7 inline-flex items-center gap-2 rounded-lg text-sm font-bold text-slate-500 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-              >
-                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                Back to sign in
-              </button>
+              <div className="mt-5 flex flex-col items-center gap-3 text-sm font-bold">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendSeconds > 0}
+                  className="text-blue-600 transition-colors hover:text-blue-800 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline"
+                >
+                  {resendSeconds > 0 ? `Resend code in ${resendSeconds}s` : "Resend code"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseBackupCode((current) => !current);
+                    setOtpDigits(["", "", "", "", "", ""]);
+                    mfaForm.reset({ code: "" });
+                    otpRefs.current[0]?.focus();
+                  }}
+                  className="text-slate-500 transition-colors hover:text-slate-900 hover:underline"
+                >
+                  Use backup code
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goBackToCredentials}
+                  className="text-slate-500 transition-colors hover:text-slate-900 hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  ← Back to login
+                </button>
+              </div>
             </div>
           )}
         </div>

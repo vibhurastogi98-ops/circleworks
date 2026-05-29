@@ -36,9 +36,9 @@ export default function GlossaryPage() {
             HR & Payroll Glossary — 200+ Terms Defined
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Plain-English definitions for payroll, HR, compliance, benefits,
-            hiring, time tracking, leave, reporting, and security. Browse all{" "}
-            {glossaryTermCount} terms or search by keyword.
+            Plain-English explanations of every payroll, HR, and compliance term
+            US employers need to know. Browse all {glossaryTermCount} terms or
+            search by keyword.
           </p>
         </div>
       </section>

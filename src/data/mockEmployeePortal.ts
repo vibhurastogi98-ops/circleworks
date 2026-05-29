@@ -402,7 +402,7 @@ export const mockEwaData = {
 
 // ── Referrals ──
 export type Referral = {
-  id: string; companyName: string; status: 'Invited' | 'Signed Up' | 'First Payroll Pending' | 'Credit Earned';
+  id: string; companyName: string; status: 'Pending' | 'Signed Up' | 'Qualified' | 'Paid Out';
   referredAt: string; earned: number;
 };
 
@@ -410,14 +410,13 @@ export const mockReferralData = {
   referralLink: 'https://circleworks.io/referral/alex-rivera-CW2026',
   totalEarned: 600,
   totalPending: 300,
-  totalRedeemed: 0,
   bonusPerReferral: 300,
   referrals: [
-    { id: 'REF-001', companyName: 'Northstar Creative Co.', status: 'Credit Earned' as const, referredAt: '2026-01-10', earned: 300 },
-    { id: 'REF-002', companyName: 'Bluebird Dental Group', status: 'Credit Earned' as const, referredAt: '2026-02-02', earned: 300 },
-    { id: 'REF-003', companyName: 'Mosaic Events LLC', status: 'First Payroll Pending' as const, referredAt: '2026-04-05', earned: 0 },
+    { id: 'REF-001', companyName: 'Northstar Creative Co.', status: 'Paid Out' as const, referredAt: '2026-01-10', earned: 300 },
+    { id: 'REF-002', companyName: 'Bluebird Dental Group', status: 'Paid Out' as const, referredAt: '2026-02-02', earned: 300 },
+    { id: 'REF-003', companyName: 'Mosaic Events LLC', status: 'Qualified' as const, referredAt: '2026-04-05', earned: 0 },
     { id: 'REF-004', companyName: 'Lighthouse Foods', status: 'Signed Up' as const, referredAt: '2026-04-16', earned: 0 },
-    { id: 'REF-005', companyName: 'Peak Studio Ops', status: 'Invited' as const, referredAt: '2026-04-21', earned: 0 },
+    { id: 'REF-005', companyName: 'Peak Studio Ops', status: 'Pending' as const, referredAt: '2026-04-21', earned: 0 },
   ] as Referral[],
 };
 

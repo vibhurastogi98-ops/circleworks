@@ -68,10 +68,6 @@ function loadTsModule(relativePath) {
   return virtualModule.exports;
 }
 
-function stateGuideSlug(state) {
-  return `${state.slug.replace(/^payroll-/, "")}-payroll-guide`;
-}
-
 function createEntry(loc, priority, lastmod = LASTMOD) {
   return {
     loc,
@@ -81,17 +77,33 @@ function createEntry(loc, priority, lastmod = LASTMOD) {
   };
 }
 
+function loadBlogPosts() {
+  const matter = require("gray-matter");
+  const blogDir = path.join(__dirname, "content", "blog");
+
+  if (!fs.existsSync(blogDir)) return [];
+
+  return fs
+    .readdirSync(blogDir)
+    .filter((file) => file.endsWith(".mdx"))
+    .map((file) => {
+      const raw = fs.readFileSync(path.join(blogDir, file), "utf8");
+      const { data } = matter(raw);
+      return {
+        slug: file.replace(/\.mdx$/, ""),
+        date: data.date || LASTMOD,
+      };
+    });
+}
+
 function priorityForPath(pathname) {
   if (pathname === "/") return 1.0;
   if (pathname === "/pricing" || pathname.startsWith("/product")) return 0.9;
   if (pathname === "/blog" || pathname.startsWith("/blog/")) return 0.8;
-  if (pathname === "/glossary" || pathname.startsWith("/glossary/")) return 0.7;
+  if (pathname === "/glossary" || pathname.startsWith("/glossary/")) return 0.8;
   if (pathname.startsWith("/solutions/") || pathname.startsWith("/integrations/")) return 0.9;
-  if (
-    pathname.startsWith("/guides/") ||
-    pathname.startsWith("/customers/") ||
-    pathname.startsWith("/compare/")
-  ) {
+  if (pathname.startsWith("/guides/payroll-")) return 0.9;
+  if (pathname.startsWith("/guides/") || pathname.startsWith("/customers/") || pathname.startsWith("/compare/")) {
     return 0.8;
   }
 
@@ -99,22 +111,22 @@ function priorityForPath(pathname) {
 }
 
 async function additionalPaths() {
-  const { blogPosts } = loadTsModule("src/app/blog/blogData.ts");
+  const blogPosts = loadBlogPosts();
   const { glossaryTerms } = loadTsModule("src/lib/glossary.ts");
   const { integrations, generateSlug } = loadTsModule("src/data/integrations.ts");
-  const { CASE_STUDIES } = loadTsModule("src/app/customers/customersData.ts");
+  const { CUSTOMER_STORIES } = loadTsModule("src/app/customers/customersData.ts");
   const { COMPETITORS } = loadTsModule("src/app/compare/competitors.ts");
   const { segments } = loadTsModule("src/app/solutions/[segment]/segmentData.ts");
-  const states = loadJson("data/states.json");
+  const states = Object.values(loadJson("data/states.json"));
 
   return [
     ...blogPosts.map((post) =>
-      createEntry(`/blog/${post.slug}`, 0.8, new Date(post.publishedAt).toISOString()),
+      createEntry(`/blog/${post.slug}`, 0.8, new Date(post.date).toISOString()),
     ),
-    ...glossaryTerms.map((term) => createEntry(`/glossary/${term.slug}`, 0.7)),
-    ...states.map((state) => createEntry(`/guides/${stateGuideSlug(state)}`, 0.8)),
+    ...glossaryTerms.map((term) => createEntry(`/glossary/${term.slug}`, 0.8)),
+    ...states.map((state) => createEntry(`/guides/${state.slug}`, 0.9)),
     ...integrations.map((integration) => createEntry(`/integrations/${generateSlug(integration.name)}`, 0.9)),
-    ...CASE_STUDIES.map((study) => createEntry(`/customers/${study.slug}`, 0.8)),
+    ...CUSTOMER_STORIES.map((study) => createEntry(`/customers/${study.slug}`, 0.8)),
     ...COMPETITORS.map((competitor) => createEntry(`/compare/${competitor}`, 0.8)),
     ...Object.keys(segments).map((segment) => createEntry(`/solutions/${segment}`, 0.9)),
   ];
@@ -128,7 +140,7 @@ module.exports = {
   sitemapSize: 5000,
   changefreq: "weekly",
   priority: 0.7,
-  exclude: ["/api/*", "/app/*", "/_next/*", "/guides/payroll-*"],
+  exclude: ["/api/*", "/app/*", "/_next/*"],
   transform: async (_config, pathname) => createEntry(pathname, priorityForPath(pathname)),
   additionalPaths,
   robotsTxtOptions: {

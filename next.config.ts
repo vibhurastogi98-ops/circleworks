@@ -84,6 +84,7 @@ const publicStaticAssets = [
 
 const nextConfig: NextConfig = {
   compress: true,
+  devIndicators: false,
   poweredByHeader: false,
   trailingSlash: false,
   outputFileTracingIncludes: {

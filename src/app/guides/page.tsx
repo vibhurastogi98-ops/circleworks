@@ -9,14 +9,9 @@ import ResourceCTA from "@/components/ResourceCTA";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import statesJson from "../../../data/states.json";
+import { getStateGuideHref, statePayrollGuides } from "@/lib/state-payroll-guides";
 
 const categories = ["All", "Onboarding", "Payroll", "Compliance", "Hiring", "Benefits", "Templates", "Checklists"];
-const statePayrollGuides = statesJson as Array<{ name: string; abbreviation: string; slug: string }>;
-
-function getStateGuideSlug(state: { slug: string }) {
-  return `${state.slug.replace(/^payroll-/, "")}-payroll-guide`;
-}
 
 const allGuides = [
   { id: 1, format: "DOCX", cat: "Onboarding", title: "New Hire Offer Letter Template", desc: "Attorney-reviewed standard offer letter compliant across all 50 states.", downloads: "12,450", color: "blue" },
@@ -209,7 +204,7 @@ function GuidesContent() {
           <div className="max-w-3xl mb-10">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 mb-3">State Payroll Guides</p>
             <h2 className="text-3xl md:text-4xl font-black text-[#0A1628] tracking-tight">
-              2025 payroll rules for all 50 states
+              2026 payroll rules for all 50 states + DC
             </h2>
             <p className="mt-4 text-slate-500 font-medium leading-relaxed">
               Browse state-specific payroll tax, wage, leave, final pay, and agency setup guides.
@@ -220,10 +215,10 @@ function GuidesContent() {
             {statePayrollGuides.map((state) => (
               <Link
                 key={state.slug}
-                href={`/guides/${getStateGuideSlug(state)}`}
+                href={getStateGuideHref(state)}
                 className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 hover:shadow-sm"
               >
-                <span>{state.name}</span>
+                <span>{state.stateName}</span>
                 <span className="text-[10px] font-black text-slate-400">{state.abbreviation}</span>
               </Link>
             ))}

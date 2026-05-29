@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import {
   getCircleWorksFeature,
   getDefinitionParagraphs,
+  getGlossaryFaqs,
   getGlossaryTerm,
   getRelatedGlossaryTerms,
   glossaryTerms,
@@ -14,6 +15,8 @@ import {
 import { createBreadcrumbJsonLd, getGlossaryResourceLinks } from "@/lib/internal-links";
 
 const baseUrl = "https://circleworks.com";
+
+export const revalidate = 60 * 60 * 24 * 30;
 
 export function generateStaticParams() {
   return glossaryTerms.map((term) => ({ term: term.slug }));
@@ -34,8 +37,8 @@ export async function generateMetadata({
     };
   }
 
-  const title = `What is ${glossaryTerm.term}?`;
-  const description = `${glossaryTerm.shortDefinition} Learn what ${glossaryTerm.term} means for HR, payroll, benefits, and compliance teams.`;
+  const title = `${glossaryTerm.term} Definition & Explanation`;
+  const description = `${glossaryTerm.shortDef} Learn what ${glossaryTerm.term} means for US HR, payroll, benefits, and compliance teams.`;
 
   return {
     title,
@@ -64,8 +67,9 @@ export default async function GlossaryTermPage({
   }
 
   const paragraphs = getDefinitionParagraphs(term);
-  const relatedTerms = getRelatedGlossaryTerms(term, 3);
+  const relatedTerms = getRelatedGlossaryTerms(term, 6);
   const featureText = getCircleWorksFeature(term);
+  const faqs = getGlossaryFaqs(term);
   const resourceLinks = getGlossaryResourceLinks(term);
   const breadcrumbJsonLd = createBreadcrumbJsonLd([
     { label: "Home", href: "/" },
@@ -76,13 +80,25 @@ export default async function GlossaryTermPage({
     "@context": "https://schema.org",
     "@type": "DefinedTerm",
     name: term.term,
-    description: term.shortDefinition,
+    description: term.shortDef,
     url: `${baseUrl}/glossary/${term.slug}`,
     inDefinedTermSet: {
       "@type": "DefinedTermSet",
       name: "CircleWorks HR & Payroll Glossary",
       url: `${baseUrl}/glossary`,
     },
+  };
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
   };
 
   return (
@@ -96,6 +112,10 @@ export default async function GlossaryTermPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
       <section
@@ -118,7 +138,7 @@ export default async function GlossaryTermPage({
             What is {term.term}?
           </h1>
           <p className="mt-6 max-w-3xl text-xl leading-8 text-slate-300">
-            {term.shortDefinition}
+            {term.shortDef}
           </p>
         </div>
       </section>
@@ -126,8 +146,17 @@ export default async function GlossaryTermPage({
       <section className="px-6 py-16 lg:py-20">
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <article className="max-w-3xl">
-            <h2 className="text-3xl font-black text-slate-950">
-              {term.term} definition
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+              <p className="text-xs font-black uppercase tracking-widest text-blue-700">
+                Quick definition
+              </p>
+              <p className="mt-3 text-xl font-bold leading-8 text-slate-950">
+                {term.shortDef}
+              </p>
+            </div>
+
+            <h2 className="mt-12 text-3xl font-black text-slate-950">
+              {term.term} definition and explanation
             </h2>
             <div className="mt-6 space-y-6 text-lg leading-8 text-slate-700">
               {paragraphs.map((paragraph) => (
@@ -135,26 +164,53 @@ export default async function GlossaryTermPage({
               ))}
             </div>
 
+            <section className="mt-12">
+              <h2 className="text-3xl font-black text-slate-950">
+                Example
+              </h2>
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-lg leading-8 text-slate-700">
+                {term.example}
+              </div>
+            </section>
+
             <div className="mt-12 rounded-2xl border border-blue-100 bg-blue-50 p-6">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="mt-1 shrink-0 text-blue-600" size={24} />
                 <div>
                   <h2 className="text-2xl font-black text-slate-950">
-                    Related CircleWorks feature
+                    How CircleWorks handles {term.term}
                   </h2>
                   <p className="mt-3 text-base leading-7 text-slate-700">
-                    {featureText}
+                    {featureText} CircleWorks automatically calculates, tracks,
+                    files, or documents {term.term} wherever it touches payroll
+                    and HR workflows.
                   </p>
                   <Link
                     href={term.productPath}
                     className="mt-5 inline-flex items-center gap-2 text-base font-black text-blue-700 transition hover:text-blue-900"
                   >
-                    See CircleWorks handle {term.term}
+                    Learn more
                     <ArrowRight size={18} />
                   </Link>
                 </div>
               </div>
             </div>
+
+            <section className="mt-12">
+              <h2 className="text-3xl font-black text-slate-950">
+                {term.term} FAQ
+              </h2>
+              <div className="mt-5 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+                {faqs.map((faq) => (
+                  <div key={faq.question} className="p-6">
+                    <h3 className="text-lg font-black text-slate-950">
+                      {faq.question}
+                    </h3>
+                    <p className="mt-3 leading-7 text-slate-600">{faq.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
           </article>
 
           <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-6">

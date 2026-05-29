@@ -55,11 +55,11 @@ export const transactionalEmailTemplates = [
     templateName: "Password Reset",
     trigger: "User requests reset",
     subject: "Reset your CircleWorks password",
-    preheader: "Your password reset link expires in 1 hour.",
+    preheader: "Your password reset link expires in 15 minutes.",
     ctaText: "Reset Password",
     ctaUrlVar: "reset_url",
     requiredVars: ["reset_url"],
-    keyContent: ["Reset link", "1 hour expiration", "security note"],
+    keyContent: ["Reset link", "15 minute expiration", "security note"],
   },
   {
     id: 4,

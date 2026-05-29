@@ -1,13 +1,14 @@
-import statesJson from "../../data/states.json";
 import { glossaryTerms, type GlossaryTerm } from "@/lib/glossary";
+import {
+  getRelatedStateGuides,
+  getStateGuideHref,
+  getStateGuideSlug as getCanonicalStateGuideSlug,
+  getStatePayrollGuide,
+  statePayrollGuides,
+  type StatePayrollGuide,
+} from "@/lib/state-payroll-guides";
 
 export const SITE_URL = "https://circleworks.com";
-
-type StatePayrollData = {
-  name: string;
-  abbreviation: string;
-  slug: string;
-};
 
 type BlogLinkSource = {
   slug: string;
@@ -22,8 +23,6 @@ export type InternalLink = {
   href: string;
   description?: string;
 };
-
-const states = statesJson as StatePayrollData[];
 
 const blogProductPaths: Record<string, InternalLink> = {
   Payroll: {
@@ -66,19 +65,19 @@ const blogProductPaths: Record<string, InternalLink> = {
 const glossaryResourceLinks: Record<string, InternalLink[]> = {
   Payroll: [
     { label: "The State of US Payroll 2026", href: "/blog/state-of-us-payroll-2026" },
-    { label: "California payroll guide", href: "/guides/california-payroll-guide" },
+    { label: "California payroll guide", href: "/guides/payroll-california" },
   ],
   "Payroll Tax": [
     { label: "The State of US Payroll 2026", href: "/blog/state-of-us-payroll-2026" },
-    { label: "New York payroll guide", href: "/guides/new-york-payroll-guide" },
+    { label: "New York payroll guide", href: "/guides/payroll-new-york" },
   ],
   Compliance: [
     { label: "2026 HR compliance checklist", href: "/blog/hr-compliance-checklist-2026" },
-    { label: "California payroll guide", href: "/guides/california-payroll-guide" },
+    { label: "California payroll guide", href: "/guides/payroll-california" },
   ],
   Benefits: [
     { label: "Benefits that compete", href: "/blog/benefits-that-compete" },
-    { label: "Colorado payroll guide", href: "/guides/colorado-payroll-guide" },
+    { label: "Colorado payroll guide", href: "/guides/payroll-colorado" },
   ],
   HR: [
     { label: "Employee handbook template", href: "/blog/employee-handbook-template" },
@@ -86,15 +85,15 @@ const glossaryResourceLinks: Record<string, InternalLink[]> = {
   ],
   Hiring: [
     { label: "2026 HR compliance checklist", href: "/blog/hr-compliance-checklist-2026" },
-    { label: "California payroll guide", href: "/guides/california-payroll-guide" },
+    { label: "California payroll guide", href: "/guides/payroll-california" },
   ],
   Time: [
     { label: "Manager HR tips", href: "/blog/manager-hr-tips" },
-    { label: "California payroll guide", href: "/guides/california-payroll-guide" },
+    { label: "California payroll guide", href: "/guides/payroll-california" },
   ],
   Leave: [
     { label: "Employee handbook template", href: "/blog/employee-handbook-template" },
-    { label: "California payroll guide", href: "/guides/california-payroll-guide" },
+    { label: "California payroll guide", href: "/guides/payroll-california" },
   ],
   Reporting: [
     { label: "Payroll errors case study", href: "/blog/case-study-payroll-errors" },
@@ -121,13 +120,13 @@ function escapeRegExp(value: string) {
 }
 
 function stateBySlug(slug: string) {
-  return states.find((state) => state.slug === slug);
+  return getStatePayrollGuide(slug);
 }
 
-function makeStateLink(state: StatePayrollData): InternalLink {
+function makeStateLink(state: StatePayrollGuide): InternalLink {
   return {
-    label: `${state.name} payroll guide`,
-    href: `/guides/${getStateGuideSlug(state)}`,
+    label: `${state.stateName} payroll guide`,
+    href: getStateGuideHref(state),
   };
 }
 
@@ -161,37 +160,18 @@ function replaceFirstTextOccurrence(source: string, term: GlossaryTerm) {
   };
 }
 
-export function getStateGuideSlug(state: Pick<StatePayrollData, "slug">) {
-  return `${state.slug.replace(/^payroll-/, "")}-payroll-guide`;
+export function getStateGuideSlug(state: Pick<StatePayrollGuide, "slug">) {
+  return getCanonicalStateGuideSlug(state);
 }
 
 export function getAllStateGuideLinks() {
-  return states.map(makeStateLink);
+  return statePayrollGuides.map(makeStateLink);
 }
 
-export function getRelatedStateGuideLinks(current: Pick<StatePayrollData, "slug">, limit = 3) {
-  const foundIndex = states.findIndex((state) => state.slug === current.slug);
-  const currentIndex = foundIndex >= 0 ? foundIndex : 0;
-  const offsets = [1, -1, 2, -2, 3, -3, 4, -4];
-  const related: StatePayrollData[] = [];
-
-  for (const offset of offsets) {
-    const state = states[currentIndex + offset];
-    if (state && state.slug !== current.slug && !related.some((item) => item.slug === state.slug)) {
-      related.push(state);
-    }
-    if (related.length === limit) break;
-  }
-
-  if (related.length < limit) {
-    related.push(
-      ...states
-        .filter((state) => state.slug !== current.slug && !related.some((item) => item.slug === state.slug))
-        .slice(0, limit - related.length),
-    );
-  }
-
-  return related.slice(0, limit).map(makeStateLink);
+export function getRelatedStateGuideLinks(current: Pick<StatePayrollGuide, "slug">, limit = 3) {
+  const state = getStatePayrollGuide(current.slug);
+  if (!state) return statePayrollGuides.slice(0, limit).map(makeStateLink);
+  return getRelatedStateGuides(state, limit).map(makeStateLink);
 }
 
 export function autoLinkGlossaryTerms(source: string, maxLinks = 5) {
@@ -219,14 +199,14 @@ export function getBlogProductLink(post: BlogLinkSource) {
 
 export function getBlogStateGuideLinks(post: BlogLinkSource, limit = 2) {
   const searchableText = `${post.title} ${post.description} ${post.content}`;
-  const mentionedStates = states.filter((state) => {
-    const namePattern = new RegExp(`(^|[^A-Za-z])${escapeRegExp(state.name)}(?=$|[^A-Za-z])`, "i");
+  const mentionedStates = statePayrollGuides.filter((state) => {
+    const namePattern = new RegExp(`(^|[^A-Za-z])${escapeRegExp(state.stateName)}(?=$|[^A-Za-z])`, "i");
     return namePattern.test(searchableText);
   });
 
   const fallbackStates = (genericStateGuideSlugsByCategory[post.category] ?? genericStateGuideSlugsByCategory.Payroll)
     .map(stateBySlug)
-    .filter((state): state is StatePayrollData => Boolean(state));
+    .filter((state): state is StatePayrollGuide => Boolean(state));
 
   return [...mentionedStates, ...fallbackStates]
     .filter((state, index, items) => items.findIndex((item) => item.slug === state.slug) === index)

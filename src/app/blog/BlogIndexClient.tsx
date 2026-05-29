@@ -1,42 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Download, Mail, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Mail, Search } from "lucide-react";
 
 import {
   BLOG_CATEGORIES,
   type BlogCategory,
-  type BlogPost,
-} from "./blogData";
+  type BlogPostSummary,
+} from "@/lib/blog-types";
+import { buildBlogCoverUrl, type BlogCoverVariant } from "@/lib/blog-cover";
 
-function ArticleImage({ post }: { post: BlogPost }) {
-  return (
-    <div
-      className={`relative flex h-full min-h-[220px] items-end overflow-hidden bg-gradient-to-br ${post.image}`}
-      aria-label={post.imageAlt}
-    >
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.18)_0,rgba(255,255,255,0)_45%),radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.28),transparent_28%)]" />
-      <div className="relative z-10 p-6">
-        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white backdrop-blur">
-          {post.category}
-        </span>
-      </div>
-    </div>
-  );
-}
+const POSTS_PER_PAGE = 12;
 
-function AuthorMeta({ post }: { post: BlogPost }) {
+function AuthorMeta({ post }: { post: BlogPostSummary }) {
   return (
-    <div className="flex items-center gap-3 text-sm text-slate-500">
+    <div className="flex min-w-0 items-center gap-3 text-sm text-slate-500">
       <div
-        className={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${post.author.avatarGradient} text-xs font-black text-white`}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${post.author.avatarGradient} text-xs font-black text-white`}
       >
         {post.author.initials}
       </div>
       <div className="min-w-0">
-        <div className="font-bold text-slate-900">{post.author.name}</div>
+        <div className="truncate font-bold text-slate-900">{post.author.name}</div>
         <div className="truncate text-xs">
           {post.displayDate} · {post.readingTime}
         </div>
@@ -45,28 +33,71 @@ function AuthorMeta({ post }: { post: BlogPost }) {
   );
 }
 
-function PostCard({ post }: { post: BlogPost }) {
+function CoverImage({
+  post,
+  ratio = "aspect-[3/2]",
+  variant = "card",
+}: {
+  post: BlogPostSummary;
+  ratio?: string;
+  variant?: BlogCoverVariant;
+}) {
+  return (
+    <div className={`relative overflow-hidden bg-slate-100 ${ratio}`}>
+      <img
+        src={buildBlogCoverUrl(post, variant)}
+        alt={`${post.title} cover`}
+        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+      />
+    </div>
+  );
+}
+
+function PostCard({ post }: { post: BlogPostSummary }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg"
     >
-      <div className="aspect-[16/10]">
-        <ArticleImage post={post} />
-      </div>
+      <CoverImage post={post} />
       <div className="flex flex-1 flex-col p-6">
         <span className="mb-4 w-fit rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-blue-700">
           {post.category}
         </span>
-        <h3 className="line-clamp-2 text-xl font-black leading-snug text-[#0A1628] transition-colors group-hover:text-blue-600">
+        <h3 className="text-xl font-black leading-snug text-[#0A1628] transition-colors group-hover:text-blue-600">
           {post.title}
         </h3>
         <p className="mt-3 line-clamp-2 flex-1 text-sm leading-6 text-slate-500">
           {post.excerpt}
         </p>
-        <div className="mt-6 flex items-center justify-between gap-4">
+        <div className="mt-6">
           <AuthorMeta post={post} />
-          <span className="shrink-0 text-xs font-bold text-slate-400">
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function FeaturedPostCard({ post }: { post: BlogPostSummary }) {
+  return (
+    <Link
+      href={`/blog/${post.slug}`}
+      className="group grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg transition-all duration-300 hover:border-blue-300 hover:shadow-xl lg:grid-cols-[1.05fr_0.95fr]"
+    >
+      <CoverImage post={post} ratio="aspect-video lg:aspect-auto" variant="wide" />
+      <div className="flex flex-col justify-center p-8 md:p-10">
+        <span className="mb-5 w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-blue-700">
+          Featured · {post.category}
+        </span>
+        <h2 className="text-[28px] font-black leading-tight text-[#0A1628] transition-colors group-hover:text-blue-600">
+          {post.title}
+        </h2>
+        <p className="mt-5 line-clamp-2 text-lg leading-8 text-slate-600">
+          {post.excerpt}
+        </p>
+        <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <AuthorMeta post={post} />
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
             {post.readingTime}
           </span>
         </div>
@@ -75,15 +106,28 @@ function PostCard({ post }: { post: BlogPost }) {
   );
 }
 
+function getPageNumbers(currentPage: number, totalPages: number) {
+  const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  return Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+}
+
 export default function BlogIndexClient({
   posts,
   featuredPost,
+  initialPage,
 }: {
-  posts: BlogPost[];
-  featuredPost: BlogPost;
+  posts: BlogPostSummary[];
+  featuredPost: BlogPostSummary;
+  initialPage: number;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<BlogCategory>("All");
+  const [page, setPage] = useState(initialPage);
+  const [subscribed, setSubscribed] = useState(false);
+  const didMount = useRef(false);
 
   const filteredPosts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -93,7 +137,7 @@ export default function BlogIndexClient({
         activeCategory === "All" || post.category === activeCategory;
       const matchesQuery =
         !normalizedQuery ||
-        [post.title, post.excerpt, post.category, post.author.name]
+        [post.title, post.excerpt, post.category, post.author.name, ...post.tags]
           .join(" ")
           .toLowerCase()
           .includes(normalizedQuery);
@@ -102,8 +146,34 @@ export default function BlogIndexClient({
     });
   }, [activeCategory, posts, query]);
 
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+
+    setPage(1);
+    router.replace("/blog", { scroll: false });
+  }, [activeCategory, query, router]);
+
+  const featuredVisible = filteredPosts.some(
+    (post) => post.slug === featuredPost.slug,
+  );
   const gridPosts = filteredPosts.filter((post) => post.slug !== featuredPost.slug);
-  const popularPosts = posts.filter((post) => post.popular).slice(0, 4);
+  const totalPages = Math.max(1, Math.ceil(gridPosts.length / POSTS_PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const pagePosts = gridPosts.slice(
+    (safePage - 1) * POSTS_PER_PAGE,
+    safePage * POSTS_PER_PAGE,
+  );
+
+  const goToPage = (nextPage: number) => {
+    const normalizedPage = Math.min(Math.max(1, nextPage), totalPages);
+    setPage(normalizedPage);
+    router.push(normalizedPage === 1 ? "/blog" : `/blog?page=${normalizedPage}`, {
+      scroll: false,
+    });
+  };
 
   return (
     <main className="min-h-screen bg-white">
@@ -116,7 +186,8 @@ export default function BlogIndexClient({
             HR & Payroll Insights for US Companies
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-500">
-            Practical payroll, compliance, benefits, HR, and state-guide content for teams that need clean operations.
+            Practical payroll, compliance, benefits, HR, templates, case studies,
+            and state-guide content for teams that need clean operations.
           </p>
 
           <div className="mx-auto mt-10 max-w-2xl">
@@ -124,12 +195,15 @@ export default function BlogIndexClient({
               Search articles
             </label>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                aria-hidden="true"
+              />
               <input
                 id="blog-search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search payroll, compliance, benefits..."
+                placeholder="Search by title or tag..."
                 className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-4 text-base font-medium text-slate-900 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               />
             </div>
@@ -154,141 +228,123 @@ export default function BlogIndexClient({
         </div>
       </section>
 
-      <section className="px-6 pb-20 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <Link
-            href={`/blog/${featuredPost.slug}`}
-            className="group grid overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg transition-all duration-300 hover:border-blue-200 hover:shadow-2xl lg:grid-cols-[1.05fr_0.95fr]"
-          >
-            <ArticleImage post={featuredPost} />
-            <div className="flex flex-col justify-center p-8 md:p-12">
-              <span className="mb-5 w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-blue-700">
-                Featured · {featuredPost.category}
-              </span>
-              <h2 className="text-3xl font-black leading-tight text-[#0A1628] transition-colors group-hover:text-blue-600 md:text-4xl">
-                {featuredPost.title}
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-slate-600">
-                {featuredPost.excerpt}
-              </p>
-              <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <AuthorMeta post={featuredPost} />
-                <span className="inline-flex items-center gap-2 text-sm font-black text-blue-600">
-                  Read featured post <ArrowRight size={16} />
-                </span>
-              </div>
-            </div>
-          </Link>
-        </div>
-      </section>
+      {featuredVisible && (
+        <section className="px-6 pb-20 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <FeaturedPostCard post={featuredPost} />
+          </div>
+        </section>
+      )}
 
       <section className="bg-slate-50 px-6 py-20 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
-            <div className="mb-8 flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-black text-[#0A1628]">
-                  Latest insights
-                </h2>
-                <p className="mt-2 text-sm font-medium text-slate-500">
-                  Showing {gridPosts.length} posts
-                </p>
-              </div>
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-3xl font-black text-[#0A1628]">
+                Latest insights
+              </h2>
+              <p className="mt-2 text-sm font-medium text-slate-500">
+                Showing {pagePosts.length} of {gridPosts.length} posts
+              </p>
             </div>
 
-            <motion.div
-              layout
-              className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                setSubscribed(true);
+              }}
+              className="flex w-full gap-2 md:w-auto"
             >
-              <AnimatePresence mode="popLayout">
-                {gridPosts.map((post) => (
-                  <motion.div
-                    key={post.slug}
-                    layout
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.22 }}
-                  >
-                    <PostCard post={post} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-
-            {gridPosts.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
-                No articles match that search yet.
-              </div>
-            )}
+              <label htmlFor="blog-newsletter" className="sr-only">
+                Newsletter email
+              </label>
+              <input
+                id="blog-newsletter"
+                type="email"
+                required
+                placeholder="work@company.com"
+                className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 md:w-64"
+              />
+              <button
+                type="submit"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white transition hover:bg-blue-700"
+              >
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                Subscribe
+              </button>
+            </form>
           </div>
+          {subscribed && (
+            <p className="mb-6 rounded-xl bg-green-50 px-4 py-3 text-sm font-black text-green-700">
+              You&apos;re on the list.
+            </p>
+          )}
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-28 space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-400">
-                  Popular posts
-                </h3>
-                <div className="mt-5 space-y-5">
-                  {popularPosts.map((post, index) => (
-                    <Link
-                      key={post.slug}
-                      href={`/blog/${post.slug}`}
-                      className="group flex gap-4"
-                    >
-                      <span className="text-2xl font-black text-blue-100">
-                        {index + 1}
-                      </span>
-                      <span className="text-sm font-bold leading-6 text-slate-800 transition-colors group-hover:text-blue-600">
-                        {post.title}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <form
-                onSubmit={(event) => event.preventDefault()}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-              >
-                <Mail className="h-6 w-6 text-blue-600" />
-                <h3 className="mt-4 text-xl font-black text-[#0A1628]">
-                  Weekly HR briefing
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  One practical payroll and compliance email every Tuesday.
-                </p>
-                <input
-                  type="email"
-                  required
-                  placeholder="work@company.com"
-                  className="mt-5 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                />
-                <button
-                  type="submit"
-                  className="mt-3 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+          <motion.div
+            layout
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+          >
+            <AnimatePresence mode="popLayout">
+              {pagePosts.map((post) => (
+                <motion.div
+                  key={post.slug}
+                  layout
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.22 }}
                 >
-                  Subscribe
-                </button>
-              </form>
+                  <PostCard post={post} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
 
-              <Link
-                href="/resources/state-tax-guides"
-                className="block rounded-2xl bg-[#0A1628] p-6 text-white shadow-xl"
-              >
-                <Download className="h-7 w-7 text-cyan-300" />
-                <h3 className="mt-4 text-xl font-black">
-                  50-State Payroll Guide
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Download the state-by-state checklist for payroll taxes, leave, and wage rules.
-                </p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-cyan-300">
-                  Get the guide <ArrowRight size={16} />
-                </span>
-              </Link>
+          {pagePosts.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
+              No articles match that search yet.
             </div>
-          </aside>
+          )}
+
+          {gridPosts.length > POSTS_PER_PAGE && (
+            <nav
+              className="mt-12 flex flex-wrap items-center justify-center gap-2"
+              aria-label="Blog pagination"
+            >
+              <button
+                type="button"
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Prev
+              </button>
+              {getPageNumbers(safePage, totalPages).map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => goToPage(pageNumber)}
+                  className={`h-10 min-w-10 rounded-full px-3 text-sm font-black transition ${
+                    safePage === pageNumber
+                      ? "bg-blue-600 text-white"
+                      : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300"
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </nav>
+          )}
         </div>
       </section>
     </main>

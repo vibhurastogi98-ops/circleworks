@@ -15,9 +15,12 @@ export default function ShareButtons({
   const encodedTitle = encodeURIComponent(title);
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    try {
+      await navigator.clipboard.writeText(url);
+    } finally {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    }
   };
 
   return (

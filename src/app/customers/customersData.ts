@@ -1,245 +1,920 @@
-export type Industry = "Startup" | "SMB" | "Mid-Market" | "Healthcare" | "Tech" | "Non-Profit";
+export const CUSTOMER_FILTERS = [
+  "All",
+  "Startups",
+  "SMBs",
+  "Mid-Market",
+  "Enterprise",
+  "Tech",
+  "Healthcare",
+  "Retail",
+  "Non-Profit",
+] as const;
 
-export type Metric = {
+export type CustomerFilter = (typeof CUSTOMER_FILTERS)[number];
+export type CustomerSegment = "Startups" | "SMBs" | "Mid-Market" | "Enterprise";
+export type CustomerIndustry =
+  | "Technology"
+  | "Healthcare"
+  | "Retail"
+  | "Non-Profit"
+  | "Logistics"
+  | "Education";
+
+export type CustomerMetric = {
   value: string;
   label: string;
+  detail?: string;
 };
 
-export type CaseStudy = {
+export type SolutionModule = {
+  name: string;
+  description: string;
+};
+
+export type CustomerStory = {
   slug: string;
   company: string;
-  industry: Industry;
+  logoWordmark: string;
+  logoInitials: string;
+  logoColor: string;
+  logoTextColor: string;
+  industry: CustomerIndustry;
+  segment: CustomerSegment;
+  size: string;
+  customerSince: string;
   location: string;
-  employees: string;
-  logoInitials: string;       // 2-char initials for logo placeholder
-  accentColor: string;        // Tailwind bg colour class for the logo bg
-  coverGradient: string;      // Tailwind gradient classes for card cover
-  headlineQuote: string;      // short (≤15 words) for card
-  metricHighlight: string;    // e.g. "87% reduction in payroll errors"
-  // detail page
-  challenge: string;
-  solution: string;
-  resultsNarrative: string;
-  metrics: [Metric, Metric, Metric];
-  pullQuote: string;
-  author: string;
-  authorRole: string;
+  filters: CustomerFilter[];
   featured?: boolean;
-  featuredExcerpt?: string;   // paragraph for the featured slot
+  quoteExcerpt: string;
+  attribution: {
+    name: string;
+    title: string;
+    company: string;
+    initials: string;
+  };
+  keyMetrics: [string, string, string];
+  challengePainPoints: [string, string, string];
+  solutionModules: SolutionModule[];
+  results: [CustomerMetric, CustomerMetric, CustomerMetric];
+  fullQuote: string;
 };
 
-export const CASE_STUDIES: CaseStudy[] = [
+export const CUSTOMER_STORIES: CustomerStory[] = [
   {
     slug: "meridian-health",
     company: "Meridian Health",
-    industry: "Healthcare",
-    location: "Chicago, IL",
-    employees: "320 employees",
+    logoWordmark: "Meridian",
     logoInitials: "MH",
-    accentColor: "bg-emerald-600",
-    coverGradient: "from-emerald-600 to-teal-500",
-    headlineQuote: "We went from payroll nightmares to payroll autopilot.",
-    metricHighlight: "87% reduction in payroll errors",
-    challenge: "Meridian Health was running a multi-state workforce across Illinois, Indiana, and Wisconsin. Their legacy ADP setup couldn't handle complex shift differentials for nurses, and manual tax reconciliation was eating 3 days of the finance team's time every pay cycle.",
-    solution: "After migrating to CircleWorks in a single weekend, Meridian's payroll team configured shift differential rules, overnight premiums, and holiday pay — all in one automated engine. State tax filings for all three states now run automatically every pay period.",
-    resultsNarrative: "Within 60 days of going live, Meridian slashed payroll errors, reclaimed hundreds of finance-hours, and got their entire 320-person workforce compliant across three states without a single penalty.",
-    metrics: [
-      { value: "87%", label: "Fewer payroll errors" },
-      { value: "3 days", label: "Saved per pay cycle" },
-      { value: "$62k", label: "Annual compliance savings" },
-    ],
-    pullQuote: "CircleWorks didn't just fix our payroll — it gave us our weekends back. The compliance engine has been flawless across all three states.",
-    author: "Dr. Lisa Thorn",
-    authorRole: "COO, Meridian Health",
-    featured: true,
-    featuredExcerpt: "When Meridian Health expanded from one clinic to six across three states, their payroll stack couldn't keep up. Hours of manual reconciliation. State tax errors. A mutinous finance team. CircleWorks migrated 320 employees in a single weekend — and Meridian hasn't looked back since.",
-  },
-  {
-    slug: "vanta-labs",
-    company: "Vanta Labs",
-    industry: "Tech",
-    location: "San Francisco, CA",
-    employees: "48 employees",
-    logoInitials: "VL",
-    accentColor: "bg-violet-600",
-    coverGradient: "from-violet-600 to-indigo-500",
-    headlineQuote: "Onboarding a new engineer used to take a week. Now it's done before day 1.",
-    metricHighlight: "5× faster engineer onboarding",
-    challenge: "Vanta Labs was scaling engineering headcount 3× YoY but their HR stack was a patchwork of Lever, Rippling, and a homegrown onboarding script. New hires waited days for laptop provisioning and access grants.",
-    solution: "CircleWorks unified ATS, HRIS, and Onboarding. The moment a candidate signed their offer, an automated flow provisioned their Okta account, ordered their MacBook via Kandji, and sent a personalized welcome Slack message — all before 9am on their start date.",
-    resultsNarrative: "Vanta Labs now onboards engineers in under an hour. Offer-to-laptop-provisioned went from 7 business days to same-day. Recruiter time-to-fill dropped 40%.",
-    metrics: [
-      { value: "5×", label: "Faster engineer onboarding" },
-      { value: "40%", label: "Faster time-to-fill" },
-      { value: "0 days", label: "IT lag for new hires" },
-    ],
-    pullQuote: "New engineers arrive on day one with everything already set up. It's a completely different experience — and a big part of why we retain top talent.",
-    author: "Priya Venkat",
-    authorRole: "Head of Talent, Vanta Labs",
-  },
-  {
-    slug: "suncrest-bakeries",
-    company: "Suncrest Bakeries",
-    industry: "SMB",
-    location: "Austin, TX",
-    employees: "87 employees",
-    logoInitials: "SB",
-    accentColor: "bg-amber-500",
-    coverGradient: "from-amber-500 to-orange-400",
-    headlineQuote: "Running payroll for 87 shift workers used to cost us half a day. Now it's 12 minutes.",
-    metricHighlight: "12-min payroll runs (down from 4 hrs)",
-    challenge: "Suncrest's 87 bakers and drivers worked rotating shifts across 5 locations. Calculating overtime, tip credits, and shift differentials in Excel took the owner half a day every bi-weekly cycle, often resulting in errors that eroded employee trust.",
-    solution: "CircleWorks' Time & Scheduling module auto-pulled shift data directly into payroll. Texas-specific overtime and tip credit rules were configured once and applied automatically. The mobile clock-in with geo-fencing eliminated buddy punching and manual timesheet corrections.",
-    resultsNarrative: "The owner runs payroll in 12 minutes on his phone. Employees get paid via 2-day direct deposit with zero errors. Turnover dropped 22% in 6 months.",
-    metrics: [
-      { value: "12 min", label: "Payroll run time (was 4hrs)" },
-      { value: "22%", label: "Drop in employee turnover" },
-      { value: "100%", label: "Texas compliance rate" },
-    ],
-    pullQuote: "I can run payroll from my phone at the bakery. It takes less time than brewing a pot of coffee.",
-    author: "Marcus Webb",
-    authorRole: "Owner, Suncrest Bakeries",
-  },
-  {
-    slug: "nova-nonprofit",
-    company: "Nova Community Fund",
-    industry: "Non-Profit",
-    location: "Denver, CO",
-    employees: "34 employees",
-    logoInitials: "NC",
-    accentColor: "bg-rose-500",
-    coverGradient: "from-rose-500 to-pink-400",
-    headlineQuote: "CircleWorks gave us enterprise HR at a price our board approved.",
-    metricHighlight: "$28k/year saved over previous provider",
-    challenge: "Nova Community Fund was on a provider charging $22/employee/month for features they barely used. The board demanded a 30% cost reduction or HR cuts. Nova needed full compliance reporting for grant audits without the bloat.",
-    solution: "CircleWorks' Starter plan cut their effective HR cost by 60%. Built-in compliance reports and EEO-1 exports satisfied their grant auditors without a single custom report. The accountant portal gave their external CPA direct export access.",
-    resultsNarrative: "Nova saved $28k annually, aced two grant audits, and freed up 15 hours/month of staff time previously spent on manual reporting.",
-    metrics: [
-      { value: "$28k", label: "Annual savings" },
-      { value: "2/2", label: "Grant audits passed" },
-      { value: "15 hrs", label: "Saved per month on reports" },
-    ],
-    pullQuote: "Our board was skeptical that we could cut costs AND improve compliance. CircleWorks made that argument for us.",
-    author: "Angela Price",
-    authorRole: "Executive Director, Nova Community Fund",
-  },
-  {
-    slug: "brightpath-clinics",
-    company: "BrightPath Clinics",
+    logoColor: "#059669",
+    logoTextColor: "#064E3B",
     industry: "Healthcare",
-    location: "Nashville, TN",
-    employees: "210 employees",
-    logoInitials: "BP",
-    accentColor: "bg-cyan-600",
-    coverGradient: "from-cyan-600 to-blue-500",
-    headlineQuote: "We handle credentialing, HIPAA compliance, and payroll — all in one place.",
-    metricHighlight: "100% HIPAA-compliant employee data",
-    challenge: "BrightPath's 6-clinic network struggled with keeping provider credentials, HIPAA training records, and payroll in sync. Credential expiries were tracked in spreadsheets; a missed renewal in 2023 cost them a $40k insurance recredentialing fee.",
-    solution: "CircleWorks' LMS and HRIS modules let BrightPath store credentialing dates as custom fields with expiry alerts. Automated HIPAA training assignments ensured every new hire completed required modules in their first week. Payroll mapped directly to Tennessee's complex healthcare shift rules.",
-    resultsNarrative: "Zero missed credentials in 18 months. Every provider's HIPAA training is logged and auditable. The $40k credentialing issue is firmly in the past.",
-    metrics: [
-      { value: "0", label: "Missed credential renewals (18 mo)" },
-      { value: "100%", label: "HIPAA training completion rate" },
-      { value: "$40k", label: "Avoided in recredentialing fees" },
+    segment: "Mid-Market",
+    size: "200 employees",
+    customerSince: "March 2022",
+    location: "Chicago, IL",
+    filters: ["Mid-Market", "Healthcare"],
+    featured: true,
+    quoteExcerpt:
+      "CircleWorks turned a multi-state payroll process that took two days into a guided workflow our team finishes before lunch.",
+    attribution: {
+      name: "Avery Morgan",
+      title: "VP People Operations",
+      company: "Meridian Health",
+      initials: "AM",
+    },
+    keyMetrics: ["90% faster payroll", "12 states", "200 employees"],
+    challengePainPoints: [
+      "Payroll admins reconciled shift differentials and tax rules manually across 12 states.",
+      "Quarterly filings required three spreadsheets, two outside advisors, and several late nights.",
+      "HR could not give leaders a dependable view of headcount, benefits, and payroll costs.",
     ],
-    pullQuote: "The automated credential alerts alone paid for CircleWorks in the first month.",
-    author: "Dr. James Obi",
-    authorRole: "Medical Director, BrightPath Clinics",
+    solutionModules: [
+      {
+        name: "Payroll",
+        description:
+          "Automated multi-state taxes, shift premiums, and direct deposit approvals in one run flow.",
+      },
+      {
+        name: "HRIS",
+        description:
+          "Centralized employee records, job changes, and reporting for clinic and corporate teams.",
+      },
+      {
+        name: "Compliance",
+        description:
+          "Surfaced state-specific filing tasks and renewal dates before they became finance escalations.",
+      },
+    ],
+    results: [
+      {
+        value: "90%",
+        label: "Time Saved on Payroll",
+        detail: "Two-day payroll prep compressed into a same-morning approval workflow.",
+      },
+      {
+        value: "12",
+        label: "States Now Automated",
+        detail: "State taxes, labor rules, and filings now route without spreadsheet reconciliation.",
+      },
+      {
+        value: "$48K",
+        label: "Saved Annually",
+        detail: "Reduced advisor hours, late corrections, and payroll operations overhead.",
+      },
+    ],
+    fullQuote:
+      "CircleWorks helped us replace disconnected payroll, HR, and benefits workflows with one clean operating system. The biggest change is confidence: our team knows every run is accurate before money moves.",
   },
   {
     slug: "arclight-software",
     company: "Arclight Software",
-    industry: "Startup",
-    location: "New York, NY",
-    employees: "22 employees",
+    logoWordmark: "Arclight",
     logoInitials: "AS",
-    accentColor: "bg-blue-600",
-    coverGradient: "from-blue-600 to-cyan-500",
-    headlineQuote: "We went from seed to Series A without hiring an HR person — CircleWorks was our HR team.",
-    metricHighlight: "Series A closed with zero hr headcount",
-    challenge: "Arclight was a 22-person seed-stage startup with zero HR infrastructure. Founders were manually processing payroll, tracking PTO in Notion, and storing offer letters in Google Drive. Investor due diligence surfaced serious compliance gaps.",
-    solution: "CircleWorks was set up in 48 hours before their Series A diligence kicked off. All historical offer letters were imported, I-9 records digitized, and compliant New York payroll set up from scratch. The Series A closed with a clean HR data room.",
-    resultsNarrative: "Arclight closed a $12M Series A with CircleWorks as their sole HR platform. The investors specifically cited clean people documentation as a diligence green flag.",
-    metrics: [
-      { value: "48 hrs", label: "To full HR compliance" },
-      { value: "$12M", label: "Series A closed cleanly" },
-      { value: "$0", label: "Additional HR headcount needed" },
+    logoColor: "#2563EB",
+    logoTextColor: "#1E3A8A",
+    industry: "Technology",
+    segment: "Startups",
+    size: "48 employees",
+    customerSince: "August 2023",
+    location: "New York, NY",
+    filters: ["Startups", "Tech"],
+    featured: true,
+    quoteExcerpt:
+      "We closed our Series A with clean people data, compliant payroll, and a new-hire experience that felt enterprise-grade.",
+    attribution: {
+      name: "Sam Hertz",
+      title: "CEO and Co-founder",
+      company: "Arclight Software",
+      initials: "SH",
+    },
+    keyMetrics: ["48-hour launch", "$12M Series A", "0 HR hires"],
+    challengePainPoints: [
+      "Founders were running payroll, PTO, and offer letters through disconnected startup tools.",
+      "Investor diligence surfaced incomplete I-9 files and inconsistent compensation records.",
+      "New hires waited several days for documents, account access, and payroll setup.",
     ],
-    pullQuote: "Our lead investor said our people documentation was cleaner than companies 10× our size. That's entirely CircleWorks.",
-    author: "Sam Hertz",
-    authorRole: "CEO & Co-founder, Arclight Software",
+    solutionModules: [
+      {
+        name: "Onboarding",
+        description:
+          "Converted signed offers into Day-1 workflows, document collection, and automated welcome tasks.",
+      },
+      {
+        name: "Payroll",
+        description:
+          "Set up compliant New York payroll, direct deposit, and founder approvals in two days.",
+      },
+      {
+        name: "ATS",
+        description:
+          "Connected recruiting stages to offer approvals so every new hire arrived with a complete record.",
+      },
+    ],
+    results: [
+      {
+        value: "48 hrs",
+        label: "To Launch",
+        detail: "Arclight went live before the final investor data-room review.",
+      },
+      {
+        value: "$12M",
+        label: "Series A Closed",
+        detail: "Clean HR documentation became a diligence strength instead of a concern.",
+      },
+      {
+        value: "$0",
+        label: "Extra HR Headcount",
+        detail: "The founders scaled operations without hiring a full-time HR generalist.",
+      },
+    ],
+    fullQuote:
+      "Our lead investor said our people documentation was cleaner than companies ten times our size. CircleWorks gave us the operational credibility we needed without slowing down the team.",
+  },
+  {
+    slug: "northstar-retail-group",
+    company: "Northstar Retail Group",
+    logoWordmark: "Northstar",
+    logoInitials: "NR",
+    logoColor: "#DC2626",
+    logoTextColor: "#7F1D1D",
+    industry: "Retail",
+    segment: "Enterprise",
+    size: "2,400 employees",
+    customerSince: "January 2021",
+    location: "Minneapolis, MN",
+    filters: ["Enterprise", "Retail"],
+    featured: true,
+    quoteExcerpt:
+      "CircleWorks gave every store manager the same payroll playbook, while corporate finally got one source of truth.",
+    attribution: {
+      name: "Priya Shah",
+      title: "Chief People Officer",
+      company: "Northstar Retail Group",
+      initials: "PS",
+    },
+    keyMetrics: ["36 stores", "2,400 employees", "99% on-time payroll"],
+    challengePainPoints: [
+      "Store managers submitted timesheets in different formats with inconsistent overtime reviews.",
+      "Seasonal hiring created duplicate records, missed onboarding steps, and payroll corrections.",
+      "Corporate HR lacked a real-time view of staffing levels, labor cost, and compliance risk.",
+    ],
+    solutionModules: [
+      {
+        name: "Time Tracking",
+        description:
+          "Standardized store clock-ins, approvals, and overtime flags before each payroll run.",
+      },
+      {
+        name: "Onboarding",
+        description:
+          "Automated seasonal employee packets, I-9 reminders, and manager task lists.",
+      },
+      {
+        name: "Analytics",
+        description:
+          "Gave leaders a live view of labor spend, open roles, and pay-cycle readiness by location.",
+      },
+    ],
+    results: [
+      {
+        value: "99%",
+        label: "On-Time Payroll",
+        detail: "Payroll accuracy rose across every store and seasonal hiring cycle.",
+      },
+      {
+        value: "36",
+        label: "Stores Standardized",
+        detail: "Managers now follow one approval workflow from shift close to payroll submission.",
+      },
+      {
+        value: "$312K",
+        label: "Annual Cost Avoided",
+        detail: "Fewer corrections, manual reviews, and seasonal onboarding delays.",
+      },
+    ],
+    fullQuote:
+      "The value was not just faster payroll. CircleWorks gave us a shared operating rhythm for every store, every manager, and every employee moving through a high-volume retail season.",
+  },
+  {
+    slug: "brightpath-clinics",
+    company: "BrightPath Clinics",
+    logoWordmark: "BrightPath",
+    logoInitials: "BP",
+    logoColor: "#0891B2",
+    logoTextColor: "#164E63",
+    industry: "Healthcare",
+    segment: "SMBs",
+    size: "140 employees",
+    customerSince: "June 2022",
+    location: "Nashville, TN",
+    filters: ["SMBs", "Healthcare"],
+    quoteExcerpt:
+      "Credentialing, HIPAA training, benefits, and payroll finally live in the same system.",
+    attribution: {
+      name: "Dr. James Obi",
+      title: "Medical Director",
+      company: "BrightPath Clinics",
+      initials: "JO",
+    },
+    keyMetrics: ["0 missed renewals", "100% HIPAA training", "$40K avoided"],
+    challengePainPoints: [
+      "Provider credentials were tracked in spreadsheets with no reliable renewal alerts.",
+      "HIPAA training completion lived outside employee records and was hard to audit.",
+      "Clinic managers sent payroll changes by email, creating delays and correction runs.",
+    ],
+    solutionModules: [
+      {
+        name: "HRIS",
+        description:
+          "Stored credentials, renewal dates, clinic assignments, and employee records together.",
+      },
+      {
+        name: "Learning",
+        description:
+          "Assigned HIPAA training automatically and logged completion in each employee profile.",
+      },
+      {
+        name: "Payroll",
+        description:
+          "Mapped clinic-level pay changes and shift premiums directly into payroll approvals.",
+      },
+    ],
+    results: [
+      {
+        value: "0",
+        label: "Missed Renewals",
+        detail: "Credential alerts are now proactive and visible to clinic leaders.",
+      },
+      {
+        value: "100%",
+        label: "Training Completion",
+        detail: "HIPAA completion is assigned, tracked, and audit-ready.",
+      },
+      {
+        value: "$40K",
+        label: "Fees Avoided",
+        detail: "A prior recredentialing issue has not repeated since launch.",
+      },
+    ],
+    fullQuote:
+      "The automated credential alerts alone paid for CircleWorks. Our operations team no longer has to chase spreadsheets to understand who is compliant.",
+  },
+  {
+    slug: "nova-community-fund",
+    company: "Nova Community Fund",
+    logoWordmark: "Nova Fund",
+    logoInitials: "NC",
+    logoColor: "#DB2777",
+    logoTextColor: "#831843",
+    industry: "Non-Profit",
+    segment: "SMBs",
+    size: "34 employees",
+    customerSince: "November 2023",
+    location: "Denver, CO",
+    filters: ["SMBs", "Non-Profit"],
+    quoteExcerpt:
+      "We cut HR costs and walked into grant audits with cleaner reports than we had ever had.",
+    attribution: {
+      name: "Angela Price",
+      title: "Executive Director",
+      company: "Nova Community Fund",
+      initials: "AP",
+    },
+    keyMetrics: ["$28K saved", "2 audits passed", "15 hrs/month reclaimed"],
+    challengePainPoints: [
+      "Grant reporting required manual headcount and payroll exports from three systems.",
+      "Board pressure required a lower-cost HR platform without losing compliance coverage.",
+      "The nonprofit's outside CPA had no direct way to pull approved payroll reports.",
+    ],
+    solutionModules: [
+      {
+        name: "Reports",
+        description:
+          "Built reusable grant, payroll, and headcount reports for board and auditor requests.",
+      },
+      {
+        name: "Payroll",
+        description:
+          "Reduced provider cost while keeping approvals, direct deposit, and tax filing in one place.",
+      },
+      {
+        name: "Accountant Portal",
+        description:
+          "Gave the CPA controlled access to approved payroll data and exports.",
+      },
+    ],
+    results: [
+      {
+        value: "$28K",
+        label: "Saved Annually",
+        detail: "Lower platform and advisor costs freed up program budget.",
+      },
+      {
+        value: "2/2",
+        label: "Audits Passed",
+        detail: "Grant auditors received consistent payroll and staffing reports.",
+      },
+      {
+        value: "15 hrs",
+        label: "Saved Monthly",
+        detail: "Recurring reports replaced manual grant reporting prep.",
+      },
+    ],
+    fullQuote:
+      "Our board was skeptical that we could cut costs and improve compliance at the same time. CircleWorks made that argument for us with clean reports and calmer audits.",
+  },
+  {
+    slug: "kinetic-ai",
+    company: "Kinetic AI",
+    logoWordmark: "Kinetic",
+    logoInitials: "KA",
+    logoColor: "#7C3AED",
+    logoTextColor: "#4C1D95",
+    industry: "Technology",
+    segment: "Mid-Market",
+    size: "310 employees",
+    customerSince: "April 2022",
+    location: "Seattle, WA",
+    filters: ["Mid-Market", "Tech"],
+    quoteExcerpt:
+      "CircleWorks flagged classification risk before it became a legal fire drill.",
+    attribution: {
+      name: "Claire Nakamura",
+      title: "General Counsel",
+      company: "Kinetic AI",
+      initials: "CN",
+    },
+    keyMetrics: ["$180K risk avoided", "12 roles corrected", "100% FLSA review"],
+    challengePainPoints: [
+      "Fast-changing engineering roles made exempt/non-exempt classification hard to monitor.",
+      "Legal reviews happened after org changes instead of during compensation planning.",
+      "HR and legal lacked one workflow to document remediation decisions.",
+    ],
+    solutionModules: [
+      {
+        name: "Compliance",
+        description:
+          "Flagged potential FLSA risk and generated a remediation checklist for legal review.",
+      },
+      {
+        name: "Performance",
+        description:
+          "Connected role changes, leveling, and compensation updates to compliance review.",
+      },
+      {
+        name: "Documents",
+        description:
+          "Stored approvals and employee notices in the same record as classification changes.",
+      },
+    ],
+    results: [
+      {
+        value: "$180K",
+        label: "Risk Avoided",
+        detail: "Proactive remediation prevented a larger wage-and-hour exposure.",
+      },
+      {
+        value: "12",
+        label: "Roles Corrected",
+        detail: "Classification updates were documented and approved in one workflow.",
+      },
+      {
+        value: "100%",
+        label: "FLSA Review",
+        detail: "Every role change now includes a compliance checkpoint.",
+      },
+    ],
+    fullQuote:
+      "CircleWorks caught what our legal calendar did not. The platform made compliance part of the operating system instead of a quarterly scramble.",
   },
   {
     slug: "steadfast-logistics",
     company: "Steadfast Logistics",
-    industry: "Mid-Market",
-    location: "Dallas, TX",
-    employees: "480 employees",
+    logoWordmark: "Steadfast",
     logoInitials: "SL",
-    accentColor: "bg-slate-700",
-    coverGradient: "from-slate-700 to-slate-500",
-    headlineQuote: "Managing 480 drivers across 8 states used to require a 3-person payroll team. Now it's one.",
-    metricHighlight: "67% reduction in payroll headcount cost",
-    challenge: "Steadfast's 480-driver fleet spanned 8 states, each with different wage rates, per diem rules, and DOT compliance requirements. A 3-person payroll team was running manual reconciliations weekly, and multi-state W-2 errors resulted in two IRS notices in 2022.",
-    solution: "CircleWorks automated multi-state tax allocation based on where drivers worked each week, handled DOT per diem rules, and resolved the I-9 backlog in a single bulk upload session. The payroll team was reduced from 3 to 1 through natural attrition.",
-    resultsNarrative: "One payroll admin now manages 480 employees across 8 states. Zero IRS notices in 18 months. Driver satisfaction scores on pay accuracy jumped to 98%.",
-    metrics: [
-      { value: "1", label: "Payroll admin for 480 employees" },
-      { value: "0", label: "IRS notices in 18 months" },
-      { value: "98%", label: "Driver pay-accuracy satisfaction" },
+    logoColor: "#475569",
+    logoTextColor: "#0F172A",
+    industry: "Logistics",
+    segment: "Enterprise",
+    size: "1,850 employees",
+    customerSince: "September 2021",
+    location: "Dallas, TX",
+    filters: ["Enterprise"],
+    quoteExcerpt:
+      "One payroll admin now manages a driver workforce that spans eight states.",
+    attribution: {
+      name: "Robert Dale",
+      title: "VP Operations",
+      company: "Steadfast Logistics",
+      initials: "RD",
+    },
+    keyMetrics: ["8 states", "1 payroll admin", "98% pay accuracy"],
+    challengePainPoints: [
+      "Driver work locations changed weekly, complicating state tax allocation and per diem rules.",
+      "Manual corrections created distrust among employees who depended on accurate weekly pay.",
+      "A three-person payroll team spent most Fridays reconciling mileage, hours, and taxes.",
     ],
-    pullQuote: "We went from three people drowning in multi-state payroll to one person running it in an afternoon. The ROI was immediate.",
-    author: "Robert Dale",
-    authorRole: "VP of Operations, Steadfast Logistics",
+    solutionModules: [
+      {
+        name: "Payroll",
+        description:
+          "Automated multi-state allocation, weekly pay runs, and driver-specific earnings rules.",
+      },
+      {
+        name: "Time Tracking",
+        description:
+          "Mapped hours and work locations into payroll without manual spreadsheet imports.",
+      },
+      {
+        name: "Compliance",
+        description:
+          "Monitored filing tasks and required documents by employee location.",
+      },
+    ],
+    results: [
+      {
+        value: "1",
+        label: "Payroll Admin",
+        detail: "A single admin now runs payroll for a distributed driver workforce.",
+      },
+      {
+        value: "8",
+        label: "States Automated",
+        detail: "State-specific payroll rules now apply based on actual work location.",
+      },
+      {
+        value: "98%",
+        label: "Pay Accuracy",
+        detail: "Driver satisfaction with pay accuracy increased after launch.",
+      },
+    ],
+    fullQuote:
+      "We went from three people drowning in multi-state payroll to one person running it in an afternoon. The ROI was immediate and visible to every driver.",
   },
   {
-    slug: "kinetic-co",
-    company: "Kinetic Co.",
-    industry: "Tech",
-    location: "Seattle, WA",
-    employees: "135 employees",
-    logoInitials: "KC",
-    accentColor: "bg-fuchsia-600",
-    coverGradient: "from-fuchsia-600 to-purple-500",
-    headlineQuote: "CircleWorks AI Circe flagged a $180k FLSA overtime violation before it became a lawsuit.",
-    metricHighlight: "$180k litigation risk avoided",
-    challenge: "Kinetic's engineering managers were unknowingly misclassifying senior engineers as exempt, exposing the company to FLSA overtime liability. A departing employee hinted at a class action risk that legal had to investigate.",
-    solution: "CircleWorks' Compliance module flagged 12 potentially misclassified employees during a routine audit. The AI Circe assistant generated a detailed remediation report. Kinetic voluntarily corrected classifications and back-paid $22k — avoiding a potential class action.",
-    resultsNarrative: "Kinetic avoided an estimated $180k in litigation exposure for $22k of proactive back-pay. Their legal counsel called it the best ROI they'd seen on any software purchase.",
-    metrics: [
-      { value: "$180k", label: "Litigation risk avoided" },
-      { value: "12", label: "Misclassified roles corrected" },
-      { value: "100%", label: "FLSA compliance achieved" },
+    slug: "meadow-and-main",
+    company: "Meadow & Main",
+    logoWordmark: "Meadow",
+    logoInitials: "MM",
+    logoColor: "#65A30D",
+    logoTextColor: "#365314",
+    industry: "Retail",
+    segment: "SMBs",
+    size: "86 employees",
+    customerSince: "May 2024",
+    location: "Austin, TX",
+    filters: ["SMBs", "Retail"],
+    quoteExcerpt:
+      "Payroll used to take half a day. Now our store manager approves it between inventory checks.",
+    attribution: {
+      name: "Marcus Webb",
+      title: "Owner",
+      company: "Meadow & Main",
+      initials: "MW",
+    },
+    keyMetrics: ["12-minute payroll", "22% lower turnover", "5 locations"],
+    challengePainPoints: [
+      "Rotating retail shifts made overtime and schedule changes hard to reconcile.",
+      "Paper onboarding packets slowed down hiring for new store associates.",
+      "The owner manually reviewed timesheets before every pay cycle.",
     ],
-    pullQuote: "CircleWorks caught what our lawyers missed. The proactive compliance flagging is genuinely unlike anything we'd seen in an HR platform.",
-    author: "Claire Nakamura",
-    authorRole: "General Counsel, Kinetic Co.",
+    solutionModules: [
+      {
+        name: "Time Tracking",
+        description:
+          "Pulled approved shifts, overtime, and corrections directly into payroll.",
+      },
+      {
+        name: "Onboarding",
+        description:
+          "Moved associate paperwork and direct deposit setup into a mobile workflow.",
+      },
+      {
+        name: "Payroll",
+        description:
+          "Reduced each pay run to a guided review and final approval.",
+      },
+    ],
+    results: [
+      {
+        value: "12 min",
+        label: "Payroll Run Time",
+        detail: "The owner approves payroll from a phone instead of a spreadsheet.",
+      },
+      {
+        value: "22%",
+        label: "Lower Turnover",
+        detail: "Cleaner onboarding and pay accuracy improved employee trust.",
+      },
+      {
+        value: "5",
+        label: "Locations Live",
+        detail: "Every location follows one time and payroll workflow.",
+      },
+    ],
+    fullQuote:
+      "I can run payroll from my phone at the store. It takes less time than closing the register, and the team trusts that their hours are right.",
+  },
+  {
+    slug: "helio-cloud",
+    company: "Helio Cloud",
+    logoWordmark: "Helio",
+    logoInitials: "HC",
+    logoColor: "#0EA5E9",
+    logoTextColor: "#075985",
+    industry: "Technology",
+    segment: "Enterprise",
+    size: "3,200 employees",
+    customerSince: "February 2020",
+    location: "San Jose, CA",
+    filters: ["Enterprise", "Tech"],
+    quoteExcerpt:
+      "CircleWorks brought global-grade HR discipline to our US workforce without slowing engineering velocity.",
+    attribution: {
+      name: "Dena Park",
+      title: "SVP People",
+      company: "Helio Cloud",
+      initials: "DP",
+    },
+    keyMetrics: ["3,200 employees", "24 payroll entities", "99.97% uptime"],
+    challengePainPoints: [
+      "Multiple US payroll entities made reporting and approvals inconsistent.",
+      "Engineering leaders needed faster headcount visibility during quarterly planning.",
+      "People operations wanted tighter controls without adding manual review layers.",
+    ],
+    solutionModules: [
+      {
+        name: "Payroll",
+        description:
+          "Unified payroll approvals and reporting across 24 US entities.",
+      },
+      {
+        name: "HRIS",
+        description:
+          "Created a single employee source of truth for people operations and finance.",
+      },
+      {
+        name: "Analytics",
+        description:
+          "Delivered headcount, payroll cost, and org-change reporting for planning cycles.",
+      },
+    ],
+    results: [
+      {
+        value: "24",
+        label: "Entities Unified",
+        detail: "Payroll operations now share one approval and reporting model.",
+      },
+      {
+        value: "99.97%",
+        label: "Uptime",
+        detail: "People operations depends on CircleWorks during high-volume cycles.",
+      },
+      {
+        value: "42%",
+        label: "Faster Reporting",
+        detail: "Quarterly planning reports now take hours instead of days.",
+      },
+    ],
+    fullQuote:
+      "The platform gives our leaders reliable people data without creating drag for managers. That balance matters when the business is moving quickly.",
   },
   {
     slug: "pinecrest-academy",
     company: "Pinecrest Academy",
-    industry: "Non-Profit",
-    location: "Phoenix, AZ",
-    employees: "95 employees",
+    logoWordmark: "Pinecrest",
     logoInitials: "PA",
-    accentColor: "bg-green-600",
-    coverGradient: "from-green-600 to-emerald-500",
-    headlineQuote: "Benefits enrollment used to take our small team 6 weeks. With CircleWorks it's 4 days.",
-    metricHighlight: "6 weeks → 4 days for open enrollment",
-    challenge: "Pinecrest's 2-person HR team dreaded open enrollment season. Paper forms, carrier portals, and frantic phone calls consumed 6 weeks every autumn, with enrollment errors causing billing disputes that lasted into Q1.",
-    solution: "CircleWorks' Benefits module let Pinecrest build an employee-facing enrollment wizard. Employees compared 3 medical plans, enrolled dependents, and e-signed their elections in under 20 minutes. Carrier data feeds updated automatically.",
-    resultsNarrative: "Open enrollment completed in 4 days instead of 6 weeks. Zero billing disputes in the following quarter. HR reclaimed 150 hours of August and September time.",
-    metrics: [
-      { value: "4 days", label: "Open enrollment (was 6 weeks)" },
-      { value: "150 hrs", label: "HR time reclaimed" },
-      { value: "0", label: "Carrier billing disputes" },
+    logoColor: "#16A34A",
+    logoTextColor: "#166534",
+    industry: "Education",
+    segment: "SMBs",
+    size: "95 employees",
+    customerSince: "July 2023",
+    location: "Phoenix, AZ",
+    filters: ["SMBs", "Non-Profit"],
+    quoteExcerpt:
+      "Open enrollment went from six weeks of paperwork to four days of employee self-service.",
+    attribution: {
+      name: "Teresa Mills",
+      title: "HR Director",
+      company: "Pinecrest Academy",
+      initials: "TM",
+    },
+    keyMetrics: ["4-day enrollment", "150 hrs reclaimed", "0 billing disputes"],
+    challengePainPoints: [
+      "Benefits enrollment relied on paper forms and manual carrier updates.",
+      "A two-person HR team spent weeks answering the same enrollment questions.",
+      "Billing disputes carried into the school year because elections were hard to audit.",
     ],
-    pullQuote: "I used to dread August. Now I actually look forward to open enrollment — it runs itself.",
-    author: "Teresa Mills",
-    authorRole: "HR Director, Pinecrest Academy",
+    solutionModules: [
+      {
+        name: "Benefits",
+        description:
+          "Launched employee self-service enrollment with dependent capture and e-signatures.",
+      },
+      {
+        name: "HRIS",
+        description:
+          "Kept employee eligibility, family details, and plan elections in one profile.",
+      },
+      {
+        name: "Documents",
+        description:
+          "Stored signed elections and carrier-ready exports for each employee.",
+      },
+    ],
+    results: [
+      {
+        value: "4 days",
+        label: "Open Enrollment",
+        detail: "Employees completed elections without paper packets.",
+      },
+      {
+        value: "150 hrs",
+        label: "HR Time Reclaimed",
+        detail: "The HR team recovered weeks of administrative work.",
+      },
+      {
+        value: "0",
+        label: "Billing Disputes",
+        detail: "Clean elections reduced carrier and payroll corrections.",
+      },
+    ],
+    fullQuote:
+      "I used to dread August. Now open enrollment runs with clear instructions, clean records, and almost no chasing from HR.",
+  },
+  {
+    slug: "foundry-robotics",
+    company: "Foundry Robotics",
+    logoWordmark: "Foundry",
+    logoInitials: "FR",
+    logoColor: "#EA580C",
+    logoTextColor: "#7C2D12",
+    industry: "Technology",
+    segment: "Startups",
+    size: "72 employees",
+    customerSince: "October 2023",
+    location: "Pittsburgh, PA",
+    filters: ["Startups", "Tech"],
+    quoteExcerpt:
+      "We hired across four states without turning payroll and onboarding into a founder tax.",
+    attribution: {
+      name: "Nora Ellis",
+      title: "COO",
+      company: "Foundry Robotics",
+      initials: "NE",
+    },
+    keyMetrics: ["4 states", "31 hires", "3 days to launch"],
+    challengePainPoints: [
+      "Rapid hiring pushed the company into new states faster than operations could prepare.",
+      "Offer letters, equipment tasks, and payroll setup were split across tools.",
+      "Leadership needed a repeatable hiring workflow before the next funding milestone.",
+    ],
+    solutionModules: [
+      {
+        name: "ATS",
+        description:
+          "Connected candidate stages to offer approvals and new-hire records.",
+      },
+      {
+        name: "Onboarding",
+        description:
+          "Automated Day-1 tasks for equipment, documents, payroll, and manager check-ins.",
+      },
+      {
+        name: "Payroll",
+        description:
+          "Added state registrations and payroll rules as hiring expanded.",
+      },
+    ],
+    results: [
+      {
+        value: "31",
+        label: "Hires Onboarded",
+        detail: "New employees completed setup before their first day.",
+      },
+      {
+        value: "4",
+        label: "States Supported",
+        detail: "Hiring expanded without a compliance scramble.",
+      },
+      {
+        value: "3 days",
+        label: "Implementation",
+        detail: "The core hiring and payroll workflow launched in one week.",
+      },
+    ],
+    fullQuote:
+      "CircleWorks helped us keep the hiring bar high while removing the operational drag. We could say yes to candidates in new states with confidence.",
+  },
+  {
+    slug: "summit-dental-partners",
+    company: "Summit Dental Partners",
+    logoWordmark: "Summit",
+    logoInitials: "SD",
+    logoColor: "#0F766E",
+    logoTextColor: "#134E4A",
+    industry: "Healthcare",
+    segment: "Mid-Market",
+    size: "520 employees",
+    customerSince: "December 2021",
+    location: "Charlotte, NC",
+    filters: ["Mid-Market", "Healthcare"],
+    quoteExcerpt:
+      "Acquisitions no longer mean months of HR cleanup after each new practice joins.",
+    attribution: {
+      name: "Elena Torres",
+      title: "Director of People Systems",
+      company: "Summit Dental Partners",
+      initials: "ET",
+    },
+    keyMetrics: ["9 practices added", "63% faster onboarding", "$96K saved"],
+    challengePainPoints: [
+      "Each acquired practice brought different employee files, benefits records, and payroll habits.",
+      "Central HR spent months normalizing data before leaders could trust reporting.",
+      "Practice managers needed a simpler way to submit staff changes after close.",
+    ],
+    solutionModules: [
+      {
+        name: "HRIS",
+        description:
+          "Standardized employee records and org structures across acquired practices.",
+      },
+      {
+        name: "Benefits",
+        description:
+          "Mapped eligibility and plan elections into one benefits administration process.",
+      },
+      {
+        name: "Payroll",
+        description:
+          "Moved each practice into a shared payroll approval workflow.",
+      },
+    ],
+    results: [
+      {
+        value: "9",
+        label: "Practices Added",
+        detail: "New locations now move into a repeatable operating model.",
+      },
+      {
+        value: "63%",
+        label: "Faster Onboarding",
+        detail: "Acquisition HR cleanup is measured in weeks instead of months.",
+      },
+      {
+        value: "$96K",
+        label: "Saved Annually",
+        detail: "Reduced data cleanup, advisor work, and payroll corrections.",
+      },
+    ],
+    fullQuote:
+      "CircleWorks became our acquisition playbook. Every new practice gets the same clean HR and payroll foundation from the first pay cycle.",
+  },
+  {
+    slug: "clearwater-grocers",
+    company: "Clearwater Grocers",
+    logoWordmark: "Clearwater",
+    logoInitials: "CG",
+    logoColor: "#F59E0B",
+    logoTextColor: "#78350F",
+    industry: "Retail",
+    segment: "Mid-Market",
+    size: "640 employees",
+    customerSince: "February 2022",
+    location: "Tampa, FL",
+    filters: ["Mid-Market", "Retail"],
+    quoteExcerpt:
+      "We finally connected schedules, time, payroll, and benefits for every store associate.",
+    attribution: {
+      name: "Malik Bryant",
+      title: "Head of Operations",
+      company: "Clearwater Grocers",
+      initials: "MB",
+    },
+    keyMetrics: ["18 stores", "71% fewer corrections", "8 hrs/week saved"],
+    challengePainPoints: [
+      "Store schedules changed constantly, but payroll only saw the corrections at the last minute.",
+      "Benefits eligibility for variable-hour associates required manual monthly review.",
+      "Operations leaders had no shared dashboard for labor cost and pay-cycle readiness.",
+    ],
+    solutionModules: [
+      {
+        name: "Time Tracking",
+        description:
+          "Connected approved schedules and time changes to payroll review.",
+      },
+      {
+        name: "Benefits",
+        description:
+          "Tracked variable-hour eligibility and enrollment status automatically.",
+      },
+      {
+        name: "Reports",
+        description:
+          "Gave operations a weekly store-level view of labor cost and payroll readiness.",
+      },
+    ],
+    results: [
+      {
+        value: "71%",
+        label: "Fewer Corrections",
+        detail: "Late payroll fixes dropped after schedules and time connected.",
+      },
+      {
+        value: "18",
+        label: "Stores Live",
+        detail: "Every store now works from the same operating workflow.",
+      },
+      {
+        value: "8 hrs",
+        label: "Saved Weekly",
+        detail: "Managers spend less time cleaning up time and benefits data.",
+      },
+    ],
+    fullQuote:
+      "CircleWorks took the weekly mess out of payroll. Our store managers can focus on customers instead of chasing corrections.",
   },
 ];
 
-export function getRelatedStudies(slug: string, count = 3): CaseStudy[] {
-  return CASE_STUDIES.filter(s => s.slug !== slug).slice(0, count);
+export const FEATURED_CUSTOMER_STORIES = CUSTOMER_STORIES.filter((story) => story.featured);
+
+export function getCustomerStory(slug: string) {
+  return CUSTOMER_STORIES.find((story) => story.slug === slug);
+}
+
+export function getRelatedStudies(slug: string, count = 3): CustomerStory[] {
+  const current = getCustomerStory(slug);
+  if (!current) return CUSTOMER_STORIES.filter((story) => story.slug !== slug).slice(0, count);
+
+  const scored = CUSTOMER_STORIES.filter((story) => story.slug !== slug)
+    .map((story) => ({
+      story,
+      score:
+        (story.industry === current.industry ? 2 : 0) +
+        (story.segment === current.segment ? 1 : 0),
+    }))
+    .sort((a, b) => b.score - a.score || a.story.company.localeCompare(b.story.company));
+
+  return scored.slice(0, count).map(({ story }) => story);
 }

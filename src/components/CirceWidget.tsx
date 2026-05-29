@@ -121,13 +121,18 @@ export default function CirceWidget() {
     sendMessage(input);
   };
 
-  const isMarketingOrAuthPage =
-    MARKETING_PATH_PREFIXES.some((path) =>
-      path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`),
-    ) ||
-    AUTH_PATH_PREFIXES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  const isAuthPage = AUTH_PATH_PREFIXES.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  const isMarketingPage = MARKETING_PATH_PREFIXES.some((path) =>
+    path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`),
+  );
 
-  if (!isMarketingOrAuthPage) return null;
+  useEffect(() => {
+    if (isAuthPage) setIsCirceOpen(false);
+  }, [isAuthPage, setIsCirceOpen]);
+
+  if (isAuthPage || !isMarketingPage) return null;
 
   return (
     <>
