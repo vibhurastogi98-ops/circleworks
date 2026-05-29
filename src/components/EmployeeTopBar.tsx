@@ -79,7 +79,7 @@ export default function EmployeeTopBar() {
   const { toggleSidebar } = useSidebarStore();
 
   const { isDarkMode, toggleDarkMode } = usePlatformStore();
-  const { unreadCount } = useNotificationStore();
+  const { unreadCount, loadNotifications } = useNotificationStore();
 
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -92,6 +92,10 @@ export default function EmployeeTopBar() {
       document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -154,9 +158,8 @@ export default function EmployeeTopBar() {
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 flex w-2.5 h-2.5 justify-center items-center">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black leading-none text-white shadow-sm">
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>

@@ -1,0 +1,720 @@
+export type NotificationCategory =
+  | "payroll"
+  | "hr"
+  | "hiring"
+  | "onboarding"
+  | "benefits"
+  | "time"
+  | "expenses"
+  | "compliance"
+  | "system"
+  | "billing";
+
+export type NotificationSeverity = "success" | "info" | "warning" | "critical";
+
+export type NotificationChannel = "inApp" | "email" | "sms";
+
+export type NotificationPreference = {
+  type: string;
+  category: NotificationCategory;
+  label: string;
+  description: string;
+  inApp: boolean;
+  email: boolean;
+  sms: boolean;
+};
+
+export type NotificationDigestPreference = {
+  enabled: boolean;
+  frequency: "realtime" | "daily";
+  time: string;
+};
+
+export type NotificationDefinition = {
+  type: string;
+  category: NotificationCategory;
+  label: string;
+  description: string;
+  severity: NotificationSeverity;
+  title: string;
+  message: string;
+  actionLabel: string;
+  link: string;
+  defaultChannels: Record<NotificationChannel, boolean>;
+};
+
+export type NotificationRecord = {
+  id: string;
+  type: string;
+  category: NotificationCategory;
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  link: string;
+  actionLabel: string;
+  severity: NotificationSeverity;
+  metadata?: Record<string, unknown>;
+};
+
+const defaults = {
+  inApp: true,
+  email: true,
+  sms: false,
+} satisfies Record<NotificationChannel, boolean>;
+
+const smsForCritical = {
+  inApp: true,
+  email: true,
+  sms: true,
+} satisfies Record<NotificationChannel, boolean>;
+
+export const notificationDefinitions = [
+  {
+    type: "payroll.run.completed",
+    category: "payroll",
+    label: "Payroll run completed",
+    description: "A payroll run was processed successfully.",
+    severity: "success",
+    title: "Payroll run completed",
+    message: "Payroll has been processed and synced to payroll history.",
+    actionLabel: "View payroll",
+    link: "/payroll/history",
+    defaultChannels: defaults,
+  },
+  {
+    type: "payroll.run.failed",
+    category: "payroll",
+    label: "Payroll run failed",
+    description: "A payroll run failed and needs attention.",
+    severity: "critical",
+    title: "Payroll run failed",
+    message: "A payroll run failed validation. Review the error report before retrying.",
+    actionLabel: "Fix run",
+    link: "/payroll/run",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "payroll.tax.filed",
+    category: "payroll",
+    label: "Payroll tax filed",
+    description: "A payroll tax filing was submitted.",
+    severity: "success",
+    title: "Payroll tax filing submitted",
+    message: "Your payroll tax filing was submitted successfully.",
+    actionLabel: "View filing",
+    link: "/compliance/tax-filings",
+    defaultChannels: defaults,
+  },
+  {
+    type: "payroll.tax.late.warning",
+    category: "payroll",
+    label: "Payroll tax late warning",
+    description: "A payroll tax deadline is approaching or past due.",
+    severity: "warning",
+    title: "Payroll tax deadline warning",
+    message: "A payroll tax payment is nearing the late filing window.",
+    actionLabel: "Review taxes",
+    link: "/compliance/tax-filings",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "payroll.run.pending_approval",
+    category: "payroll",
+    label: "Payroll pending approval",
+    description: "A payroll run is waiting for approval.",
+    severity: "warning",
+    title: "Payroll needs approval",
+    message: "A payroll run is ready and awaiting manager approval.",
+    actionLabel: "Approve",
+    link: "/payroll/run",
+    defaultChannels: defaults,
+  },
+  {
+    type: "payroll.direct_deposit.failed",
+    category: "payroll",
+    label: "Direct deposit failed",
+    description: "A direct deposit payment failed.",
+    severity: "critical",
+    title: "Direct deposit failed",
+    message: "A direct deposit payment returned and requires correction.",
+    actionLabel: "Resolve",
+    link: "/payroll/history",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "payroll.employee.verification_needed",
+    category: "payroll",
+    label: "Employee verification needed",
+    description: "An employee must verify payroll details.",
+    severity: "warning",
+    title: "Employee verification needed",
+    message: "An employee needs to verify their payroll information before the run closes.",
+    actionLabel: "Review",
+    link: "/payroll/run",
+    defaultChannels: defaults,
+  },
+  {
+    type: "payroll.garnishment.added",
+    category: "payroll",
+    label: "Garnishment added",
+    description: "A wage garnishment was added.",
+    severity: "info",
+    title: "Garnishment added",
+    message: "A garnishment order was added to an employee payroll profile.",
+    actionLabel: "Open payroll",
+    link: "/payroll/garnishments",
+    defaultChannels: defaults,
+  },
+  {
+    type: "employee.hired",
+    category: "hr",
+    label: "Employee hired",
+    description: "A candidate became an employee.",
+    severity: "success",
+    title: "Employee hired",
+    message: "A new employee profile was created and onboarding can begin.",
+    actionLabel: "Open employee",
+    link: "/employees",
+    defaultChannels: defaults,
+  },
+  {
+    type: "employee.terminated",
+    category: "hr",
+    label: "Employee terminated",
+    description: "An employee termination was processed.",
+    severity: "warning",
+    title: "Employee termination processed",
+    message: "Offboarding, final pay, and access tasks are ready for review.",
+    actionLabel: "Review",
+    link: "/onboarding/offboarding",
+    defaultChannels: defaults,
+  },
+  {
+    type: "employee.birthday",
+    category: "hr",
+    label: "Employee birthday",
+    description: "An employee birthday reminder.",
+    severity: "info",
+    title: "Employee birthday today",
+    message: "An employee has a birthday today.",
+    actionLabel: "View team",
+    link: "/employees",
+    defaultChannels: { inApp: true, email: false, sms: false },
+  },
+  {
+    type: "employee.anniversary",
+    category: "hr",
+    label: "Employee anniversary",
+    description: "An employee work anniversary reminder.",
+    severity: "info",
+    title: "Work anniversary today",
+    message: "An employee is celebrating a work anniversary today.",
+    actionLabel: "View team",
+    link: "/employees",
+    defaultChannels: { inApp: true, email: false, sms: false },
+  },
+  {
+    type: "employee.profile_updated",
+    category: "hr",
+    label: "Employee profile updated",
+    description: "An employee profile changed.",
+    severity: "info",
+    title: "Employee profile updated",
+    message: "Profile details changed and may need review.",
+    actionLabel: "Open profile",
+    link: "/employees",
+    defaultChannels: defaults,
+  },
+  {
+    type: "employee.document_expiring",
+    category: "hr",
+    label: "Employee document expiring",
+    description: "A document such as I-9 expires within 30 days.",
+    severity: "warning",
+    title: "Employee document expiring",
+    message: "A required employee document expires within 30 days.",
+    actionLabel: "Review documents",
+    link: "/employees",
+    defaultChannels: defaults,
+  },
+  {
+    type: "employee.document_expired",
+    category: "hr",
+    label: "Employee document expired",
+    description: "A required employee document has expired.",
+    severity: "critical",
+    title: "Employee document expired",
+    message: "A required employee document has expired and needs immediate attention.",
+    actionLabel: "Fix document",
+    link: "/employees",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "ats.candidate.applied",
+    category: "hiring",
+    label: "Candidate applied",
+    description: "A candidate submitted an application.",
+    severity: "info",
+    title: "New candidate applied",
+    message: "A candidate submitted an application for an open role.",
+    actionLabel: "Review",
+    link: "/hiring/candidates",
+    defaultChannels: defaults,
+  },
+  {
+    type: "ats.interview.scheduled",
+    category: "hiring",
+    label: "Interview scheduled",
+    description: "An interview was scheduled.",
+    severity: "info",
+    title: "Interview scheduled",
+    message: "An interview has been added to the hiring calendar.",
+    actionLabel: "Open interviews",
+    link: "/hiring/interviews",
+    defaultChannels: defaults,
+  },
+  {
+    type: "ats.offer.accepted",
+    category: "hiring",
+    label: "Offer accepted",
+    description: "A candidate accepted an offer.",
+    severity: "success",
+    title: "Offer accepted",
+    message: "A candidate accepted an offer. Start onboarding when ready.",
+    actionLabel: "Start onboarding",
+    link: "/hiring/offers",
+    defaultChannels: defaults,
+  },
+  {
+    type: "ats.offer.declined",
+    category: "hiring",
+    label: "Offer declined",
+    description: "A candidate declined an offer.",
+    severity: "warning",
+    title: "Offer declined",
+    message: "A candidate declined an offer. Review the hiring pipeline.",
+    actionLabel: "Open offers",
+    link: "/hiring/offers",
+    defaultChannels: defaults,
+  },
+  {
+    type: "ats.job.posted",
+    category: "hiring",
+    label: "Job posted",
+    description: "A job was posted to boards.",
+    severity: "success",
+    title: "Job posted",
+    message: "A job was published and is accepting applicants.",
+    actionLabel: "View job",
+    link: "/hiring/jobs",
+    defaultChannels: defaults,
+  },
+  {
+    type: "ats.candidate.moved_stage",
+    category: "hiring",
+    label: "Candidate moved stage",
+    description: "A candidate moved to another pipeline stage.",
+    severity: "info",
+    title: "Candidate stage updated",
+    message: "A candidate moved to a new hiring stage.",
+    actionLabel: "Open pipeline",
+    link: "/hiring/jobs",
+    defaultChannels: defaults,
+  },
+  {
+    type: "onboarding.task.completed",
+    category: "onboarding",
+    label: "Onboarding task completed",
+    description: "A new-hire onboarding task was completed.",
+    severity: "success",
+    title: "Onboarding task completed",
+    message: "A new-hire onboarding task was completed.",
+    actionLabel: "Open onboarding",
+    link: "/onboarding",
+    defaultChannels: defaults,
+  },
+  {
+    type: "onboarding.prehire.overdue",
+    category: "onboarding",
+    label: "Pre-hire overdue",
+    description: "A pre-hire onboarding task is overdue.",
+    severity: "warning",
+    title: "Pre-hire task overdue",
+    message: "A pre-hire task is overdue and needs follow-up.",
+    actionLabel: "Follow up",
+    link: "/onboarding",
+    defaultChannels: defaults,
+  },
+  {
+    type: "onboarding.day1.approaching",
+    category: "onboarding",
+    label: "Day 1 approaching",
+    description: "A new hire starts soon.",
+    severity: "info",
+    title: "Day 1 approaching",
+    message: "A new hire starts soon. Confirm onboarding is ready.",
+    actionLabel: "Review tasks",
+    link: "/onboarding",
+    defaultChannels: defaults,
+  },
+  {
+    type: "benefits.enrollment.opened",
+    category: "benefits",
+    label: "Enrollment opened",
+    description: "Benefits enrollment opened.",
+    severity: "info",
+    title: "Benefits enrollment opened",
+    message: "Open enrollment is live for eligible employees.",
+    actionLabel: "Open benefits",
+    link: "/benefits/oe",
+    defaultChannels: defaults,
+  },
+  {
+    type: "benefits.enrollment.closing_soon",
+    category: "benefits",
+    label: "Enrollment closing soon",
+    description: "Benefits enrollment closes soon.",
+    severity: "warning",
+    title: "Benefits enrollment closing soon",
+    message: "Open enrollment closes soon. Employees may still need reminders.",
+    actionLabel: "View enrollment",
+    link: "/benefits/oe",
+    defaultChannels: defaults,
+  },
+  {
+    type: "benefits.enrollment.completed",
+    category: "benefits",
+    label: "Enrollment completed",
+    description: "An employee completed benefits enrollment.",
+    severity: "success",
+    title: "Benefits enrollment completed",
+    message: "An employee completed benefit elections.",
+    actionLabel: "Review elections",
+    link: "/benefits/enrollment",
+    defaultChannels: defaults,
+  },
+  {
+    type: "benefits.qle.submitted",
+    category: "benefits",
+    label: "QLE submitted",
+    description: "A qualifying life event was submitted.",
+    severity: "warning",
+    title: "Qualifying life event submitted",
+    message: "An employee submitted a QLE and needs review.",
+    actionLabel: "Review QLE",
+    link: "/benefits/qle",
+    defaultChannels: defaults,
+  },
+  {
+    type: "benefits.cobra.notice_required",
+    category: "benefits",
+    label: "COBRA notice required",
+    description: "A COBRA notice must be sent.",
+    severity: "critical",
+    title: "COBRA notice required",
+    message: "A COBRA notice is required for a qualifying event.",
+    actionLabel: "Prepare notice",
+    link: "/benefits/cobra",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "time.pto.requested",
+    category: "time",
+    label: "PTO requested",
+    description: "A PTO request was submitted.",
+    severity: "info",
+    title: "PTO request submitted",
+    message: "An employee submitted a PTO request.",
+    actionLabel: "Review PTO",
+    link: "/time/pto",
+    defaultChannels: defaults,
+  },
+  {
+    type: "time.pto.approved",
+    category: "time",
+    label: "PTO approved",
+    description: "A PTO request was approved.",
+    severity: "success",
+    title: "PTO approved",
+    message: "A PTO request was approved.",
+    actionLabel: "Open PTO",
+    link: "/time/pto",
+    defaultChannels: defaults,
+  },
+  {
+    type: "time.pto.denied",
+    category: "time",
+    label: "PTO denied",
+    description: "A PTO request was denied.",
+    severity: "warning",
+    title: "PTO denied",
+    message: "A PTO request was denied.",
+    actionLabel: "Open PTO",
+    link: "/time/pto",
+    defaultChannels: defaults,
+  },
+  {
+    type: "time.timesheet.overdue",
+    category: "time",
+    label: "Timesheet overdue",
+    description: "A timesheet is overdue.",
+    severity: "warning",
+    title: "Timesheet overdue",
+    message: "A timesheet is overdue and needs submission.",
+    actionLabel: "Open timesheets",
+    link: "/time/timesheets",
+    defaultChannels: defaults,
+  },
+  {
+    type: "time.overtime.threshold",
+    category: "time",
+    label: "Overtime threshold",
+    description: "An employee is approaching or over overtime threshold.",
+    severity: "warning",
+    title: "Overtime threshold reached",
+    message: "An employee is approaching the weekly overtime threshold.",
+    actionLabel: "Review overtime",
+    link: "/time/overtime",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "time.schedule.published",
+    category: "time",
+    label: "Schedule published",
+    description: "A work schedule was published.",
+    severity: "success",
+    title: "Schedule published",
+    message: "The weekly schedule was published and employees were notified.",
+    actionLabel: "Open schedule",
+    link: "/time/schedule",
+    defaultChannels: defaults,
+  },
+  {
+    type: "expense.submitted",
+    category: "expenses",
+    label: "Expense submitted",
+    description: "An expense was submitted for approval.",
+    severity: "info",
+    title: "Expense submitted",
+    message: "An employee submitted an expense report.",
+    actionLabel: "Review",
+    link: "/expenses",
+    defaultChannels: defaults,
+  },
+  {
+    type: "expense.approved",
+    category: "expenses",
+    label: "Expense approved",
+    description: "An expense was approved.",
+    severity: "success",
+    title: "Expense approved",
+    message: "An expense report was approved.",
+    actionLabel: "Open expenses",
+    link: "/expenses",
+    defaultChannels: defaults,
+  },
+  {
+    type: "expense.denied",
+    category: "expenses",
+    label: "Expense denied",
+    description: "An expense was denied.",
+    severity: "warning",
+    title: "Expense denied",
+    message: "An expense report was denied.",
+    actionLabel: "Open expenses",
+    link: "/expenses",
+    defaultChannels: defaults,
+  },
+  {
+    type: "expense.over_policy",
+    category: "expenses",
+    label: "Expense over policy",
+    description: "An expense exceeded policy.",
+    severity: "warning",
+    title: "Expense over policy",
+    message: "An expense report exceeded policy limits.",
+    actionLabel: "Review policy",
+    link: "/expenses/policies",
+    defaultChannels: defaults,
+  },
+  {
+    type: "compliance.alert.critical",
+    category: "compliance",
+    label: "Critical compliance alert",
+    description: "A critical compliance alert was created.",
+    severity: "critical",
+    title: "Critical compliance alert",
+    message: "A critical compliance issue needs immediate review.",
+    actionLabel: "Review alert",
+    link: "/compliance/dashboard",
+    defaultChannels: smsForCritical,
+  },
+  {
+    type: "compliance.alert.warning",
+    category: "compliance",
+    label: "Compliance warning",
+    description: "A compliance warning was created.",
+    severity: "warning",
+    title: "Compliance warning",
+    message: "A compliance item needs attention.",
+    actionLabel: "Review",
+    link: "/compliance/dashboard",
+    defaultChannels: defaults,
+  },
+  {
+    type: "compliance.filing.due",
+    category: "compliance",
+    label: "Compliance filing due",
+    description: "A compliance filing deadline is approaching.",
+    severity: "warning",
+    title: "Compliance filing due",
+    message: "A compliance filing deadline is approaching.",
+    actionLabel: "Open filing",
+    link: "/compliance/federal-filings",
+    defaultChannels: defaults,
+  },
+  {
+    type: "compliance.filing.completed",
+    category: "compliance",
+    label: "Compliance filing completed",
+    description: "A compliance filing was completed.",
+    severity: "success",
+    title: "Compliance filing completed",
+    message: "A compliance filing was completed successfully.",
+    actionLabel: "View filing",
+    link: "/compliance/federal-filings",
+    defaultChannels: defaults,
+  },
+  {
+    type: "compliance.i9.expiring",
+    category: "compliance",
+    label: "I-9 expiring",
+    description: "An I-9 document is expiring.",
+    severity: "warning",
+    title: "I-9 expiring",
+    message: "An employee I-9 document is expiring soon.",
+    actionLabel: "Review I-9",
+    link: "/compliance/i9",
+    defaultChannels: defaults,
+  },
+  {
+    type: "system.maintenance",
+    category: "system",
+    label: "System maintenance",
+    description: "Scheduled maintenance is upcoming.",
+    severity: "info",
+    title: "Scheduled maintenance",
+    message: "CircleWorks maintenance is scheduled for an upcoming window.",
+    actionLabel: "View status",
+    link: "/status",
+    defaultChannels: defaults,
+  },
+  {
+    type: "system.new_feature",
+    category: "system",
+    label: "New feature",
+    description: "A new feature is available.",
+    severity: "success",
+    title: "New feature available",
+    message: "A new CircleWorks feature is ready to use.",
+    actionLabel: "Learn more",
+    link: "/changelog",
+    defaultChannels: { inApp: true, email: false, sms: false },
+  },
+  {
+    type: "billing.invoice.created",
+    category: "billing",
+    label: "Invoice created",
+    description: "A billing invoice was created.",
+    severity: "info",
+    title: "Invoice created",
+    message: "A new billing invoice is ready.",
+    actionLabel: "Open billing",
+    link: "/settings/billing",
+    defaultChannels: defaults,
+  },
+  {
+    type: "billing.payment.failed",
+    category: "billing",
+    label: "Billing payment failed",
+    description: "A billing payment failed.",
+    severity: "critical",
+    title: "Billing payment failed",
+    message: "A billing payment failed. Update payment details to avoid interruption.",
+    actionLabel: "Fix payment",
+    link: "/settings/billing",
+    defaultChannels: smsForCritical,
+  },
+] as const satisfies readonly NotificationDefinition[];
+
+export const notificationDefinitionByType: Map<string, NotificationDefinition> = new Map(
+  notificationDefinitions.map((definition) => [definition.type, definition]),
+);
+
+export const notificationCategories: Array<{
+  value: NotificationCategory;
+  label: string;
+}> = [
+  { value: "payroll", label: "Payroll" },
+  { value: "hr", label: "HR / Employees" },
+  { value: "hiring", label: "Hiring / ATS" },
+  { value: "onboarding", label: "Onboarding" },
+  { value: "benefits", label: "Benefits" },
+  { value: "time", label: "Time" },
+  { value: "expenses", label: "Expenses" },
+  { value: "compliance", label: "Compliance" },
+  { value: "system", label: "System" },
+  { value: "billing", label: "Billing" },
+];
+
+export function getNotificationDefinition(type: string) {
+  return notificationDefinitionByType.get(type) ?? notificationDefinitionByType.get("system.new_feature")!;
+}
+
+export function getNotificationPreferencesDefaults(): NotificationPreference[] {
+  return notificationDefinitions.map((definition) => ({
+    type: definition.type,
+    category: definition.category,
+    label: definition.label,
+    description: definition.description,
+    ...definition.defaultChannels,
+  }));
+}
+
+export function createDemoNotifications(now = new Date()): NotificationRecord[] {
+  const offsets = [2, 11, 27, 45, 64, 93, 140, 180, 230, 320, 480, 720, 920, 1200];
+  const demoTypes = [
+    "payroll.run.pending_approval",
+    "time.pto.requested",
+    "compliance.alert.critical",
+    "ats.candidate.applied",
+    "expense.over_policy",
+    "benefits.enrollment.closing_soon",
+    "employee.document_expiring",
+    "time.overtime.threshold",
+    "payroll.direct_deposit.failed",
+    "onboarding.day1.approaching",
+    "system.new_feature",
+    "billing.invoice.created",
+    "employee.anniversary",
+    "time.schedule.published",
+  ];
+
+  return demoTypes.map((type, index) => {
+    const definition = getNotificationDefinition(type);
+    return {
+      id: `demo-${definition.type}`,
+      type: definition.type,
+      category: definition.category,
+      title: definition.title,
+      message: definition.message,
+      timestamp: new Date(now.getTime() - offsets[index] * 60 * 1000).toISOString(),
+      isRead: index > 5,
+      link: definition.link,
+      actionLabel: definition.actionLabel,
+      severity: definition.severity,
+      metadata: { source: "demo" },
+    };
+  });
+}

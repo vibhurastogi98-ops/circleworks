@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSocketStore } from '@/store/useSocketStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useDashboardRealtimeStore } from '@/store/useDashboardRealtimeStore';
+import { getNotificationDefinition, notificationDefinitions } from '@/lib/notifications/registry';
 import { toast } from 'sonner';
 
 export const useWebSocketEvents = () => {
@@ -11,6 +12,29 @@ export const useWebSocketEvents = () => {
   const { on, off } = useSocketStore();
   const { addNotification } = useNotificationStore();
   const { setPayrollStatus, incrementEmployeeDelta, incrementNotificationDelta } = useDashboardRealtimeStore();
+
+  const showRealtimeNotification = (notification: ReturnType<typeof addNotification>) => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      new Notification(notification.title, {
+        body: notification.message,
+        tag: notification.id,
+      });
+    }
+
+    toast.info(notification.title, {
+      description: notification.message,
+      duration: 4000,
+      position: "bottom-right",
+      action: notification.link
+        ? {
+            label: notification.actionLabel || "Open",
+            onClick: () => {
+              window.location.href = notification.link;
+            },
+          }
+        : undefined,
+    });
+  };
 
   /** Sec. 02 — after WS reconnect, REST catch-up then refresh client caches */
   useEffect(() => {
@@ -203,16 +227,33 @@ export const useWebSocketEvents = () => {
     };
 
     // Notification Events
-    const handleNotificationNew = (data: { notification?: any; title?: string; description?: string }) => {
-      const notification = data.notification ?? {
-        type: "INFO",
-        title: data.title ?? "New notification",
-        description: data.description ?? "A new dashboard notification was received.",
-      };
-      addNotification(notification);
+    const handleTypedNotification = (eventType: string, data: any) => {
+      const definition = getNotificationDefinition(eventType);
+      const notification = addNotification({
+        type: eventType,
+        category: data?.category ?? definition.category,
+        title: data?.title ?? definition.title,
+        message: data?.message ?? data?.description ?? definition.message,
+        link: data?.link ?? data?.url ?? definition.link,
+        actionLabel: data?.actionLabel ?? definition.actionLabel,
+        severity: data?.severity ?? definition.severity,
+        metadata: data,
+      });
       incrementNotificationDelta();
       queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] });
-      toast.info(notification.title);
+      showRealtimeNotification(notification);
+    };
+
+    const handleNotificationNew = (data: { notification?: any; title?: string; description?: string }) => {
+      const notification = data.notification ?? {
+        type: "system.new_feature",
+        title: data.title ?? "New notification",
+        message: data.description ?? "A new dashboard notification was received.",
+      };
+      const created = addNotification(notification);
+      incrementNotificationDelta();
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      showRealtimeNotification(created);
     };
 
     const handleNotificationBatchUpdate = (data: any) => {
@@ -347,6 +388,12 @@ export const useWebSocketEvents = () => {
     on('notification.new', handleNotificationNew);
     on('notification.batch_update', handleNotificationBatchUpdate);
 
+    const typedNotificationHandlers = notificationDefinitions.map((definition) => {
+      const handler = (data: any) => handleTypedNotification(definition.type, data);
+      on(definition.type, handler);
+      return { event: definition.type, handler };
+    });
+
     on('compliance.alert.new', handleComplianceAlertNew);
 
     on('system.maintenance.scheduled', handleSystemMaintenanceScheduled);
@@ -388,6 +435,8 @@ export const useWebSocketEvents = () => {
 
       off('notification.new', handleNotificationNew);
       off('notification.batch_update', handleNotificationBatchUpdate);
+
+      typedNotificationHandlers.forEach(({ event, handler }) => off(event, handler));
 
       off('compliance.alert.new', handleComplianceAlertNew);
 

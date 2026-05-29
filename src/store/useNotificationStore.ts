@@ -1,227 +1,174 @@
 import { create } from "zustand";
 
 import {
-  employees,
-  getEmployeeName,
-  getHeadcountEmployees,
-  getMonthlyGrossPayroll,
-} from "@/lib/hris-module-data";
+  createDemoNotifications,
+  getNotificationDefinition,
+  type NotificationCategory,
+  type NotificationRecord,
+  type NotificationSeverity,
+} from "@/lib/notifications/registry";
 
-export type NotificationCategory = 
-  | "ALL" 
-  | "PAYROLL" 
-  | "HR" 
-  | "APPROVALS" 
-  | "ATS" 
-  | "ONBOARDING" 
-  | "BENEFITS" 
-  | "COMPLIANCE" 
-  | "SYSTEM" 
-  | "INFO";
+export type { NotificationCategory, NotificationRecord };
 
-export type NotificationStatus = "pending" | "approved" | "rejected";
-
-export interface NotificationItem {
-  id: string;
-  type: NotificationCategory;
-  title: string;
-  description: string;
-  timestamp: string; // ISO string
-  isRead: boolean;
-  link?: string;
-  status?: NotificationStatus; // For Approval items
-  metadata?: Record<string, any>;
-}
-
-function getDefaultNotificationLink(type: NotificationCategory) {
-  const links: Record<NotificationCategory, string> = {
-    ALL: "/dashboard",
-    PAYROLL: "/payroll",
-    HR: "/employees",
-    APPROVALS: "/time/approvals",
-    ATS: "/hiring",
-    ONBOARDING: "/onboarding",
-    BENEFITS: "/benefits",
-    COMPLIANCE: "/compliance/dashboard",
-    SYSTEM: "/settings/integrations",
-    INFO: "/dashboard",
-  };
-
-  return links[type] ?? "/dashboard";
-}
-
-interface NotificationState {
-  notifications: NotificationItem[];
-  unreadCount: number;
-  addNotification: (notification: Omit<NotificationItem, "id" | "timestamp" | "isRead">) => void;
-  incrementUnreadCount: () => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  muteType: (type: NotificationCategory) => void;
-  deleteNotification: (id: string) => void;
-  approveRequest: (id: string) => void;
-  rejectRequest: (id: string) => void;
-}
-
-// Generate realistic mock data using the comprehensive registry
-const generateMockNotifications = (): NotificationItem[] => {
-  const now = new Date();
-  const subHours = (h: number) => new Date(now.getTime() - h * 60 * 60 * 1000).toISOString();
-  const headcount = getHeadcountEmployees().length;
-  const monthlyGross = getMonthlyGrossPayroll();
-  const payrollRunAmount = Math.round(monthlyGross / 2);
-  const payrollTaxDue = Math.round(monthlyGross * 0.2);
-  const maya = getEmployeeName(employees[0]);
-  const avery = getEmployeeName(employees[1]);
-  const priya = getEmployeeName(employees[4]);
-  const chris = getEmployeeName(employees[5]);
-  const jordan = getEmployeeName(employees[7]);
-  
-  const rawItems = [
-    // PAYROLL
-    { type: "PAYROLL", title: "Payroll run approved", description: "Finance Manager approved your payroll run → Run it now", h: 0.1, read: false },
-    { type: "PAYROLL", title: "Payroll processed", description: `${headcount} employees paid. $${payrollRunAmount.toLocaleString()} processed. View report.`, h: 1.5, read: false },
-    { type: "PAYROLL", title: "Payroll error", description: "1 employee has a direct deposit issue. Review and re-run.", h: 2.2, read: false },
-    { type: "PAYROLL", title: "Employee verified pay", description: `${avery} verified their upcoming paycheck.`, h: 4, read: true },
-    { type: "PAYROLL", title: "Employee flagged pay", description: `${chris} flagged an issue with his paycheck. Review.`, h: 6.5, read: false },
-    { type: "PAYROLL", title: "Tax filing completed", description: "941 Q2 filed successfully. Confirmation: #12345.", h: 22, read: true },
-    { type: "PAYROLL", title: "Tax payment due", description: `Federal tax payment of $${payrollTaxDue.toLocaleString()} due in 3 days.`, h: 26, read: false },
-    { type: "PAYROLL", title: "Direct deposit failed", description: "Direct deposit for 1 employee returned. Action needed.", h: 30, read: false },
-
-    // HR
-    { type: "HR", title: "New employee added", description: `${priya} (${employees[4].title}) added. Onboarding tasks created.`, h: 0.8, read: false },
-    { type: "HR", title: "Employee termination workflow", description: `${chris} final pay checklist started.`, h: 5, read: true },
-    { type: "HR", title: "I-9 expiring", description: `${priya}'s work authorization expires in 14 days.`, h: 24, read: false },
-    { type: "HR", title: "Work anniversary", description: `${maya}'s work anniversary is today. Send kudos?`, h: 25, read: true },
-    { type: "HR", title: "Birthday", description: `Today is ${jordan}'s birthday.`, h: 28, read: true },
-    { type: "HR", title: "Job change pending approval", description: `Promotion request for ${avery} awaits your approval.`, h: 48, read: false },
-
-    // APPROVALS
-    { type: "APPROVALS", title: "PTO request", description: `${jordan} requested 3 days off (Jul 4-6). Approve / Deny`, h: 0.5, read: false, status: "pending" as NotificationStatus },
-    { type: "APPROVALS", title: "Timesheet submitted", description: "2 timesheets await your approval. Review now.", h: 3, read: false, status: "pending" as NotificationStatus },
-    { type: "APPROVALS", title: "Expense report", description: `${chris} submitted $450 expense report. Review.`, h: 8, read: false, status: "pending" as NotificationStatus },
-    { type: "APPROVALS", title: "Job offer to approve", description: "Offer letter for Candidate #234 awaits your approval.", h: 32, read: true, status: "approved" as NotificationStatus },
-    { type: "APPROVALS", title: "Payroll approval needed", description: "April 15 payroll run needs your approval. Review.", h: 54, read: false, status: "pending" as NotificationStatus },
-
-    // ATS
-    { type: "ATS", title: "New application", description: "15 new applications for Senior Engineer role.", h: 2.5, read: false },
-    { type: "ATS", title: "Offer accepted", description: "David Lee accepted offer for Sales Manager. Start onboarding?", h: 7, read: true },
-    { type: "ATS", title: "Offer declined", description: "Candidate declined offer for Engineer role.", h: 46, read: true },
-    { type: "ATS", title: "Interview scheduled", description: "Interview with Sarah M. scheduled for tomorrow 2pm.", h: 72, read: true },
-
-    // ONBOARDING
-    { type: "ONBOARDING", title: "Pre-boarding incomplete", description: "Alex Chen has 3 tasks remaining. 2 days until start date.", h: 10, read: false },
-    { type: "ONBOARDING", title: "Background check complete", description: "Background check for Tom Lee: Clear.", h: 23, read: true },
-    { type: "ONBOARDING", title: "Background check flagged", description: "Background check for Maria J. returned issues. Review.", h: 27, read: false },
-    { type: "ONBOARDING", title: "Onboarding overdue", description: "3 tasks overdue for Alex Chen's onboarding.", h: 60, read: false },
-
-    // BENEFITS
-    { type: "BENEFITS", title: "Open enrollment starting", description: "Benefits open enrollment starts in 3 days. Set it up.", h: 4.5, read: false },
-    { type: "BENEFITS", title: "Enrollment deadline", description: `Open enrollment closes in 48 hours. ${Math.max(1, headcount - 6)} employees haven't enrolled.`, h: 50, read: false },
-    { type: "BENEFITS", title: "COBRA notice due", description: `COBRA notice for ${chris} must be sent within 14 days.`, h: 74, read: false },
-    { type: "BENEFITS", title: "QLE submitted", description: `${avery} submitted a qualifying life event. Review benefits.`, h: 96, read: true },
-
-    // COMPLIANCE
-    { type: "COMPLIANCE", title: "ACA filing due", description: "1094-C + 1095-C due March 31. 90% complete.", h: 12, read: false },
-    { type: "COMPLIANCE", title: "New hire report due", description: "New hire report for 1 employee due within 7 days.", h: 36, read: false },
-    { type: "COMPLIANCE", title: "State law change", description: `California minimum wage increases Jan 1. ${headcount} employees reviewed.`, h: 80, read: true },
-    { type: "COMPLIANCE", title: "Labor poster update", description: "Updated federal labor posters available. Download now.", h: 120, read: true },
-    { type: "COMPLIANCE", title: "Handbook signature missing", description: `${Math.max(1, headcount - 6)} employees haven't signed the updated handbook.`, h: 140, read: false },
-
-    // SYSTEM
-    { type: "SYSTEM", title: "Integration error", description: "QuickBooks sync failed. Check connection settings.", h: 1.2, read: false },
-    { type: "SYSTEM", title: "Bank account updated", description: `Direct deposit banking info was updated for ${jordan}. Review.`, h: 18, read: true },
-    { type: "SYSTEM", title: "Large data export", description: "Your employee data export is ready to download.", h: 200, read: true },
-    { type: "SYSTEM", title: "Plan upgraded", description: "Your account was upgraded to Pro. New features unlocked!", h: 300, read: true },
-  ];
-
-  const items: NotificationItem[] = rawItems.map((item, index) => ({
-    id: `notif-${index + 1}`,
-    type: item.type as NotificationCategory,
-    title: item.title,
-    description: item.description,
-    timestamp: subHours(item.h),
-    isRead: item.read,
-    status: item.status,
-    link: getDefaultNotificationLink(item.type as NotificationCategory)
-  }));
-
-  // Sort them so recent comes first, though h logic already does that.
-  items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  return items;
+export type IncomingNotification = Partial<NotificationRecord> & {
+  description?: string;
+  createdAt?: string;
+  eventType?: string;
 };
 
-export const useNotificationStore = create<NotificationState>((set) => ({
-  notifications: generateMockNotifications(),
-  unreadCount: generateMockNotifications().filter(n => !n.isRead).length,
+type NotificationState = {
+  notifications: NotificationRecord[];
+  unreadCount: number;
+  isLoading: boolean;
+  lastLoadedAt: string | null;
+  loadNotifications: () => Promise<void>;
+  addNotification: (notification: IncomingNotification) => NotificationRecord;
+  setNotifications: (notifications: NotificationRecord[]) => void;
+  markAsRead: (id: string) => void;
+  markVisibleAsRead: (ids: string[]) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  clearNotifications: () => void;
+};
 
-  addNotification: (notification) => set((state) => {
-    const newNotif: NotificationItem = {
-      ...notification,
-      id: `live-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      isRead: false,
-    };
-    const updated = [newNotif, ...state.notifications];
-    return {
-      notifications: updated,
-      unreadCount: updated.filter(n => !n.isRead).length
-    };
-  }),
+function normalizeCategory(value: unknown, fallback: NotificationCategory): NotificationCategory {
+  const categories: NotificationCategory[] = [
+    "payroll",
+    "hr",
+    "hiring",
+    "onboarding",
+    "benefits",
+    "time",
+    "expenses",
+    "compliance",
+    "system",
+    "billing",
+  ];
+  return categories.includes(value as NotificationCategory) ? (value as NotificationCategory) : fallback;
+}
 
-  incrementUnreadCount: () => set((state) => ({
-    unreadCount: state.unreadCount + 1,
-  })),
+function normalizeSeverity(value: unknown, fallback: NotificationSeverity): NotificationSeverity {
+  const severities: NotificationSeverity[] = ["success", "info", "warning", "critical"];
+  return severities.includes(value as NotificationSeverity) ? (value as NotificationSeverity) : fallback;
+}
 
-  markAsRead: (id) => set((state) => {
-    const updated = state.notifications.map(n => 
-      n.id === id ? { ...n, isRead: true } : n
-    );
-    return {
-      notifications: updated,
-      unreadCount: updated.filter(n => !n.isRead).length
-    };
-  }),
+function sortNotifications(notifications: NotificationRecord[]) {
+  return [...notifications].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
+}
 
-  markAllAsRead: () => set((state) => ({
-    notifications: state.notifications.map(n => ({ ...n, isRead: true })),
-    unreadCount: 0
-  })),
+function getUnreadCount(notifications: NotificationRecord[]) {
+  return notifications.filter((notification) => !notification.isRead).length;
+}
 
-  muteType: (type) => set((state) => {
-    const updated = state.notifications.filter(n => n.type !== type);
-    return {
-      notifications: updated,
-      unreadCount: updated.filter(n => !n.isRead).length
-    };
-  }),
+function normalizeIncoming(notification: IncomingNotification): NotificationRecord {
+  const type = notification.type ?? notification.eventType ?? "system.new_feature";
+  const definition = getNotificationDefinition(type);
 
-  deleteNotification: (id) => set((state) => {
-    const updated = state.notifications.filter(n => n.id !== id);
-    return {
-      notifications: updated,
-      unreadCount: updated.filter(n => !n.isRead).length
-    };
-  }),
+  return {
+    id: notification.id ?? `live-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: definition.type,
+    category: normalizeCategory(notification.category, definition.category),
+    title: notification.title ?? definition.title,
+    message: notification.message ?? notification.description ?? definition.message,
+    timestamp: notification.timestamp ?? notification.createdAt ?? new Date().toISOString(),
+    isRead: notification.isRead ?? false,
+    link: notification.link ?? definition.link,
+    actionLabel: notification.actionLabel ?? definition.actionLabel,
+    severity: normalizeSeverity(notification.severity, definition.severity),
+    metadata: notification.metadata,
+  };
+}
 
-  approveRequest: (id) => set((state) => {
-    const updated = state.notifications.map(n => 
-      (n.id === id && n.type === "APPROVALS") ? { ...n, status: "approved" as NotificationStatus, isRead: true } : n
-    );
-    return {
-      notifications: updated,
-      unreadCount: updated.filter(n => !n.isRead).length
-    };
-  }),
+async function persistReadState(ids?: string[]) {
+  try {
+    await fetch("/api/notifications/mark-read", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ids?.length ? { ids } : { all: true }),
+    });
+  } catch {
+    // Optimistic UI should not be rolled back for transient read-receipt failures.
+  }
+}
 
-  rejectRequest: (id) => set((state) => {
-    const updated = state.notifications.map(n => 
-      (n.id === id && n.type === "APPROVALS") ? { ...n, status: "rejected" as NotificationStatus, isRead: true } : n
-    );
-    return {
-      notifications: updated,
-      unreadCount: updated.filter(n => !n.isRead).length
-    };
-  }),
+export const useNotificationStore = create<NotificationState>((set, get) => ({
+  notifications: createDemoNotifications(),
+  unreadCount: createDemoNotifications().filter((notification) => !notification.isRead).length,
+  isLoading: false,
+  lastLoadedAt: null,
+
+  loadNotifications: async () => {
+    set({ isLoading: true });
+    try {
+      const response = await fetch("/api/notifications", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to load notifications");
+      const data = (await response.json()) as { notifications?: IncomingNotification[] };
+      const notifications = sortNotifications((data.notifications ?? []).map(normalizeIncoming));
+      set({
+        notifications: notifications.length ? notifications : createDemoNotifications(),
+        unreadCount: getUnreadCount(notifications.length ? notifications : createDemoNotifications()),
+        lastLoadedAt: new Date().toISOString(),
+      });
+    } catch {
+      const fallback = createDemoNotifications();
+      set({
+        notifications: fallback,
+        unreadCount: getUnreadCount(fallback),
+        lastLoadedAt: new Date().toISOString(),
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  addNotification: (incoming) => {
+    const notification = normalizeIncoming(incoming);
+    set((state) => {
+      const withoutDuplicate = state.notifications.filter((item) => item.id !== notification.id);
+      const notifications = sortNotifications([notification, ...withoutDuplicate]);
+      return {
+        notifications,
+        unreadCount: getUnreadCount(notifications),
+      };
+    });
+    return notification;
+  },
+
+  setNotifications: (notifications) => {
+    const sorted = sortNotifications(notifications);
+    set({ notifications: sorted, unreadCount: getUnreadCount(sorted) });
+  },
+
+  markAsRead: (id) => {
+    set((state) => {
+      const notifications = state.notifications.map((notification) =>
+        notification.id === id ? { ...notification, isRead: true } : notification,
+      );
+      return { notifications, unreadCount: getUnreadCount(notifications) };
+    });
+    void persistReadState([id]);
+  },
+
+  markVisibleAsRead: async (ids) => {
+    if (!ids.length) return;
+    set((state) => {
+      const idSet = new Set(ids);
+      const notifications = state.notifications.map((notification) =>
+        idSet.has(notification.id) ? { ...notification, isRead: true } : notification,
+      );
+      return { notifications, unreadCount: getUnreadCount(notifications) };
+    });
+    await persistReadState(ids);
+  },
+
+  markAllAsRead: async () => {
+    set((state) => ({
+      notifications: state.notifications.map((notification) => ({ ...notification, isRead: true })),
+      unreadCount: 0,
+    }));
+    await persistReadState();
+  },
+
+  clearNotifications: () => set({ notifications: [], unreadCount: 0 }),
 }));

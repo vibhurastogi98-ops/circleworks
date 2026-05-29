@@ -31,6 +31,7 @@ export default async function proxy(request: NextRequest) {
 
   const protectedPrefixes = [
     "/dashboard",
+    "/app",
     "/me",
     "/employees",
     "/payroll",

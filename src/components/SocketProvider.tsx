@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { useSocketStore } from "@/store/useSocketStore";
 import { useWebSocketEvents } from "@/hooks/useWebSocketEvents";
 import { useAuth } from "@/context/AuthContext";
+import { usePlatformStore } from "@/store/usePlatformStore";
 
 interface SocketContextType {
   isConnected: boolean;
@@ -23,10 +24,12 @@ export const useSocket = () => useContext(SocketContext);
 
 export default function SocketProvider({ children }: { children: React.ReactNode }) {
   const isConnected = useSocketStore((s) => s.isConnected);
+  const socket = useSocketStore((s) => s.socket);
   const realtimeSyncPaused = useSocketStore((s) => s.realtimeSyncPaused);
   const disconnectAtMs = useSocketStore((s) => s.disconnectAtMs);
   const { connect, disconnect, manualReconnect } = useSocketStore();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, user } = useAuth();
+  const currentCompany = usePlatformStore((s) => s.currentCompany);
   const [now, setNow] = useState(() => Date.now());
 
   useWebSocketEvents();
@@ -41,6 +44,18 @@ export default function SocketProvider({ children }: { children: React.ReactNode
 
     connect("");
   }, [isLoaded, isSignedIn, connect, disconnect]);
+
+  useEffect(() => {
+    if (!socket || !isConnected || !user?.userId) return;
+
+    const rooms = [
+      `company:${currentCompany.id}`,
+      `user:${user.userId}`,
+    ];
+
+    socket.emit("join", { rooms });
+    socket.emit("notification.join", { rooms });
+  }, [socket, isConnected, user?.userId, currentCompany.id]);
 
   useEffect(() => {
     if (isConnected || !disconnectAtMs) return;

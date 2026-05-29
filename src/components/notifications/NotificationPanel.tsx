@@ -1,289 +1,229 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   Bell,
-  BellOff,
-  Check,
-  CheckSquare,
-  CircleDot,
+  BriefcaseBusiness,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
   DollarSign,
-  Info,
-  MoreVertical,
+  FileWarning,
+  Gift,
+  ReceiptText,
   Settings,
   ShieldAlert,
-  Trash2,
-  Users,
+  Sparkles,
+  UserRound,
+  UsersRound,
   X,
 } from "lucide-react";
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   type NotificationCategory,
-  type NotificationItem,
+  type NotificationRecord,
   useNotificationStore,
 } from "@/store/useNotificationStore";
 
-const TABS: Array<{ label: string; value: NotificationCategory | "ALL" }> = [
-  { label: "ALL", value: "ALL" },
-  { label: "APPROVALS", value: "APPROVALS" },
-  { label: "PAYROLL", value: "PAYROLL" },
-  { label: "COMPLIANCE", value: "COMPLIANCE" },
-  { label: "HR", value: "HR" },
+type NotificationTab = "all" | "payroll" | "hr" | "compliance" | "time" | "expenses" | "hiring";
+
+const TABS: Array<{ label: string; value: NotificationTab }> = [
+  { label: "All", value: "all" },
+  { label: "Payroll", value: "payroll" },
+  { label: "HR", value: "hr" },
+  { label: "Compliance", value: "compliance" },
+  { label: "Time", value: "time" },
+  { label: "Expenses", value: "expenses" },
+  { label: "Hiring", value: "hiring" },
 ];
 
-const PAGE_SIZE = 12;
-
-const CATEGORY_META: Record<
+const categoryMeta: Record<
   NotificationCategory,
   {
+    label: string;
+    border: string;
+    iconBg: string;
     icon: React.ElementType;
-    tone: string;
-    link: string;
   }
 > = {
-  ALL: { icon: Bell, tone: "bg-slate-100 text-slate-600", link: "/dashboard" },
-  APPROVALS: { icon: CheckSquare, tone: "bg-blue-50 text-blue-600", link: "/time/approvals" },
-  PAYROLL: { icon: DollarSign, tone: "bg-emerald-50 text-emerald-600", link: "/payroll" },
-  COMPLIANCE: { icon: ShieldAlert, tone: "bg-amber-50 text-amber-600", link: "/compliance/dashboard" },
-  HR: { icon: Users, tone: "bg-indigo-50 text-indigo-600", link: "/employees" },
-  ATS: { icon: Info, tone: "bg-violet-50 text-violet-600", link: "/hiring" },
-  ONBOARDING: { icon: Info, tone: "bg-pink-50 text-pink-600", link: "/onboarding" },
-  BENEFITS: { icon: Info, tone: "bg-rose-50 text-rose-600", link: "/benefits" },
-  SYSTEM: { icon: Info, tone: "bg-slate-100 text-slate-600", link: "/settings/integrations" },
-  INFO: { icon: Info, tone: "bg-sky-50 text-sky-600", link: "/dashboard" },
+  payroll: {
+    label: "Payroll",
+    border: "border-l-emerald-500",
+    iconBg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    icon: DollarSign,
+  },
+  hr: {
+    label: "HR",
+    border: "border-l-blue-500",
+    iconBg: "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+    icon: UserRound,
+  },
+  hiring: {
+    label: "Hiring",
+    border: "border-l-violet-500",
+    iconBg: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+    icon: BriefcaseBusiness,
+  },
+  onboarding: {
+    label: "Onboarding",
+    border: "border-l-cyan-500",
+    iconBg: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+    icon: UsersRound,
+  },
+  benefits: {
+    label: "Benefits",
+    border: "border-l-rose-500",
+    iconBg: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+    icon: Gift,
+  },
+  time: {
+    label: "Time",
+    border: "border-l-amber-500",
+    iconBg: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+    icon: Clock3,
+  },
+  expenses: {
+    label: "Expenses",
+    border: "border-l-fuchsia-500",
+    iconBg: "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-300",
+    icon: ReceiptText,
+  },
+  compliance: {
+    label: "Compliance",
+    border: "border-l-orange-500",
+    iconBg: "bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+    icon: ShieldAlert,
+  },
+  system: {
+    label: "System",
+    border: "border-l-slate-500",
+    iconBg: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    icon: Sparkles,
+  },
+  billing: {
+    label: "Billing",
+    border: "border-l-red-500",
+    iconBg: "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+    icon: CreditCard,
+  },
 };
+
+function cx(...classes: Array<string | false | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function getTabCategories(tab: NotificationTab): NotificationCategory[] | null {
+  if (tab === "all") return null;
+  if (tab === "hr") return ["hr", "onboarding", "benefits"];
+  return [tab];
+}
 
 function getRelativeTime(isoString: string) {
   const diffInSeconds = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
-  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 60) return "just now";
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
 
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInHours < 24) return `${diffInHours} hr ago`;
 
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 7) return `${diffInDays}d ago`;
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays === 1 ? "" : "s"} ago`;
 
-  return new Date(isoString).toLocaleDateString("en-US", {
+  return new Date(isoString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function fullTimestamp(isoString: string) {
+  return new Date(isoString).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
-function getGroup(isoString: string) {
-  const date = new Date(isoString);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-
-  if (date >= today) return "Today";
-  if (date >= yesterday) return "Yesterday";
-  if (date >= startOfWeek) return "Earlier this week";
-  return "Older";
-}
-
-function getNotificationLink(notification: NotificationItem) {
-  if (notification.link && notification.link !== "#") return notification.link;
-  return CATEGORY_META[notification.type]?.link ?? "/dashboard";
-}
-
-function NotificationIcon({ type }: { type: NotificationCategory }) {
-  const meta = CATEGORY_META[type] ?? CATEGORY_META.INFO;
-  const Icon = meta.icon;
-
-  return (
-    <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.tone}`}>
-      <Icon size={18} />
-    </div>
-  );
+function getItemIcon(notification: NotificationRecord) {
+  if (notification.type.includes("failed") || notification.type.includes("critical") || notification.type.includes("expired")) {
+    return FileWarning;
+  }
+  if (notification.type.includes("completed") || notification.type.includes("approved") || notification.type.includes("accepted")) {
+    return CheckCircle2;
+  }
+  if (notification.type.includes("scheduled") || notification.type.includes("due") || notification.type.includes("approaching")) {
+    return CalendarClock;
+  }
+  return categoryMeta[notification.category].icon;
 }
 
 function EmptyState() {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-      <div className="relative mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-500">
-        <Bell size={34} />
-        <span className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-blue-50" />
+    <div className="flex min-h-[360px] flex-col items-center justify-center px-8 text-center">
+      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-3xl shadow-inner dark:bg-blue-500/10">
+        🎉
       </div>
-      <h3 className="text-base font-bold text-slate-900 dark:text-white">You&apos;re all caught up!</h3>
+      <h3 className="text-sm font-black text-slate-950 dark:text-white">All caught up!</h3>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">No notifications in this view.</p>
     </div>
   );
 }
 
-function NotificationMenu({
-  notification,
-  onClose,
-}: {
-  notification: NotificationItem;
-  onClose: () => void;
-}) {
-  const { markAsRead, muteType, deleteNotification } = useNotificationStore();
+function NotificationItem({ notification, onClose }: { notification: NotificationRecord; onClose: () => void }) {
+  const meta = categoryMeta[notification.category];
+  const Icon = getItemIcon(notification);
+  const readClass = notification.isRead
+    ? "bg-white hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900"
+    : "bg-blue-50 hover:bg-blue-50/80 dark:bg-blue-500/10 dark:hover:bg-blue-500/15";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-      className="absolute right-0 top-8 z-[120] w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-900"
-    >
-      {!notification.isRead && (
-        <button
-          type="button"
-          onClick={() => {
-            markAsRead(notification.id);
-            onClose();
-          }}
-          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-        >
-          <CircleDot size={13} />
-          Mark as read
-        </button>
+    <article
+      className={cx(
+        "border-l-4 border-b border-slate-100 px-4 py-3 transition-colors dark:border-b-slate-800",
+        meta.border,
+        readClass,
       )}
-      <button
-        type="button"
-        onClick={() => {
-          muteType(notification.type);
-          onClose();
-        }}
-        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-      >
-        <BellOff size={13} />
-        Mute this type
-      </button>
-      <div className="my-1 h-px bg-slate-100 dark:bg-slate-800" />
-      <button
-        type="button"
-        onClick={() => {
-          deleteNotification(notification.id);
-          onClose();
-        }}
-        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-      >
-        <Trash2 size={13} />
-        Delete
-      </button>
-    </motion.div>
-  );
-}
-
-function NotificationRow({
-  notification,
-  menuOpenId,
-  setMenuOpenId,
-  onNavigate,
-}: {
-  notification: NotificationItem;
-  menuOpenId: string | null;
-  setMenuOpenId: (id: string | null) => void;
-  onNavigate: (notification: NotificationItem) => void;
-}) {
-  const { approveRequest, rejectRequest } = useNotificationStore();
-  const isUnread = !notification.isRead;
-  const isApproval = notification.type === "APPROVALS";
-  const menuIsOpen = menuOpenId === notification.id;
-
-  return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      onClick={() => onNavigate(notification)}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        setMenuOpenId(notification.id);
-      }}
-      className={`group relative cursor-pointer rounded-xl border p-3 transition-colors ${
-        isUnread
-          ? "border-blue-200 border-l-4 border-l-blue-600 bg-blue-50/70"
-          : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/70"
-      }`}
     >
       <div className="flex gap-3">
-        <NotificationIcon type={notification.type} />
-        <div className="min-w-0 flex-1 pr-7">
+        <div className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", meta.iconBg)}>
+          <Icon size={17} />
+        </div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="line-clamp-2 text-sm font-bold leading-5 text-slate-900 dark:text-white">
+            <h3 className="line-clamp-1 text-sm font-black text-slate-950 dark:text-white">
               {notification.title}
             </h3>
-            <span className="shrink-0 text-xs font-semibold text-slate-400">
+            <time
+              dateTime={notification.timestamp}
+              title={fullTimestamp(notification.timestamp)}
+              className="shrink-0 text-[11px] font-bold text-slate-400"
+            >
               {getRelativeTime(notification.timestamp)}
-            </span>
+            </time>
           </div>
           <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600 dark:text-slate-400">
-            {notification.description}
+            {notification.message}
           </p>
-
-          <div className="mt-3 flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-            {isApproval && notification.status === "pending" ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => approveRequest(notification.id)}
-                  className="rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-slate-900 dark:text-emerald-300"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  onClick={() => rejectRequest(notification.id)}
-                  className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 dark:border-red-500/30 dark:bg-slate-900 dark:text-red-300"
-                >
-                  Reject
-                </button>
-              </>
-            ) : isApproval && notification.status ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold capitalize text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {notification.status === "approved" ? <Check size={13} /> : <X size={13} />}
-                {notification.status}
-              </span>
-            ) : (
-              <Link
-                href={getNotificationLink(notification)}
-                onClick={(event) => {
-                  event.preventDefault();
-                  onNavigate(notification);
-                }}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400"
-              >
-                View
-              </Link>
-            )}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              {meta.label}
+            </span>
+            <Link
+              href={notification.link}
+              onClick={onClose}
+              className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              {notification.actionLabel || "Open"}
+              <ArrowRight size={13} />
+            </Link>
           </div>
         </div>
       </div>
-
-      <div className="absolute right-2 top-2" onClick={(event) => event.stopPropagation()}>
-        <button
-          type="button"
-          aria-label="Open notification menu"
-          onClick={() => setMenuOpenId(menuIsOpen ? null : notification.id)}
-          className={`flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white ${
-            menuIsOpen ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-white" : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-          }`}
-        >
-          <MoreVertical size={15} />
-        </button>
-        <AnimatePresence>
-          {menuIsOpen && (
-            <NotificationMenu
-              notification={notification}
-              onClose={() => setMenuOpenId(null)}
-            />
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.article>
+    </article>
   );
 }
 
@@ -294,147 +234,126 @@ export default function NotificationPanel({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const router = useRouter();
-  const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotificationStore();
-  const [activeTab, setActiveTab] = useState<NotificationCategory | "ALL">("ALL");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const {
+    notifications,
+    unreadCount,
+    loadNotifications,
+    markAllAsRead,
+    markVisibleAsRead,
+  } = useNotificationStore();
+  const [activeTab, setActiveTab] = React.useState<NotificationTab>("all");
+
+  useEffect(() => {
+    if (isOpen) void loadNotifications();
+  }, [isOpen, loadNotifications]);
 
   const filtered = useMemo(() => {
-    const visibleNotifications = activeTab === "ALL"
-      ? notifications
-      : notifications.filter((notification) => notification.type === activeTab);
-    return visibleNotifications.slice(0, visibleCount);
-  }, [activeTab, notifications, visibleCount]);
+    const categories = getTabCategories(activeTab);
+    if (!categories) return notifications;
+    return notifications.filter((notification) => categories.includes(notification.category));
+  }, [activeTab, notifications]);
 
-  const hasMore = activeTab === "ALL"
-    ? notifications.length > visibleCount
-    : notifications.filter((notification) => notification.type === activeTab).length > visibleCount;
+  const visibleNotifications = filtered.slice(0, 40);
 
-  const grouped = useMemo(() => {
-    return filtered.reduce<Record<string, NotificationItem[]>>((acc, notification) => {
-      const group = getGroup(notification.timestamp);
-      acc[group] = acc[group] ?? [];
-      acc[group].push(notification);
-      return acc;
-    }, {});
-  }, [filtered]);
-
-  const groupOrder = ["Today", "Yesterday", "Earlier this week", "Older"].filter(
-    (group) => grouped[group]?.length
-  );
-
-  const handleTabChange = (tab: NotificationCategory | "ALL") => {
-    setActiveTab(tab);
-    setVisibleCount(PAGE_SIZE);
-    setMenuOpenId(null);
-  };
-
-  const handleNavigate = (notification: NotificationItem) => {
-    markAsRead(notification.id);
-    onClose();
-    router.push(getNotificationLink(notification));
-  };
+  useEffect(() => {
+    if (!isOpen) return;
+    const unreadIds = visibleNotifications
+      .filter((notification) => !notification.isRead)
+      .map((notification) => notification.id);
+    if (unreadIds.length) void markVisibleAsRead(unreadIds);
+  }, [isOpen, markVisibleAsRead, visibleNotifications]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="flex flex-col border-l border-slate-200 dark:border-slate-800">
-        <header className="shrink-0 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-slate-900 dark:text-white">Notifications</h2>
-              {unreadCount > 0 && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-black text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
-                  {unreadCount}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={markAllAsRead}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-50 disabled:pointer-events-none disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-500/10"
-                disabled={unreadCount === 0}
-              >
-                Mark all read
-              </button>
-              <Link
-                href="/settings/notifications"
-                aria-label="Notification settings"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
-              >
-                <Settings size={17} />
-              </Link>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close notifications"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          <nav className="mt-4 flex gap-1 overflow-x-auto" aria-label="Notification filters">
-            {TABS.map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => handleTabChange(tab.value)}
-                className={`rounded-lg px-3 py-2 text-[11px] font-black tracking-wide transition-colors ${
-                  activeTab === tab.value
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </header>
-
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-[#0B1120]">
-          {filtered.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-5">
-              <AnimatePresence initial={false}>
-                {groupOrder.map((group) => (
-                  <section key={group} className="space-y-2">
-                    <h3 className="px-1 text-[11px] font-black uppercase tracking-widest text-slate-500">
-                      {group}
-                    </h3>
-                    <div className="space-y-2">
-                      {grouped[group].map((notification) => (
-                        <NotificationRow
-                          key={notification.id}
-                          notification={notification}
-                          menuOpenId={menuOpenId}
-                          setMenuOpenId={setMenuOpenId}
-                          onNavigate={handleNavigate}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </AnimatePresence>
-
-              {hasMore && (
-                <div className="flex justify-center pt-1">
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.button
+            type="button"
+            className="fixed inset-0 z-40 cursor-default bg-transparent"
+            aria-label="Close notifications"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.aside
+            initial={{ opacity: 0, y: -12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.16 }}
+            className="fixed right-4 top-[66px] z-50 flex max-h-[80vh] w-[calc(100vw-2rem)] max-w-[360px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+            role="dialog"
+            aria-label="Notifications"
+          >
+            <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="text-base font-black text-slate-950 dark:text-white">Notifications</h2>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    onClick={() => void markAllAsRead()}
+                    className="rounded-md px-2 py-1 text-xs font-black text-blue-600 hover:bg-blue-50 disabled:pointer-events-none disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                    disabled={unreadCount === 0}
                   >
-                    Load more
+                    Mark all read
+                  </button>
+                  <Link
+                    href="/app/settings/notifications"
+                    onClick={onClose}
+                    aria-label="Notification settings"
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white"
+                  >
+                    <Settings size={16} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Close notifications"
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white"
+                  >
+                    <X size={17} />
                   </button>
                 </div>
+              </div>
+
+              <nav className="mt-3 flex gap-1 overflow-x-auto pb-1" aria-label="Notification filters">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setActiveTab(tab.value)}
+                    className={cx(
+                      "shrink-0 rounded-md px-2.5 py-1.5 text-[11px] font-black transition-colors",
+                      activeTab === tab.value
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white",
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+              {visibleNotifications.length ? (
+                visibleNotifications.map((notification) => (
+                  <NotificationItem key={notification.id} notification={notification} onClose={onClose} />
+                ))
+              ) : (
+                <EmptyState />
               )}
             </div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

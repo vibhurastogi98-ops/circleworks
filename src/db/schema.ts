@@ -804,12 +804,46 @@ export const notifications = pgTable('notifications', {
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
   type: text('type').notNull(),
+  category: text('category').default('system'),
+  priority: text('priority').default('info'),
   title: text('title').notNull(),
   description: text('description').notNull(),
+  actionLabel: text('action_label'),
   link: text('link'),
+  metadata: text('metadata'),
   status: text('status'),
   isRead: boolean('is_read').default(false),
+  readAt: timestamp('read_at'),
+  emailDeliveryStatus: text('email_delivery_status').default('pending'),
+  emailDeliveredAt: timestamp('email_delivered_at'),
+  smsDeliveryStatus: text('sms_delivery_status').default('not_sent'),
+  smsDeliveredAt: timestamp('sms_delivered_at'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const notificationPreferences = pgTable('notification_preferences', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  notificationType: text('notification_type').notNull(),
+  category: text('category').default('system'),
+  inAppEnabled: boolean('in_app_enabled').default(true),
+  emailEnabled: boolean('email_enabled').default(true),
+  smsEnabled: boolean('sms_enabled').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const notificationDigestPreferences = pgTable('notification_digest_preferences', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  digestEnabled: boolean('digest_enabled').default(false),
+  digestFrequency: text('digest_frequency').default('realtime'),
+  digestTime: text('digest_time').default('08:00'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const announcementReads = pgTable('announcement_reads', {
@@ -851,6 +885,8 @@ export const assetAssignments = pgTable('asset_assignments', {
 
 export const usersRelations = relations(users, ({ many }) => ({
   employees: many(employees),
+  notificationPreferences: many(notificationPreferences),
+  notificationDigestPreferences: many(notificationDigestPreferences),
 }));
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -867,6 +903,9 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   ptoPolicies: many(ptoPolicies),
   ptoBalances: many(ptoBalances),
   ptoRequests: many(ptoRequests, { relationName: 'pto_request_employee' }),
+  notifications: many(notifications),
+  notificationPreferences: many(notificationPreferences),
+  notificationDigestPreferences: many(notificationDigestPreferences),
   benefitPlans: many(benefitPlans),
   benefitEnrollments: many(benefitEnrollments),
   benefitDependents: many(benefitDependents),
@@ -907,6 +946,7 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   expenseReports: many(expenseReports),
   ptoRequests: many(ptoRequests),
   ptoBalances: many(ptoBalances),
+  notifications: many(notifications),
   documents: many(employeeDocuments),
   bankAccounts: many(employeeBankAccounts),
   payrollItems: many(payrollItems),
@@ -1045,6 +1085,21 @@ export const benefitWorkersCompAuditsRelations = relations(benefitWorkersCompAud
 export const announcementsRelations = relations(announcements, ({ one, many }) => ({
   company: one(companies, { fields: [announcements.companyId], references: [companies.id] }),
   reads: many(announcementReads),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  company: one(companies, { fields: [notifications.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [notifications.employeeId], references: [employees.id] }),
+}));
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  company: one(companies, { fields: [notificationPreferences.companyId], references: [companies.id] }),
+  user: one(users, { fields: [notificationPreferences.userId], references: [users.id] }),
+}));
+
+export const notificationDigestPreferencesRelations = relations(notificationDigestPreferences, ({ one }) => ({
+  company: one(companies, { fields: [notificationDigestPreferences.companyId], references: [companies.id] }),
+  user: one(users, { fields: [notificationDigestPreferences.userId], references: [users.id] }),
 }));
 
 export const announcementReadsRelations = relations(announcementReads, ({ one }) => ({
