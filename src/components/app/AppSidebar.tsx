@@ -185,6 +185,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "PTO", href: "/time/pto" },
       { label: "PTO Policies", href: "/time/pto/policies" },
       { label: "Overtime", href: "/time/overtime" },
+      { label: "Time Settings", href: "/time/settings" },
       { label: "Breaks", href: "/time/breaks" },
       { label: "Kiosk", href: "/time/kiosk" },
     ],
