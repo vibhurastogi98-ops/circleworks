@@ -46,10 +46,43 @@ function cx(...classes: Array<string | false | undefined>) {
 
 function formatRouteLabel(segment: string) {
   if (!segment) return "Dashboard";
+  const specialLabels: Record<string, string> = {
+    "401k": "401(k)",
+    "cobra": "COBRA",
+    "fsa-hsa": "FSA / HSA",
+    "life-disability": "Life & Supplemental",
+    "oe": "Open Enrollment",
+    "qle": "Life Events",
+    "workers-comp": "Workers' Comp",
+  };
+  if (specialLabels[segment]) return specialLabels[segment];
+  if (/^\d+$/.test(segment)) return `Employee ${segment}`;
   return segment
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function getRouteTitle(pathParts: string[]) {
+  if (!pathParts.length) return "Dashboard";
+  if (pathParts[0] === "benefits" && pathParts[1] === "enrollment" && pathParts[2]) {
+    return "Enrollment Wizard";
+  }
+  if (pathParts[0] === "benefits") {
+    const benefitTitles: Record<string, string> = {
+      "401k": "401(k) Management",
+      "cobra": "COBRA Administration",
+      "enrollment": "Enrollment",
+      "fsa-hsa": "FSA / HSA Accounts",
+      "life-disability": "Life & Supplemental Benefits",
+      "oe": "Open Enrollment Management",
+      "plans": "Plan Management",
+      "qle": "Qualifying Life Events",
+      "workers-comp": "Workers' Compensation",
+    };
+    return benefitTitles[pathParts[pathParts.length - 1]] || "Benefits";
+  }
+  return formatRouteLabel(pathParts[pathParts.length - 1]);
 }
 
 function IconButton({
@@ -117,7 +150,7 @@ export default function AppTopBar() {
     `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(currentUser.email)}&backgroundColor=transparent`;
   const canRunPayroll = ["admin", "hr"].includes(currentUser.role);
   const pathParts = pathname.split("/").filter(Boolean);
-  const title = pathParts.length ? formatRouteLabel(pathParts[pathParts.length - 1]) : "Dashboard";
+  const title = getRouteTitle(pathParts);
   const breadcrumbItems = pathParts.map((part, index) => {
     const href = `/${pathParts.slice(0, index + 1).join("/")}`;
     return {
