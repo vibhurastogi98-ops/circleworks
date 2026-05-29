@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
@@ -48,6 +48,7 @@ function displayNameFromEmail(email: string) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
+  const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const {
     sidebarCollapsed,
@@ -58,6 +59,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     theme,
   } = usePlatformStore();
   const usePlatformShell = shouldUsePlatformShell(pathname);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setActiveRoute(pathname);
@@ -93,25 +98,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const shellOffset = sidebarCollapsed
+  const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;
+  const renderedComplianceCritical = mounted ? complianceAlerts.critical : 0;
+  const shellOffset = renderedSidebarCollapsed
     ? "lg:pl-[72px]"
     : "lg:pl-[72px] xl:pl-[240px]";
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <AppSidebar />
+      {mounted ? <AppSidebar /> : null}
       <div className={`h-full min-w-0 ${shellOffset}`}>
-        <AppTopBar />
+        {mounted ? <AppTopBar /> : null}
         <main
           id="main-content"
           className={`h-full overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-slate-950 ${
-            complianceAlerts.critical > 0 ? "pt-[104px]" : "pt-16"
+            renderedComplianceCritical > 0 ? "pt-[104px]" : "pt-16"
           }`}
         >
           {children}
         </main>
       </div>
-      <OnboardingTour />
+      {mounted ? <OnboardingTour /> : null}
     </div>
   );
 }

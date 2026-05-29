@@ -51,6 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const refreshUser = useCallback(async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setUser(null);
+      setIsLoaded(true);
+      return;
+    }
+
     try {
       const { data: { user: supabaseUser } } = await supabase.auth.getUser();
       setUser(mapSupabaseUser(supabaseUser));
@@ -65,6 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Load initial session
     refreshUser();
 
+    const refreshWhenOnline = () => {
+      void refreshUser();
+    };
+    window.addEventListener("online", refreshWhenOnline);
+
     // Listen to auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -74,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
+      window.removeEventListener("online", refreshWhenOnline);
       subscription.unsubscribe();
     };
   }, [supabase, refreshUser]);

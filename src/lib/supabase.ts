@@ -7,7 +7,17 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // ─── Browser client (for use in Client Components) ────────────────────────────
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const browserOnline =
+    typeof window !== "undefined" &&
+    typeof navigator !== "undefined" &&
+    navigator.onLine;
+  const shouldAutoRefreshToken = process.env.NODE_ENV === "production" && browserOnline;
+
+  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      autoRefreshToken: shouldAutoRefreshToken,
+    },
+  });
 }
 
 // ─── Middleware client (for use in middleware.ts) ─────────────────────────────

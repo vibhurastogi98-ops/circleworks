@@ -370,15 +370,19 @@ export default function AppSidebar() {
     setSidebarOpen,
   } = usePlatformStore();
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
-    getOpenGroupsForPath(pathname),
-  );
+  const [mounted, setMounted] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const activeGroups = getOpenGroupsForPath(pathname);
     if (!Object.keys(activeGroups).length) return;
     setOpenGroups((current) => ({ ...current, ...activeGroups }));
-  }, [pathname]);
+  }, [mounted, pathname]);
 
   const navItems = useMemo<NavItem[]>(
     () =>
@@ -408,24 +412,56 @@ export default function AppSidebar() {
     [complianceAlerts.critical, payrollRunInProgress],
   );
 
-  const labelClass = sidebarCollapsed
+  const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;
+  const renderedSidebarOpen = mounted ? sidebarOpen : false;
+  const renderedPathname = mounted ? pathname : "";
+
+  const labelClass = renderedSidebarCollapsed
     ? "flex lg:hidden"
     : "flex lg:hidden xl:flex";
-  const desktopWidth = sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[72px] xl:w-[240px]";
+  const desktopWidth = renderedSidebarCollapsed ? "lg:w-[72px]" : "lg:w-[72px] xl:w-[240px]";
   const avatarUrl =
     currentUser.avatarUrl ||
     `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(currentUser.email)}&backgroundColor=transparent`;
 
-  const isItemActive = (item: NavItem) => {
-    return navItemMatchesPath(item, pathname);
-  };
+  const isItemActive = (item: NavItem) => Boolean(renderedPathname && navItemMatchesPath(item, renderedPathname));
 
   const closeMobileSidebar = () => setSidebarOpen(false);
+
+  if (!mounted) {
+    return (
+      <aside
+        id="tour-sidebar"
+        suppressHydrationWarning
+        className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-full -translate-x-full flex-col border-r border-slate-200 bg-white shadow-2xl transition-all duration-300 dark:border-slate-800 dark:bg-gray-900 lg:w-[72px] lg:translate-x-0 lg:shadow-none xl:w-[240px]"
+      >
+        <div className="relative border-b border-slate-200 dark:border-slate-800">
+          <div className="group flex h-16 w-full items-center gap-3 px-4 text-left">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-100 text-xs font-bold text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/15 dark:text-blue-200">
+              CD
+            </span>
+            <span className="flex min-w-0 flex-1 items-center justify-between gap-2 lg:hidden xl:flex">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold text-slate-900 dark:text-gray-100">
+                  CircleWorks Demo
+                </span>
+                <span className="block truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                  circleworks.com
+                </span>
+              </span>
+            </span>
+          </div>
+        </div>
+        <nav className="min-h-0 flex-1 overflow-hidden px-3 py-4" aria-hidden="true" />
+        <div className="border-t border-slate-200 p-4 dark:border-slate-800" aria-hidden="true" />
+      </aside>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={150}>
       <AnimatePresence>
-        {sidebarOpen && (
+        {renderedSidebarOpen && (
           <motion.button
             type="button"
             aria-label="Close sidebar"
@@ -443,7 +479,7 @@ export default function AppSidebar() {
         className={cx(
           "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-full flex-col border-r border-slate-200 bg-white shadow-2xl transition-all duration-300 dark:border-slate-800 dark:bg-gray-900 lg:translate-x-0 lg:shadow-none",
           desktopWidth,
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          renderedSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="relative border-b border-slate-200 dark:border-slate-800">
@@ -496,11 +532,13 @@ export default function AppSidebar() {
               }
 
               const active = isItemActive(item);
-              const expanded = !!openGroups[item.label];
+              const expanded = mounted && !!openGroups[item.label];
               const hasChildren = !!item.children?.length;
-              const activeChildHref = item.children
-                ?.filter((child) => routeMatches(child.href, pathname))
-                .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+              const activeChildHref = renderedPathname
+                ? item.children
+                    ?.filter((child) => routeMatches(child.href, renderedPathname))
+                    .sort((a, b) => b.href.length - a.href.length)[0]?.href
+                : undefined;
               const triggerId =
                 item.label === "Payroll"
                   ? "tour-payroll"
@@ -576,7 +614,7 @@ export default function AppSidebar() {
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.18 }}
-                        className={`${sidebarCollapsed ? "lg:hidden" : "lg:hidden xl:block"} overflow-hidden`}
+                        className={`${renderedSidebarCollapsed ? "lg:hidden" : "lg:hidden xl:block"} overflow-hidden`}
                       >
                         <div className="flex flex-col gap-1 pb-2 pl-11 pt-1">
                           {item.children!.map((child) => {

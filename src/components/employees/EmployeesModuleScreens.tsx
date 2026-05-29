@@ -589,22 +589,38 @@ function EmployeesTable({
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setActionMenu(null);
     };
+    const closeOnViewportChange = () => {
+      setActionMenu(null);
+    };
 
     document.addEventListener("mousedown", closeOnOutside);
     document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("scroll", closeOnViewportChange, true);
+    window.addEventListener("resize", closeOnViewportChange);
     return () => {
       document.removeEventListener("mousedown", closeOnOutside);
       document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("scroll", closeOnViewportChange, true);
+      window.removeEventListener("resize", closeOnViewportChange);
     };
   }, [actionMenu]);
 
   const openActionMenu = (employee: EmployeeRecord, event: MouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const menuWidth = 224;
+    const menuHeight = 220;
+    const viewportPadding = 12;
+    const preferredTop = rect.bottom + 8;
+    const fallbackTop = rect.top - menuHeight - 8;
+    const top =
+      preferredTop + menuHeight <= window.innerHeight - viewportPadding
+        ? preferredTop
+        : Math.max(viewportPadding, fallbackTop);
+
     setActionMenu({
       employee,
-      left: Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12)),
-      top: rect.bottom + 8,
+      left: Math.max(viewportPadding, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding)),
+      top,
     });
   };
 
@@ -667,7 +683,7 @@ function EmployeesTable({
         <div
           data-employee-row-menu
           role="menu"
-          className="fixed z-[80] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-xl dark:border-slate-800 dark:bg-slate-900"
+          className="fixed z-[80] max-h-[min(320px,calc(100dvh-24px))] w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-xl dark:border-slate-800 dark:bg-slate-900"
           style={{ left: actionMenu.left, top: actionMenu.top }}
         >
           {[
