@@ -30,6 +30,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { getAtsOverview } from "@/data/mockAts";
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,16 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Add Employee", href: "/employees/new" },
       { label: "Bulk Import", href: "/employees/bulk" },
       { label: "Org Chart", href: "/employees/org-chart" },
+      { label: "Employee Profile", href: "/employees/1" },
+      { label: "Compensation", href: "/employees/1/compensation" },
+      { label: "Benefits", href: "/employees/1/benefits" },
+      { label: "Time & PTO", href: "/employees/1/time" },
+      { label: "Documents", href: "/employees/1/documents" },
+      { label: "Payroll", href: "/employees/1/payroll" },
+      { label: "Performance", href: "/employees/1/performance" },
+      { label: "Activity", href: "/employees/1/activity" },
+      { label: "Edit Employee", href: "/employees/1/edit" },
+      { label: "Termination Workflow", href: "/employees/1/terminate" },
     ],
   },
   {
@@ -122,11 +133,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: Briefcase,
     href: "/hiring",
     children: [
-      { label: "Hiring Hub", href: "/hiring" },
+      { label: "ATS Overview", href: "/hiring" },
       { label: "Jobs", href: "/hiring/jobs" },
-      { label: "New Job", href: "/hiring/jobs/new" },
+      { label: "Candidates", href: "/hiring/candidates" },
       { label: "Interviews", href: "/hiring/interviews" },
       { label: "Offers", href: "/hiring/offers" },
+      { label: "Job Templates", href: "/hiring/templates" },
+      { label: "New Job", href: "/hiring/jobs/new" },
       { label: "New Offer", href: "/hiring/offers/new" },
       { label: "Hiring Settings", href: "/hiring/settings" },
     ],
@@ -377,7 +390,7 @@ export default function AppSidebar() {
             badge: payrollRunInProgress ? { text: "DRAFT", tone: "draft" } : undefined,
           };
         }
-        if (item.label === "Hiring") return { ...item, badge: { count: 6 } };
+        if (item.label === "Hiring") return { ...item, badge: { count: getAtsOverview().openReqCount } };
         if (item.label === "Onboarding") return { ...item, badge: { count: 4 } };
         if (item.label === "Time") return { ...item, badge: { count: 3 } };
         if (item.label === "Expenses") return { ...item, badge: { count: 3 } };

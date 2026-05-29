@@ -5,6 +5,7 @@ import {
   employees as hrisEmployees,
   getEmployeeName,
 } from "@/lib/hris-module-data";
+import { getAtsCandidates, getAtsJobs, getCandidateName } from "@/data/mockAts";
 
 type SearchGroup =
   | "EMPLOYEES"
@@ -107,6 +108,33 @@ const pages: SearchRecord[] = [
   },
   {
     type: "PAGES",
+    id: "page_hiring",
+    title: "Hiring ATS",
+    subtitle: "Jobs, candidates, interviews, and offers",
+    icon: "BriefcaseBusiness",
+    url: "/hiring",
+    keywords: ["hiring", "ats", "recruiting", "jobs", "candidates", "interviews", "offers"],
+  },
+  {
+    type: "PAGES",
+    id: "page_hiring_candidates",
+    title: "ATS Candidates",
+    subtitle: "All candidates across open jobs",
+    icon: "Users",
+    url: "/hiring/candidates",
+    keywords: ["candidate", "candidates", "applicants", "ats", "hiring"],
+  },
+  {
+    type: "PAGES",
+    id: "page_hiring_interviews",
+    title: "Interview Calendar",
+    subtitle: "Recruiting calendar and scorecards",
+    icon: "CalendarClock",
+    url: "/hiring/interviews",
+    keywords: ["interview", "calendar", "schedule", "ats", "hiring"],
+  },
+  {
+    type: "PAGES",
     id: "page_integrations_settings",
     title: "Integration Settings",
     subtitle: "Connect accounting, ATS, benefits, and HR tools",
@@ -155,6 +183,15 @@ const actions: SearchRecord[] = [
   },
   {
     type: "ACTIONS",
+    id: "action_create_job",
+    title: "Create Job Posting",
+    subtitle: "Open the ATS job wizard",
+    icon: "BriefcaseBusiness",
+    url: "/hiring/jobs/new",
+    keywords: ["create job", "new job", "job posting", "hiring", "ats"],
+  },
+  {
+    type: "ACTIONS",
     id: "action_compliance",
     title: "Open Compliance Dashboard",
     subtitle: "Review compliance tasks and alerts",
@@ -163,6 +200,37 @@ const actions: SearchRecord[] = [
     keywords: ["compliance", "open compliance", "compliance dashboard"],
   },
 ];
+
+const atsJobs: SearchRecord[] = getAtsJobs().map((job) => ({
+  type: "PAGES",
+  id: `ats_job_${job.id}`,
+  title: job.title,
+  subtitle: `${job.department} · ${job.location} · ${job.applicantsCount} applicants`,
+  icon: "BriefcaseBusiness",
+  url: `/hiring/jobs/${job.id}`,
+  keywords: [job.title, job.department, job.location, job.status, "job", "pipeline", "ats", "hiring"].map((keyword) => keyword.toLowerCase()),
+}));
+
+const atsCandidates: SearchRecord[] = getAtsCandidates().map((candidate) => ({
+  type: "PAGES",
+  id: `ats_candidate_${candidate.id}`,
+  title: getCandidateName(candidate),
+  subtitle: `${candidate.currentTitle} · ${candidate.stage} · ${candidate.source}`,
+  icon: "User",
+  url: `/hiring/applicants/${candidate.id}`,
+  keywords: [
+    candidate.firstName,
+    candidate.lastName,
+    getCandidateName(candidate),
+    candidate.email,
+    candidate.currentTitle,
+    candidate.stage,
+    candidate.source,
+    "candidate",
+    "applicant",
+    "ats",
+  ].map((keyword) => keyword.toLowerCase()),
+}));
 
 const documents: SearchRecord[] = [
   {
@@ -244,6 +312,8 @@ export async function GET(request: Request) {
     ...payrollRuns,
     ...reportRecords(),
     ...pages,
+    ...atsJobs,
+    ...atsCandidates,
     ...actions,
     ...documents,
   ];

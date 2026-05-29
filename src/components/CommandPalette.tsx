@@ -122,6 +122,14 @@ const QUICK_ACTIONS: SearchResult[] = [
   },
   {
     type: "QUICK ACTIONS",
+    id: "action_create_job",
+    title: "Create Job",
+    subtitle: "Open the ATS job wizard",
+    icon: "BriefcaseBusiness",
+    url: "/hiring/jobs/new",
+  },
+  {
+    type: "QUICK ACTIONS",
     id: "action_compliance",
     title: "Open Compliance",
     subtitle: "Review filings, alerts, and audit readiness",

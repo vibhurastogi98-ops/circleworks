@@ -5,7 +5,7 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function POST(request: Request, { params }: RouteContext) {
+async function updateStage(request: Request, { params }: RouteContext) {
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
   const newStage = body?.newStage as CandidateStage | undefined;
@@ -23,4 +23,12 @@ export async function POST(request: Request, { params }: RouteContext) {
     event: `ats.candidate.moved`,
     updatedAt: new Date().toISOString(),
   });
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  return updateStage(request, context);
+}
+
+export async function PUT(request: Request, context: RouteContext) {
+  return updateStage(request, context);
 }

@@ -617,6 +617,7 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
   { method: "PATCH", prefix: "/api/assets", permission: "manage_assets" },
   { method: "DELETE", prefix: "/api/assets", permission: "manage_assets" },
   { prefix: "/api/assets", permission: "view_assets" },
+  { prefix: "/api/ats", permission: "view_candidates" },
   { prefix: "/api/hiring", permission: "view_candidates" },
   { method: "POST", prefix: "/api/hiring/hire", permission: "convert_candidate_to_employee" },
   { prefix: "/api/contractors", permission: "view_contractors" },
@@ -638,6 +639,9 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
 ];
 
 const apiPermissionPatternRules: Array<{ method?: string; pattern: RegExp; permission: string }> = [
+  { method: "POST", pattern: /^\/api\/ats\/candidates\/[^/]+\/hire$/, permission: "convert_candidate_to_employee" },
+  { method: "PUT", pattern: /^\/api\/ats\/candidates\/[^/]+\/stage$/, permission: "manage_candidates" },
+  { method: "POST", pattern: /^\/api\/ats\/candidates\/[^/]+\/stage$/, permission: "manage_candidates" },
   { method: "POST", pattern: /^\/api\/payroll\/runs\/[^/]+\/reimbursements\/finalize$/, permission: "finalize_reimbursements" },
   { method: "POST", pattern: /^\/api\/payroll\/runs\/[^/]+\/ewa-repayments\/finalize$/, permission: "finalize_ewa_repayments" },
   { method: "POST", pattern: /^\/api\/payroll\/runs\/[^/]+\/time-import$/, permission: "import_time_to_payroll" },

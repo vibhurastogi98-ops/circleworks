@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -56,6 +56,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type {
   ActivityData,
   BenefitsTabData,
@@ -520,8 +521,8 @@ export function EmployeesDirectoryScreen() {
       </Card>
 
       <Card className="p-4">
-        <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_repeat(5,160px)_auto]">
-          <label className="relative">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[minmax(220px,1.3fr)_repeat(3,minmax(140px,1fr))]">
+          <label className="relative md:col-span-2 xl:col-span-3 2xl:col-span-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={search}
@@ -535,8 +536,12 @@ export function EmployeesDirectoryScreen() {
           <SelectControl label="Pay type" value={payType} onChange={setPayType} options={["All", ...data.filters.payTypes]} />
           <SelectControl label="Location" value={location} onChange={setLocation} options={["All", ...data.filters.locations]} />
           <SelectControl label="Manager" value={manager} onChange={setManager} options={["All", ...data.filters.managers]} />
-          <button type="button" onClick={clearFilters} className="self-end text-sm font-bold text-blue-700 hover:underline dark:text-blue-300">
-            Clear filters
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 self-end rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-blue-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-blue-300 dark:hover:bg-blue-500/10"
+          >
+            <X className="h-4 w-4" /> Clear filters
           </button>
         </div>
       </Card>
@@ -567,53 +572,126 @@ function EmployeesTable({
   selected: Set<string>;
   onToggle: (employeeId: string) => void;
 }) {
+  const [actionMenu, setActionMenu] = useState<{
+    employee: EmployeeRecord;
+    left: number;
+    top: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!actionMenu) return;
+
+    const closeOnOutside = (event: globalThis.MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-employee-row-menu]")) return;
+      setActionMenu(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActionMenu(null);
+    };
+
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [actionMenu]);
+
+  const openActionMenu = (employee: EmployeeRecord, event: MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 224;
+    setActionMenu({
+      employee,
+      left: Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12)),
+      top: rect.bottom + 8,
+    });
+  };
+
   return (
-    <Card className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70">
-            <tr>
-              <th className="px-5 py-3"><span className="sr-only">Select</span></th>
-              {["Name", "Title", "Department", "Location", "Status", "Start Date", "Manager", "Actions"].map((heading) => (
-                <th key={heading} className="px-5 py-3">{heading}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {employees.map((employee) => (
-              <tr key={employee.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                <td className="px-5 py-4">
-                  <input type="checkbox" checked={selected.has(employee.id)} onChange={() => onToggle(employee.id)} />
-                </td>
-                <td className="px-5 py-4">
-                  <Link href={`/employees/${employee.id}`} className="flex items-center gap-3">
-                    <Avatar employee={employee} size="sm" />
-                    <span>
-                      <span className="block font-bold text-slate-950 dark:text-white">{employeeName(employee)}</span>
-                      <span className="text-xs text-slate-500">{employee.email}</span>
-                    </span>
-                  </Link>
-                </td>
-                <td className="px-5 py-4">{employee.title}</td>
-                <td className="px-5 py-4">{employee.department}</td>
-                <td className="px-5 py-4">{employee.location}</td>
-                <td className="px-5 py-4"><StatusBadge status={employee.status} /></td>
-                <td className="px-5 py-4">{shortDate(employee.startDate)}</td>
-                <td className="px-5 py-4">{employee.manager}</td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/employees/${employee.id}/compensation`} className="font-bold text-blue-700 hover:underline dark:text-blue-300">Open</Link>
-                    <button type="button" aria-label={`Actions for ${employeeName(employee)}`} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
+    <>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800/70">
+              <tr>
+                <th className="px-5 py-3"><span className="sr-only">Select</span></th>
+                {["Name", "Title", "Department", "Location", "Status", "Start Date", "Manager", "Actions"].map((heading) => (
+                  <th key={heading} className="px-5 py-3">{heading}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {employees.map((employee) => (
+                <tr key={employee.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="px-5 py-4">
+                    <input type="checkbox" checked={selected.has(employee.id)} onChange={() => onToggle(employee.id)} />
+                  </td>
+                  <td className="px-5 py-4">
+                    <Link href={`/employees/${employee.id}`} className="flex items-center gap-3">
+                      <Avatar employee={employee} size="sm" />
+                      <span>
+                        <span className="block font-bold text-slate-950 dark:text-white">{employeeName(employee)}</span>
+                        <span className="text-xs text-slate-500">{employee.email}</span>
+                      </span>
+                    </Link>
+                  </td>
+                  <td className="px-5 py-4">{employee.title}</td>
+                  <td className="px-5 py-4">{employee.department}</td>
+                  <td className="px-5 py-4">{employee.location}</td>
+                  <td className="px-5 py-4"><StatusBadge status={employee.status} /></td>
+                  <td className="px-5 py-4">{shortDate(employee.startDate)}</td>
+                  <td className="px-5 py-4">{employee.manager}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <Link href={`/employees/${employee.id}/compensation`} className="font-bold text-blue-700 hover:underline dark:text-blue-300">Open</Link>
+                      <button
+                        type="button"
+                        aria-expanded={actionMenu?.employee.id === employee.id}
+                        aria-label={`Actions for ${employeeName(employee)}`}
+                        onClick={(event) => openActionMenu(employee, event)}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {actionMenu ? (
+        <div
+          data-employee-row-menu
+          role="menu"
+          className="fixed z-[80] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-xl dark:border-slate-800 dark:bg-slate-900"
+          style={{ left: actionMenu.left, top: actionMenu.top }}
+        >
+          {[
+            { label: "Open profile", href: `/employees/${actionMenu.employee.id}`, icon: UserRound },
+            { label: "Edit employee", href: `/employees/${actionMenu.employee.id}/edit`, icon: Edit3 },
+            { label: "View pay stubs", href: `/employees/${actionMenu.employee.id}/payroll`, icon: WalletCards },
+            { label: "Send message", href: `mailto:${actionMenu.employee.email}`, icon: Send },
+            { label: "Terminate", href: `/employees/${actionMenu.employee.id}/terminate`, icon: UserX, danger: true },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              role="menuitem"
+              className={cx(
+                "flex items-center gap-2 rounded-lg px-3 py-2 font-semibold transition hover:bg-slate-50 dark:hover:bg-slate-800",
+                item.danger && "text-red-600 dark:text-red-300",
+              )}
+            >
+              <item.icon className={cx("h-4 w-4", item.danger ? "text-red-400" : "text-slate-400")} /> {item.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -867,7 +945,7 @@ export function AddEmployeeWizardScreen() {
       <div className="flex justify-between">
         <SecondaryButton onClick={() => setStep((current) => Math.max(1, current - 1))}><ChevronLeft className="h-4 w-4" /> Back</SecondaryButton>
         {step < 4 ? (
-          <PrimaryButton onClick={() => setStep((current) => Math.min(4, current + 1))}>Next <ArrowRight className="h-4 w-4" /></PrimaryButton>
+          <PrimaryButton onClick={() => setStep((current) => Math.min(4, current + 1))}>Continue <ArrowRight className="h-4 w-4" /></PrimaryButton>
         ) : (
           <PrimaryButton onClick={() => void submit()} disabled={action.isPending}><Mail className="h-4 w-4" /> Send invite email</PrimaryButton>
         )}
@@ -955,7 +1033,7 @@ export function EmployeeProfileShell({
       <Link href="/employees" className="inline-flex w-fit items-center gap-1 text-sm font-bold text-slate-500 hover:text-slate-950 dark:hover:text-white">
         <ChevronLeft className="h-4 w-4" /> Back to directory
       </Link>
-      <Card className="overflow-hidden">
+      <Card className="overflow-visible">
         <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 via-blue-50 to-emerald-50 px-6 py-6 dark:border-slate-800 dark:from-slate-900 dark:via-blue-950/30 dark:to-emerald-950/20">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -1088,6 +1166,7 @@ export function EmployeeOverviewScreen({ employeeId }: { employeeId: string }) {
               <OrgMiniNode employee={employee} compact />
             </div>
             <div className="space-y-2 pl-10">
+              <p className="text-xs font-bold text-slate-500">Direct Reports</p>
               {directReports.map((report) => <OrgMiniNode key={report.id} employee={report} compact />)}
               {directReports.length === 0 ? <p className="text-sm text-slate-500">No direct reports.</p> : null}
             </div>
@@ -1207,7 +1286,7 @@ export function EmployeeDocumentsScreen({ employeeId }: { employeeId: string }) 
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <h2 className="font-bold">Documents</h2>
-          <PrimaryButton onClick={() => setDrawerOpen(true)}><Upload className="h-4 w-4" /> Upload</PrimaryButton>
+          <PrimaryButton onClick={() => setDrawerOpen(true)}><Upload className="h-4 w-4" /> Upload Document</PrimaryButton>
         </div>
         <table className="w-full min-w-[840px] text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800"><tr>{["Type", "Filename", "Uploaded", "Expiry", "Status", "Actions"].map((heading) => <th key={heading} className="px-5 py-3">{heading}</th>)}</tr></thead>
@@ -1225,10 +1304,23 @@ export function EmployeeDocumentsScreen({ employeeId }: { employeeId: string }) 
           </tbody>
         </table>
       </Card>
-      <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader><DialogTitle>Upload document</DialogTitle><DialogDescription>Files are stored in the secure employee document vault.</DialogDescription></DialogHeader>
-          <div className="grid gap-4 p-6">
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent className="flex max-w-[480px] flex-col">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6 dark:border-slate-800">
+            <div>
+              <h2 className="text-lg font-bold">Upload Drawer</h2>
+              <p className="mt-1 text-sm text-slate-500">Files are stored in the secure employee document vault.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(false)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+              aria-label="Close upload drawer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="grid flex-1 gap-4 overflow-y-auto p-6">
             <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center dark:border-slate-700">
               <Upload className="mx-auto h-8 w-8 text-blue-600" />
               <p className="mt-3 font-bold">Drag and drop or click to browse</p>
@@ -1237,9 +1329,14 @@ export function EmployeeDocumentsScreen({ employeeId }: { employeeId: string }) 
             <SelectField label="Category" value="I-9" onChange={() => undefined} options={["I-9", "W-4", "Offer Letter", "NDA", "Performance Review", "Other"]} />
             <InputField label="Expiry date" type="date" value="" onChange={() => undefined} />
           </div>
-          <DialogFooter><PrimaryButton onClick={() => { action.mutate({ action: "employee.document.upload", screen: "documents" }); setDrawerOpen(false); }}>Upload document</PrimaryButton></DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 p-6 dark:border-slate-800">
+            <SecondaryButton onClick={() => setDrawerOpen(false)}><X className="h-4 w-4" /> Cancel</SecondaryButton>
+            <PrimaryButton onClick={() => { action.mutate({ action: "employee.document.upload", screen: "documents" }); setDrawerOpen(false); }}>
+              <Upload className="h-4 w-4" /> Upload document
+            </PrimaryButton>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -1287,7 +1384,7 @@ export function BulkImportScreen() {
     <PageShell title="Bulk CSV Import" description="Download a template, upload employee data, map fields, validate rows, and commit the import with rollback support.">
       <Card className="p-5">
         <div className="grid gap-2 md:grid-cols-5">
-          {["Template", "Upload", "Field mapping", "Validation", "Commit import"].map((label, index) => (
+          {["Template", "Upload", "Field mapping", "Validation preview", "Commit import"].map((label, index) => (
             <button key={label} onClick={() => setStep(index + 1)} className={cx("rounded-lg px-3 py-2 text-sm font-bold", step === index + 1 ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800")}>Step {index + 1}: {label}</button>
           ))}
         </div>
@@ -1509,7 +1606,7 @@ export function EmployeeTimeScreen({ employeeId }: { employeeId: string }) {
         ].map(([label, value]) => <Card key={label} className="p-5"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></Card>)}
       </section>
       <Card className="overflow-hidden">
-        <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800"><h2 className="font-bold">Recent Timesheets</h2></div>
+        <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800"><h2 className="font-bold">Recent timesheets</h2></div>
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800"><tr>{["Period", "Regular", "Overtime", "Status"].map((heading) => <th key={heading} className="px-5 py-3">{heading}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">{data.recentTimesheets.map((sheet) => <tr key={sheet.period}><td className="px-5 py-4 font-bold">{sheet.period}</td><td className="px-5 py-4">{sheet.regularHours}</td><td className="px-5 py-4">{sheet.overtimeHours}</td><td className="px-5 py-4"><StatusBadge status="Valid" /></td></tr>)}</tbody>
@@ -1655,6 +1752,21 @@ export function EmployeeEditScreen({ employeeId }: { employeeId: string }) {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="grid gap-6">
+        <Card className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                <Edit3 className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-xl font-bold">Edit Employee</h2>
+                <p className="mt-1 text-sm text-slate-500">Update profile, employment, compensation, tax, and banking details for {employeeName(employee)}.</p>
+              </div>
+            </div>
+            <StatusBadge status={employee.status} />
+          </div>
+        </Card>
+
         {savedAt ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300">
             Employee changes saved at {savedAt}.
@@ -1807,6 +1919,7 @@ export function EmployeeTerminateScreen({ employeeId }: { employeeId: string }) 
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <p className="md:col-span-3 text-sm text-slate-500">Termination date, type, and work state drive final pay, benefits, and access tasks.</p>
           <InputField label="Termination date" type="date" value={terminationDate} onChange={setTerminationDate} />
           <SelectField label="Termination type" value={terminationType} onChange={setTerminationType} options={["Voluntary", "Involuntary", "Layoff", "Mutual agreement", "Other"]} />
           <SelectField label="Work state" value={workState} onChange={setWorkState} options={["CA", "CO", "IL", "MA", "NY", "TX", "WA"]} />
@@ -1828,7 +1941,7 @@ export function EmployeeTerminateScreen({ employeeId }: { employeeId: string }) 
           </Link>
           <PrimaryButton onClick={() => void submit()} disabled={!canSubmit || action.isPending || completed}>
             {action.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}
-            {completed ? "Termination Recorded" : "Confirm Termination"}
+            {completed ? "Termination Recorded" : "Create termination workflow"}
           </PrimaryButton>
         </div>
       </Card>
