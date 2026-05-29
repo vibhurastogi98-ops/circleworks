@@ -82,6 +82,44 @@ CREATE TABLE IF NOT EXISTS payroll_items (
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS pay_schedules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  name TEXT NOT NULL,
+  frequency TEXT NOT NULL,
+  cutoff_hours_before_run INTEGER DEFAULT 24,
+  is_default BOOLEAN DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payroll_time_imports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  payroll_id INTEGER,
+  employee_id INTEGER,
+  timesheet_id INTEGER,
+  source TEXT DEFAULT 'timesheet',
+  regular_hours REAL DEFAULT 0,
+  overtime_hours REAL DEFAULT 0,
+  double_time_hours REAL DEFAULT 0,
+  total_hours REAL DEFAULT 0,
+  daily_breakdown TEXT,
+  late_within_cutoff BOOLEAN DEFAULT 0,
+  partial_period_reason TEXT,
+  manually_overridden BOOLEAN DEFAULT 0,
+  override_original_hours REAL,
+  override_hours REAL,
+  override_reason TEXT,
+  overridden_at DATETIME,
+  imported_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(payroll_id) REFERENCES payrolls(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(timesheet_id) REFERENCES timesheets(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS payroll_benefit_deductions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   payroll_id INTEGER,
@@ -99,6 +137,29 @@ CREATE TABLE IF NOT EXISTS payroll_benefit_deductions (
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
   FOREIGN KEY(benefit_plan_id) REFERENCES benefit_plans(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS ewa_advances (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id INTEGER NOT NULL,
+  company_id INTEGER,
+  amount INTEGER NOT NULL,
+  remaining_balance INTEGER NOT NULL,
+  issue_date DATE NOT NULL,
+  repayment_run_id INTEGER,
+  status TEXT DEFAULT 'outstanding',
+  state_minimum_wage REAL DEFAULT 7.25,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(repayment_run_id) REFERENCES payrolls(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pay_schedules_company ON pay_schedules(company_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_time_imports_payroll ON payroll_time_imports(payroll_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_time_imports_employee ON payroll_time_imports(employee_id);
+CREATE INDEX IF NOT EXISTS idx_ewa_advances_employee ON ewa_advances(employee_id);
+CREATE INDEX IF NOT EXISTS idx_ewa_advances_company_status ON ewa_advances(company_id, status);
 
 -- 7. TAX LIABILITIES
 CREATE TABLE IF NOT EXISTS tax_liabilities (
@@ -129,6 +190,15 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS contact_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  company_size TEXT,
   message TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -283,26 +353,51 @@ CREATE TABLE IF NOT EXISTS benefit_plans (
   company_id INTEGER,
   name TEXT NOT NULL,
   type TEXT CHECK(type IN ('Medical','Dental','Vision','Life','AD&D','STD','LTD','FSA','HSA','401k','WC')) NOT NULL,
+  category TEXT,
+  plan_code TEXT,
+  plan_type TEXT,
   carrier TEXT,
+  carrier_logo TEXT,
   employee_premium INTEGER DEFAULT 0,
   employer_premium INTEGER DEFAULT 0,
+  deductible INTEGER DEFAULT 0,
+  out_of_pocket_max INTEGER DEFAULT 0,
+  monthly_cost INTEGER DEFAULT 0,
+  enrolled_count INTEGER DEFAULT 0,
+  eligible_count INTEGER DEFAULT 0,
   effective_start DATE,
   effective_end DATE,
+  renewal_date DATE,
+  contribution_formula TEXT,
+  network TEXT,
+  covered_highlights TEXT,
   eligibility TEXT DEFAULT 'All',
   status TEXT CHECK(status IN ('Active','Inactive','Pending')) DEFAULT 'Active',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
 
 -- 18. BENEFIT ENROLLMENTS
 CREATE TABLE IF NOT EXISTS benefit_enrollments (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
   plan_id INTEGER NOT NULL,
   employee_id INTEGER NOT NULL,
   status TEXT CHECK(status IN ('Enrolled','Waived','Pending','Terminated')) DEFAULT 'Pending',
   enrolled_at DATETIME,
   coverage_level TEXT, -- e.g. 'Employee Only', 'Employee + Spouse'
+  employee_monthly_cost INTEGER DEFAULT 0,
+  employer_monthly_cost INTEGER DEFAULT 0,
+  per_pay_period_deduction REAL DEFAULT 0,
+  dependents TEXT,
+  elections TEXT,
+  submitted_at DATETIME,
+  confirmed_at DATETIME,
+  payroll_deduction_status TEXT DEFAULT 'pending',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
   FOREIGN KEY(plan_id) REFERENCES benefit_plans(id) ON DELETE CASCADE,
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
@@ -310,22 +405,282 @@ CREATE TABLE IF NOT EXISTS benefit_enrollments (
 -- 19. COBRA CASES
 CREATE TABLE IF NOT EXISTS cobra_cases (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
   employee_id INTEGER NOT NULL,
   status TEXT CHECK(status IN ('Eligible','Notified','Elected','Declined','Active','Terminated')) DEFAULT 'Eligible',
+  coverage_type TEXT,
   qualifying_event TEXT,
   notice_sent_date DATE,
   election_deadline DATE,
+  cobra_start_date DATE,
+  cobra_end_date DATE,
   premium_amount INTEGER DEFAULT 0,
   payment_status TEXT CHECK(payment_status IN ('Current','Past Due','Unpaid')) DEFAULT 'Unpaid',
+  notice_status TEXT DEFAULT 'Not Sent',
   election_notice_pdf TEXT,
   email_queued BOOLEAN DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
   FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_dependents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  relationship TEXT NOT NULL,
+  date_of_birth DATE,
+  age INTEGER,
+  is_eligible BOOLEAN DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_open_enrollment_windows (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  name TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  status TEXT DEFAULT 'Draft',
+  employees_not_enrolled INTEGER DEFAULT 0,
+  completion_rate REAL DEFAULT 0,
+  reminder_count INTEGER DEFAULT 0,
+  created_by INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS benefit_open_enrollment_statuses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  window_id INTEGER,
+  employee_id INTEGER,
+  status TEXT DEFAULT 'Not Started',
+  enrolled_plans TEXT,
+  last_activity_at DATETIME,
+  reminder_sent_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(window_id) REFERENCES benefit_open_enrollment_windows(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_carrier_census_files (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  window_id INTEGER,
+  carrier TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  rows_count INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'Ready',
+  file_url TEXT,
+  generated_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(window_id) REFERENCES benefit_open_enrollment_windows(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_qle_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  event_date DATE NOT NULL,
+  window_expires DATE,
+  status TEXT DEFAULT 'Pending Review',
+  description TEXT,
+  requested_changes TEXT,
+  reviewed_by INTEGER,
+  reviewed_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY(reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS benefit_retirement_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  provider TEXT DEFAULT 'Guideline',
+  contribution_rate REAL DEFAULT 0,
+  contribution_type TEXT DEFAULT 'Traditional',
+  employer_match TEXT,
+  ytd_employee INTEGER DEFAULT 0,
+  ytd_employer INTEGER DEFAULT 0,
+  annual_limit INTEGER DEFAULT 23000,
+  sync_status TEXT DEFAULT 'Synced',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_retirement_change_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  retirement_account_id INTEGER,
+  employee_id INTEGER,
+  requested_change TEXT NOT NULL,
+  status TEXT DEFAULT 'Queued',
+  requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  synced_at DATETIME,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(retirement_account_id) REFERENCES benefit_retirement_accounts(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_spending_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  account_type TEXT NOT NULL,
+  tpa TEXT,
+  annual_election INTEGER DEFAULT 0,
+  ytd_contributions INTEGER DEFAULT 0,
+  ytd_spent INTEGER DEFAULT 0,
+  balance INTEGER DEFAULT 0,
+  irs_limit INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'Healthy',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_life_disability_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  employee_id INTEGER NOT NULL,
+  carrier TEXT,
+  life_amount INTEGER DEFAULT 0,
+  voluntary_life INTEGER DEFAULT 0,
+  std_status TEXT DEFAULT 'Enrolled',
+  ltd_status TEXT DEFAULT 'Enrolled',
+  voluntary_benefits TEXT,
+  beneficiary TEXT,
+  eoi_status TEXT DEFAULT 'N/A',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_workers_comp_policies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  carrier TEXT NOT NULL,
+  policy_number TEXT,
+  state TEXT,
+  effective_start DATE,
+  effective_end DATE,
+  annual_premium INTEGER DEFAULT 0,
+  payroll_estimate INTEGER DEFAULT 0,
+  experience_mod REAL DEFAULT 1,
+  status TEXT DEFAULT 'Active',
+  audit_due_date DATE,
+  certificate_url TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_workers_comp_class_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  policy_id INTEGER,
+  code TEXT NOT NULL,
+  description TEXT NOT NULL,
+  state TEXT,
+  rate REAL DEFAULT 0,
+  payroll_estimate INTEGER DEFAULT 0,
+  employee_count INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(policy_id) REFERENCES benefit_workers_comp_policies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_workers_comp_claims (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  policy_id INTEGER,
+  employee_id INTEGER,
+  claim_number TEXT,
+  incident_date DATE,
+  reported_date DATE,
+  status TEXT DEFAULT 'Open',
+  injury_type TEXT,
+  total_paid INTEGER DEFAULT 0,
+  reserves INTEGER DEFAULT 0,
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(policy_id) REFERENCES benefit_workers_comp_policies(id) ON DELETE SET NULL,
+  FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS benefit_workers_comp_certificates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  policy_id INTEGER,
+  certificate_holder TEXT NOT NULL,
+  file_url TEXT,
+  issued_at DATETIME,
+  expires_at DATE,
+  status TEXT DEFAULT 'Active',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(policy_id) REFERENCES benefit_workers_comp_policies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS benefit_workers_comp_audits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  policy_id INTEGER,
+  audit_year INTEGER NOT NULL,
+  payroll_reported INTEGER DEFAULT 0,
+  premium_adjustment INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'Draft',
+  export_url TEXT,
+  due_date DATE,
+  submitted_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(policy_id) REFERENCES benefit_workers_comp_policies(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_benefit_enrollments_plan ON benefit_enrollments(plan_id);
 CREATE INDEX IF NOT EXISTS idx_benefit_enrollments_emp ON benefit_enrollments(employee_id);
 CREATE INDEX IF NOT EXISTS idx_cobra_cases_emp ON cobra_cases(employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_plans_company_category ON benefit_plans(company_id, category);
+CREATE INDEX IF NOT EXISTS idx_benefit_enrollments_company_employee ON benefit_enrollments(company_id, employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_dependents_employee ON benefit_dependents(employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_oe_company_status ON benefit_open_enrollment_windows(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_benefit_oe_status_window_employee ON benefit_open_enrollment_statuses(window_id, employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_carrier_files_window ON benefit_carrier_census_files(window_id, carrier);
+CREATE INDEX IF NOT EXISTS idx_benefit_qle_company_status ON benefit_qle_events(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_benefit_retirement_employee ON benefit_retirement_accounts(employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_spending_employee ON benefit_spending_accounts(employee_id, account_type);
+CREATE INDEX IF NOT EXISTS idx_benefit_life_employee ON benefit_life_disability_records(employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_workers_comp_policies_company ON benefit_workers_comp_policies(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_benefit_workers_comp_class_codes_policy ON benefit_workers_comp_class_codes(policy_id, code);
+CREATE INDEX IF NOT EXISTS idx_benefit_workers_comp_claims_company_status ON benefit_workers_comp_claims(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_benefit_workers_comp_claims_employee ON benefit_workers_comp_claims(employee_id);
+CREATE INDEX IF NOT EXISTS idx_benefit_workers_comp_certificates_policy ON benefit_workers_comp_certificates(policy_id, status);
+CREATE INDEX IF NOT EXISTS idx_benefit_workers_comp_audits_policy_year ON benefit_workers_comp_audits(policy_id, audit_year);
+CREATE INDEX IF NOT EXISTS idx_cobra_cases_company_status ON cobra_cases(company_id, status);
 
 -- =============================================================================
 -- ⏱️ TIME & SCHEDULING MODULE

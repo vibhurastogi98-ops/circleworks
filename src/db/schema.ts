@@ -130,11 +130,21 @@ export const timePolicies = pgTable('time_policies', {
   id: serial('id').primaryKey(),
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  workweekStartDay: text('workweek_start_day').default('Monday'),
+  timezone: text('timezone').default('America/New_York'),
   defaultRestBreakMins: integer('default_rest_break_mins').default(15),
   defaultMealBreakMins: integer('default_meal_break_mins').default(30),
   overtimeThresholdDaily: integer('overtime_threshold_daily').default(8),
   overtimeThresholdWeekly: integer('overtime_threshold_weekly').default(40),
+  roundingRule: text('rounding_rule').default('none'),
+  breakDeductionEnabled: boolean('break_deduction_enabled').default(false),
+  autoBreakThresholdHours: real('auto_break_threshold_hours').default(6),
+  autoBreakMinutes: integer('auto_break_minutes').default(30),
+  geofencingEnabled: boolean('geofencing_enabled').default(false),
+  ipRestrictionEnabled: boolean('ip_restriction_enabled').default(false),
+  clockInIpWhitelist: text('clock_in_ip_whitelist'), // JSON array
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const timesheets = pgTable('timesheets', {
@@ -161,9 +171,31 @@ export const timeEntries = pgTable('time_entries', {
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   timesheetId: integer('timesheet_id').references(() => timesheets.id, { onDelete: 'set null' }),
   projectId: integer('project_id'), // Will define reference below to avoid circular errors if before projects
+  workDate: date('work_date'),
   clockIn: timestamp('clock_in').notNull(),
   clockOut: timestamp('clock_out'),
   entryType: text('entry_type').default('Regular'),
+  projectCode: text('project_code'),
+  taskCode: text('task_code'),
+  notes: text('notes'),
+  regularHours: real('regular_hours').default(0),
+  overtimeHours: real('overtime_hours').default(0),
+  doubleTimeHours: real('double_time_hours').default(0),
+  manuallyEdited: boolean('manually_edited').default(false),
+  editedBy: integer('edited_by').references(() => users.id, { onDelete: 'set null' }),
+  editedAt: timestamp('edited_at'),
+  approvalStatus: text('approval_status').default('Approved'),
+  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewNote: text('review_note'),
+  clockInSource: text('clock_in_source').default('web'),
+  clockOutSource: text('clock_out_source'),
+  clockInIp: text('clock_in_ip'),
+  clockOutIp: text('clock_out_ip'),
+  clockInLatitude: real('clock_in_latitude'),
+  clockInLongitude: real('clock_in_longitude'),
+  clockOutLatitude: real('clock_out_latitude'),
+  clockOutLongitude: real('clock_out_longitude'),
   locationId: text('location_id'),
   status: text('status').default('Approved'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -185,7 +217,63 @@ export const shifts = pgTable('shifts', {
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   startTime: timestamp('start_time').notNull(),
   endTime: timestamp('end_time').notNull(),
+  role: text('role'),
+  position: text('position'),
+  location: text('location'),
+  department: text('department'),
+  notes: text('notes'),
+  isOpenShift: boolean('is_open_shift').default(false),
+  neededHeadcount: integer('needed_headcount').default(1),
+  coverageSlot: text('coverage_slot'),
+  publishBatchId: integer('publish_batch_id'),
+  publishedAt: timestamp('published_at'),
+  publishedBy: integer('published_by').references(() => users.id, { onDelete: 'set null' }),
+  notificationStatus: text('notification_status').default('not_sent'),
+  copiedFromShiftId: integer('copied_from_shift_id'),
   status: text('status').default('Scheduled'), // Scheduled, Published, Completed, Cancelled
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const shiftPublishBatches = pgTable('shift_publish_batches', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  weekStart: date('week_start').notNull(),
+  weekEnd: date('week_end').notNull(),
+  channels: text('channels'), // JSON array: sms, email
+  status: text('status').default('Draft'),
+  publishedBy: integer('published_by').references(() => users.id, { onDelete: 'set null' }),
+  publishedAt: timestamp('published_at'),
+  notificationsSent: integer('notifications_sent').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const scheduleCoverageRequirements = pgTable('schedule_coverage_requirements', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  dayOfWeek: integer('day_of_week').notNull(),
+  startTime: text('start_time').notNull(),
+  endTime: text('end_time').notNull(),
+  role: text('role'),
+  location: text('location'),
+  department: text('department'),
+  neededHeadcount: integer('needed_headcount').default(1),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const timeClockLocations = pgTable('time_clock_locations', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  policyId: integer('policy_id').references(() => timePolicies.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  address: text('address'),
+  latitude: real('latitude'),
+  longitude: real('longitude'),
+  radiusMeters: integer('radius_meters').default(150),
+  ipWhitelist: text('ip_whitelist'), // JSON array
+  isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -295,34 +383,67 @@ export const benefitPlans = pgTable('benefit_plans', {
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   type: text('type').notNull(),
+  category: text('category'),
+  planCode: text('plan_code'),
+  planType: text('plan_type'),
   carrier: text('carrier'),
+  carrierLogo: text('carrier_logo'),
   employeePremium: integer('employee_premium').default(0),
   employerPremium: integer('employer_premium').default(0),
+  deductible: integer('deductible').default(0),
+  outOfPocketMax: integer('out_of_pocket_max').default(0),
+  monthlyCost: integer('monthly_cost').default(0),
+  enrolledCount: integer('enrolled_count').default(0),
+  eligibleCount: integer('eligible_count').default(0),
+  effectiveStart: date('effective_start'),
+  effectiveEnd: date('effective_end'),
+  renewalDate: date('renewal_date'),
+  contributionFormula: text('contribution_formula'),
+  network: text('network'),
+  coveredHighlights: text('covered_highlights'), // JSON array
   status: text('status').default('Active'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const benefitEnrollments = pgTable('benefit_enrollments', {
   id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   planId: integer('plan_id').references(() => benefitPlans.id, { onDelete: 'cascade' }),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
   status: text('status').default('Pending'),
+  coverageLevel: text('coverage_level'),
+  employeeMonthlyCost: integer('employee_monthly_cost').default(0),
+  employerMonthlyCost: integer('employer_monthly_cost').default(0),
+  perPayPeriodDeduction: real('per_pay_period_deduction').default(0),
+  dependents: text('dependents'), // JSON array of dependent ids/snapshot
+  elections: text('elections'), // JSON object from enrollment wizard
   enrolledAt: timestamp('enrolled_at'),
+  submittedAt: timestamp('submitted_at'),
+  confirmedAt: timestamp('confirmed_at'),
+  payrollDeductionStatus: text('payroll_deduction_status').default('pending'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const cobraCases = pgTable('cobra_cases', {
   id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
   status: text('status').default('Eligible'),
+  coverageType: text('coverage_type'),
   qualifyingEvent: text('qualifying_event'),
   noticeSentDate: date('notice_sent_date'),
   electionDeadline: date('election_deadline'),
+  cobraStartDate: date('cobra_start_date'),
+  cobraEndDate: date('cobra_end_date'),
   premiumAmount: integer('premium_amount').default(0),
   paymentStatus: text('payment_status').default('Unpaid'),
+  noticeStatus: text('notice_status').default('Not Sent'),
   electionNoticePdf: text('election_notice_pdf'),
   emailQueued: boolean('email_queued').default(false),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const payrollBenefitDeductions = pgTable('payroll_benefit_deductions', {
@@ -336,6 +457,212 @@ export const payrollBenefitDeductions = pgTable('payroll_benefit_deductions', {
   perPaycheckAmount: real('per_paycheck_amount').default(0),
   pretaxOrPosttax: text('pretax_or_posttax').default('pre_tax'),
   deductionCode: text('deduction_code').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitDependents = pgTable('benefit_dependents', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  relationship: text('relationship').notNull(),
+  dateOfBirth: date('date_of_birth'),
+  age: integer('age'),
+  isEligible: boolean('is_eligible').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitOpenEnrollmentWindows = pgTable('benefit_open_enrollment_windows', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  startDate: date('start_date').notNull(),
+  endDate: date('end_date').notNull(),
+  status: text('status').default('Draft'),
+  employeesNotEnrolled: integer('employees_not_enrolled').default(0),
+  completionRate: real('completion_rate').default(0),
+  reminderCount: integer('reminder_count').default(0),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitOpenEnrollmentStatuses = pgTable('benefit_open_enrollment_statuses', {
+  id: serial('id').primaryKey(),
+  windowId: integer('window_id').references(() => benefitOpenEnrollmentWindows.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  status: text('status').default('Not Started'),
+  enrolledPlans: text('enrolled_plans'), // JSON array
+  lastActivityAt: timestamp('last_activity_at'),
+  reminderSentAt: timestamp('reminder_sent_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitCarrierCensusFiles = pgTable('benefit_carrier_census_files', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  windowId: integer('window_id').references(() => benefitOpenEnrollmentWindows.id, { onDelete: 'cascade' }),
+  carrier: text('carrier').notNull(),
+  fileType: text('file_type').notNull(),
+  rowsCount: integer('rows_count').default(0),
+  status: text('status').default('Ready'),
+  fileUrl: text('file_url'),
+  generatedAt: timestamp('generated_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitQleEvents = pgTable('benefit_qle_events', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  eventType: text('event_type').notNull(),
+  eventDate: date('event_date').notNull(),
+  windowExpires: date('window_expires'),
+  status: text('status').default('Pending Review'),
+  description: text('description'),
+  requestedChanges: text('requested_changes'), // JSON array
+  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitRetirementAccounts = pgTable('benefit_retirement_accounts', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  provider: text('provider').default('Guideline'),
+  contributionRate: real('contribution_rate').default(0),
+  contributionType: text('contribution_type').default('Traditional'),
+  employerMatch: text('employer_match'),
+  ytdEmployee: integer('ytd_employee').default(0),
+  ytdEmployer: integer('ytd_employer').default(0),
+  annualLimit: integer('annual_limit').default(23000),
+  syncStatus: text('sync_status').default('Synced'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitRetirementChangeRequests = pgTable('benefit_retirement_change_requests', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  retirementAccountId: integer('retirement_account_id').references(() => benefitRetirementAccounts.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
+  requestedChange: text('requested_change').notNull(),
+  status: text('status').default('Queued'),
+  requestedAt: timestamp('requested_at').defaultNow(),
+  syncedAt: timestamp('synced_at'),
+});
+
+export const benefitSpendingAccounts = pgTable('benefit_spending_accounts', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  accountType: text('account_type').notNull(), // FSA, HSA
+  tpa: text('tpa'),
+  annualElection: integer('annual_election').default(0),
+  ytdContributions: integer('ytd_contributions').default(0),
+  ytdSpent: integer('ytd_spent').default(0),
+  balance: integer('balance').default(0),
+  irsLimit: integer('irs_limit').default(0),
+  status: text('status').default('Healthy'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitLifeDisabilityRecords = pgTable('benefit_life_disability_records', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  carrier: text('carrier'),
+  lifeAmount: integer('life_amount').default(0),
+  voluntaryLife: integer('voluntary_life').default(0),
+  stdStatus: text('std_status').default('Enrolled'),
+  ltdStatus: text('ltd_status').default('Enrolled'),
+  voluntaryBenefits: text('voluntary_benefits'), // JSON array
+  beneficiary: text('beneficiary'),
+  eoiStatus: text('eoi_status').default('N/A'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitWorkersCompPolicies = pgTable('benefit_workers_comp_policies', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  carrier: text('carrier').notNull(),
+  policyNumber: text('policy_number'),
+  state: text('state'),
+  effectiveStart: date('effective_start'),
+  effectiveEnd: date('effective_end'),
+  annualPremium: integer('annual_premium').default(0),
+  payrollEstimate: integer('payroll_estimate').default(0),
+  experienceMod: real('experience_mod').default(1),
+  status: text('status').default('Active'),
+  auditDueDate: date('audit_due_date'),
+  certificateUrl: text('certificate_url'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitWorkersCompClassCodes = pgTable('benefit_workers_comp_class_codes', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  policyId: integer('policy_id').references(() => benefitWorkersCompPolicies.id, { onDelete: 'cascade' }),
+  code: text('code').notNull(),
+  description: text('description').notNull(),
+  state: text('state'),
+  rate: real('rate').default(0),
+  payrollEstimate: integer('payroll_estimate').default(0),
+  employeeCount: integer('employee_count').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitWorkersCompClaims = pgTable('benefit_workers_comp_claims', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  policyId: integer('policy_id').references(() => benefitWorkersCompPolicies.id, { onDelete: 'set null' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+  claimNumber: text('claim_number'),
+  incidentDate: date('incident_date'),
+  reportedDate: date('reported_date'),
+  status: text('status').default('Open'),
+  injuryType: text('injury_type'),
+  totalPaid: integer('total_paid').default(0),
+  reserves: integer('reserves').default(0),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitWorkersCompCertificates = pgTable('benefit_workers_comp_certificates', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  policyId: integer('policy_id').references(() => benefitWorkersCompPolicies.id, { onDelete: 'cascade' }),
+  certificateHolder: text('certificate_holder').notNull(),
+  fileUrl: text('file_url'),
+  issuedAt: timestamp('issued_at'),
+  expiresAt: date('expires_at'),
+  status: text('status').default('Active'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const benefitWorkersCompAudits = pgTable('benefit_workers_comp_audits', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  policyId: integer('policy_id').references(() => benefitWorkersCompPolicies.id, { onDelete: 'cascade' }),
+  auditYear: integer('audit_year').notNull(),
+  payrollReported: integer('payroll_reported').default(0),
+  premiumAdjustment: integer('premium_adjustment').default(0),
+  status: text('status').default('Draft'),
+  exportUrl: text('export_url'),
+  dueDate: date('due_date'),
+  submittedAt: timestamp('submitted_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -370,16 +697,56 @@ export const expenseItems = pgTable('expense_items', {
 
 // --- PTO & LEAVE ---
 
+export const ptoPolicies = pgTable('pto_policies', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  leaveType: text('leave_type').notNull(),
+  accrualMethod: text('accrual_method').default('flat'),
+  annualAllowanceDays: real('annual_allowance_days').default(0),
+  accrualRatePerPeriod: real('accrual_rate_per_period').default(0),
+  capDays: real('cap_days').default(0),
+  carryoverRule: text('carryover_rule'),
+  carryoverCapDays: real('carryover_cap_days').default(0),
+  requiresApproval: boolean('requires_approval').default(true),
+  color: text('color').default('#2563eb'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const ptoBalances = pgTable('pto_balances', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }).notNull(),
+  policyId: integer('policy_id').references(() => ptoPolicies.id, { onDelete: 'cascade' }),
+  balanceDays: real('balance_days').default(0),
+  accruedDays: real('accrued_days').default(0),
+  usedDaysYtd: real('used_days_ytd').default(0),
+  scheduledDays: real('scheduled_days').default(0),
+  carryoverDays: real('carryover_days').default(0),
+  lastAccruedAt: timestamp('last_accrued_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export const ptoRequests = pgTable('pto_requests', {
   id: serial('id').primaryKey(),
   employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  policyId: integer('policy_id').references(() => ptoPolicies.id, { onDelete: 'set null' }),
   type: text('type').notNull(),
   startDate: date('start_date').notNull(),
   endDate: date('end_date').notNull(),
+  daysRequested: real('days_requested').default(0),
+  reason: text('reason'),
   status: text('status').default('Pending'),
   approverId: integer('approver_id').references(() => employees.id, { onDelete: 'set null' }),
+  reviewerId: integer('reviewer_id').references(() => users.id, { onDelete: 'set null' }),
+  reviewNote: text('review_note'),
+  submittedAt: timestamp('submitted_at').defaultNow(),
+  reviewedAt: timestamp('reviewed_at'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // --- DOCUMENTS & BANK ---
@@ -490,6 +857,32 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   employees: many(employees),
   payrolls: many(payrolls),
   paySchedules: many(paySchedules),
+  timePolicies: many(timePolicies),
+  timesheets: many(timesheets),
+  timeEntries: many(timeEntries),
+  shifts: many(shifts),
+  shiftPublishBatches: many(shiftPublishBatches),
+  scheduleCoverageRequirements: many(scheduleCoverageRequirements),
+  timeClockLocations: many(timeClockLocations),
+  ptoPolicies: many(ptoPolicies),
+  ptoBalances: many(ptoBalances),
+  ptoRequests: many(ptoRequests, { relationName: 'pto_request_employee' }),
+  benefitPlans: many(benefitPlans),
+  benefitEnrollments: many(benefitEnrollments),
+  benefitDependents: many(benefitDependents),
+  cobraCases: many(cobraCases),
+  benefitOpenEnrollmentWindows: many(benefitOpenEnrollmentWindows),
+  benefitCarrierCensusFiles: many(benefitCarrierCensusFiles),
+  benefitQleEvents: many(benefitQleEvents),
+  benefitRetirementAccounts: many(benefitRetirementAccounts),
+  benefitRetirementChangeRequests: many(benefitRetirementChangeRequests),
+  benefitSpendingAccounts: many(benefitSpendingAccounts),
+  benefitLifeDisabilityRecords: many(benefitLifeDisabilityRecords),
+  benefitWorkersCompPolicies: many(benefitWorkersCompPolicies),
+  benefitWorkersCompClassCodes: many(benefitWorkersCompClassCodes),
+  benefitWorkersCompClaims: many(benefitWorkersCompClaims),
+  benefitWorkersCompCertificates: many(benefitWorkersCompCertificates),
+  benefitWorkersCompAudits: many(benefitWorkersCompAudits),
   agencyClients: many(agencyClients),
   agencyInvoices: many(agencyInvoices),
 }));
@@ -498,10 +891,22 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
   user: one(users, { fields: [employees.userId], references: [users.id] }),
   company: one(companies, { fields: [employees.companyId], references: [companies.id] }),
   timesheets: many(timesheets),
+  timeEntries: many(timeEntries),
+  shifts: many(shifts),
   onboardingCases: many(onboardingCases),
   benefitEnrollments: many(benefitEnrollments),
+  benefitDependents: many(benefitDependents),
+  cobraCases: many(cobraCases),
+  benefitOpenEnrollmentStatuses: many(benefitOpenEnrollmentStatuses),
+  benefitQleEvents: many(benefitQleEvents),
+  benefitRetirementAccounts: many(benefitRetirementAccounts),
+  benefitRetirementChangeRequests: many(benefitRetirementChangeRequests),
+  benefitSpendingAccounts: many(benefitSpendingAccounts),
+  benefitLifeDisabilityRecords: many(benefitLifeDisabilityRecords),
+  benefitWorkersCompClaims: many(benefitWorkersCompClaims),
   expenseReports: many(expenseReports),
   ptoRequests: many(ptoRequests),
+  ptoBalances: many(ptoBalances),
   documents: many(employeeDocuments),
   bankAccounts: many(employeeBankAccounts),
   payrollItems: many(payrollItems),
@@ -521,6 +926,120 @@ export const payrollTimeImportsRelations = relations(payrollTimeImports, ({ one 
   payroll: one(payrolls, { fields: [payrollTimeImports.payrollId], references: [payrolls.id] }),
   employee: one(employees, { fields: [payrollTimeImports.employeeId], references: [employees.id] }),
   timesheet: one(timesheets, { fields: [payrollTimeImports.timesheetId], references: [timesheets.id] }),
+}));
+
+export const timePoliciesRelations = relations(timePolicies, ({ one, many }) => ({
+  company: one(companies, { fields: [timePolicies.companyId], references: [companies.id] }),
+  clockLocations: many(timeClockLocations),
+}));
+
+export const timesheetsRelations = relations(timesheets, ({ one, many }) => ({
+  employee: one(employees, { fields: [timesheets.employeeId], references: [employees.id] }),
+  company: one(companies, { fields: [timesheets.companyId], references: [companies.id] }),
+  entries: many(timeEntries),
+  approver: one(users, { fields: [timesheets.approverId], references: [users.id] }),
+}));
+
+export const benefitPlansRelations = relations(benefitPlans, ({ one, many }) => ({
+  company: one(companies, { fields: [benefitPlans.companyId], references: [companies.id] }),
+  enrollments: many(benefitEnrollments),
+  payrollDeductions: many(payrollBenefitDeductions),
+}));
+
+export const benefitEnrollmentsRelations = relations(benefitEnrollments, ({ one }) => ({
+  company: one(companies, { fields: [benefitEnrollments.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitEnrollments.employeeId], references: [employees.id] }),
+  plan: one(benefitPlans, { fields: [benefitEnrollments.planId], references: [benefitPlans.id] }),
+}));
+
+export const cobraCasesRelations = relations(cobraCases, ({ one }) => ({
+  company: one(companies, { fields: [cobraCases.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [cobraCases.employeeId], references: [employees.id] }),
+}));
+
+export const payrollBenefitDeductionsRelations = relations(payrollBenefitDeductions, ({ one }) => ({
+  payroll: one(payrolls, { fields: [payrollBenefitDeductions.payrollId], references: [payrolls.id] }),
+  employee: one(employees, { fields: [payrollBenefitDeductions.employeeId], references: [employees.id] }),
+  benefitPlan: one(benefitPlans, { fields: [payrollBenefitDeductions.benefitPlanId], references: [benefitPlans.id] }),
+}));
+
+export const benefitDependentsRelations = relations(benefitDependents, ({ one }) => ({
+  company: one(companies, { fields: [benefitDependents.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitDependents.employeeId], references: [employees.id] }),
+}));
+
+export const benefitOpenEnrollmentWindowsRelations = relations(benefitOpenEnrollmentWindows, ({ one, many }) => ({
+  company: one(companies, { fields: [benefitOpenEnrollmentWindows.companyId], references: [companies.id] }),
+  creator: one(users, { fields: [benefitOpenEnrollmentWindows.createdBy], references: [users.id] }),
+  statuses: many(benefitOpenEnrollmentStatuses),
+  carrierFiles: many(benefitCarrierCensusFiles),
+}));
+
+export const benefitOpenEnrollmentStatusesRelations = relations(benefitOpenEnrollmentStatuses, ({ one }) => ({
+  window: one(benefitOpenEnrollmentWindows, { fields: [benefitOpenEnrollmentStatuses.windowId], references: [benefitOpenEnrollmentWindows.id] }),
+  employee: one(employees, { fields: [benefitOpenEnrollmentStatuses.employeeId], references: [employees.id] }),
+}));
+
+export const benefitCarrierCensusFilesRelations = relations(benefitCarrierCensusFiles, ({ one }) => ({
+  company: one(companies, { fields: [benefitCarrierCensusFiles.companyId], references: [companies.id] }),
+  window: one(benefitOpenEnrollmentWindows, { fields: [benefitCarrierCensusFiles.windowId], references: [benefitOpenEnrollmentWindows.id] }),
+}));
+
+export const benefitQleEventsRelations = relations(benefitQleEvents, ({ one }) => ({
+  company: one(companies, { fields: [benefitQleEvents.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitQleEvents.employeeId], references: [employees.id] }),
+  reviewer: one(users, { fields: [benefitQleEvents.reviewedBy], references: [users.id] }),
+}));
+
+export const benefitRetirementAccountsRelations = relations(benefitRetirementAccounts, ({ one, many }) => ({
+  company: one(companies, { fields: [benefitRetirementAccounts.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitRetirementAccounts.employeeId], references: [employees.id] }),
+  changeRequests: many(benefitRetirementChangeRequests),
+}));
+
+export const benefitRetirementChangeRequestsRelations = relations(benefitRetirementChangeRequests, ({ one }) => ({
+  company: one(companies, { fields: [benefitRetirementChangeRequests.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitRetirementChangeRequests.employeeId], references: [employees.id] }),
+  retirementAccount: one(benefitRetirementAccounts, { fields: [benefitRetirementChangeRequests.retirementAccountId], references: [benefitRetirementAccounts.id] }),
+}));
+
+export const benefitSpendingAccountsRelations = relations(benefitSpendingAccounts, ({ one }) => ({
+  company: one(companies, { fields: [benefitSpendingAccounts.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitSpendingAccounts.employeeId], references: [employees.id] }),
+}));
+
+export const benefitLifeDisabilityRecordsRelations = relations(benefitLifeDisabilityRecords, ({ one }) => ({
+  company: one(companies, { fields: [benefitLifeDisabilityRecords.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [benefitLifeDisabilityRecords.employeeId], references: [employees.id] }),
+}));
+
+export const benefitWorkersCompPoliciesRelations = relations(benefitWorkersCompPolicies, ({ one, many }) => ({
+  company: one(companies, { fields: [benefitWorkersCompPolicies.companyId], references: [companies.id] }),
+  classCodes: many(benefitWorkersCompClassCodes),
+  claims: many(benefitWorkersCompClaims),
+  certificates: many(benefitWorkersCompCertificates),
+  audits: many(benefitWorkersCompAudits),
+}));
+
+export const benefitWorkersCompClassCodesRelations = relations(benefitWorkersCompClassCodes, ({ one }) => ({
+  company: one(companies, { fields: [benefitWorkersCompClassCodes.companyId], references: [companies.id] }),
+  policy: one(benefitWorkersCompPolicies, { fields: [benefitWorkersCompClassCodes.policyId], references: [benefitWorkersCompPolicies.id] }),
+}));
+
+export const benefitWorkersCompClaimsRelations = relations(benefitWorkersCompClaims, ({ one }) => ({
+  company: one(companies, { fields: [benefitWorkersCompClaims.companyId], references: [companies.id] }),
+  policy: one(benefitWorkersCompPolicies, { fields: [benefitWorkersCompClaims.policyId], references: [benefitWorkersCompPolicies.id] }),
+  employee: one(employees, { fields: [benefitWorkersCompClaims.employeeId], references: [employees.id] }),
+}));
+
+export const benefitWorkersCompCertificatesRelations = relations(benefitWorkersCompCertificates, ({ one }) => ({
+  company: one(companies, { fields: [benefitWorkersCompCertificates.companyId], references: [companies.id] }),
+  policy: one(benefitWorkersCompPolicies, { fields: [benefitWorkersCompCertificates.policyId], references: [benefitWorkersCompPolicies.id] }),
+}));
+
+export const benefitWorkersCompAuditsRelations = relations(benefitWorkersCompAudits, ({ one }) => ({
+  company: one(companies, { fields: [benefitWorkersCompAudits.companyId], references: [companies.id] }),
+  policy: one(benefitWorkersCompPolicies, { fields: [benefitWorkersCompAudits.policyId], references: [benefitWorkersCompPolicies.id] }),
 }));
 
 export const announcementsRelations = relations(announcements, ({ one, many }) => ({
@@ -575,6 +1094,8 @@ export const timeEntriesRelations = relations(timeEntries, ({ one, many }) => ({
   company: one(companies, { fields: [timeEntries.companyId], references: [companies.id] }),
   timesheet: one(timesheets, { fields: [timeEntries.timesheetId], references: [timesheets.id] }),
   project: one(projects, { fields: [timeEntries.projectId], references: [projects.id] }),
+  editor: one(users, { fields: [timeEntries.editedBy], references: [users.id], relationName: 'time_entry_editor' }),
+  reviewer: one(users, { fields: [timeEntries.reviewedBy], references: [users.id], relationName: 'time_entry_reviewer' }),
   breaks: many(timeBreaks),
 }));
 
@@ -585,6 +1106,41 @@ export const timeBreaksRelations = relations(timeBreaks, ({ one }) => ({
 export const shiftsRelations = relations(shifts, ({ one }) => ({
   employee: one(employees, { fields: [shifts.employeeId], references: [employees.id] }),
   company: one(companies, { fields: [shifts.companyId], references: [companies.id] }),
+  publisher: one(users, { fields: [shifts.publishedBy], references: [users.id] }),
+}));
+
+export const shiftPublishBatchesRelations = relations(shiftPublishBatches, ({ one }) => ({
+  company: one(companies, { fields: [shiftPublishBatches.companyId], references: [companies.id] }),
+  publisher: one(users, { fields: [shiftPublishBatches.publishedBy], references: [users.id] }),
+}));
+
+export const scheduleCoverageRequirementsRelations = relations(scheduleCoverageRequirements, ({ one }) => ({
+  company: one(companies, { fields: [scheduleCoverageRequirements.companyId], references: [companies.id] }),
+}));
+
+export const timeClockLocationsRelations = relations(timeClockLocations, ({ one }) => ({
+  company: one(companies, { fields: [timeClockLocations.companyId], references: [companies.id] }),
+  policy: one(timePolicies, { fields: [timeClockLocations.policyId], references: [timePolicies.id] }),
+}));
+
+export const ptoPoliciesRelations = relations(ptoPolicies, ({ one, many }) => ({
+  company: one(companies, { fields: [ptoPolicies.companyId], references: [companies.id] }),
+  balances: many(ptoBalances),
+  requests: many(ptoRequests),
+}));
+
+export const ptoBalancesRelations = relations(ptoBalances, ({ one }) => ({
+  company: one(companies, { fields: [ptoBalances.companyId], references: [companies.id] }),
+  employee: one(employees, { fields: [ptoBalances.employeeId], references: [employees.id] }),
+  policy: one(ptoPolicies, { fields: [ptoBalances.policyId], references: [ptoPolicies.id] }),
+}));
+
+export const ptoRequestsRelations = relations(ptoRequests, ({ one }) => ({
+  employee: one(employees, { fields: [ptoRequests.employeeId], references: [employees.id], relationName: 'pto_request_employee' }),
+  company: one(companies, { fields: [ptoRequests.companyId], references: [companies.id] }),
+  policy: one(ptoPolicies, { fields: [ptoRequests.policyId], references: [ptoPolicies.id] }),
+  approver: one(employees, { fields: [ptoRequests.approverId], references: [employees.id], relationName: 'pto_request_approver' }),
+  reviewer: one(users, { fields: [ptoRequests.reviewerId], references: [users.id] }),
 }));
 
 // --- CONTRACTORS ---

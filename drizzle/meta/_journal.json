@@ -85,6 +85,27 @@
       "when": 1779519600000,
       "tag": "0011_database_indexing_strategy",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1779523200000,
+      "tag": "0012_benefits_administration_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1779526800000,
+      "tag": "0013_time_scheduling_module_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1779530400000,
+      "tag": "0014_missing_app_schema_backfill",
+      "breakpoints": true
     }
   ]
 }
