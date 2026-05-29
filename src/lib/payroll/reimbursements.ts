@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { employees, expenseReports, payrolls, users } from "@/db/schema";
 import { mockExpenseReports } from "@/data/mockExpenses";
+import { employees as hrisEmployees, getEmployeeName } from "@/lib/hris-module-data";
 import { and, eq, isNull } from "drizzle-orm";
 
 export interface PayrollReimbursementLine {
@@ -25,11 +26,11 @@ export function buildMockPayrollReimbursements(): PayrollReimbursementResult {
   const reimbursements = [
     {
       expenseReportId: "ER-002",
-      employeeId: "emp-004",
-      employeeName: "Jordan Brown",
+      employeeId: hrisEmployees[7].id,
+      employeeName: getEmployeeName(hrisEmployees[7]),
       description: "WFH Equipment - March 2026",
       amount: 149.99,
-      approvedBy: "Sarah Chen",
+      approvedBy: getEmployeeName(hrisEmployees[5]),
       approvedDate: "2026-03-30T14:25:00Z",
       includeInThisRun: true,
       deferToNextRun: false,
@@ -38,11 +39,11 @@ export function buildMockPayrollReimbursements(): PayrollReimbursementResult {
     },
     {
       expenseReportId: "ER-004",
-      employeeId: "emp-019",
-      employeeName: "Taylor Smith",
+      employeeId: hrisEmployees[5].id,
+      employeeName: getEmployeeName(hrisEmployees[5]),
       description: "Field Visit Travel Reimbursement",
       amount: 212.4,
-      approvedBy: "Sarah Chen",
+      approvedBy: getEmployeeName(hrisEmployees[3]),
       approvedDate: "2026-04-03T10:15:00Z",
       includeInThisRun: true,
       deferToNextRun: false,
@@ -51,8 +52,8 @@ export function buildMockPayrollReimbursements(): PayrollReimbursementResult {
     },
     {
       expenseReportId: "ER-005",
-      employeeId: "emp-031",
-      employeeName: "Alex Clark",
+      employeeId: hrisEmployees[2].id,
+      employeeName: getEmployeeName(hrisEmployees[2]),
       description: "Production Equipment Rental",
       amount: 640.0,
       approvedBy: "Jamie HR",

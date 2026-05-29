@@ -5,7 +5,9 @@ import { Inter } from "next/font/google";
 import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
 import CirceWidget from "@/components/CirceWidget";
+import AppShell from "@/components/app/AppShell";
 import "./globals.css";
+import "@xyflow/react/dist/style.css";
 import { Toaster } from "sonner";
 import QueryProvider from "@/components/QueryProvider";
 import SocketProvider from "@/components/SocketProvider";
@@ -112,7 +114,7 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <SocketProvider>
-              {children}
+              <AppShell>{children}</AppShell>
               <CirceWidget />
             </SocketProvider>
           </AuthProvider>

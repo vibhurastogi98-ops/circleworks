@@ -11,16 +11,10 @@ import {
 } from "@/lib/cursorPagination";
 import { applyEmployeeFieldVisibility } from "@/lib/fieldVisibility";
 import { requireApiPermission } from "@/lib/apiRbac";
+import { getEmployeeApiFallback } from "@/lib/hris-module-data";
 import { versionedResponse } from "@/lib/apiVersioning";
 
-const fallbackEmployees = [
-  { id: "1", firstName: "Sarah", lastName: "Smith", email: "sarah.smith@example.com", jobTitle: "Lead Engineer", department: "Engineering", employmentType: "full-time", status: "active", location: "New York, NY", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Sarah&backgroundColor=transparent", startDate: "2022-03-15", salary: 150000, personalPhone: "(555) 123-4567", createdAt: "2026-01-06T00:00:00.000Z" },
-  { id: "2", firstName: "Michael", lastName: "Chen", email: "m.chen@example.com", jobTitle: "Product Designer", department: "Design", employmentType: "full-time", status: "active", location: "San Francisco, CA", locationType: "Remote", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Michael&backgroundColor=transparent", startDate: "2023-01-10", salary: 125000, personalPhone: "(555) 234-5678", createdAt: "2026-01-05T00:00:00.000Z" },
-  { id: "3", firstName: "Emma", lastName: "Watson", email: "emma.w@example.com", jobTitle: "Marketing Manager", department: "Marketing", employmentType: "full-time", status: "onboarding", location: "London, UK", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Emma&backgroundColor=transparent", startDate: "2024-04-01", salary: 110000, personalPhone: "(555) 345-6789", createdAt: "2026-01-04T00:00:00.000Z" },
-  { id: "4", firstName: "David", lastName: "Lee", email: "d.lee@example.com", jobTitle: "Sales Director", department: "Sales", employmentType: "full-time", status: "active", location: "Austin, TX", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=David&backgroundColor=transparent", startDate: "2021-11-20", salary: 135000, personalPhone: "(555) 456-7890", createdAt: "2026-01-03T00:00:00.000Z" },
-  { id: "5", firstName: "Jessica", lastName: "Rivera", email: "j.rivera@example.com", jobTitle: "HR Manager", department: "Human Resources", employmentType: "full-time", status: "active", location: "Denver, CO", locationType: "Hybrid", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=Jessica&backgroundColor=transparent", startDate: "2023-06-15", salary: 95000, personalPhone: "(555) 567-8901", createdAt: "2026-01-02T00:00:00.000Z" },
-  { id: "6", firstName: "James", lastName: "Patterson", email: "j.patterson@example.com", jobTitle: "Finance Manager", department: "Finance", employmentType: "full-time", status: "active", location: "Chicago, IL", locationType: "On-Site", avatar: "https://api.dicebear.com/7.x/notionists/svg?seed=James&backgroundColor=transparent", startDate: "2022-08-22", salary: 120000, personalPhone: "(555) 678-9012", createdAt: "2026-01-01T00:00:00.000Z" },
-];
+const fallbackEmployees = getEmployeeApiFallback();
 
 export async function GET(req: NextRequest) {
   try {

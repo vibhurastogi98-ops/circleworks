@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { standardReports } from "@/data/mockReports";
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+} from "@/lib/hris-module-data";
 
 type SearchGroup =
   | "EMPLOYEES"
@@ -20,44 +24,28 @@ interface SearchRecord {
   keywords: string[];
 }
 
-const employees: SearchRecord[] = [
-  {
+const employees: SearchRecord[] = hrisEmployees.map((employee) => {
+  const title = getEmployeeName(employee);
+
+  return {
     type: "EMPLOYEES",
-    id: "emp_1",
-    title: "Robert Chen",
-    subtitle: "Engineering Manager · Engineering",
+    id: `emp_${employee.id}`,
+    title,
+    subtitle: `${employee.title} · ${employee.department}`,
     icon: "User",
-    url: "/employees/1",
-    keywords: ["robert", "chen", "engineering", "manager", "employee"],
-  },
-  {
-    type: "EMPLOYEES",
-    id: "emp_2",
-    title: "Sarah Williams",
-    subtitle: "VP People · Human Resources",
-    icon: "User",
-    url: "/employees/2",
-    keywords: ["sarah", "williams", "vp people", "hr", "human resources", "employee"],
-  },
-  {
-    type: "EMPLOYEES",
-    id: "emp_3",
-    title: "David Martinez",
-    subtitle: "Payroll Specialist · Finance",
-    icon: "User",
-    url: "/employees/3",
-    keywords: ["david", "martinez", "payroll", "finance", "employee"],
-  },
-  {
-    type: "EMPLOYEES",
-    id: "emp_4",
-    title: "Maria Santos",
-    subtitle: "Benefits Manager · People Ops",
-    icon: "User",
-    url: "/employees/4",
-    keywords: ["maria", "santos", "benefits", "people ops", "employee"],
-  },
-];
+    url: `/employees/${employee.id}`,
+    keywords: [
+      employee.firstName,
+      employee.lastName,
+      title,
+      employee.title,
+      employee.department,
+      employee.email,
+      employee.location,
+      "employee",
+    ].map((keyword) => keyword.toLowerCase()),
+  };
+});
 
 const payrollRuns: SearchRecord[] = [
   {
@@ -66,7 +54,7 @@ const payrollRuns: SearchRecord[] = [
     title: "May 1-15 Payroll",
     subtitle: "Paid May 20, 2026 · Paid",
     icon: "ReceiptText",
-    url: "/payroll/run/pr-2026-010",
+    url: "/payroll/run/pr-2026-0515",
     keywords: ["may", "payroll", "run", "paid", "recent payroll"],
   },
   {
@@ -75,7 +63,7 @@ const payrollRuns: SearchRecord[] = [
     title: "Apr 16-30 Payroll",
     subtitle: "Paid May 5, 2026 · Paid",
     icon: "ReceiptText",
-    url: "/payroll/run/pr-2026-009",
+    url: "/payroll/run/pr-2026-0430",
     keywords: ["april", "apr", "payroll", "run", "paid", "recent payroll"],
   },
   {
@@ -84,7 +72,7 @@ const payrollRuns: SearchRecord[] = [
     title: "Apr 1-15 Payroll",
     subtitle: "Paid Apr 20, 2026 · Paid",
     icon: "ReceiptText",
-    url: "/payroll/run/pr-2026-008",
+    url: "/payroll/history",
     keywords: ["april", "apr", "payroll", "run", "paid", "recent payroll"],
   },
 ];
@@ -179,21 +167,21 @@ const actions: SearchRecord[] = [
 const documents: SearchRecord[] = [
   {
     type: "DOCUMENTS",
-    id: "doc_sarah_i9",
-    title: "Sarah Williams I-9",
+    id: "doc_maya_i9",
+    title: `${getEmployeeName(hrisEmployees[0])} I-9`,
     subtitle: "Employee Document · Verification",
     icon: "File",
-    url: "/employees/2/documents",
-    keywords: ["sarah", "williams", "i-9", "i9", "document", "verification"],
+    url: `/employees/${hrisEmployees[0].id}/documents`,
+    keywords: [hrisEmployees[0].firstName, hrisEmployees[0].lastName, "i-9", "i9", "document", "verification"].map((keyword) => keyword.toLowerCase()),
   },
   {
     type: "DOCUMENTS",
-    id: "doc_robert_offer",
-    title: "Robert Chen Offer Letter",
+    id: "doc_avery_offer",
+    title: `${getEmployeeName(hrisEmployees[1])} Offer Letter`,
     subtitle: "Employee Document · Signed",
     icon: "File",
-    url: "/employees/1/documents",
-    keywords: ["robert", "chen", "offer letter", "document", "signed"],
+    url: `/employees/${hrisEmployees[1].id}/documents`,
+    keywords: [hrisEmployees[1].firstName, hrisEmployees[1].lastName, "offer letter", "document", "signed"].map((keyword) => keyword.toLowerCase()),
   },
   {
     type: "DOCUMENTS",

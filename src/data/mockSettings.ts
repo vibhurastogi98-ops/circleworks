@@ -1,3 +1,20 @@
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+} from "@/lib/hris-module-data";
+
+type MockDepartment = {
+  id: string;
+  name: string;
+  code: string;
+  head: string;
+  parent: string | null;
+  employeeCount: number;
+};
+
+const employeeCountByLocation = (state: string) => hrisEmployees.filter((employee) => employee.address.state === state).length;
+const employeeCountByDepartment = (department: string) => hrisEmployees.filter((employee) => employee.department === department).length;
+
 export const mockCompanyProfile = {
   id: "comp_123",
   legalName: "CircleWorks Technologies Inc.",
@@ -14,18 +31,16 @@ export const mockCompanyProfile = {
 };
 
 export const mockLocations = [
-  { id: "loc_1", name: "SF Headquarters", address: "123 Innovation Drive", state: "CA", timezone: "America/Los_Angeles", employeeCount: 142 },
-  { id: "loc_2", name: "NY Office", address: "456 Broadway Ave", state: "NY", timezone: "America/New_York", employeeCount: 64 },
-  { id: "loc_3", name: "Austin Hub", address: "789 Tech Boulevard", state: "TX", timezone: "America/Chicago", employeeCount: 28 },
+  { id: "loc_1", name: "SF Headquarters", address: "221 Mission St", state: "CA", timezone: "America/Los_Angeles", employeeCount: employeeCountByLocation("CA") },
+  { id: "loc_2", name: "NY Office", address: "55 Water St", state: "NY", timezone: "America/New_York", employeeCount: employeeCountByLocation("NY") },
+  { id: "loc_3", name: "Austin Hub", address: "908 Congress Ave", state: "TX", timezone: "America/Chicago", employeeCount: employeeCountByLocation("TX") },
 ];
 
-export const mockDepartments = [
-  { id: "dept_1", name: "Engineering", code: "ENG-100", head: "Robert Martinez", parent: null, employeeCount: 84 },
-  { id: "dept_2", name: "Frontend", code: "ENG-101", head: "Sarah Lee", parent: "Engineering", employeeCount: 30 },
-  { id: "dept_3", name: "Backend", code: "ENG-102", head: "James Wilson", parent: "Engineering", employeeCount: 45 },
-  { id: "dept_4", name: "Sales", code: "SAL-200", head: "Amanda Smith", parent: null, employeeCount: 42 },
-  { id: "dept_5", name: "Marketing", code: "MKT-300", head: "Kevin Chang", parent: null, employeeCount: 18 },
-  { id: "dept_6", name: "Human Resources", code: "HR-400", head: "Jessica Davis", parent: null, employeeCount: 6 },
+export const mockDepartments: MockDepartment[] = [
+  { id: "dept_1", name: "Executive", code: "EXE-100", head: getEmployeeName(hrisEmployees[0]), parent: null, employeeCount: employeeCountByDepartment("Executive") },
+  { id: "dept_2", name: "Engineering", code: "ENG-100", head: getEmployeeName(hrisEmployees[1]), parent: null, employeeCount: employeeCountByDepartment("Engineering") },
+  { id: "dept_3", name: "Payroll", code: "PAY-200", head: getEmployeeName(hrisEmployees[3]), parent: null, employeeCount: employeeCountByDepartment("Payroll") },
+  { id: "dept_4", name: "People", code: "PEO-300", head: getEmployeeName(hrisEmployees[5]), parent: null, employeeCount: employeeCountByDepartment("People") },
 ];
 
 export const mockUsers = [
@@ -44,9 +59,9 @@ export const mockRoles = [
 ];
 
 export const mockPaySchedules = [
-  { id: "ps_1", name: "Salaried Bi-Weekly", frequency: "Bi-Weekly", nextPayDay: "2026-04-10", cutoff: "2026-04-06", cutoffHoursBeforeRun: 24, employees: 185, default: true },
-  { id: "ps_2", name: "Hourly Weekly", frequency: "Weekly", nextPayDay: "2026-04-08", cutoff: "2026-04-05", cutoffHoursBeforeRun: 24, employees: 49, default: false },
-  { id: "ps_3", name: "Executive Monthly", frequency: "Monthly", nextPayDay: "2026-04-30", cutoff: "2026-04-25", cutoffHoursBeforeRun: 24, employees: 12, default: false },
+  { id: "ps_1", name: "Salaried Bi-Weekly", frequency: "Bi-Weekly", nextPayDay: "2026-06-20", cutoff: "2026-06-17", cutoffHoursBeforeRun: 24, employees: hrisEmployees.filter((employee) => employee.payType === "Salary").length, default: true },
+  { id: "ps_2", name: "Hourly Weekly", frequency: "Weekly", nextPayDay: "2026-06-13", cutoff: "2026-06-10", cutoffHoursBeforeRun: 24, employees: hrisEmployees.filter((employee) => employee.payType === "Hourly").length, default: false },
+  { id: "ps_3", name: "Executive Monthly", frequency: "Monthly", nextPayDay: "2026-06-30", cutoff: "2026-06-25", cutoffHoursBeforeRun: 24, employees: employeeCountByDepartment("Executive"), default: false },
 ];
 
 export const mockBankAccounts = [

@@ -1,4 +1,10 @@
 
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+  getHeadcountEmployees,
+} from "@/lib/hris-module-data";
+
 export interface ReviewCycle {
   id: string;
   name: string;
@@ -45,25 +51,28 @@ export interface Recognition {
   category: string;
 }
 
+const performanceEmployees = getHeadcountEmployees();
+const employeeName = (index: number) => getEmployeeName(hrisEmployees[index] || hrisEmployees[0]);
+const avatarFor = (index: number) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(employeeName(index))}`;
 
 export const mockReviewCycles: ReviewCycle[] = [
-  { id: "c1", name: "Annual Performance Review 2024", type: "Annual", status: "Active", period: "Jan 1, 2024 - Dec 31, 2024", deadline: "2024-12-15", completion: 65, participants: 142 },
-  { id: "c2", name: "Q1 Team Sync Checkpiont", type: "Quarterly", status: "Completed", period: "Jan 1, 2024 - Mar 31, 2024", deadline: "2024-03-31", completion: 100, participants: 128 },
-  { id: "c3", name: "Probationary Review: Sarah Chen", type: "Probation", status: "Completed", period: "Feb 1, 2024 - Apr 30, 2024", deadline: "2024-04-30", completion: 100, participants: 1 }
+  { id: "c1", name: "Annual Performance Review 2026", type: "Annual", status: "Active", period: "Jan 1, 2026 - Dec 31, 2026", deadline: "2026-12-15", completion: 65, participants: performanceEmployees.length },
+  { id: "c2", name: "Q1 Team Sync Checkpoint", type: "Quarterly", status: "Completed", period: "Jan 1, 2026 - Mar 31, 2026", deadline: "2026-03-31", completion: 100, participants: performanceEmployees.length },
+  { id: "c3", name: `Probationary Review: ${employeeName(4)}`, type: "Probation", status: "Completed", period: "Apr 1, 2026 - Jun 30, 2026", deadline: "2026-06-30", completion: 100, participants: 1 }
 ];
 
 export const mockGoals: Goal[] = [
   { id: "g1", title: "Increase Platform Revenue by 25%", type: "Company", status: "On Track", progress: 45, dueDate: "2024-12-31", owner: "Vibhu Rastogi" },
-  { id: "g2", title: "Scale Engineering Team", type: "Team", status: "At Risk", progress: 20, dueDate: "2024-06-30", owner: "Marcus Thorne" },
-  { id: "g3", title: "Launch Benefits Module", type: "Individual", status: "On Track", progress: 85, dueDate: "2024-04-15", owner: "Sarah Chen" }
+  { id: "g2", title: "Scale Engineering Team", type: "Team", status: "At Risk", progress: 20, dueDate: "2026-06-30", owner: employeeName(1) },
+  { id: "g3", title: "Launch Benefits Module", type: "Individual", status: "On Track", progress: 85, dueDate: "2026-06-15", owner: employeeName(5) }
 ];
 
 export const mockFeedbackRequests: FeedbackRequest[] = [
   {
     id: "fr1",
-    person: "Sarah Chen",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    title: "Senior Product Designer",
+    person: employeeName(2),
+    avatar: avatarFor(2),
+    title: hrisEmployees[2].title,
     type: "received",
     status: "Pending",
     date: "2024-03-25",
@@ -71,9 +80,9 @@ export const mockFeedbackRequests: FeedbackRequest[] = [
   },
   {
     id: "fr2",
-    person: "Marcus Thorne",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
-    title: "Engineering Manager",
+    person: employeeName(1),
+    avatar: avatarFor(1),
+    title: hrisEmployees[1].title,
     type: "sent",
     status: "Submitted",
     date: "2024-03-20",
@@ -84,20 +93,20 @@ export const mockFeedbackRequests: FeedbackRequest[] = [
 export const mockRecognition: Recognition[] = [
   {
     id: "rec-1",
-    from: "Alex Rivera",
-    fromAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-    to: "Sarah Chen",
-    toAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+    from: employeeName(0),
+    fromAvatar: avatarFor(0),
+    to: employeeName(2),
+    toAvatar: avatarFor(2),
     message: "Amazing work on the new dashboard designs! The glassmorphism effects are stunning.",
     timestamp: "2 hours ago",
     category: "Design Excellence"
   },
   {
     id: "rec-2",
-    from: "Vibhu Rastogi",
-    fromAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Vibhu",
-    to: "Marcus Thorne",
-    toAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
+    from: employeeName(5),
+    fromAvatar: avatarFor(5),
+    to: employeeName(1),
+    toAvatar: avatarFor(1),
     message: "Great leadership during the infrastructure migration last weekend. We stayed 100% up!",
     timestamp: "1 day ago",
     category: "Leadership"

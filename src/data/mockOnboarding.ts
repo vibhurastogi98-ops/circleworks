@@ -1,4 +1,8 @@
 import type { AssetType } from "@/data/mockAssets";
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+} from "@/lib/hris-module-data";
 
 export type OnboardingPhase = 'Pre-Hire' | 'Week 1' | 'Week 2' | '30-60-90 Day';
 export type TaskStatus = 'Pending' | 'Complete' | 'Skipped';
@@ -61,9 +65,13 @@ export interface DocumentTemplate {
 
 // ---------- MOCK DATA ----------
 
+const onboardingName = (index: number) => getEmployeeName(hrisEmployees[index] || hrisEmployees[0]);
+const onboardingAvatar = (index: number) =>
+  `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(onboardingName(index))}&backgroundColor=transparent`;
+
 export const mockOnboardingCases: OnboardingCase[] = [
   {
-    id: 'obc-1', employeeId: 'emp-new-1', employeeName: 'Priya Sharma', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Priya&backgroundColor=transparent', department: 'Engineering', startDate: '2024-10-01', type: 'onboarding', phase: 'Pre-Hire',
+    id: 'obc-1', employeeId: hrisEmployees[4].id, employeeName: onboardingName(4), avatar: onboardingAvatar(4), department: hrisEmployees[4].department, startDate: hrisEmployees[4].startDate, type: 'onboarding', phase: 'Pre-Hire',
     tasks: [
       { id: 't1', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-09-25', phase: 'Pre-Hire' },
       { id: 't2', title: 'Assign Equipment', assignee: 'IT', status: 'Complete', dueDate: '2024-09-26', phase: 'Pre-Hire', taskType: 'assign_equipment', equipmentTypes: ['Laptop', 'Monitor', 'Keyboard'], autoCreateOnStartDate: true },
@@ -78,7 +86,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     ],
   },
   {
-    id: 'obc-2', employeeId: 'emp-new-2', employeeName: 'Marcus Chen', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Marcus&backgroundColor=transparent', department: 'Product', startDate: '2024-10-07', type: 'onboarding', phase: 'Pre-Hire',
+    id: 'obc-2', employeeId: hrisEmployees[7].id, employeeName: onboardingName(7), avatar: onboardingAvatar(7), department: hrisEmployees[7].department, startDate: hrisEmployees[7].startDate, type: 'onboarding', phase: 'Pre-Hire',
     tasks: [
       { id: 't11', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-10-01', phase: 'Pre-Hire' },
       { id: 't12', title: 'Assign Equipment', assignee: 'IT', status: 'Pending', dueDate: '2024-10-03', phase: 'Pre-Hire', taskType: 'assign_equipment', equipmentTypes: ['Laptop'], autoCreateOnStartDate: true },
@@ -88,7 +96,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
     ],
   },
   {
-    id: 'obc-3', employeeId: 'emp-new-3', employeeName: 'Keiko Tanaka', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Keiko&backgroundColor=transparent', department: 'Marketing', startDate: '2024-09-15', type: 'onboarding', phase: 'Week 2',
+    id: 'obc-3', employeeId: hrisEmployees[2].id, employeeName: onboardingName(2), avatar: onboardingAvatar(2), department: hrisEmployees[2].department, startDate: hrisEmployees[2].startDate, type: 'onboarding', phase: 'Week 2',
     tasks: [
       { id: 't16', title: 'Send welcome email', assignee: 'HR', status: 'Complete', dueDate: '2024-09-10', phase: 'Pre-Hire' },
       { id: 't17', title: 'Assign Equipment', assignee: 'IT', status: 'Complete', dueDate: '2024-09-12', phase: 'Pre-Hire', taskType: 'assign_equipment', equipmentTypes: ['Laptop', 'Badge'], autoCreateOnStartDate: true },
@@ -102,7 +110,7 @@ export const mockOnboardingCases: OnboardingCase[] = [
 
 export const mockOffboardingCases: OffboardingCase[] = [
   {
-    id: 'off-1', employeeName: 'Derek Lawson', department: 'Sales', terminationDate: '2024-10-15', reason: 'Voluntary Resignation',
+    id: 'off-1', employeeName: onboardingName(5), department: hrisEmployees[5].department, terminationDate: '2026-05-29', reason: 'Voluntary Resignation',
     tasks: [
       { id: 'ot1', title: 'Calculate final pay', assignee: 'HR', status: 'Complete' },
       { id: 'ot2', title: 'Terminate benefits', assignee: 'HR', status: 'Complete' },
@@ -113,7 +121,7 @@ export const mockOffboardingCases: OffboardingCase[] = [
     ],
   },
   {
-    id: 'off-2', employeeName: 'Felicia Grant', department: 'Engineering', terminationDate: '2024-10-30', reason: 'End of Contract',
+    id: 'off-2', employeeName: onboardingName(6), department: hrisEmployees[6].department, terminationDate: '2026-06-15', reason: 'End of Contract',
     tasks: [
       { id: 'ot7', title: 'Calculate final pay', assignee: 'HR', status: 'Pending' },
       { id: 'ot8', title: 'Terminate benefits', assignee: 'HR', status: 'Pending' },

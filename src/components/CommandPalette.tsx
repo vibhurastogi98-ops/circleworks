@@ -27,6 +27,10 @@ import {
 
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+} from "@/lib/hris-module-data";
 
 type SearchGroup =
   | "EMPLOYEES"
@@ -59,11 +63,11 @@ const GROUP_ORDER: SearchGroup[] = [
 const DEFAULT_RECENTS: SearchResult[] = [
   {
     type: "RECENT",
-    id: "recent_emp_sarah",
-    title: "Sarah Williams",
-    subtitle: "VP People · Human Resources",
+    id: "recent_emp_maya",
+    title: getEmployeeName(hrisEmployees[0]),
+    subtitle: `${hrisEmployees[0].title} · ${hrisEmployees[0].department}`,
     icon: "User",
-    url: "/employees/2",
+    url: `/employees/${hrisEmployees[0].id}`,
   },
   {
     type: "RECENT",
@@ -79,7 +83,7 @@ const DEFAULT_RECENTS: SearchResult[] = [
     title: "May 1-15 Payroll",
     subtitle: "Payroll Run · Paid",
     icon: "ReceiptText",
-    url: "/payroll/run/pr-2026-010",
+    url: "/payroll/run/pr-2026-0515",
   },
   {
     type: "RECENT",

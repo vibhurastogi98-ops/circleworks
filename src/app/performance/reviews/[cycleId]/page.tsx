@@ -23,6 +23,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { mockReviewCycles } from "@/data/mockPerformance";
 import { formatDate } from "@/utils/formatDate";
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+} from "@/lib/hris-module-data";
 
 // Internal types for the detail view
 interface Participant {
@@ -37,12 +41,22 @@ interface Participant {
   lastUpdated: string;
 }
 
-const mockParticipants: Participant[] = [
-  { id: "p1", name: "Alex Rivera", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex", title: "Senior Software Engineer", department: "Engineering", manager: "Marcus Thorne", status: "Complete", rating: 4.5, lastUpdated: "2 days ago" },
-  { id: "p2", name: "Sarah Chen", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah", title: "Product Designer", department: "Design", manager: "Vibhu Rastogi", status: "Submitted", rating: 4.0, lastUpdated: "Today" },
-  { id: "p3", name: "John Doe", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John", title: "QA Engineer", department: "Engineering", manager: "Marcus Thorne", status: "In Progress", lastUpdated: "1 day ago" },
-  { id: "p4", name: "Emma Wilson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma", title: "Product Manager", department: "Product", manager: "Vibhu Rastogi", status: "Not Started", lastUpdated: "N/A" },
-];
+const reviewStatuses: Participant["status"][] = ["Complete", "Submitted", "In Progress", "Not Started"];
+const mockParticipants: Participant[] = hrisEmployees.slice(0, 4).map((employee, index) => {
+  const name = getEmployeeName(employee);
+
+  return {
+    id: `p${employee.id}`,
+    name,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`,
+    title: employee.title,
+    department: employee.department,
+    manager: employee.manager,
+    status: reviewStatuses[index],
+    rating: index < 2 ? 4.5 - index * 0.5 : undefined,
+    lastUpdated: index === 1 ? "Today" : index === 3 ? "N/A" : `${index + 1} days ago`,
+  };
+});
 
 export default function ReviewCycleDetailPage() {
   const params = useParams();

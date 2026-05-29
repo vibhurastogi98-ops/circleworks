@@ -16,7 +16,7 @@ import { createBreadcrumbJsonLd, getGlossaryResourceLinks } from "@/lib/internal
 
 const baseUrl = "https://circleworks.com";
 
-export const revalidate = 60 * 60 * 24 * 30;
+export const revalidate = 2592000;
 
 export function generateStaticParams() {
   return glossaryTerms.map((term) => ({ term: term.slug }));

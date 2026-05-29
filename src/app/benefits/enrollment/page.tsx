@@ -3,17 +3,19 @@
 import React, { useState } from "react";
 import { Calendar, Mail, CheckCircle2, Clock, Users, Bell, Lock, BarChart3 } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
+import {
+  employees as hrisEmployees,
+  getEmployeeName,
+} from "@/lib/hris-module-data";
 
 export default function EnrollmentPage() {
   const [enrollmentActive, setEnrollmentActive] = useState(false);
 
-  const employees = [
-    { name: 'Sarah Johnson', status: 'Completed', completedAt: '2024-11-03' },
-    { name: 'Mike Chen', status: 'Completed', completedAt: '2024-11-05' },
-    { name: 'Amy Park', status: 'In Progress', completedAt: null },
-    { name: 'Carlos Diaz', status: 'Not Started', completedAt: null },
-    { name: 'Priya Sharma', status: 'Not Started', completedAt: null },
-  ];
+  const employees = hrisEmployees.slice(0, 5).map((employee, index) => ({
+    name: getEmployeeName(employee),
+    status: index < 2 ? "Completed" : index === 2 ? "In Progress" : "Not Started",
+    completedAt: index < 2 ? `2026-05-0${index + 3}` : null,
+  }));
 
   const completedCount = employees.filter(e => e.status === 'Completed').length;
   const pct = Math.round((completedCount / employees.length) * 100);

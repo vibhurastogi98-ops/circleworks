@@ -9,8 +9,6 @@ import {
   Shield, Clock, ChevronRight, ExternalLink, Receipt,
   UserPlus, Heart, AlertTriangle, CheckCircle2
 } from "lucide-react";
-import AppTopBar from "@/components/AppTopBar";
-import AppSidebar from "@/components/AppSidebar";
 
 interface ClientDetail {
   id: string;
@@ -109,16 +107,10 @@ export default function CompanyDashboardPage({
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 lg:ml-[72px] xl:ml-[240px]">
-          <AppTopBar />
-          <main className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-10 h-10 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-              <p className="text-sm font-medium text-slate-400 animate-pulse">Loading company...</p>
-            </div>
-          </main>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          <p className="animate-pulse text-sm font-medium text-slate-400">Loading company...</p>
         </div>
       </div>
     );
@@ -126,23 +118,17 @@ export default function CompanyDashboardPage({
 
   if (!client) {
     return (
-      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 lg:ml-[72px] xl:ml-[240px]">
-          <AppTopBar />
-          <main className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-[20px] font-bold text-slate-900 dark:text-white mb-2">Company not found</h2>
-              <p className="text-[13px] text-slate-500 mb-4">The company &quot;{companySlug}&quot; could not be found.</p>
-              <Link
-                href="/accountant-portal"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-[13px] font-bold hover:bg-indigo-700 transition-colors"
-              >
-                <ArrowLeft size={14} />
-                Back to All Clients
-              </Link>
-            </div>
-          </main>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center">
+        <div className="text-center">
+          <h2 className="mb-2 text-[20px] font-bold text-slate-900 dark:text-white">Company not found</h2>
+          <p className="mb-4 text-[13px] text-slate-500">The company &quot;{companySlug}&quot; could not be found.</p>
+          <Link
+            href="/accountant-portal"
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-indigo-700"
+          >
+            <ArrowLeft size={14} />
+            Back to All Clients
+          </Link>
         </div>
       </div>
     );
@@ -151,36 +137,23 @@ export default function CompanyDashboardPage({
   const statusStyle = STATUS_STYLES[client.status];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120]">
-      <AppSidebar />
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-[72px] xl:ml-[240px]">
-        {/* Custom Top Bar with breadcrumb */}
-        <div className="sticky top-0 z-40 flex flex-col w-full shadow-sm">
-          {/* Back to All Clients Banner */}
-          <div className="h-10 bg-indigo-600 dark:bg-indigo-700 flex items-center px-4 lg:px-6">
-            <Link
-              href="/accountant-portal"
-              className="flex items-center gap-2 text-white/90 hover:text-white transition-colors group"
-            >
-              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-[12px] font-bold">Back to All Clients</span>
-            </Link>
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-white/40 text-[12px]">/</span>
-              <span className="text-white/90 text-[12px] font-medium">
-                Accountant Portal
-              </span>
-              <span className="text-white/40 text-[12px]">/</span>
-              <span className="text-white text-[12px] font-bold">
-                {client.name}
-              </span>
-            </div>
-          </div>
-          <AppTopBar />
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6">
+      <div className="flex min-h-10 items-center rounded-lg bg-indigo-600 px-4 dark:bg-indigo-700">
+        <Link
+          href="/accountant-portal"
+          className="group flex items-center gap-2 text-white/90 transition-colors hover:text-white"
+        >
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+          <span className="text-[12px] font-bold">Back to All Clients</span>
+        </Link>
+        <div className="ml-4 flex min-w-0 items-center gap-2">
+          <span className="text-[12px] text-white/40">/</span>
+          <span className="text-[12px] font-medium text-white/90">Accountant Portal</span>
+          <span className="text-[12px] text-white/40">/</span>
+          <span className="truncate text-[12px] font-bold text-white">{client.name}</span>
         </div>
+      </div>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
             {/* Company Header Card */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -309,9 +282,6 @@ export default function CompanyDashboardPage({
                 </p>
               </div>
             </motion.div>
-          </div>
-        </main>
-      </div>
     </div>
   );
 }
