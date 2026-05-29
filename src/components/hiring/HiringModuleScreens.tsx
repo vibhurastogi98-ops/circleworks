@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -15,7 +16,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Document, Page, pdfjs } from "react-pdf";
 import {
   ArrowLeft,
   Briefcase,
@@ -83,9 +83,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-if (typeof window !== "undefined") {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-}
+const ResumePdfDocument = dynamic<{ file: string }>(
+  () => import("@/components/hiring/ResumePdfDocument").then((module) => module.ResumePdfDocument),
+  {
+    ssr: false,
+    loading: () => <div className="p-6 text-sm text-slate-500">Loading resume...</div>,
+  },
+);
 
 type HiringModuleScreen =
   | "overview"
@@ -1161,9 +1165,7 @@ function ResumePdfPreview({ candidate }: { candidate: AtsCandidate }) {
   if (candidate.resumeUrl) {
     return (
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
-        <Document file={candidate.resumeUrl} loading={<div className="p-6 text-sm text-slate-500">Loading resume...</div>}>
-          <Page pageNumber={1} width={360} />
-        </Document>
+        <ResumePdfDocument file={candidate.resumeUrl} />
       </div>
     );
   }
