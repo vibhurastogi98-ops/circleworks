@@ -9,6 +9,7 @@ import { usePlatformStore } from "@/store/usePlatformStore";
 
 const SHORTCUTS = [
   ["Cmd/Ctrl + K", "Open command palette"],
+  ["/", "Open global search"],
   ["G then D", "Go to Dashboard"],
   ["G then P", "Go to Payroll"],
   ["G then E", "Go to Employees"],
@@ -27,7 +28,7 @@ function isTypingTarget(target: EventTarget | null) {
 
 export default function KeyboardShortcuts() {
   const router = useRouter();
-  const { setCommandPaletteOpen, closeTransientUi } = usePlatformStore();
+  const { isCommandPaletteOpen, setCommandPaletteOpen, closeTransientUi } = usePlatformStore();
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const waitingForGRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
@@ -55,6 +56,7 @@ export default function KeyboardShortcuts() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (isCommandPaletteOpen) return;
         setShowShortcutsModal(false);
         closeTransientUi();
         window.dispatchEvent(new CustomEvent("circleworks:escape"));
@@ -66,6 +68,12 @@ export default function KeyboardShortcuts() {
       const cmdOrCtrl = event.metaKey || event.ctrlKey;
 
       if (cmdOrCtrl && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen(true);
+        return;
+      }
+
+      if (!cmdOrCtrl && !event.altKey && event.key === "/") {
         event.preventDefault();
         setCommandPaletteOpen(true);
         return;
@@ -101,7 +109,7 @@ export default function KeyboardShortcuts() {
       window.removeEventListener("circleworks:show-shortcuts", handleShowShortcuts);
       clearGSequence();
     };
-  }, [closeTransientUi, router, setCommandPaletteOpen]);
+  }, [closeTransientUi, isCommandPaletteOpen, router, setCommandPaletteOpen]);
 
   return (
     <AnimatePresence>

@@ -258,7 +258,7 @@ export default function AppTopBar() {
             >
               <Search size={16} className="shrink-0" />
               <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium">
-                Search employees, reports, documents... (Cmd+K)
+                Search employees, payroll runs, documents... (Cmd+K)
               </span>
               <kbd className="hidden h-5 items-center rounded border border-slate-300 bg-white px-1.5 font-mono text-[10px] font-bold text-slate-500 shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 sm:inline-flex">
                 Cmd K

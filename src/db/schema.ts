@@ -777,6 +777,22 @@ export const employeeBankAccounts = pgTable('employee_bank_accounts', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// --- SEARCH ---
+
+export const searchAnalytics = pgTable('search_analytics', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  query: text('query').notNull(),
+  resultCount: integer('result_count').default(0),
+  selectedResultType: text('selected_result_type'),
+  selectedResultId: text('selected_result_id'),
+  selectedResultTitle: text('selected_result_title'),
+  timeToSelectionMs: integer('time_to_selection_ms'),
+  source: text('source').default('command_palette'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // --- ANNOUNCEMENTS ---
 
 export const announcements = pgTable('announcements', {
@@ -887,6 +903,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   employees: many(employees),
   notificationPreferences: many(notificationPreferences),
   notificationDigestPreferences: many(notificationDigestPreferences),
+  searchAnalytics: many(searchAnalytics),
 }));
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -924,6 +941,7 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   benefitWorkersCompAudits: many(benefitWorkersCompAudits),
   agencyClients: many(agencyClients),
   agencyInvoices: many(agencyInvoices),
+  searchAnalytics: many(searchAnalytics),
 }));
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({
