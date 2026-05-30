@@ -127,6 +127,13 @@
       "when": 1779541200000,
       "tag": "0017_automation_recipes_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779544800000,
+      "tag": "0018_reports_analytics_schema",
+      "breakpoints": true
     }
   ]
 }

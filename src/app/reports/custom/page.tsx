@@ -1,363 +1,330 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, ArrowRight, Check, Database, Columns, Filter,
-  Group, BarChart, Table, LineChart, PieChart, Save, Clock,
-  Plus, Trash2, GripVertical, Eye, ChevronRight, X,
-  DollarSign, Users, CalendarDays, Heart, Receipt, Briefcase
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Columns3,
+  Database,
+  Filter,
+  GripVertical,
+  Group,
+  Play,
+  Save,
+  Send,
+  Sigma,
+  Table2,
+  Trash2,
 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
-  Bar,
-  BarChart as RechartsBarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart as RechartsLineChart,
-  Pie,
-  PieChart as RechartsPieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
-  availableFields,
-  dataSourceLabels,
-  filterOperators,
-  visualizationOptions,
-  generatePreviewData,
-  type DataSource,
-  type FilterOperator,
-  type VisualizationType,
-  type ReportField,
-} from "@/data/mockReports";
+  buildCustomRows,
+  customReportEntities,
+  customReportFields,
+  type CustomEntity,
+  type CustomReportField,
+} from "@/data/reportsAnalytics";
 
-/* ─── Step Indicator ──────────────────────────────────────────────── */
-const STEPS = [
-  { num: 1, label: "Data Source", icon: Database },
-  { num: 2, label: "Fields", icon: Columns },
-  { num: 3, label: "Filters", icon: Filter },
-  { num: 4, label: "Grouping", icon: Group },
-  { num: 5, label: "Visualization", icon: BarChart },
-];
+type FilterOperator = "equals" | "contains" | "greater_than" | "less_than" | "between";
+type FilterConnector = "AND" | "OR";
+type AggregateFunction = "sum" | "avg" | "count" | "min" | "max";
 
-function StepIndicator({ currentStep, onStepClick }: { currentStep: number; onStepClick: (s: number) => void }) {
-  return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2">
-      {STEPS.map((step, i) => {
-        const Icon = step.icon;
-        const isActive = step.num === currentStep;
-        const isDone = step.num < currentStep;
-        return (
-          <React.Fragment key={step.num}>
-            {i > 0 && <div className={`w-8 h-px flex-shrink-0 ${isDone ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700"}`} />}
-            <button
-              onClick={() => onStepClick(step.num)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                isActive
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : isDone
-                  ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-              }`}
-            >
-              {isDone ? <Check size={14} /> : <Icon size={14} />}
-              {step.label}
-            </button>
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ─── Data Source Icons ────────────────────────────────────────────── */
-const dsIcons: Record<DataSource, React.ElementType> = {
-  payroll: DollarSign,
-  employees: Users,
-  time: CalendarDays,
-  benefits: Heart,
-  expenses: Receipt,
-  ats: Briefcase,
-};
-
-const dsColors: Record<DataSource, string> = {
-  payroll: "bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-800",
-  employees: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-200 dark:border-blue-800",
-  time: "bg-purple-50 dark:bg-purple-900/20 text-purple-600 border-purple-200 dark:border-purple-800",
-  benefits: "bg-red-50 dark:bg-red-900/20 text-red-600 border-red-200 dark:border-red-800",
-  expenses: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800",
-  ats: "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 border-cyan-200 dark:border-cyan-800",
-};
-
-/* ─── Filter Row (Step 3) ─────────────────────────────────────────── */
-interface FilterRow {
+interface BuilderFilter {
   id: string;
+  connector: FilterConnector;
   fieldId: string;
   operator: FilterOperator;
   value: string;
 }
 
-/* ─── Save Modal ──────────────────────────────────────────────────── */
-function SaveModal({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<"private" | "team" | "org">("private");
+const steps = [
+  { id: 1, title: "Choose Entity", icon: Database },
+  { id: 2, title: "Select Fields", icon: Columns3 },
+  { id: 3, title: "Add Filters", icon: Filter },
+  { id: 4, title: "Grouping & Aggregates", icon: Sigma },
+  { id: 5, title: "Preview", icon: Table2 },
+];
 
+const operatorLabels: Record<FilterOperator, string> = {
+  equals: "Equals",
+  contains: "Contains",
+  greater_than: "Greater than",
+  less_than: "Less than",
+  between: "Between",
+};
+
+function wait(ms = 150) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getBuilderData() {
+  await wait();
+  return {
+    entities: customReportEntities,
+    fields: customReportFields,
+  };
+}
+
+function BuilderSkeleton() {
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Save Custom Report</h3>
-        </div>
-        <div className="p-6 flex flex-col gap-4">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Report Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Q2 Engineering Costs" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Brief description of this report..." className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white resize-none" />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Visibility</label>
-            <div className="flex gap-2">
-              {(["private", "team", "org"] as const).map((v) => (
-                <button key={v} onClick={() => setVisibility(v)} className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold capitalize transition-colors ${visibility === v ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"}`}>
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
-          <button onClick={onClose} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm">Save Report</button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <div className="h-24 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+      <div className="h-[520px] rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
     </div>
   );
 }
 
-/* ─── Schedule Modal ──────────────────────────────────────────────── */
-function ScheduleModal({ onClose }: { onClose: () => void }) {
-  const [freq, setFreq] = useState("weekly");
-  const [emails, setEmails] = useState("");
-  const [format, setFormat] = useState("csv");
-
+function SaveDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Clock size={18} className="text-blue-600" /> Schedule Report
-          </h3>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save Custom Report</DialogTitle>
+          <DialogDescription>Saved reports appear in the Custom Reports section on the hub.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+            Name
+            <Input defaultValue="Department Cost Center" />
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+            Description
+            <textarea
+              rows={3}
+              defaultValue="Payroll and benefits cost allocation by department."
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+          </label>
         </div>
-        <div className="p-6 flex flex-col gap-4">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Frequency</label>
-            <select value={freq} onChange={(e) => setFreq(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Bi-Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => onOpenChange(false)}>
+            <Save size={16} />
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ScheduleDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Schedule Custom Report</DialogTitle>
+          <DialogDescription>Email this report to recipients on a daily, weekly, or monthly schedule.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+            Schedule
+            <select className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+              <option>Daily</option>
+              <option>Weekly</option>
+              <option>Monthly</option>
             </select>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Recipient Emails</label>
-            <input value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="email@company.com, another@company.com" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Format</label>
-            <div className="flex gap-2">
-              {["csv", "pdf", "excel"].map((f) => (
-                <button key={f} onClick={() => setFormat(f)} className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-colors ${format === f ? "bg-blue-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+            Recipients
+            <Input defaultValue="finance@circleworks.com, people@circleworks.com" />
+          </label>
         </div>
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">Cancel</button>
-          <button onClick={onClose} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm">Schedule</button>
-        </div>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => onOpenChange(false)}>
+            <Send size={16} />
+            Schedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function PreviewChart({
-  data,
-  type,
-}: {
-  data: Record<string, string | number>[];
-  type: VisualizationType;
-}) {
-  const keys = Object.keys(data[0] ?? {});
-  const labelKey = keys.find((key) => typeof data[0]?.[key] === "string") ?? keys[0];
-  const valueKey = keys.find((key) => typeof data[0]?.[key] === "number") ?? keys[1];
-  const chartData = data.map((row) => ({
-    name: String(row[labelKey] ?? "Sample"),
-    value: Number(row[valueKey] ?? 0),
-  }));
-
-  if (!valueKey || type === "table") return null;
-
-  return (
-    <div className="h-48 border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-        {type === "table_line" ? (
-          <RechartsLineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
-            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
-            <Tooltip />
-            <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
-          </RechartsLineChart>
-        ) : type === "table_pie" ? (
-          <RechartsPieChart>
-            <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={70}>
-              {chartData.map((_, index) => (
-                <Cell key={index} fill={["#2563eb", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"][index % 5]} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </RechartsPieChart>
-        ) : (
-          <RechartsBarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
-            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} />
-            <Tooltip />
-            <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
-          </RechartsBarChart>
-        )}
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-/* ─── Main Custom Report Builder ──────────────────────────────────── */
-export default function CustomReportBuilder() {
+export default function CustomReportBuilderPage() {
   const [step, setStep] = useState(1);
-  const [dataSource, setDataSource] = useState<DataSource>("payroll");
-  const [selectedFields, setSelectedFields] = useState<string[]>(["f-1", "f-3", "f-8", "f-9"]);
-  const [filters, setFilters] = useState<FilterRow[]>([]);
-  const [groupBy, setGroupBy] = useState<string>("");
-  const [vizType, setVizType] = useState<VisualizationType>("table");
-  const [showSave, setShowSave] = useState(false);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
-  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+  const [entity, setEntity] = useState<CustomEntity>("Employees");
+  const [selectedFields, setSelectedFields] = useState<string[]>([
+    "employee_name",
+    "department",
+    "location",
+    "annual_salary",
+  ]);
+  const [draggedField, setDraggedField] = useState<string | null>(null);
+  const [filters, setFilters] = useState<BuilderFilter[]>([
+    { id: "filter-1", connector: "AND", fieldId: "department", operator: "equals", value: "Engineering" },
+  ]);
+  const [groupBy, setGroupBy] = useState("department");
+  const [aggregateField, setAggregateField] = useState("annual_salary");
+  const [aggregateFunction, setAggregateFunction] = useState<AggregateFunction>("avg");
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  const sourceFields = availableFields.filter((f) => f.dataSource === dataSource);
-  const fieldGroups = Array.from(new Set(sourceFields.map((f) => f.group)));
-  const selectedFieldObjects = selectedFields.map((id) => availableFields.find((f) => f.id === id)).filter(Boolean) as ReportField[];
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["reports", "custom-builder"],
+    queryFn: getBuilderData,
+  });
 
-  const previewData = useMemo(() => {
-    if (selectedFields.length === 0) return [];
-    return generatePreviewData(selectedFields);
-  }, [selectedFields]);
+  const entityFields = useMemo(
+    () => (data?.fields ?? []).filter((field) => field.entity === entity),
+    [data?.fields, entity],
+  );
+  const selectedFieldObjects = useMemo(
+    () =>
+      selectedFields
+        .map((fieldId) => data?.fields.find((field) => field.id === fieldId))
+        .filter(Boolean) as CustomReportField[],
+    [data?.fields, selectedFields],
+  );
+  const previewRows = useMemo(() => buildCustomRows(selectedFields, 10), [selectedFields]);
+  const numericFields = selectedFieldObjects.filter((field) => ["number", "currency", "percentage"].includes(field.type));
 
   const toggleField = (fieldId: string) => {
-    setSelectedFields((prev) =>
-      prev.includes(fieldId) ? prev.filter((id) => id !== fieldId) : [...prev, fieldId]
-    );
+    setSelectedFields((current) => {
+      if (current.includes(fieldId)) return current.filter((id) => id !== fieldId);
+      return [...current, fieldId];
+    });
   };
 
-  const addFilter = () => {
-    setFilters((prev) => [
-      ...prev,
-      { id: `filter-${Date.now()}`, fieldId: sourceFields[0]?.id || "", operator: "equals", value: "" },
-    ]);
-  };
-
-  const removeFilter = (id: string) => {
-    setFilters((prev) => prev.filter((f) => f.id !== id));
-  };
-
-  const updateFilter = (id: string, key: keyof FilterRow, value: string) => {
-    setFilters((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: value } : f)));
-  };
-
-  const moveSelectedField = (targetFieldId: string) => {
-    if (!draggedFieldId || draggedFieldId === targetFieldId) return;
-
+  const moveField = (targetField: string) => {
+    if (!draggedField || draggedField === targetField) return;
     setSelectedFields((current) => {
       const next = [...current];
-      const fromIndex = next.indexOf(draggedFieldId);
-      const toIndex = next.indexOf(targetFieldId);
-      if (fromIndex === -1 || toIndex === -1) return current;
-
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
+      const from = next.indexOf(draggedField);
+      const to = next.indexOf(targetField);
+      if (from === -1 || to === -1) return current;
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
       return next;
     });
   };
 
+  const addFilter = () => {
+    setFilters((current) => [
+      ...current,
+      {
+        id: `filter-${Date.now()}`,
+        connector: "AND",
+        fieldId: entityFields[0]?.id ?? "",
+        operator: "equals",
+        value: "",
+      },
+    ]);
+  };
+
+  const updateFilter = (id: string, patch: Partial<BuilderFilter>) => {
+    setFilters((current) => current.map((filter) => (filter.id === id ? { ...filter, ...patch } : filter)));
+  };
+
+  if (isLoading) return <BuilderSkeleton />;
+
+  if (isError || !data) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+        <h2 className="text-lg font-bold">Something went wrong</h2>
+        <p className="mt-1 text-sm">Custom report builder could not be loaded.</p>
+        <Button className="mt-4" onClick={() => refetch()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        <div className="flex items-start gap-3">
+          <Link href="/reports" className="mt-1 rounded-lg p-2 transition hover:bg-slate-100 dark:hover:bg-slate-800">
             <ArrowLeft size={18} className="text-slate-500" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Custom Report Builder</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Build a report from scratch with your own fields and filters.</p>
+            <p className="text-sm font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Custom Reports</p>
+            <h1 className="mt-1 text-3xl font-black text-slate-950 dark:text-white">Custom Report Builder</h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              Choose an entity, select fields, add filters, group and aggregate, preview, save, and schedule.
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowSchedule(true)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
-            <Clock size={16} /> Schedule
-          </button>
-          <button onClick={() => setShowSave(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
-            <Save size={16} /> Save Report
-          </button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setScheduleOpen(true)}>
+            <Send size={16} />
+            Schedule
+          </Button>
+          <Button onClick={() => setSaveOpen(true)}>
+            <Save size={16} />
+            Save
+          </Button>
         </div>
       </div>
 
-      {/* Steps */}
-      <StepIndicator currentStep={step} onStepClick={setStep} />
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {steps.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setStep(item.id)}
+              className={`flex min-w-fit items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
+                step === item.id
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : item.id < step
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+                    : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+              }`}
+            >
+              {item.id < step ? <Check size={16} /> : <Icon size={16} />}
+              Step {item.id}: {item.title}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Builder Panel */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-          {/* Step 1: Data Source */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {step === 1 && (
-            <div className="p-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Choose Data Source</h3>
-              <p className="text-sm text-slate-500 mb-6">Select the primary data source for your report.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {(Object.keys(dataSourceLabels) as DataSource[]).map((ds) => {
-                  const Icon = dsIcons[ds];
-                  const isActive = dataSource === ds;
+            <div>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white">Step 1 - Choose Entity</h2>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {data.entities.map((item) => {
+                  const Icon = item.icon;
+                  const active = item.entity === entity;
                   return (
                     <button
-                      key={ds}
-                      onClick={() => { setDataSource(ds); setSelectedFields([]); }}
-                      className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all ${
-                        isActive
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md"
-                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      key={item.entity}
+                      type="button"
+                      onClick={() => {
+                        setEntity(item.entity);
+                        const nextFields = data.fields.filter((field) => field.entity === item.entity).slice(0, 4).map((field) => field.id);
+                        setSelectedFields(nextFields);
+                      }}
+                      className={`rounded-xl border p-5 text-left transition ${
+                        active
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
+                          : "border-slate-200 hover:border-blue-300 dark:border-slate-800"
                       }`}
                     >
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${dsColors[ds]}`}>
-                        <Icon size={24} />
-                      </div>
-                      <span className={`text-sm font-bold ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-700 dark:text-slate-300"}`}>
-                        {dataSourceLabels[ds]}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {availableFields.filter((f) => f.dataSource === ds).length} fields
-                      </span>
+                      <Icon size={24} className={active ? "text-blue-600" : "text-slate-400"} />
+                      <h3 className="mt-3 font-black text-slate-950 dark:text-white">{item.entity}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{item.description}</p>
                     </button>
                   );
                 })}
@@ -365,298 +332,272 @@ export default function CustomReportBuilder() {
             </div>
           )}
 
-          {/* Step 2: Select Fields */}
           {step === 2 && (
-            <div className="p-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Select Fields</h3>
-              <p className="text-sm text-slate-500 mb-4">Choose the columns for your report. Selected: {selectedFields.length}</p>
-              <div className="flex flex-col gap-4">
-                {fieldGroups.map((group) => {
-                  const fields = sourceFields.filter((f) => f.group === group);
+            <div>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white">Step 2 - Select Fields</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Use checkboxes to select fields, then drag selected columns to reorder.</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {entityFields.map((field) => {
+                  const checked = selectedFields.includes(field.id);
                   return (
-                    <div key={group}>
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{group}</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {fields.map((field) => {
-                          const isChecked = selectedFields.includes(field.id);
-                          return (
-                            <button
-                              key={field.id}
-                              onClick={() => toggleField(field.id)}
-                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${
-                                isChecked
-                                  ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20"
-                                  : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                              }`}
-                            >
-                              <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                                isChecked ? "bg-blue-600 text-white" : "border border-slate-300 dark:border-slate-600"
-                              }`}>
-                                {isChecked && <Check size={12} />}
-                              </div>
-                              <span className={`text-sm ${isChecked ? "font-bold text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400"}`}>
-                                {field.name}
-                              </span>
-                              <span className="text-[9px] text-slate-400 ml-auto font-mono">{field.type}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Selected fields — reorder */}
-              {selectedFields.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Column Order (drag to reorder)</h4>
-                  <div className="flex flex-col gap-1.5">
-                    {selectedFieldObjects.map((field, idx) => (
-                      <div
-                        key={field.id}
-                        draggable
-                        onDragStart={() => setDraggedFieldId(field.id)}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={() => moveSelectedField(field.id)}
-                        onDragEnd={() => setDraggedFieldId(null)}
-                        className={`flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg transition ${
-                          draggedFieldId === field.id ? "opacity-50 ring-2 ring-blue-300" : ""
-                        }`}
-                      >
-                        <GripVertical size={14} className="text-slate-400 cursor-grab flex-shrink-0" />
-                        <span className="w-6 h-6 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center flex-shrink-0">{idx + 1}</span>
-                        <span className="text-sm font-medium text-slate-900 dark:text-white flex-1">{field.name}</span>
-                        <button onClick={() => toggleField(field.id)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-red-500">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3: Filters */}
-          {step === 3 && (
-            <div className="p-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Add Filters</h3>
-              <p className="text-sm text-slate-500 mb-4">Narrow down your report results.</p>
-              <div className="flex flex-col gap-3">
-                {filters.map((f) => (
-                  <div key={f.id} className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                    <select
-                      value={f.fieldId}
-                      onChange={(e) => updateFilter(f.id, "fieldId", e.target.value)}
-                      className="flex-1 px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {sourceFields.map((sf) => <option key={sf.id} value={sf.id}>{sf.name}</option>)}
-                    </select>
-                    <select
-                      value={f.operator}
-                      onChange={(e) => updateFilter(f.id, "operator", e.target.value)}
-                      className="px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {filterOperators.map((op) => <option key={op.value} value={op.value}>{op.label}</option>)}
-                    </select>
-                    <input
-                      value={f.value}
-                      onChange={(e) => updateFilter(f.id, "value", e.target.value)}
-                      placeholder="Value"
-                      className="flex-1 px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button onClick={() => removeFilter(f.id)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-red-500">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-                <button onClick={addFilter} className="self-start flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline mt-2">
-                  <Plus size={12} /> Add Filter
-                </button>
-                {filters.length === 0 && (
-                  <p className="text-sm text-slate-500 py-8 text-center">No filters added. Click &quot;Add Filter&quot; to narrow results.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Grouping */}
-          {step === 4 && (
-            <div className="p-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Group By</h3>
-              <p className="text-sm text-slate-500 mb-4">Optionally group your results by a field.</p>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => setGroupBy("")}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
-                    groupBy === "" ? "border-blue-300 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-700" : "border-slate-200 dark:border-slate-700"
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${groupBy === "" ? "bg-blue-600" : "border border-slate-300 dark:border-slate-600"}`}>
-                    {groupBy === "" && <Check size={12} className="text-white" />}
-                  </div>
-                  <span className="text-sm font-medium text-slate-900 dark:text-white">No Grouping</span>
-                </button>
-                {selectedFieldObjects.filter((f) => f.type === "text").map((field) => (
-                  <button
-                    key={field.id}
-                    onClick={() => setGroupBy(field.id)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
-                      groupBy === field.id ? "border-blue-300 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-700" : "border-slate-200 dark:border-slate-700"
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${groupBy === field.id ? "bg-blue-600" : "border border-slate-300 dark:border-slate-600"}`}>
-                      {groupBy === field.id && <Check size={12} className="text-white" />}
-                    </div>
-                    <span className="text-sm font-medium text-slate-900 dark:text-white">Group by {field.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Visualization */}
-          {step === 5 && (
-            <div className="p-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Choose Visualization</h3>
-              <p className="text-sm text-slate-500 mb-4">How should the report be displayed?</p>
-              <div className="grid grid-cols-2 gap-4">
-                {visualizationOptions.map((opt) => {
-                  const icons: Record<string, React.ElementType> = { Table, BarChart, LineChart, PieChart };
-                  const VizIcon = icons[opt.icon] || Table;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => setVizType(opt.value)}
-                      className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all ${
-                        vizType === opt.value
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md"
-                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                    <label
+                      key={field.id}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${
+                        checked
+                          ? "border-blue-300 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10"
+                          : "border-slate-200 dark:border-slate-800"
                       }`}
                     >
-                      <VizIcon size={28} className={vizType === opt.value ? "text-blue-600" : "text-slate-400"} />
-                      <span className={`text-sm font-bold ${vizType === opt.value ? "text-blue-600" : "text-slate-600 dark:text-slate-400"}`}>
-                        {opt.label}
-                      </span>
-                    </button>
+                      <input type="checkbox" checked={checked} onChange={() => toggleField(field.id)} />
+                      <span className="flex-1 text-sm font-bold text-slate-800 dark:text-slate-200">{field.label}</span>
+                      <span className="text-xs text-slate-400">{field.type}</span>
+                    </label>
                   );
                 })}
               </div>
+              <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+                <h3 className="text-sm font-black uppercase tracking-wide text-slate-500">Column order</h3>
+                <div className="mt-3 grid gap-2">
+                  {selectedFieldObjects.map((field, index) => (
+                    <div
+                      key={field.id}
+                      draggable
+                      onDragStart={() => setDraggedField(field.id)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => moveField(field.id)}
+                      onDragEnd={() => setDraggedField(null)}
+                      className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800"
+                    >
+                      <GripVertical size={15} className="text-slate-400" />
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-black text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                        {index + 1}
+                      </span>
+                      <span className="flex-1 text-sm font-bold text-slate-800 dark:text-slate-200">{field.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Navigation Buttons */}
-          <div className="px-6 pb-6 flex justify-between">
-            <button
-              onClick={() => setStep(Math.max(1, step - 1))}
-              disabled={step === 1}
-              className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-30"
-            >
-              <ArrowLeft size={14} /> Back
-            </button>
-            {step < 5 ? (
-              <button
-                onClick={() => setStep(step + 1)}
-                className="flex items-center gap-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm"
-              >
-                Next <ArrowRight size={14} />
-              </button>
-            ) : (
-              <Link
-                href="/reports/viewer/custom"
-                className="flex items-center gap-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-sm"
-              >
-                Run Report <ArrowRight size={14} />
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Preview Panel */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Eye size={14} className="text-slate-500" /> Live Preview
-            </h3>
-            <button
-              onClick={() => setShowPreview(!showPreview)}
-              className="text-xs font-medium text-blue-600 dark:text-blue-400"
-            >
-              {showPreview ? "Hide" : "Show"}
-            </button>
-          </div>
-          {showPreview && selectedFields.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-              <PreviewChart data={previewData} type={vizType} />
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                    <tr>
-                      {selectedFieldObjects.map((f) => (
-                        <th key={f.id} className="px-3 py-2 font-bold text-slate-500">{f.name}</th>
+          {step === 3 && (
+            <div>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white">Step 3 - Add Filters</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Supports multiple filters with AND/OR logic.</p>
+              <div className="mt-5 grid gap-3">
+                {filters.map((filter, index) => (
+                  <div key={filter.id} className="grid gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-800 lg:grid-cols-[80px_1fr_150px_1fr_40px]">
+                    <select
+                      value={filter.connector}
+                      disabled={index === 0}
+                      onChange={(event) => updateFilter(filter.id, { connector: event.target.value as FilterConnector })}
+                      className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold dark:border-slate-700 dark:bg-slate-900"
+                    >
+                      <option>AND</option>
+                      <option>OR</option>
+                    </select>
+                    <select
+                      value={filter.fieldId}
+                      onChange={(event) => updateFilter(filter.id, { fieldId: event.target.value })}
+                      className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    >
+                      {entityFields.map((field) => (
+                        <option key={field.id} value={field.id}>
+                          {field.label}
+                        </option>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {previewData.map((row, i) => (
-                      <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                        {selectedFieldObjects.map((f) => (
-                          <td key={f.id} className="px-3 py-2 text-slate-600 dark:text-slate-400">
-                            {f.type === "currency" ? `$${(row[f.name] as number)?.toLocaleString() || 0}` : String(row[f.name] || "—")}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </select>
+                    <select
+                      value={filter.operator}
+                      onChange={(event) => updateFilter(filter.id, { operator: event.target.value as FilterOperator })}
+                      className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                    >
+                      {(Object.keys(operatorLabels) as FilterOperator[]).map((operator) => (
+                        <option key={operator} value={operator}>
+                          {operatorLabels[operator]}
+                        </option>
+                      ))}
+                    </select>
+                    <Input value={filter.value} onChange={(event) => updateFilter(filter.id, { value: event.target.value })} />
+                    <button
+                      type="button"
+                      onClick={() => setFilters((current) => current.filter((item) => item.id !== filter.id))}
+                      className="flex h-10 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <Button variant="outline" className="w-fit" onClick={addFilter}>
+                  Add Filter
+                </Button>
               </div>
-              <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 text-center">
-                Showing 5 sample rows · Actual data will appear when you run the report
-              </div>
-            </div>
-          )}
-          {showPreview && selectedFields.length === 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center text-sm text-slate-500">
-              Select fields in Step 2 to see a preview.
             </div>
           )}
 
-          {/* Configuration Summary */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Configuration</h4>
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Data Source</span>
-                <span className="font-bold text-slate-900 dark:text-white">{dataSourceLabels[dataSource]}</span>
+          {step === 4 && (
+            <div>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white">Step 4 - Grouping & Aggregates</h2>
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Group by
+                  <select
+                    value={groupBy}
+                    onChange={(event) => setGroupBy(event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <option value="">No grouping</option>
+                    {selectedFieldObjects.map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {field.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Aggregate
+                  <select
+                    value={aggregateField}
+                    onChange={(event) => setAggregateField(event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    {numericFields.map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {field.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Function
+                  <select
+                    value={aggregateFunction}
+                    onChange={(event) => setAggregateFunction(event.target.value as AggregateFunction)}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <option value="sum">Sum</option>
+                    <option value="avg">Average</option>
+                    <option value="count">Count</option>
+                    <option value="min">Min</option>
+                    <option value="max">Max</option>
+                  </select>
+                </label>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Fields Selected</span>
-                <span className="font-bold text-slate-900 dark:text-white">{selectedFields.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Filters</span>
-                <span className="font-bold text-slate-900 dark:text-white">{filters.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Group By</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {groupBy ? availableFields.find((f) => f.id === groupBy)?.name : "None"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Visualization</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {visualizationOptions.find((v) => v.value === vizType)?.label}
-                </span>
+              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+                  <Group size={16} />
+                  Grouped by {selectedFieldObjects.find((field) => field.id === groupBy)?.label ?? "None"} with {aggregateFunction.toUpperCase()} on{" "}
+                  {selectedFieldObjects.find((field) => field.id === aggregateField)?.label ?? "selected values"}.
+                </div>
               </div>
             </div>
+          )}
+
+          {step === 5 && (
+            <div>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white">Step 5 - Preview</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                First 10 rows with full column headers. Run the full report to load all data.
+              </p>
+              <PreviewTable fields={selectedFieldObjects} rows={previewRows} />
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Link href="/reports/custom/department-cost-center">
+                  <Button>
+                    <Play size={16} />
+                    Run Full Report
+                  </Button>
+                </Link>
+                <Button variant="outline" onClick={() => setSaveOpen(true)}>
+                  <Save size={16} />
+                  Save
+                </Button>
+                <Button variant="outline" onClick={() => setScheduleOpen(true)}>
+                  <Send size={16} />
+                  Schedule
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-8 flex justify-between border-t border-slate-200 pt-5 dark:border-slate-800">
+            <Button variant="outline" disabled={step === 1} onClick={() => setStep((current) => Math.max(1, current - 1))}>
+              <ArrowLeft size={16} />
+              Back
+            </Button>
+            <Button disabled={step === 5} onClick={() => setStep((current) => Math.min(5, current + 1))}>
+              Next
+              <ArrowRight size={16} />
+            </Button>
           </div>
-        </div>
+        </section>
+
+        <aside className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-lg font-black text-slate-950 dark:text-white">Builder Summary</h2>
+          <div className="mt-5 grid gap-3 text-sm">
+            <SummaryLine label="Entity" value={entity} />
+            <SummaryLine label="Fields" value={String(selectedFields.length)} />
+            <SummaryLine label="Filters" value={String(filters.length)} />
+            <SummaryLine label="Group by" value={selectedFieldObjects.find((field) => field.id === groupBy)?.label ?? "None"} />
+            <SummaryLine label="Aggregate" value={aggregateFunction.toUpperCase()} />
+          </div>
+          <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200">
+            Saved reports can be scheduled daily, weekly, or monthly and exported from the saved report detail page.
+          </div>
+        </aside>
       </div>
 
-      {/* Modals */}
-      {showSave && <SaveModal onClose={() => setShowSave(false)} />}
-      {showSchedule && <ScheduleModal onClose={() => setShowSchedule(false)} />}
+      <SaveDialog open={saveOpen} onOpenChange={setSaveOpen} />
+      <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
     </div>
   );
+}
+
+function PreviewTable({ fields, rows }: { fields: CustomReportField[]; rows: Array<Record<string, string | number>> }) {
+  return (
+    <div className="mt-5 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[780px] text-left text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
+            <tr>
+              {fields.map((field) => (
+                <th key={field.id} className="px-4 py-3">
+                  {field.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {rows.map((row, index) => (
+              <tr key={index}>
+                {fields.map((field) => (
+                  <td key={field.id} className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {formatCell(row[field.id], field.type)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function SummaryLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="font-black text-slate-950 dark:text-white">{value}</span>
+    </div>
+  );
+}
+
+function formatCell(value: string | number, type: CustomReportField["type"]) {
+  if (type === "currency") {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+      Number(value),
+    );
+  }
+  if (type === "percentage") return `${value}%`;
+  return String(value ?? "");
 }

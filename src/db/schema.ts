@@ -1497,15 +1497,100 @@ export const headcountForecasts = pgTable('headcount_forecasts', {
 export const savedCustomReports = pgTable('saved_custom_reports', {
   id: serial('id').primaryKey(),
   companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  reportKey: text('report_key'),
   name: text('name').notNull(),
   description: text('description'),
   dataSource: text('data_source').notNull(),
+  entity: text('entity'),
   fields: text('fields').notNull(), // JSON string array
+  filtersJson: text('filters_json'), // JSON array of builder filters
+  filterLogic: text('filter_logic').default('AND'),
+  groupByField: text('group_by_field'),
+  aggregateField: text('aggregate_field'),
+  aggregateFunction: text('aggregate_function'),
   visibility: text('visibility').default('private'), // private, team, org
   createdBy: text('created_by'),
+  createdByUserId: integer('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
   lastRun: date('last_run'),
+  scheduleEnabled: boolean('schedule_enabled').default(false),
+  scheduleFrequency: text('schedule_frequency'),
+  scheduleRecipients: text('schedule_recipients'), // JSON string array
+  scheduleFormat: text('schedule_format').default('xlsx'),
+  nextRunAt: timestamp('next_run_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const reportSchedules = pgTable('report_schedules', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  savedReportId: integer('saved_report_id').references(() => savedCustomReports.id, { onDelete: 'cascade' }),
+  reportKey: text('report_key').notNull(),
+  reportType: text('report_type').default('custom'), // custom, payroll, people, time, expenses
+  name: text('name').notNull(),
+  frequency: text('frequency').default('weekly'), // daily, weekly, monthly
+  recipients: text('recipients').notNull(), // JSON string array
+  exportFormat: text('export_format').default('xlsx'),
+  filtersJson: text('filters_json'),
+  isActive: boolean('is_active').default(true),
+  nextRunAt: timestamp('next_run_at'),
+  lastRunAt: timestamp('last_run_at'),
+  createdByUserId: integer('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const reportRuns = pgTable('report_runs', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  savedReportId: integer('saved_report_id').references(() => savedCustomReports.id, { onDelete: 'set null' }),
+  reportKey: text('report_key').notNull(),
+  reportType: text('report_type').default('custom'),
+  reportName: text('report_name'),
+  status: text('status').default('completed'), // queued, running, completed, failed
+  rowCount: integer('row_count').default(0),
+  exportFormat: text('export_format'),
+  filtersJson: text('filters_json'),
+  fileUrl: text('file_url'),
+  requestedByUserId: integer('requested_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  startedAt: timestamp('started_at').defaultNow(),
+  completedAt: timestamp('completed_at'),
+  durationMs: integer('duration_ms'),
+  errorMessage: text('error_message'),
+});
+
+export const reportFavorites = pgTable('report_favorites', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  reportKey: text('report_key').notNull(),
+  reportType: text('report_type').default('prebuilt'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export const savedCustomReportsRelations = relations(savedCustomReports, ({ one, many }) => ({
+  company: one(companies, { fields: [savedCustomReports.companyId], references: [companies.id] }),
+  createdByUser: one(users, { fields: [savedCustomReports.createdByUserId], references: [users.id] }),
+  schedules: many(reportSchedules),
+  runs: many(reportRuns),
+}));
+
+export const reportSchedulesRelations = relations(reportSchedules, ({ one }) => ({
+  company: one(companies, { fields: [reportSchedules.companyId], references: [companies.id] }),
+  savedReport: one(savedCustomReports, { fields: [reportSchedules.savedReportId], references: [savedCustomReports.id] }),
+  createdByUser: one(users, { fields: [reportSchedules.createdByUserId], references: [users.id] }),
+}));
+
+export const reportRunsRelations = relations(reportRuns, ({ one }) => ({
+  company: one(companies, { fields: [reportRuns.companyId], references: [companies.id] }),
+  savedReport: one(savedCustomReports, { fields: [reportRuns.savedReportId], references: [savedCustomReports.id] }),
+  requestedByUser: one(users, { fields: [reportRuns.requestedByUserId], references: [users.id] }),
+}));
+
+export const reportFavoritesRelations = relations(reportFavorites, ({ one }) => ({
+  company: one(companies, { fields: [reportFavorites.companyId], references: [companies.id] }),
+  user: one(users, { fields: [reportFavorites.userId], references: [users.id] }),
+}));
 
 // --- STATE PAID LEAVE ---
 

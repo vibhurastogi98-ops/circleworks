@@ -1304,15 +1304,91 @@ CREATE INDEX IF NOT EXISTS idx_w4_forms_emp ON w4_forms(employee_id);
 CREATE TABLE IF NOT EXISTS saved_custom_reports (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   company_id INTEGER NOT NULL,
+  report_key TEXT,
   name TEXT NOT NULL,
   description TEXT,
   data_source TEXT NOT NULL,         -- payroll | employees | time | benefits | expenses | ats
+  entity TEXT,                       -- Employees | Payroll | Time | Expenses | Benefits
   fields TEXT NOT NULL,              -- JSON array of field IDs selected by the user
+  filters_json TEXT,                 -- JSON array of custom report filters
+  filter_logic TEXT DEFAULT 'AND',
+  group_by_field TEXT,
+  aggregate_field TEXT,
+  aggregate_function TEXT,
   visibility TEXT CHECK(visibility IN ('private','team','org')) DEFAULT 'private',
   created_by TEXT,                   -- Clerk user ID or display name
+  created_by_user_id INTEGER,
   last_run DATE,
+  schedule_enabled BOOLEAN DEFAULT 0,
+  schedule_frequency TEXT,
+  schedule_recipients TEXT,          -- JSON array of email recipients
+  schedule_format TEXT DEFAULT 'xlsx',
+  next_run_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 53B. REPORT SCHEDULES
+--      Stores recurring email delivery schedules for pre-built and custom reports.
+CREATE TABLE IF NOT EXISTS report_schedules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  saved_report_id INTEGER,
+  report_key TEXT NOT NULL,
+  report_type TEXT DEFAULT 'custom',
+  name TEXT NOT NULL,
+  frequency TEXT DEFAULT 'weekly',
+  recipients TEXT NOT NULL,          -- JSON array of email recipients
+  export_format TEXT DEFAULT 'xlsx',
+  filters_json TEXT,
+  is_active BOOLEAN DEFAULT 1,
+  next_run_at DATETIME,
+  last_run_at DATETIME,
+  created_by_user_id INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(saved_report_id) REFERENCES saved_custom_reports(id) ON DELETE CASCADE,
+  FOREIGN KEY(created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 53C. REPORT RUN HISTORY
+--      Tracks generated reports, exports, row counts, and failures.
+CREATE TABLE IF NOT EXISTS report_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  saved_report_id INTEGER,
+  report_key TEXT NOT NULL,
+  report_type TEXT DEFAULT 'custom',
+  report_name TEXT,
+  status TEXT DEFAULT 'completed',
+  row_count INTEGER DEFAULT 0,
+  export_format TEXT,
+  filters_json TEXT,
+  file_url TEXT,
+  requested_by_user_id INTEGER,
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME,
+  duration_ms INTEGER,
+  error_message TEXT,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(saved_report_id) REFERENCES saved_custom_reports(id) ON DELETE SET NULL,
+  FOREIGN KEY(requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 53D. REPORT FAVORITES
+--      Stores per-user favorites for Reports Hub cards.
+CREATE TABLE IF NOT EXISTS report_favorites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_id INTEGER,
+  user_id INTEGER,
+  report_key TEXT NOT NULL,
+  report_type TEXT DEFAULT 'prebuilt',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE CASCADE,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 54. HEADCOUNT FORECASTS
@@ -1330,6 +1406,11 @@ CREATE TABLE IF NOT EXISTS headcount_forecasts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_saved_custom_reports_company ON saved_custom_reports(company_id);
+CREATE INDEX IF NOT EXISTS idx_saved_custom_reports_company_entity ON saved_custom_reports(company_id, entity);
+CREATE INDEX IF NOT EXISTS idx_report_schedules_company_next_run ON report_schedules(company_id, next_run_at);
+CREATE INDEX IF NOT EXISTS idx_report_runs_company_started ON report_runs(company_id, started_at);
+CREATE INDEX IF NOT EXISTS idx_report_runs_saved_report_started ON report_runs(saved_report_id, started_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_report_favorites_user_report ON report_favorites(company_id, user_id, report_type, report_key);
 CREATE INDEX IF NOT EXISTS idx_headcount_forecasts_company  ON headcount_forecasts(company_id, month);
 
 -- =============================================================================

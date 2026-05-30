@@ -251,7 +251,13 @@ const NAV_ITEMS: NavItem[] = [
     href: "/reports",
     children: [
       { label: "Reports Hub", href: "/reports" },
+      { label: "Payroll Summary", href: "/reports/payroll-summary" },
+      { label: "Headcount", href: "/reports/headcount" },
+      { label: "Pay Equity", href: "/reports/pay-equity" },
+      { label: "Expense Summary", href: "/reports/expense-summary" },
+      { label: "Time Analytics", href: "/reports/time-analytics" },
       { label: "Custom Reports", href: "/reports/custom" },
+      { label: "Saved Custom Report", href: "/reports/custom/department-cost-center" },
       { label: "Certified Payroll", href: "/reports/certified-payroll" },
       { label: "Headcount Forecast", href: "/reports/headcount-forecast" },
       { label: "Project Profitability", href: "/reports/project-profitability" },
