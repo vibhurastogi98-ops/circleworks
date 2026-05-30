@@ -2,7 +2,15 @@ import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 
+function textValue(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
 export function ConditionNode({ data, isConnectable, selected }: NodeProps) {
+  const field = textValue(data.field, 'employee.department');
+  const operator = textValue(data.operator, 'equals');
+  const value = textValue(data.value, 'Engineering');
+
   return (
     <div className={`w-64 bg-white dark:bg-[#1E293B] rounded-xl border-2 transition-all shadow-sm [clip-path:polygon(8%_0,92%_0,100%_50%,92%_100%,8%_100%,0_50%)] ${
       selected 
@@ -29,6 +37,9 @@ export function ConditionNode({ data, isConnectable, selected }: NodeProps) {
         </div>
         <div className="mt-2 text-[11px] font-medium text-amber-700 dark:text-amber-300">
           {typeof data.conditionLogic === "string" ? data.conditionLogic : "IF / THEN"}
+        </div>
+        <div className="mt-1 line-clamp-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          {field} {operator} {value}
         </div>
       </div>
       

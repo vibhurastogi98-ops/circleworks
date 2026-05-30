@@ -26,6 +26,7 @@ import {
   UserPlus,
   Users,
   X,
+  Zap,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -252,6 +253,17 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Certified Payroll", href: "/reports/certified-payroll" },
       { label: "Headcount Forecast", href: "/reports/headcount-forecast" },
       { label: "Project Profitability", href: "/reports/project-profitability" },
+    ],
+  },
+  {
+    label: "Automations",
+    icon: Zap,
+    href: "/app/automations",
+    children: [
+      { label: "Automations Hub", href: "/app/automations" },
+      { label: "Templates", href: "/app/automations/templates" },
+      { label: "New Automation", href: "/app/automations/new" },
+      { label: "Legacy Workflows", href: "/settings/workflows" },
     ],
   },
   {

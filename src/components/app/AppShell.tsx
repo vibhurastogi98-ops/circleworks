@@ -22,6 +22,7 @@ const PLATFORM_ROUTE_PREFIXES = [
   "/compliance",
   "/reports",
   "/settings",
+  "/app",
   "/help",
   "/contractors",
   "/agency",

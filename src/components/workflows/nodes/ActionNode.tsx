@@ -1,18 +1,37 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Play, Mail, CheckSquare, MessageSquare, Bell, Globe, Clock } from 'lucide-react';
+import { Bell, CheckSquare, Clock, Globe, Mail, MessageSquare, Play, Repeat2, RefreshCcw } from 'lucide-react';
 
 const ICONS: Record<string, React.ElementType> = {
   email: Mail,
   task: CheckSquare,
   slack: MessageSquare,
   push: Bell,
+  notification: Bell,
   webhook: Globe,
+  http: Globe,
   delay: Clock,
-  update: Play,
+  loop: Repeat2,
+  update: RefreshCcw,
   wait: Clock,
   kudos: Play
 };
+
+function textValue(value: unknown, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback;
+}
+
+function configSummary(data: NodeProps['data'], subtype: string) {
+  if (subtype === 'email') return `Template ${textValue(data.template, 'Custom')} to ${textValue(data.recipients, 'employee')}`;
+  if (subtype === 'slack') return `Post to ${textValue(data.channel, '#people-ops')}`;
+  if (subtype === 'task') return `Assign to ${textValue(data.recipients, 'manager')} due ${textValue(data.dueOffset, '+3 days')}`;
+  if (subtype === 'update') return `Set ${textValue(data.field, 'employee.status')} to ${textValue(data.value, 'active')}`;
+  if (subtype === 'notification') return `Notify ${textValue(data.recipients, 'role:hr')}`;
+  if (subtype === 'http' || subtype === 'webhook') return `POST ${textValue(data.url, 'external URL')}`;
+  if (subtype === 'delay' || subtype === 'wait') return `Wait ${textValue(data.delayAmount, '2')} ${textValue(data.delayUnit, 'days')}`;
+  if (subtype === 'loop') return `For each ${textValue(data.loopFilter, 'matching employee')}`;
+  return textValue(data.message, subtype);
+}
 
 export function ActionNode({ data, isConnectable, selected }: NodeProps) {
   const subtype = typeof data.actionType === 'string' ? data.actionType : typeof data.subtype === 'string' ? data.subtype : 'play';
@@ -42,7 +61,10 @@ export function ActionNode({ data, isConnectable, selected }: NodeProps) {
         <div className="text-sm font-medium text-slate-900 dark:text-white">
           {typeof data.label === 'string' ? data.label : 'Execute action...'}
         </div>
-        <div className="mt-2 text-[11px] font-medium capitalize text-emerald-700 dark:text-emerald-300">{subtype}</div>
+        <div className="mt-2 text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">{subtype}</div>
+        <div className="mt-1 line-clamp-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          {configSummary(data, subtype)}
+        </div>
       </div>
       <Handle
         type="source"

@@ -793,6 +793,61 @@ export const searchAnalytics = pgTable('search_analytics', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// --- WORKFLOW / AUTOMATION RECIPES ---
+
+export const automationRecipes = pgTable('automation_recipes', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  ownerUserId: integer('owner_user_id').references(() => users.id, { onDelete: 'set null' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  category: text('category').default('Onboarding'),
+  triggerType: text('trigger_type').default('event'),
+  triggerKey: text('trigger_key').notNull(),
+  triggerLabel: text('trigger_label').notNull(),
+  status: text('status').default('Draft'),
+  isTemplate: boolean('is_template').default(false),
+  isSystemTemplate: boolean('is_system_template').default(false),
+  templateId: text('template_id'),
+  runCount: integer('run_count').default(0),
+  lastRunAt: timestamp('last_run_at'),
+  estimatedMinutesSaved: integer('estimated_minutes_saved').default(0),
+  nodesJson: text('nodes_json').notNull(),
+  edgesJson: text('edges_json').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const automationRuns = pgTable('automation_runs', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  automationId: integer('automation_id').references(() => automationRecipes.id, { onDelete: 'cascade' }),
+  status: text('status').default('queued'),
+  triggerEvent: text('trigger_event'),
+  contextJson: text('context_json'),
+  affectedEntityType: text('affected_entity_type'),
+  affectedEntityId: text('affected_entity_id'),
+  affectedEntityLabel: text('affected_entity_label'),
+  stepsJson: text('steps_json'),
+  queueJobId: text('queue_job_id'),
+  adminNotifiedAt: timestamp('admin_notified_at'),
+  startedAt: timestamp('started_at').defaultNow(),
+  completedAt: timestamp('completed_at'),
+  durationMs: integer('duration_ms'),
+  errorMessage: text('error_message'),
+});
+
+export const automationWebhookEvents = pgTable('automation_webhook_events', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  automationId: integer('automation_id').references(() => automationRecipes.id, { onDelete: 'cascade' }),
+  payloadJson: text('payload_json').notNull(),
+  headersJson: text('headers_json'),
+  status: text('status').default('received'),
+  receivedAt: timestamp('received_at').defaultNow(),
+  processedAt: timestamp('processed_at'),
+});
+
 // --- ANNOUNCEMENTS ---
 
 export const announcements = pgTable('announcements', {
@@ -904,6 +959,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   notificationPreferences: many(notificationPreferences),
   notificationDigestPreferences: many(notificationDigestPreferences),
   searchAnalytics: many(searchAnalytics),
+  automationRecipes: many(automationRecipes),
 }));
 
 export const companiesRelations = relations(companies, ({ many }) => ({
@@ -942,6 +998,9 @@ export const companiesRelations = relations(companies, ({ many }) => ({
   agencyClients: many(agencyClients),
   agencyInvoices: many(agencyInvoices),
   searchAnalytics: many(searchAnalytics),
+  automationRecipes: many(automationRecipes),
+  automationRuns: many(automationRuns),
+  automationWebhookEvents: many(automationWebhookEvents),
 }));
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({

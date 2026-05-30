@@ -120,6 +120,13 @@
       "when": 1779537600000,
       "tag": "0016_search_analytics_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1779541200000,
+      "tag": "0017_automation_recipes_schema",
+      "breakpoints": true
     }
   ]
 }

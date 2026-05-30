@@ -2,6 +2,13 @@ import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Zap } from 'lucide-react';
 
+function triggerSummary(data: NodeProps['data']) {
+  const triggerType = typeof data.triggerType === 'string' ? data.triggerType : 'event';
+  if (triggerType === 'schedule') return 'Scheduled queue trigger';
+  if (triggerType === 'webhook') return 'POST /api/webhooks/automations/{automationId}';
+  return 'Platform event trigger';
+}
+
 export function TriggerNode({ data, isConnectable, selected }: NodeProps) {
   return (
     <div className={`w-64 bg-white dark:bg-[#1E293B] rounded-xl border-2 transition-all shadow-sm ${
@@ -22,8 +29,11 @@ export function TriggerNode({ data, isConnectable, selected }: NodeProps) {
           {typeof data.label === 'string' ? data.label : 'Select Event...'}
         </div>
         {typeof data.triggerEvent === "string" && (
-          <div className="mt-2 text-[11px] font-medium text-blue-600 dark:text-blue-300">{data.triggerEvent}</div>
+          <div className="mt-2 text-[11px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-300">{data.triggerEvent}</div>
         )}
+        <div className="mt-1 line-clamp-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          {triggerSummary(data)}
+        </div>
       </div>
       <Handle
         type="source"
