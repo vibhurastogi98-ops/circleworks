@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   CartesianGrid,
@@ -8,7 +8,6 @@ import {
   Line,
   LineChart,
   ReferenceLine,
-  ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
@@ -165,6 +164,50 @@ const CustomTooltip = ({
   );
 };
 
+function ForecastChartFrame({
+  children,
+  loading,
+}: {
+  children: (size: { width: number; height: number }) => React.ReactNode;
+  loading: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setSize({
+          width: Math.max(1, Math.floor(rect.width)),
+          height: Math.max(1, Math.floor(rect.height)),
+        });
+      }
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="h-[360px] w-full min-w-[1px]">
+      {loading || !size ? (
+        <div className="flex h-full items-center justify-center text-slate-400">
+          Loading forecast...
+        </div>
+      ) : (
+        children(size)
+      )}
+    </div>
+  );
+}
+
 export default function HeadcountForecastPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ForecastView>("total");
@@ -181,7 +224,18 @@ export default function HeadcountForecastPage() {
       setLoading(true);
       try {
         const response = await fetch(`/api/reports/headcount-forecast?months=24&view=${view}`);
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
         const result = (await response.json()) as ForecastResponse;
+        if (
+          !Array.isArray(result.groups) ||
+          !Array.isArray(result.data) ||
+          !result.forecastInputs ||
+          !result.budgetInfo
+        ) {
+          throw new Error("Invalid headcount forecast response");
+        }
         if (cancelled) return;
 
         setPayload(result);
@@ -575,59 +629,53 @@ export default function HeadcountForecastPage() {
               </div>
             </div>
 
-            <div className="h-[360px] w-full">
-              {loading ? (
-                <div className="flex h-full items-center justify-center text-slate-400">
-                  Loading forecast...
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={computedRows} margin={{ top: 12, right: 24, left: -18, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <RechartsTooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
-                    <Line
-                      type="monotone"
-                      dataKey="actualHeadcount"
-                      name="Actual headcount"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      dot={{ r: 2 }}
-                      connectNulls
+            <ForecastChartFrame loading={loading}>
+              {({ width, height }) => (
+                <LineChart width={width} height={height} data={computedRows} margin={{ top: 12, right: 24, left: -18, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                  <Line
+                    type="monotone"
+                    dataKey="actualHeadcount"
+                    name="Actual headcount"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    dot={{ r: 2 }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="projectedHeadcount"
+                    name="Projected"
+                    stroke="#6366f1"
+                    strokeWidth={3}
+                    strokeDasharray="6 6"
+                    dot={{ r: 2 }}
+                    connectNulls
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="targetLine"
+                    name="Target"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    strokeDasharray="2 4"
+                    dot={false}
+                  />
+                  {todayDividerLabel ? (
+                    <ReferenceLine
+                      x={todayDividerLabel}
+                      stroke="#94a3b8"
+                      strokeDasharray="3 3"
+                      label={{ value: "Today", position: "top", fontSize: 10, fill: "#94a3b8" }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="projectedHeadcount"
-                      name="Projected"
-                      stroke="#6366f1"
-                      strokeWidth={3}
-                      strokeDasharray="6 6"
-                      dot={{ r: 2 }}
-                      connectNulls
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="targetLine"
-                      name="Target"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      strokeDasharray="2 4"
-                      dot={false}
-                    />
-                    {todayDividerLabel ? (
-                      <ReferenceLine
-                        x={todayDividerLabel}
-                        stroke="#94a3b8"
-                        strokeDasharray="3 3"
-                        label={{ value: "Today", position: "top", fontSize: 10, fill: "#94a3b8" }}
-                      />
-                    ) : null}
-                  </LineChart>
-                </ResponsiveContainer>
+                  ) : null}
+                </LineChart>
               )}
-            </div>
+            </ForecastChartFrame>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

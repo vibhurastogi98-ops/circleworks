@@ -6,11 +6,11 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 import {
   Building2,
   ChevronDown,

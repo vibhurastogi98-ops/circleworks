@@ -9,11 +9,11 @@ import {
   CartesianGrid,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 import { Button } from "@/components/ui/button";
 

@@ -9,9 +9,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -105,7 +105,7 @@ export default function PayrollChart() {
       {/* Chart */}
       <div className="flex-1 min-h-[300px] w-full relative overflow-hidden" style={{ minWidth: 0 }}>
         {mounted ? (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             <BarChart data={payrollTrend} barGap={2} barCategoryGap="20%">
               <CartesianGrid
                 strokeDasharray="3 3"

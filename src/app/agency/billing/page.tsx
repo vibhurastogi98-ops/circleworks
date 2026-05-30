@@ -72,11 +72,11 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
   BarChart,
   Bar,
   Legend
 } from 'recharts';
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 const billingVolumeData = [
   { month: 'Jan', revenue: 45000, margin: 6750 },

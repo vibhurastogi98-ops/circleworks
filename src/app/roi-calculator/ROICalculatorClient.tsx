@@ -22,9 +22,9 @@ import {
   Cell,
   Pie,
   PieChart,
-  ResponsiveContainer,
   Tooltip as ChartTooltip,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";

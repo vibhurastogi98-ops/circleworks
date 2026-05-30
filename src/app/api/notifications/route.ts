@@ -9,7 +9,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const ctx = await resolveUserContext(session);
-    if (!ctx) return NextResponse.json({ error: "Employee context not found" }, { status: 404 });
+    if (!ctx) return NextResponse.json({ notifications: [], unreadCount: 0 });
 
     const notifications = await getNotificationsForContext(ctx);
     const unreadCount = notifications.filter((notification) => !notification.isRead).length;

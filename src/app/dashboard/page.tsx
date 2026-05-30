@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,6 @@ import {
   Legend,
   Pie,
   PieChart as RechartsPieChart,
-  ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
@@ -401,6 +400,44 @@ function ChartPlaceholder() {
   );
 }
 
+function ChartFrame({
+  children,
+  mounted,
+}: {
+  children: (size: { width: number; height: number }) => React.ReactNode;
+  mounted: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setSize({
+          width: Math.max(1, Math.floor(rect.width)),
+          height: Math.max(1, Math.floor(rect.height)),
+        });
+      }
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="h-[320px] min-w-[1px]">
+      {mounted && size ? children(size) : <ChartPlaceholder />}
+    </div>
+  );
+}
+
 function PayrollTrendChart({
   data,
   mounted,
@@ -421,61 +458,57 @@ function PayrollTrendChart({
         </div>
         <TrendingUp className="h-5 w-5 text-blue-600" />
       </div>
-      <div className="h-[320px] min-w-0">
-        {mounted ? (
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            <AreaChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="payrollGrossFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#2563eb" stopOpacity={0.32} />
-                  <stop offset="100%" stopColor="#2563eb" stopOpacity={0.03} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#64748b", fontWeight: 600 }}
-              />
-              <YAxis
-                width={64}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#94a3b8" }}
-                tickFormatter={(value) => `$${Math.round(Number(value) / 1000)}k`}
-              />
-              <RechartsTooltip
-                cursor={{ stroke: "#93c5fd", strokeWidth: 1 }}
-                content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  const value = Number(payload[0]?.value || 0);
-                  return (
-                    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                      <p className="text-sm font-bold text-slate-950 dark:text-white">
-                        {label}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">
-                        {formatCurrency(value)}
-                      </p>
-                    </div>
-                  );
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="gross"
-                stroke="#2563eb"
-                strokeWidth={3}
-                fill="url(#payrollGrossFill)"
-                dot={{ r: 3, fill: "#2563eb", strokeWidth: 0 }}
-                activeDot={{ r: 5 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <ChartPlaceholder />
+      <ChartFrame mounted={mounted}>
+        {({ width, height }) => (
+          <AreaChart width={width} height={height} data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="payrollGrossFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.32} />
+                <stop offset="100%" stopColor="#2563eb" stopOpacity={0.03} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="month"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#64748b", fontWeight: 600 }}
+            />
+            <YAxis
+              width={64}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#94a3b8" }}
+              tickFormatter={(value) => `$${Math.round(Number(value) / 1000)}k`}
+            />
+            <RechartsTooltip
+              cursor={{ stroke: "#93c5fd", strokeWidth: 1 }}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const value = Number(payload[0]?.value || 0);
+                return (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-sm font-bold text-slate-950 dark:text-white">
+                      {label}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-blue-600 dark:text-blue-300">
+                      {formatCurrency(value)}
+                    </p>
+                  </div>
+                );
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="gross"
+              stroke="#2563eb"
+              strokeWidth={3}
+              fill="url(#payrollGrossFill)"
+              dot={{ r: 3, fill: "#2563eb", strokeWidth: 0 }}
+              activeDot={{ r: 5 }}
+            />
+          </AreaChart>
         )}
-      </div>
+      </ChartFrame>
     </section>
   );
 }
@@ -502,53 +535,49 @@ function HeadcountBreakdownChart({
         </div>
         <PieChart className="h-5 w-5 text-violet-600" />
       </div>
-      <div className="h-[320px] min-w-0">
-        {mounted ? (
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            <RechartsPieChart>
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={68}
-                outerRadius={104}
-                paddingAngle={4}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <RechartsTooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const point = payload[0]?.payload as HeadcountBreakdownPoint;
-                  return (
-                    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                      <p className="text-sm font-bold text-slate-950 dark:text-white">
-                        {point.name}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                        {point.value} people
-                      </p>
-                    </div>
-                  );
-                }}
-              />
-              <Legend
-                verticalAlign="bottom"
-                iconType="circle"
-                formatter={(value) => (
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    {value}
-                  </span>
-                )}
-              />
-            </RechartsPieChart>
-          </ResponsiveContainer>
-        ) : (
-          <ChartPlaceholder />
+      <ChartFrame mounted={mounted}>
+        {({ width, height }) => (
+          <RechartsPieChart width={width} height={height}>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={68}
+              outerRadius={104}
+              paddingAngle={4}
+            >
+              {data.map((entry, index) => (
+                <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            <RechartsTooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const point = payload[0]?.payload as HeadcountBreakdownPoint;
+                return (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-sm font-bold text-slate-950 dark:text-white">
+                      {point.name}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {point.value} people
+                    </p>
+                  </div>
+                );
+              }}
+            />
+            <Legend
+              verticalAlign="bottom"
+              iconType="circle"
+              formatter={(value) => (
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {value}
+                </span>
+              )}
+            />
+          </RechartsPieChart>
         )}
-      </div>
+      </ChartFrame>
       <div className="mt-3 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
         {total} total workers
       </div>

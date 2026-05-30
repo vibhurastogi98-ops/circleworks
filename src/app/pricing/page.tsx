@@ -20,9 +20,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Cell,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 

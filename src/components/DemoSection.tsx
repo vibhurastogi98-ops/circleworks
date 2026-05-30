@@ -17,11 +17,11 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 type DemoTab = "Payroll" | "Employees" | "Benefits" | "Time" | "Reports";
 type PayrollStatus = "ready" | "processing" | "paid";
@@ -318,6 +318,12 @@ function TimeDemo() {
 }
 
 function ReportsDemo() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <div className="flex h-full flex-col rounded-3xl border border-white/10 bg-slate-950/40 p-5">
       <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -338,28 +344,32 @@ function ReportsDemo() {
         transition={{ duration: 0.45 }}
         className="mt-6 min-h-[300px] flex-1"
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={reportData} margin={{ top: 12, right: 8, bottom: 0, left: -18 }}>
-            <CartesianGrid stroke="rgba(148, 163, 184, 0.14)" vertical={false} />
-            <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} />
-            <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748B", fontSize: 12 }} />
-            <Tooltip
-              cursor={{ fill: "rgba(37, 99, 235, 0.08)" }}
-              contentStyle={{
-                background: "#0F172A",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "14px",
-                color: "#fff",
-              }}
-              formatter={(value) => [`$${value}k`, "Labor cost"]}
-            />
-            <Bar dataKey="value" radius={[12, 12, 4, 4]} animationBegin={120} animationDuration={950}>
-              {reportData.map((entry, index) => (
-                <Cell key={entry.month} fill={index === reportData.length - 1 ? "#22D3EE" : "#2563EB"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+            <BarChart data={reportData} margin={{ top: 12, right: 8, bottom: 0, left: -18 }}>
+              <CartesianGrid stroke="rgba(148, 163, 184, 0.14)" vertical={false} />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} />
+              <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748B", fontSize: 12 }} />
+              <Tooltip
+                cursor={{ fill: "rgba(37, 99, 235, 0.08)" }}
+                contentStyle={{
+                  background: "#0F172A",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: "14px",
+                  color: "#fff",
+                }}
+                formatter={(value) => [`$${value}k`, "Labor cost"]}
+              />
+              <Bar dataKey="value" radius={[12, 12, 4, 4]} animationBegin={120} animationDuration={950}>
+                {reportData.map((entry, index) => (
+                  <Cell key={entry.month} fill={index === reportData.length - 1 ? "#22D3EE" : "#2563EB"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full w-full rounded-2xl bg-white/5" />
+        )}
       </motion.div>
     </div>
   );

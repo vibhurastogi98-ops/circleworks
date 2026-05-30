@@ -20,10 +20,10 @@ import {
   PieChart, 
   Pie, 
   Cell, 
-  ResponsiveContainer, 
   Tooltip, 
   Legend 
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 const COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f97316', '#eab308', '#22c55e'];
 

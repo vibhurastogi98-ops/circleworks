@@ -16,11 +16,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -14,10 +14,10 @@ import { type KpiCard } from "@/data/dashboard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import Link from "next/link";
 import {
-  ResponsiveContainer,
   AreaChart,
   Area,
 } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Users,
@@ -37,7 +37,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   return (
     <div className="w-[72px] h-[32px] overflow-hidden" style={{ minWidth: 0, minHeight: 0 }}>
       {mounted && data?.length > 0 ? (
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={1}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
           <AreaChart data={chartData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
             <defs>
               <linearGradient id={`spark-${color}`} x1="0" y1="0" x2="0" y2="1">

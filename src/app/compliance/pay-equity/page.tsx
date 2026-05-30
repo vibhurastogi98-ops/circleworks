@@ -26,10 +26,10 @@ import {
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
   Legend, 
-  ResponsiveContainer,
   ReferenceLine,
   Cell
 } from 'recharts';
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 import { motion, AnimatePresence } from "framer-motion";
 
 // --- Types ---

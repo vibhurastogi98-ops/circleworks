@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Play, Search, Bell, ChevronDown } from "lucide-react";
@@ -16,9 +15,6 @@ const TRUST_LOGOS = [
 ];
 
 const MARQUEE_LOGOS = [...TRUST_LOGOS, ...TRUST_LOGOS];
-
-const HERO_BLUR_DATA_URL =
-  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNDAwJyBoZWlnaHQ9JzQwMCcgdmlld0JveD0nMCAwIDQwMCA0MDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHJlY3Qgd2lkdGg9JzQwMCcgaGVpZ2h0PSc0MDAnIGZpbGw9JyMwODEzMjYnLz48Y2lyY2xlIGN4PSczMDAnIGN5PSc5MCcgcj0nMTQwJyBmaWxsPScjMURBRkQ4JyBmaWxsLW9wYWNpdHk9Jy4zJy8+PGNpcmNsZSBjeD0nMTIwJyBjeT0nMjkwJyByPScxNjAnIGZpbGw9JyMxRDRFRDgnIGZpbGwtb3BhY2l0eT0nLjI1Jy8+PC9zdmc+";
 
 const headlineLines = [
   [
@@ -47,10 +43,10 @@ const payrollRows = [
 ];
 
 const statusStyles: Record<string, string> = {
-  Paid: "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/20",
-  Pending: "bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20",
-  Approved: "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20",
-  Processing: "bg-blue-500/15 text-blue-200 ring-1 ring-blue-400/20",
+  Paid: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  Pending: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  Approved: "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200",
+  Processing: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
 };
 
 const dashboardSections = {
@@ -59,9 +55,9 @@ const dashboardSections = {
     title: "Company Payroll & HR Overview",
     description: "A single view of payroll readiness, employee changes, benefits, and approvals.",
     metrics: [
-      { label: "Open Tasks", value: "18", accent: "from-blue-600/30 to-blue-400/5" },
-      { label: "Due This Week", value: "7", accent: "from-cyan-500/25 to-cyan-300/5" },
-      { label: "Ready", value: "94%", accent: "from-indigo-500/25 to-violet-400/5" },
+      { label: "Open Tasks", value: "18", accent: "from-blue-50 to-white" },
+      { label: "Due This Week", value: "7", accent: "from-cyan-50 to-white" },
+      { label: "Ready", value: "94%", accent: "from-indigo-50 to-white" },
     ],
   },
   "Payroll Runs": {
@@ -69,9 +65,9 @@ const dashboardSections = {
     title: "US Biweekly Payroll Preview",
     description: "Review earnings, benefits, taxes, and reimbursement changes before funding this run.",
     metrics: [
-      { label: "Gross Payroll", value: "$84,530", accent: "from-blue-600/30 to-blue-400/5" },
-      { label: "Deductions", value: "$11,264", accent: "from-cyan-500/25 to-cyan-300/5" },
-      { label: "Net Pay", value: "$62,941", accent: "from-indigo-500/25 to-violet-400/5" },
+      { label: "Gross Payroll", value: "$84,530", accent: "from-blue-50 to-white" },
+      { label: "Deductions", value: "$11,264", accent: "from-cyan-50 to-white" },
+      { label: "Net Pay", value: "$62,941", accent: "from-indigo-50 to-white" },
     ],
   },
   Employees: {
@@ -79,9 +75,9 @@ const dashboardSections = {
     title: "Employee Changes Ready for Payroll",
     description: "Track new hires, compensation changes, departments, and profile completion in one place.",
     metrics: [
-      { label: "Employees", value: "142", accent: "from-blue-600/30 to-blue-400/5" },
-      { label: "New Hires", value: "8", accent: "from-cyan-500/25 to-cyan-300/5" },
-      { label: "Changes", value: "12", accent: "from-indigo-500/25 to-violet-400/5" },
+      { label: "Employees", value: "142", accent: "from-blue-50 to-white" },
+      { label: "New Hires", value: "8", accent: "from-cyan-50 to-white" },
+      { label: "Changes", value: "12", accent: "from-indigo-50 to-white" },
     ],
   },
   Benefits: {
@@ -89,9 +85,9 @@ const dashboardSections = {
     title: "Benefit Deductions Matched to Payroll",
     description: "Keep medical, dental, vision, and retirement deductions aligned before each run.",
     metrics: [
-      { label: "Enrollments", value: "118", accent: "from-blue-600/30 to-blue-400/5" },
-      { label: "Deductions", value: "$11,264", accent: "from-cyan-500/25 to-cyan-300/5" },
-      { label: "Pending", value: "3", accent: "from-indigo-500/25 to-violet-400/5" },
+      { label: "Enrollments", value: "118", accent: "from-blue-50 to-white" },
+      { label: "Deductions", value: "$11,264", accent: "from-cyan-50 to-white" },
+      { label: "Pending", value: "3", accent: "from-indigo-50 to-white" },
     ],
   },
   Time: {
@@ -99,9 +95,9 @@ const dashboardSections = {
     title: "Timesheets Ready for Approval",
     description: "Review clocked hours, overtime, PTO, and manager approvals before payroll locks.",
     metrics: [
-      { label: "Hours", value: "4,928", accent: "from-blue-600/30 to-blue-400/5" },
-      { label: "Overtime", value: "126", accent: "from-cyan-500/25 to-cyan-300/5" },
-      { label: "Missing", value: "5", accent: "from-indigo-500/25 to-violet-400/5" },
+      { label: "Hours", value: "4,928", accent: "from-blue-50 to-white" },
+      { label: "Overtime", value: "126", accent: "from-cyan-50 to-white" },
+      { label: "Missing", value: "5", accent: "from-indigo-50 to-white" },
     ],
   },
   Expenses: {
@@ -109,9 +105,9 @@ const dashboardSections = {
     title: "Approved Reimbursements Queued",
     description: "Sync approved expenses and mileage reimbursements into the next payroll batch.",
     metrics: [
-      { label: "Reports", value: "36", accent: "from-blue-600/30 to-blue-400/5" },
-      { label: "Approved", value: "$9,840", accent: "from-cyan-500/25 to-cyan-300/5" },
-      { label: "Pending", value: "6", accent: "from-indigo-500/25 to-violet-400/5" },
+      { label: "Reports", value: "36", accent: "from-blue-50 to-white" },
+      { label: "Approved", value: "$9,840", accent: "from-cyan-50 to-white" },
+      { label: "Pending", value: "6", accent: "from-indigo-50 to-white" },
     ],
   },
 } as const;
@@ -123,44 +119,34 @@ function PayrollDashboardMockup() {
   const currentSection = dashboardSections[activeSection];
 
   return (
-    <div className="hero-float relative mx-auto w-full max-w-[1100px] rounded-[28px] border border-white/10 bg-[#08111f]/90 shadow-[0_32px_120px_rgba(3,10,24,0.85)] backdrop-blur-xl">
-      <Image
-        src="/dashboard-mockup.png"
-        alt=""
-        fill
-        priority
-        placeholder="blur"
-        blurDataURL={HERO_BLUR_DATA_URL}
-        sizes="(min-width: 1280px) 1100px, 100vw"
-        className="pointer-events-none rounded-[28px] object-cover opacity-[0.06]"
-      />
-      <div className="pointer-events-none absolute inset-x-[18%] -bottom-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(6,182,212,0.22)_0%,_rgba(29,78,216,0.16)_35%,_rgba(10,22,40,0)_75%)] blur-2xl" />
+    <div className="hero-float relative mx-auto w-full max-w-[1100px] overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-[0_32px_100px_rgba(37,99,235,0.26)]">
+      <div className="pointer-events-none absolute inset-x-[18%] -bottom-10 h-24 rounded-full bg-[radial-gradient(circle,_rgba(59,130,246,0.18)_0%,_rgba(6,182,212,0.14)_38%,_rgba(255,255,255,0)_75%)] blur-2xl" />
 
-      <div className="flex h-12 items-center gap-3 rounded-t-[28px] border-b border-white/10 bg-[#0d1727] px-4 md:px-5">
+      <div className="relative flex h-12 items-center gap-3 border-b border-blue-100 bg-white px-4 md:px-5">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
           <span className="h-3 w-3 rounded-full bg-[#ffbd2f]" />
           <span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </div>
-        <div className="mx-auto flex h-8 w-[55%] max-w-[420px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 text-[11px] text-slate-400">
+        <div className="mx-auto flex h-8 w-[55%] max-w-[420px] items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 text-[11px] text-slate-500">
           <Search className="h-3.5 w-3.5" />
           <span>app.circleworks.com/payroll/runs/april-us-01</span>
         </div>
-        <div className="hidden items-center gap-2 text-slate-500 md:flex">
+        <div className="hidden items-center gap-2 text-blue-500 md:flex">
           <Bell className="h-4 w-4" />
           <div className="h-7 w-7 rounded-full bg-gradient-to-br from-cyan-400 to-blue-600" />
         </div>
       </div>
 
       <div className="grid min-h-[520px] grid-cols-1 overflow-hidden lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="border-b border-white/10 bg-[#0b1423] p-4 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-blue-500/30 bg-gradient-to-b from-blue-700 via-blue-800 to-blue-950 p-4 lg:border-b-0 lg:border-r">
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 shadow-[0_0_35px_rgba(29,78,216,0.35)]">
-              <div className="h-5 w-5 rounded-full border-2 border-white" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 shadow-[0_12px_34px_rgba(15,23,42,0.24)] ring-1 ring-white/25">
+              <div className="h-5 w-5 rounded-full border-2 border-cyan-100" />
             </div>
             <div>
               <p className="text-sm font-black uppercase tracking-[0.14em] text-white">CircleWorks</p>
-              <p className="text-[11px] text-slate-500">Payroll Command Center</p>
+              <p className="text-[11px] text-blue-100/80">Payroll Command Center</p>
             </div>
           </div>
 
@@ -175,39 +161,39 @@ function PayrollDashboardMockup() {
                   onClick={() => setActiveSection(item)}
                   className={`flex w-full cursor-pointer items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-semibold transition-colors ${
                     isActive
-                      ? "bg-gradient-to-r from-blue-600/20 to-cyan-400/10 text-white ring-1 ring-blue-400/25"
-                      : "text-slate-400 hover:bg-white/5 hover:text-white focus:bg-white/5 focus:text-white"
+                      ? "bg-white text-blue-700 shadow-sm"
+                      : "text-blue-100/80 hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
                   }`}
                   aria-pressed={isActive}
                 >
                   <span>{item}</span>
-                  {isActive ? <span className="h-2.5 w-2.5 rounded-full bg-cyan-300" /> : null}
+                  {isActive ? <span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> : null}
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-8 rounded-3xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/10 to-blue-600/10 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-cyan-300">Live</p>
+          <div className="mt-8 rounded-3xl border border-white/20 bg-white/10 p-4 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-cyan-100">Live</p>
             <p className="mt-2 text-2xl font-black text-white">$22,645</p>
-            <p className="text-sm text-slate-400">Today's payroll batch total</p>
+            <p className="text-sm text-blue-100/75">Today's payroll batch total</p>
           </div>
         </aside>
 
-        <div className="bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] p-4 md:p-6 lg:p-7">
+        <div className="bg-white p-4 md:p-6 lg:p-7">
           <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-300">{currentSection.eyebrow}</p>
-              <h3 className="mt-2 text-2xl font-black text-white md:text-[32px]">{currentSection.title}</h3>
-              <p className="mt-2 max-w-xl text-sm text-slate-400 md:text-base">
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-blue-600">{currentSection.eyebrow}</p>
+              <h3 className="mt-2 text-2xl font-black text-slate-950 md:text-[32px]">{currentSection.title}</h3>
+              <p className="mt-2 max-w-xl text-sm text-slate-500 md:text-base">
                 {currentSection.description}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300">
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
                 142 employees
               </div>
-              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-200">
+              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-700">
                 5 pending approvals
               </div>
             </div>
@@ -215,15 +201,15 @@ function PayrollDashboardMockup() {
 
           <div className="mb-5 grid gap-4 md:grid-cols-3">
             {currentSection.metrics.map((card) => (
-              <div key={card.label} className={`rounded-3xl border border-white/10 bg-gradient-to-br ${card.accent} p-4`}>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">{card.label}</p>
-                <p className="mt-3 text-2xl font-black text-white">{card.value}</p>
+              <div key={card.label} className={`rounded-3xl border border-blue-100 bg-gradient-to-br ${card.accent} p-4 shadow-sm`}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">{card.label}</p>
+                <p className="mt-3 text-2xl font-black text-slate-950">{card.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#0c1626]/80">
-            <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr] gap-3 border-b border-white/10 px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">
+          <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">
               <span>Employee</span>
               <span>Department</span>
               <span>Net Amount</span>
@@ -233,22 +219,22 @@ function PayrollDashboardMockup() {
               {payrollRows.map((row) => (
                 <div
                   key={row.name}
-                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr] items-center gap-3 border-b border-white/6 px-5 py-4 last:border-b-0 hover:bg-white/[0.03]"
+                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr] items-center gap-3 border-b border-slate-100 px-5 py-4 last:border-b-0 hover:bg-blue-50/45"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/30 to-cyan-400/20 text-sm font-black text-cyan-100 ring-1 ring-white/10">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 text-sm font-black text-blue-700 ring-1 ring-blue-200">
                       {row.name
                         .split(" ")
                         .map((part) => part[0])
                         .join("")}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">{row.name}</p>
+                      <p className="text-sm font-semibold text-slate-950">{row.name}</p>
                       <p className="text-xs text-slate-500">Biweekly salary</p>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-300">{row.role}</p>
-                  <p className="text-sm font-semibold text-white">{row.amount}</p>
+                  <p className="text-sm text-slate-600">{row.role}</p>
+                  <p className="text-sm font-semibold text-slate-950">{row.amount}</p>
                   <span className={`inline-flex w-fit rounded-full px-3 py-1 text-[11px] font-bold ${statusStyles[row.status]}`}>
                     {row.status}
                   </span>
@@ -257,12 +243,12 @@ function PayrollDashboardMockup() {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.03] px-5 py-4">
+          <div className="mt-5 flex items-center justify-between rounded-3xl border border-emerald-100 bg-emerald-50 px-5 py-4">
             <div>
-              <p className="text-sm font-semibold text-white">Federal tax filing scheduled</p>
-              <p className="text-xs text-slate-400">ACH debit settles Friday, 9:00 AM EST</p>
+              <p className="text-sm font-semibold text-slate-950">Federal tax filing scheduled</p>
+              <p className="text-xs text-slate-600">ACH debit settles Friday, 9:00 AM EST</p>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-emerald-500/12 px-3 py-1.5 text-xs font-bold text-emerald-300">
+            <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
               <Check className="h-3.5 w-3.5" /> Ready to fund
             </div>
           </div>

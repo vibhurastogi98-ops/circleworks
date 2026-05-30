@@ -5,7 +5,8 @@ import {
   DollarSign, UserPlus, Heart, Clock, Shield, BarChart2,
   CheckCircle2, Activity, Eye
 } from "lucide-react";
-import { BarChart, Bar, ResponsiveContainer } from "recharts";
+import { BarChart, Bar } from "recharts";
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 
 // --- Demos & Visuals ---
 

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell
 } from 'recharts';
+import ResponsiveContainer from "@/components/charts/MeasuredResponsiveContainer";
 import { 
   Building2, Users, DollarSign, Download, ArrowRight, TrendingUp, TrendingDown,
   ChevronDown, ChevronRight, FileText, UploadCloud, Briefcase

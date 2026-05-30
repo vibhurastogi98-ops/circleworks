@@ -555,15 +555,13 @@ export async function GET(request: Request) {
     }
 
     const ctx = await resolveUserContext(session);
-    if (!ctx) {
-      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
-    }
-
-    const liveForecast = await buildDataDrivenGroups(view, months, ctx.companyId);
-    if (liveForecast) {
-      groups = liveForecast.groups;
-      openRequisitions = liveForecast.openRequisitions;
-      source = liveForecast.source;
+    if (ctx) {
+      const liveForecast = await buildDataDrivenGroups(view, months, ctx.companyId);
+      if (liveForecast) {
+        groups = liveForecast.groups;
+        openRequisitions = liveForecast.openRequisitions;
+        source = liveForecast.source;
+      }
     }
   } catch (error) {
     console.error("[Headcount Forecast GET fallback]", error);

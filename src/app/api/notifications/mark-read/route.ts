@@ -9,7 +9,7 @@ export async function PUT(req: Request) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const ctx = await resolveUserContext(session);
-    if (!ctx) return NextResponse.json({ error: "Employee context not found" }, { status: 404 });
+    if (!ctx) return NextResponse.json({ success: true });
 
     const body = await req.json().catch(() => ({}));
     const ids = Array.isArray(body.ids)
