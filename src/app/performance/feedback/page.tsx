@@ -1,222 +1,253 @@
 "use client";
 
-import React, { useState } from "react";
-import { 
-  Plus, 
-  Search, 
-  MessageSquare, 
-  Send, 
-  Inbox, 
-  ChevronRight, 
-  UserPlus,
-  ShieldCheck,
-  ShieldAlert,
-  Clock,
-  CheckCircle2,
-  MoreHorizontal,
-  PlusCircle,
-  HelpCircle,
-  Users
-} from "lucide-react";
-import Link from "next/link";
-import { mockFeedbackRequests } from "@/data/mockPerformance";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Send, ShieldCheck, Sparkles, ThumbsUp } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  feedbackTimeline,
+  recognitionWall,
+  type FeedbackEntry,
+  type FeedbackType,
+} from "@/data/mockPerformance";
+import { employees, getEmployeeName } from "@/lib/hris-module-data";
+import { formatDate } from "@/utils/formatDate";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+const feedbackTypes: Array<"All" | FeedbackType> = ["All", "Praise", "Constructive", "Thanks"];
 
 export default function PerformanceFeedbackPage() {
-  const [activeTab, setActiveTab] = useState<'received' | 'sent'>('received');
-  const [searchQuery, setSearchQuery] = useState("");
+  const [recipient, setRecipient] = useState(getEmployeeName(employees[1]));
+  const [type, setType] = useState<FeedbackType>("Praise");
+  const [message, setMessage] = useState("");
+  const [anonymous, setAnonymous] = useState(false);
+  const [senderFilter, setSenderFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"All" | FeedbackType>("All");
+  const [dateFilter, setDateFilter] = useState("");
+  const [reactionCounts, setReactionCounts] = useState(recognitionWall);
 
-  const filteredRequests = mockFeedbackRequests.filter(r => 
-    r.type === activeTab && 
-    r.person.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const feedbackQuery = useQuery({
+    queryKey: ["performance-feedback"],
+    queryFn: async () => feedbackTimeline,
+  });
+
+  const sendFeedbackMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient, type, message, anonymous }),
+      });
+      if (!response.ok) throw new Error("Failed to send feedback");
+      return (await response.json()) as { feedback: FeedbackEntry };
+    },
+    onSuccess: () => {
+      toast.success(`Feedback sent to ${recipient}.`);
+      setMessage("");
+    },
+    onError: () => {
+      toast.error("Failed to send feedback. Please try again.");
+    },
+  });
+
+  const filteredFeedback = useMemo(() => {
+    const rows = feedbackQuery.data || [];
+    return rows.filter((entry) => {
+      const matchesSender = !senderFilter || entry.sender.toLowerCase().includes(senderFilter.toLowerCase());
+      const matchesType = typeFilter === "All" || entry.type === typeFilter;
+      const matchesDate = !dateFilter || entry.date >= dateFilter;
+      return matchesSender && matchesType && matchesDate;
+    });
+  }, [dateFilter, feedbackQuery.data, senderFilter, typeFilter]);
+
+  const sendFeedback = () => {
+    if (message.trim().length < 20) {
+      toast.error("Feedback message should be at least 20 characters.");
+      return;
+    }
+    sendFeedbackMutation.mutate();
+  };
+
+  const addReaction = (recognitionId: string, emoji: string) => {
+    setReactionCounts((rows) =>
+      rows.map((row) =>
+        row.id === recognitionId
+          ? { ...row, reactions: { ...row.reactions, [emoji]: (row.reactions[emoji] || 0) + 1 } }
+          : row,
+      ),
+    );
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">360 Feedback Hub</h1>
-          <p className="text-slate-500 dark:text-slate-400">Request and provide anonymous or public feedback to peers across the organization.</p>
-        </div>
-        <Link href="/performance/feedback" className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95">
-          <UserPlus size={20} />
-          Request Peer Feedback
-        </Link>
+    <div className="space-y-6 pb-12">
+      <div>
+        <p className="text-sm font-bold uppercase tracking-wider text-purple-600 dark:text-purple-300">
+          Continuous Feedback
+        </p>
+        <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Feedback and Recognition</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Send timely praise, constructive notes, private thanks, and public recognition.
+        </p>
       </div>
 
-      {/* Tabs & Search */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full md:w-auto">
-          <button 
-            onClick={() => setActiveTab('received')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'received' ? 'bg-white dark:bg-slate-700 shadow-sm text-purple-600' : 'text-slate-500'}`}
-          >
-            <Inbox size={18} />
-            Received ({mockFeedbackRequests.filter(r => r.type === 'received').length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('sent')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'sent' ? 'bg-white dark:bg-slate-700 shadow-sm text-purple-600' : 'text-slate-500'}`}
-          >
-            <Send size={18} />
-            Sent ({mockFeedbackRequests.filter(r => r.type === 'sent').length})
-          </button>
-        </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search providers..." 
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 dark:text-white transition-all shadow-sm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Send Feedback</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="space-y-2 block">
+              <span className="text-xs font-bold uppercase text-slate-500">Recipient</span>
+              <select
+                value={recipient}
+                onChange={(event) => setRecipient(event.target.value)}
+                className="h-11 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 text-sm text-[var(--text-primary)]"
+              >
+                {employees.slice(0, 8).map((employee) => (
+                  <option key={employee.id}>{getEmployeeName(employee)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2 block">
+              <span className="text-xs font-bold uppercase text-slate-500">Type</span>
+              <select
+                value={type}
+                onChange={(event) => setType(event.target.value as FeedbackType)}
+                className="h-11 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 text-sm text-[var(--text-primary)]"
+              >
+                <option>Praise</option>
+                <option>Constructive</option>
+                <option>Thanks</option>
+              </select>
+            </label>
+            <label className="space-y-2 block">
+              <span className="text-xs font-bold uppercase text-slate-500">Message</span>
+              <textarea
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                rows={5}
+                placeholder="Be specific: behavior, impact, and the next useful action."
+                className="w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 py-3 text-sm leading-6 text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+              <span className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
+                <ShieldCheck size={16} className="text-purple-500" />
+                Send anonymously
+              </span>
+              <input
+                type="checkbox"
+                checked={anonymous}
+                onChange={(event) => setAnonymous(event.target.checked)}
+                className="h-5 w-5 rounded border-slate-300 text-purple-600"
+              />
+            </label>
+            <Button
+              className="w-full gap-2 bg-purple-600 hover:bg-purple-700"
+              onClick={sendFeedback}
+              disabled={sendFeedbackMutation.isPending}
+            >
+              <Send size={16} />
+              {sendFeedbackMutation.isPending ? "Sending..." : "Send Feedback"}
+            </Button>
+          </CardContent>
+        </Card>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main List */}
-        <div className="lg:col-span-2 space-y-4">
-          {filteredRequests.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Received Feedback</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input
+                value={senderFilter}
+                onChange={(event) => setSenderFilter(event.target.value)}
+                placeholder="Filter sender"
+              />
+              <select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value as "All" | FeedbackType)}
+                className="h-11 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 text-sm text-[var(--text-primary)]"
+              >
+                {feedbackTypes.map((feedbackType) => (
+                  <option key={feedbackType}>{feedbackType}</option>
+                ))}
+              </select>
+              <Input value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} type="date" />
+            </div>
             <div className="space-y-3">
-              {filteredRequests.map(request => (
-                <div key={request.id} className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 hover:shadow-lg transition-all group border-l-4 border-l-purple-500">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <img src={request.avatar} alt={request.person} className="w-12 h-12 rounded-full border border-slate-100 dark:border-slate-800" />
-                      <div>
-                        {activeTab === 'received' && request.isAnonymous ? (
-                          <div className="flex items-center gap-2">
-                             <ShieldAlert size={14} className="text-slate-400" />
-                             <p className="font-bold text-slate-400 italic">Anonymous Colleague</p>
-                          </div>
-                        ) : (
-                          <p className="font-bold text-slate-900 dark:text-white group-hover:text-purple-600 transition-colors">{request.person}</p>
-                        )}
-                        <p className="text-xs text-slate-500">{request.title}</p>
-                      </div>
+              {filteredFeedback.map((entry) => (
+                <div key={entry.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={
+                          entry.type === "Praise"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                            : entry.type === "Constructive"
+                              ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-300"
+                              : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-300"
+                        }
+                      >
+                        {entry.type}
+                      </Badge>
+                      <span className="text-sm font-bold text-slate-950 dark:text-white">{entry.sender}</span>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter ${
-                        request.status === 'Pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30'
-                      }`}>
-                        {request.status}
-                      </span>
-                      <p className="text-[10px] text-slate-400 uppercase font-mono">{request.date}</p>
-                    </div>
+                    <span className="text-xs font-medium text-slate-500">{formatDate(entry.date)}</span>
                   </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
-                    <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
-                       <span className="flex items-center gap-1">
-                         {request.isAnonymous ? <ShieldCheck size={14} className="text-purple-500" /> : <Users size={14} className="text-blue-500" />}
-                         {request.isAnonymous ? 'Anonymous Request' : 'Standard Peer Feedback'}
-                       </span>
-                    </div>
-                    <button className="flex items-center gap-1.5 p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg text-xs font-bold transition-all hover:bg-purple-100 active:scale-95">
-                      {request.status === 'Pending' ? 'Submit Feedback' : 'View Submission'}
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{entry.message}</p>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-24 bg-slate-50 dark:bg-slate-900/30 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 space-y-3">
-              <MessageSquare size={48} className="mx-auto text-slate-300" />
-              <p className="text-slate-500 font-medium">No feedback requests found in this category.</p>
-              <button className="text-purple-600 font-bold hover:underline">Clear Filters</button>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar: New Interaction / Summary */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Send New Request</h3>
-                <p className="text-xs text-slate-500">Select a person, add questions, and choose anonymity.</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-300">
-                <PlusCircle size={20} />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Person</label>
-              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-purple-500">
-                <option>Select employee...</option>
-                <option>Avery Johnson</option>
-                <option>Maya Patel</option>
-                <option>Noah Williams</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Questions</label>
-              <textarea
-                rows={4}
-                placeholder="What should this person keep doing? Where could they grow? What impact did you see?"
-                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/40">
-              <span className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-300">
-                <ShieldCheck size={16} />
-                Anonymous feedback
-              </span>
-              <input type="checkbox" defaultChecked className="rounded border-purple-300 text-purple-600 focus:ring-purple-500" />
-            </label>
-            <button className="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">
-              <Send size={18} />
-              Send Feedback Request
-            </button>
-          </div>
-
-          {/* Quick Action */}
-          <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-6 text-white space-y-6">
-            <div className="space-y-1">
-              <h3 className="text-xl font-bold">Improve Your Team.</h3>
-              <p className="text-xs text-purple-100 italic opacity-80">"Feedback is the breakfast of champions."</p>
-            </div>
-            <div className="space-y-3">
-              <button className="w-full flex items-center justify-center gap-2 py-3 bg-white text-purple-600 rounded-xl font-bold text-sm shadow-xl active:scale-95 hover:bg-purple-50 transition-all">
-                <Send size={18} />
-                Send Kudo Instead
-              </button>
-              <p className="text-[10px] text-center text-purple-200">Kudos are public and boost morale!</p>
-            </div>
-          </div>
-
-          {/* Quick Tips */}
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4">
-             <div className="flex items-center gap-2 text-purple-600">
-               <HelpCircle size={20} />
-               <h4 className="font-bold text-sm uppercase tracking-tight">Writing Useful Feedback</h4>
-             </div>
-             <div className="space-y-3">
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                    <CheckCircle2 size={12} />
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Be **Specific**. Mention exact instances where a behavior was observed.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                    <CheckCircle2 size={12} />
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Focus on **Impact**. Explain how their actions affected the project or team.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-5 h-5 rounded bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                    <CheckCircle2 size={12} />
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Suggest next **Steps**. Give actionable advice for growth.</p>
-                </div>
-             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recognition Wall</CardTitle>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Public praise across the company from the last 30 days.
+          </p>
+        </CardHeader>
+        <CardContent className="grid gap-4 lg:grid-cols-2">
+          {reactionCounts.map((recognition) => (
+            <article key={recognition.id} className="rounded-2xl border border-slate-200 p-5 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
+                <Sparkles size={16} className="text-amber-500" />
+                {recognition.from} recognized {recognition.to}
+              </div>
+              <p className="mt-1 text-xs font-medium text-slate-500">{formatDate(recognition.date)}</p>
+              <p className="mt-4 text-sm leading-6 text-slate-700 dark:text-slate-300">{recognition.message}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {["👏", "💙", "🚀", "🙌"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => addReaction(recognition.id, emoji)}
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold transition hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                  >
+                    {emoji} {recognition.reactions[emoji] || 0}
+                  </button>
+                ))}
+              </div>
+            </article>
+          ))}
+          <div className="rounded-2xl border border-dashed border-slate-300 p-5 dark:border-slate-700">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
+              <ThumbsUp size={16} className="text-blue-600" />
+              Recognition guidance
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Recognition is public by default, meant for praise and thanks. Use private feedback for sensitive coaching.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

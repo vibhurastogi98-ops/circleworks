@@ -21,9 +21,11 @@
   /* Neutral Scale */
   --color-gray-950: #0F172A;
   /* Primary text */
+  --color-gray-900: #111827;
+  /* Strong surfaces and headings */
   --color-gray-700: #374151;
   /* Secondary text */
-  --color-gray-50: #6B7280;
+  --color-gray-500: #6B7280;
   /* Subtext, placeholders */
   --color-gray-300: #D1D5DB;
   /* Borders, dividers */
@@ -36,9 +38,16 @@
   /* Semantic Aliases */
   --text-primary: var(--color-gray-950);
   --text-secondary: var(--color-gray-500);
+  --text-tertiary: #64748B;
   --border-default: #e2e8f0;
+  --border-muted: #f1f5f9;
   --surface-default: var(--color-white);
   --surface-subtle: var(--color-gray-50);
+  --surface-card: var(--color-white);
+  --surface-inset: #F8FAFC;
+  --input-bg: var(--color-white);
+  --input-border: #CBD5E1;
+  --chart-grid: #E2E8F0;
   /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
@@ -68,15 +77,37 @@
 }
 
 .dark {
+  color-scheme: dark;
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
   --border-default: #1E293B;
+  --border-muted: #334155;
   --surface-default: #0F172A;
   --surface-subtle: #1E293B;
+  --surface-card: #1E293B;
+  --surface-inset: #111827;
+  --input-bg: #1F2937;
+  --input-border: #4B5563;
+  --chart-grid: #334155;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 150ms ease;
+}
+
+img,
+svg,
+svg *,
+video,
+canvas {
+  transition: none !important;
 }
 
 html {
@@ -84,7 +115,8 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 transition-colors;
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -92,7 +124,106 @@ body {
 }
 
 .dark body {
-  @apply bg-[#030712] text-white;
+  background-color: var(--surface-default);
+  color: var(--text-primary);
+}
+
+.marketing-surface {
+  min-height: 100dvh;
+  background: #ffffff;
+  color: #0f172a;
+  color-scheme: light;
+}
+
+.dark .marketing-surface {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.platform-shell {
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.dark .platform-shell {
+  color-scheme: dark;
+}
+
+.dark .platform-shell :where(.bg-white) {
+  background-color: var(--surface-card);
+}
+
+.dark .platform-shell :where(.bg-slate-50, .bg-gray-50) {
+  background-color: var(--surface-subtle);
+}
+
+.dark .platform-shell :where(.bg-slate-100, .bg-gray-100) {
+  background-color: var(--surface-inset);
+}
+
+.dark .platform-shell :where(.border-slate-100, .border-gray-100) {
+  border-color: var(--border-muted);
+}
+
+.dark .platform-shell :where(.border-slate-200, .border-gray-200, .border-slate-300, .border-gray-300) {
+  border-color: var(--border-default);
+}
+
+.dark .platform-shell :where(.divide-slate-100 > :not([hidden]) ~ :not([hidden])) {
+  border-color: var(--border-muted);
+}
+
+.dark .platform-shell :where(.divide-slate-200 > :not([hidden]) ~ :not([hidden])) {
+  border-color: var(--border-default);
+}
+
+.dark .platform-shell :where(.text-slate-950, .text-slate-900, .text-gray-950, .text-gray-900) {
+  color: var(--text-primary);
+}
+
+.dark .platform-shell :where(.text-slate-800, .text-slate-700, .text-gray-800, .text-gray-700, .text-slate-600, .text-gray-600) {
+  color: var(--text-secondary);
+}
+
+.dark .platform-shell :where(.text-slate-500, .text-gray-500, .text-slate-400, .text-gray-400) {
+  color: var(--text-tertiary);
+}
+
+.dark .platform-shell :where(input, textarea, select) {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.dark .platform-shell :where(input, textarea)::placeholder {
+  color: #94a3b8;
+}
+
+.dark .platform-shell :where(table thead) {
+  background-color: var(--surface-inset);
+}
+
+.dark .platform-shell :where(table tbody tr) {
+  border-color: var(--border-muted);
+}
+
+.dark .platform-shell :where(.recharts-cartesian-grid line) {
+  stroke: var(--chart-grid);
+}
+
+.dark .platform-shell :where(.recharts-cartesian-axis-tick text, .recharts-legend-item-text) {
+  fill: var(--text-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+
+.dark .platform-shell :where(.recharts-default-tooltip) {
+  background-color: var(--surface-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark .platform-shell :where(.recharts-tooltip-label, .recharts-tooltip-item) {
+  color: var(--text-primary) !important;
 }
 
 /* Typography Scale */

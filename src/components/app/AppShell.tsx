@@ -57,7 +57,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setSidebarOpen,
     setCurrentUser,
     complianceAlerts,
-    theme,
   } = usePlatformStore();
   const usePlatformShell = shouldUsePlatformShell(pathname);
 
@@ -69,10 +68,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setActiveRoute(pathname);
     setSidebarOpen(false);
   }, [pathname, setActiveRoute, setSidebarOpen]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -96,7 +91,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [setCurrentUser, user]);
 
   if (!usePlatformShell) {
-    return <>{children}</>;
+    return <div className="marketing-surface">{children}</div>;
   }
 
   const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;
@@ -106,13 +101,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     : "lg:pl-[72px] xl:pl-[240px]";
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="platform-shell h-[100dvh] overflow-hidden bg-[var(--surface-subtle)] text-[var(--text-primary)]">
       {mounted ? <AppSidebar /> : null}
       <div className={`h-full min-w-0 ${shellOffset}`}>
         {mounted ? <AppTopBar /> : null}
         <main
           id="main-content"
-          className={`h-full overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-slate-950 ${
+          className={`h-full overflow-y-auto overflow-x-hidden bg-[var(--surface-subtle)] ${
             renderedComplianceCritical > 0 ? "pt-[104px]" : "pt-16"
           }`}
         >

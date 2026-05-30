@@ -6,6 +6,7 @@ import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
 import CirceWidget from "@/components/CirceWidget";
 import AppShell from "@/components/app/AppShell";
+import ThemeInitializer from "@/components/app/ThemeInitializer";
 import "./globals.css";
 import "@xyflow/react/dist/style.css";
 import { Toaster } from "sonner";
@@ -42,6 +43,25 @@ export const metadata: Metadata = {
 
 const GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
 const META_PIXEL_ID = "XXXXXXXXXXXXXXXX";
+const THEME_INIT_SCRIPT = `
+(() => {
+  try {
+    const storedTheme = window.localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldUseDark =
+      storedTheme === "dark" || ((!storedTheme || storedTheme === "system") && prefersDark);
+
+    document.documentElement.classList.toggle("dark", shouldUseDark);
+    document.documentElement.dataset.theme =
+      storedTheme === "light" || storedTheme === "dark" || storedTheme === "system"
+        ? storedTheme
+        : "system";
+    document.documentElement.style.colorScheme = shouldUseDark ? "dark" : "light";
+  } catch {
+    document.documentElement.dataset.theme = "system";
+  }
+})();
+`;
 
 export default function RootLayout({
   children,
@@ -59,6 +79,7 @@ export default function RootLayout({
           href="https://circleworks.com"
         />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <script id="theme-init" dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
 
       {/* Google Analytics */}
@@ -100,6 +121,7 @@ export default function RootLayout({
       </Script>
 
       <body className={`${inter.variable} ${inter.className} antialiased`} suppressHydrationWarning>
+        <ThemeInitializer />
         <Toaster position="top-right" richColors />
         <OfflineToast />
         <KeyboardShortcuts />

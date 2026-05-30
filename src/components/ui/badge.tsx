@@ -13,8 +13,8 @@ export function Badge({ children, variant = "default", className = "" }: BadgePr
   
   const variants = {
     default: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-400 dark:border-indigo-800",
-    secondary: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
-    outline: "bg-transparent text-slate-600 border-slate-200 dark:text-slate-400 dark:border-slate-800",
+    secondary: "bg-[var(--surface-inset)] text-[var(--text-secondary)] border-[var(--border-default)]",
+    outline: "bg-transparent text-[var(--text-secondary)] border-[var(--border-default)]",
   };
 
   return (

@@ -209,7 +209,7 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: "Performance Hub", href: "/performance" },
       { label: "Reviews", href: "/performance/reviews" },
-      { label: "Goals", href: "/performance/goals" },
+      { label: "OKRs", href: "/performance/okrs" },
       { label: "Feedback", href: "/performance/feedback" },
     ],
   },
@@ -423,9 +423,9 @@ export default function AppSidebar() {
       <aside
         id="tour-sidebar"
         suppressHydrationWarning
-        className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-full -translate-x-full flex-col border-r border-slate-200 bg-white shadow-2xl transition-all duration-300 dark:border-slate-800 dark:bg-gray-900 lg:w-[72px] lg:translate-x-0 lg:shadow-none xl:w-[240px]"
+        className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-full -translate-x-full flex-col border-r border-[var(--border-default)] bg-[var(--surface-default)] shadow-2xl transition-all duration-300 lg:w-[72px] lg:translate-x-0 lg:shadow-none xl:w-[240px]"
       >
-        <div className="relative border-b border-slate-200 dark:border-slate-800">
+        <div className="relative border-b border-[var(--border-default)]">
           <div className="group flex h-16 w-full items-center gap-3 px-4 text-left">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-100 text-xs font-bold text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/15 dark:text-blue-200">
               CD
@@ -443,7 +443,7 @@ export default function AppSidebar() {
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-hidden px-3 py-4" aria-hidden="true" />
-        <div className="border-t border-slate-200 p-4 dark:border-slate-800" aria-hidden="true" />
+        <div className="border-t border-[var(--border-default)] p-4" aria-hidden="true" />
       </aside>
     );
   }
@@ -467,12 +467,12 @@ export default function AppSidebar() {
       <aside
         id="tour-sidebar"
         className={cx(
-          "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-full flex-col border-r border-slate-200 bg-white shadow-2xl transition-all duration-300 dark:border-slate-800 dark:bg-gray-900 lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-full flex-col border-r border-[var(--border-default)] bg-[var(--surface-default)] shadow-2xl transition-all duration-300 lg:translate-x-0 lg:shadow-none",
           desktopWidth,
           renderedSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="relative border-b border-slate-200 dark:border-slate-800">
+        <div className="relative border-b border-[var(--border-default)]">
           <button
             type="button"
             onClick={() => setSwitcherOpen(true)}
@@ -539,8 +539,8 @@ export default function AppSidebar() {
               const itemClasses = cx(
                 "group relative flex min-h-11 w-full items-center rounded-r-lg px-3 text-left transition-colors",
                 active
-                  ? "bg-blue-50 font-medium text-blue-600 dark:bg-gray-800 dark:text-blue-400"
-                  : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800",
+                  ? "bg-blue-50 font-medium text-blue-600 dark:bg-[var(--surface-subtle)] dark:text-blue-300"
+                  : "text-[var(--text-secondary)] hover:bg-slate-50 hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-subtle)]",
               );
 
               const content = (
@@ -635,7 +635,7 @@ export default function AppSidebar() {
           </div>
         </nav>
 
-        <div className="border-t border-slate-200 p-4 dark:border-slate-800">
+        <div className="border-t border-[var(--border-default)] p-4">
           <button
             type="button"
             onClick={() => signOut({ redirectUrl: "/" })}

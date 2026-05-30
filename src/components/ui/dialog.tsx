@@ -37,7 +37,7 @@ export function Dialog({ open, onOpenChange, children, contentClassName = "", ov
         className={`absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 ${overlayClassName}`}
         onClick={() => onOpenChange(false)}
       />
-      <div className={`relative z-10 w-full max-w-lg animate-in zoom-in-95 fade-in duration-200 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden ${contentClassName}`}>
+      <div className={`relative z-10 w-full max-w-lg animate-in overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--surface-card)] shadow-2xl zoom-in-95 fade-in duration-200 ${contentClassName}`}>
         {children}
       </div>
     </div>
@@ -59,7 +59,7 @@ export function DialogContent({
 }
 
 export function DialogHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`p-6 border-b border-slate-100 dark:border-slate-800 ${className}`}>{children}</div>;
+  return <div className={`border-b border-[var(--border-muted)] p-6 ${className}`}>{children}</div>;
 }
 
 export function DialogTitle({
@@ -70,7 +70,7 @@ export function DialogTitle({
   className?: string;
 }) {
   return (
-    <h2 className={`text-xl font-bold text-slate-900 dark:text-white ${className}`}>
+    <h2 className={`text-xl font-bold text-[var(--text-primary)] ${className}`}>
       {children}
     </h2>
   );
@@ -84,7 +84,7 @@ export function DialogDescription({
   className?: string;
 }) {
   return (
-    <p className={`text-sm text-slate-500 dark:text-slate-400 mt-1 ${className}`}>
+    <p className={`mt-1 text-sm text-[var(--text-secondary)] ${className}`}>
       {children}
     </p>
   );
@@ -92,7 +92,7 @@ export function DialogDescription({
 
 export function DialogFooter({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 ${className}`}>
+    <div className={`flex justify-end gap-3 border-t border-[var(--border-muted)] bg-[var(--surface-inset)] p-6 ${className}`}>
       {children}
     </div>
   );

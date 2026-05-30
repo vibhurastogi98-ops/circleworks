@@ -13,21 +13,21 @@ export function Table({ children, className = "" }: { children: React.ReactNode;
 }
 
 export function TableHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <thead className={`border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 ${className}`}>{children}</thead>;
+  return <thead className={`border-b border-[var(--border-muted)] bg-[var(--surface-inset)] ${className}`}>{children}</thead>;
 }
 
 export function TableBody({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <tbody className={`divide-y divide-slate-100 dark:divide-slate-800 ${className}`}>{children}</tbody>;
+  return <tbody className={`divide-y divide-[var(--border-muted)] ${className}`}>{children}</tbody>;
 }
 
 export function TableRow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <tr className={`transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50 ${className}`}>{children}</tr>;
+  return <tr className={`transition-colors hover:bg-[var(--surface-inset)] ${className}`}>{children}</tr>;
 }
 
 export function TableHead({ children, className = "", ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th 
-      className={`h-11 px-4 text-left align-middle font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[11px] ${className}`}
+      className={`h-11 px-4 text-left align-middle text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] ${className}`}
       {...props}
     >
       {children}
@@ -38,7 +38,7 @@ export function TableHead({ children, className = "", ...props }: React.ThHTMLAt
 export function TableCell({ children, className = "", ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td 
-      className={`p-4 align-middle text-slate-700 dark:text-slate-300 ${className}`}
+      className={`p-4 align-middle text-[var(--text-secondary)] ${className}`}
       {...props}
     >
       {children}

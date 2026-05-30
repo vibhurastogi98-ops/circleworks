@@ -4,7 +4,7 @@ import React from "react";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden ${className}`}>
+    <div className={`overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--surface-card)] shadow-sm ${className}`}>
       {children}
     </div>
   );
@@ -12,7 +12,7 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
 
 export function CardHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`p-6 border-b border-slate-100 dark:border-slate-800 ${className}`}>
+    <div className={`border-b border-[var(--border-muted)] p-6 ${className}`}>
       {children}
     </div>
   );
@@ -20,7 +20,7 @@ export function CardHeader({ children, className = "" }: { children: React.React
 
 export function CardTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <h3 className={`text-lg font-bold text-slate-900 dark:text-white leading-none ${className}`}>
+    <h3 className={`text-lg font-bold leading-none text-[var(--text-primary)] ${className}`}>
       {children}
     </h3>
   );
@@ -28,7 +28,7 @@ export function CardTitle({ children, className = "" }: { children: React.ReactN
 
 export function CardDescription({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={`text-sm text-slate-500 dark:text-slate-400 mt-1.5 ${className}`}>
+    <p className={`mt-1.5 text-sm text-[var(--text-secondary)] ${className}`}>
       {children}
     </p>
   );
@@ -44,7 +44,7 @@ export function CardContent({ children, className = "" }: { children: React.Reac
 
 export function CardFooter({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 ${className}`}>
+    <div className={`border-t border-[var(--border-muted)] bg-[var(--surface-inset)] p-6 ${className}`}>
       {children}
     </div>
   );

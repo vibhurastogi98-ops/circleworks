@@ -43,7 +43,7 @@ export function SheetContent({
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", bounce: 0, duration: 0.32 }}
-      className={`absolute right-0 top-0 h-[100dvh] w-full max-w-[400px] bg-white shadow-xl dark:bg-[#0F172A] ${className}`}
+      className={`absolute right-0 top-0 h-[100dvh] w-full max-w-[400px] bg-[var(--surface-card)] shadow-xl ${className}`}
       role="dialog"
       aria-modal="true"
     >

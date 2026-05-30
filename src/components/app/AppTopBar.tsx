@@ -121,8 +121,8 @@ export default function AppTopBar() {
   const {
     currentUser,
     sidebarCollapsed,
-    theme,
-    toggleDarkMode,
+    isDarkMode,
+    setTheme,
     toggleSidebar,
     payrollRunInProgress,
     setPayrollRunning,
@@ -141,7 +141,6 @@ export default function AppTopBar() {
   const avatarMenuRef = useRef<HTMLDivElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
 
-  const isDarkMode = theme === "dark";
   const topbarOffset = sidebarCollapsed
     ? "lg:left-[72px]"
     : "lg:left-[72px] xl:left-[240px]";
@@ -158,10 +157,6 @@ export default function AppTopBar() {
       href: index < pathParts.length - 1 ? href : undefined,
     };
   });
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDarkMode);
-  }, [isDarkMode]);
 
   useEffect(() => {
     void loadNotifications();
@@ -194,6 +189,7 @@ export default function AppTopBar() {
   }, []);
 
   const openCommandPalette = () => setCommandPaletteOpen(true);
+  const toggleTheme = () => setTheme(isDarkMode ? "light" : "dark");
 
   const restartOnboardingTour = () => {
     setIsHelpMenuOpen(false);
@@ -222,7 +218,7 @@ export default function AppTopBar() {
   return (
     <TooltipProvider delayDuration={150}>
       <div className={`fixed left-0 right-0 top-0 z-30 flex flex-col ${topbarOffset}`}>
-        <header className="flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 lg:px-6">
+        <header className="flex h-16 w-full items-center justify-between border-b border-[var(--border-default)] bg-[var(--surface-default)] px-4 shadow-sm transition-colors lg:px-6">
           <div className="flex min-w-0 shrink-0 items-center gap-4 lg:gap-6">
             <button
               type="button"
@@ -366,7 +362,7 @@ export default function AppTopBar() {
               )}
             </IconButton>
 
-            <IconButton label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleDarkMode}>
+            <IconButton label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleTheme}>
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </IconButton>
 

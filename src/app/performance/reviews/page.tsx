@@ -1,296 +1,267 @@
 "use client";
 
-import React, { useState } from "react";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  Calendar, 
-  Target as TargetIcon,
-  Users,
-  Eye,
-  FileDown,
-  LayoutGrid,
-  List,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  ClipboardList,
-  SlidersHorizontal,
-  Shield
-} from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
-import { mockReviewCycles } from "@/data/mockPerformance";
+import { useQuery } from "@tanstack/react-query";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Plus,
+  Search,
+  Users,
+} from "lucide-react";
+
+import { mockReviewCycles, type ReviewCycleStatus } from "@/data/mockPerformance";
+import { formatDate } from "@/utils/formatDate";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+const statusClasses: Record<ReviewCycleStatus, string> = {
+  Draft: "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  Active: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-300",
+  Completed:
+    "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+};
 
 export default function ReviewCyclesPage() {
-  const [view, setView] = useState<'grid' | 'table'>('table');
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const cyclesQuery = useQuery({
+    queryKey: ["performance-review-cycles"],
+    queryFn: async () => mockReviewCycles,
+  });
 
-  const filteredCycles = mockReviewCycles.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const cycles = cyclesQuery.data || [];
+  const filteredCycles = cycles.filter((cycle) =>
+    [cycle.name, cycle.type, cycle.status].join(" ").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Review Cycles</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage performance evaluation periods and participant progress.</p>
+          <p className="text-sm font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">
+            Performance Reviews
+          </p>
+          <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Review Cycles</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Create, launch, and monitor annual, mid-year, quarterly, and probationary cycles.
+          </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">
-          <Plus size={20} />
-          Create New Cycle
-        </button>
+        <Button onClick={() => setIsCreateOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
+          <Plus size={18} />
+          Create Cycle
+        </Button>
       </div>
 
-      {/* Create Cycle Wizard */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-4">
-        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Create Review Cycle Wizard</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Define participants, questions, rating scale, deadlines, and visibility rules before launching.</p>
-            </div>
-            <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[11px] font-bold uppercase tracking-wider">Step 1 of 5</span>
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="relative w-full md:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search cycles..."
+              className="pl-9"
+            />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Participants</label>
-              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500">
-                <option>All employees</option>
-                <option>Department group</option>
-                <option>Manager chain</option>
-                <option>Custom employee list</option>
-              </select>
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="rounded-xl bg-slate-50 px-4 py-2 dark:bg-slate-800">
+              <p className="font-black text-slate-950 dark:text-white">{cycles.length}</p>
+              <p className="font-bold uppercase text-slate-500">Cycles</p>
             </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rating Scale</label>
-              <select className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500">
-                <option>5-point: Needs Support to Exceeds</option>
-                <option>3-point: Below / Meets / Above</option>
-                <option>No rating, written feedback only</option>
-              </select>
+            <div className="rounded-xl bg-blue-50 px-4 py-2 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+              <p className="font-black">{cycles.filter((cycle) => cycle.status === "Active").length}</p>
+              <p className="font-bold uppercase">Active</p>
             </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Self Review Deadline</label>
-              <input type="date" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Manager Review Deadline</label>
-              <input type="date" className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Questions</label>
-              <textarea
-                rows={3}
-                placeholder="What impact did this person have? What should they continue, start, or stop doing?"
-                className="mt-1 w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm dark:text-white focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Visibility Rules</label>
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {["Employee sees after manager sign-off", "HR can view calibration", "Anonymous peer feedback"].map(rule => (
-                  <label key={rule} className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    <input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" defaultChecked={rule !== "Anonymous peer feedback"} />
-                    {rule}
-                  </label>
-                ))}
-              </div>
+            <div className="rounded-xl bg-emerald-50 px-4 py-2 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <p className="font-black">{cycles.filter((cycle) => cycle.status === "Completed").length}</p>
+              <p className="font-bold uppercase">Done</p>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="bg-slate-950 rounded-2xl p-5 text-white">
-          <h2 className="text-lg font-bold">Launch Checklist</h2>
-          <p className="text-sm text-slate-400 mt-1">A cycle can launch once all wizard sections are complete.</p>
-          <div className="mt-5 space-y-3">
-            {[
-              { icon: Users, label: "Participants selected", value: "156 employees" },
-              { icon: ClipboardList, label: "Question set", value: "Manager + self" },
-              { icon: SlidersHorizontal, label: "Rating scale", value: "5-point" },
-              { icon: Shield, label: "Visibility", value: "HR + manager" },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-3 rounded-xl border border-white/10 p-3">
-                <item.icon size={16} className="text-blue-300" />
-                <div>
-                  <p className="text-sm font-bold">{item.label}</p>
-                  <p className="text-xs text-slate-400">{item.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Filters & View Toggle */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search cycles..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-            <button 
-              onClick={() => setView('table')}
-              className={`p-1.5 rounded-md transition-all ${view === 'table' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-500'}`}
-            >
-              <List size={18} />
-            </button>
-            <button 
-              onClick={() => setView('grid')}
-              className={`p-1.5 rounded-md transition-all ${view === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-500'}`}
-            >
-              <LayoutGrid size={18} />
-            </button>
-          </div>
-          <button className="p-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400">
-            <Filter size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      {view === 'table' ? (
-        <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4">Title & Period</th>
-                <th className="px-6 py-4">Type</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Completion</th>
-                <th className="px-6 py-4">Participants</th>
-                <th className="px-6 py-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredCycles.map(cycle => (
-                <tr key={cycle.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-6 py-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Cycles List</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date Range</TableHead>
+                <TableHead>Participants</TableHead>
+                <TableHead>Completion</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCycles.map((cycle) => (
+                <TableRow key={cycle.id}>
+                  <TableCell>
                     <div className="space-y-1">
-                      <Link href={`/performance/reviews/${cycle.id}`} className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors uppercase tracking-tight">
+                      <Link
+                        href={`/performance/reviews/${cycle.id}`}
+                        className="font-bold text-slate-950 transition hover:text-blue-600 dark:text-white"
+                      >
                         {cycle.name}
                       </Link>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <Calendar size={12} />
-                        {cycle.period}
-                      </div>
+                      <p className="text-xs text-slate-500">
+                        Self due {formatDate(cycle.selfReviewDueDate)} · Manager due{" "}
+                        {formatDate(cycle.managerReviewDueDate)}
+                      </p>
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">
-                      {cycle.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className={`flex items-center gap-1.5 text-xs font-bold ${
-                      cycle.status === 'Active' ? 'text-blue-600 dark:text-blue-400' :
-                      cycle.status === 'Completed' ? 'text-emerald-600 dark:text-emerald-400' :
-                      'text-slate-400'
-                    }`}>
-                      {cycle.status === 'Active' ? <Clock size={14} /> : cycle.status === 'Completed' ? <CheckCircle2 size={14} /> : null}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{cycle.type}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={statusClasses[cycle.status]}>
+                      {cycle.status === "Active" ? <Clock className="mr-1 h-3 w-3" /> : null}
+                      {cycle.status === "Completed" ? <CheckCircle2 className="mr-1 h-3 w-3" /> : null}
                       {cycle.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                      <CalendarDays size={14} />
+                      {cycle.period}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3 min-w-[120px]">
-                      <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-700 ${cycle.completion === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`} 
-                          style={{ width: `${cycle.completion}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-bold dark:text-white">{cycle.completion}%</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-xs font-medium dark:text-slate-400 font-mono">
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                       <Users size={14} />
                       {cycle.participants}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Link href={`/performance/reviews/${cycle.id}`} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400 transition-colors" title="View Results">
-                        <Eye size={18} />
-                      </Link>
-                      <button className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400 transition-colors" title="Download Report">
-                        <FileDown size={18} />
-                      </button>
-                      <button className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-400 transition-colors">
-                        <MoreHorizontal size={18} />
-                      </button>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex min-w-36 items-center gap-3">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                        <div className="h-full rounded-full bg-blue-600" style={{ width: `${cycle.completion}%` }} />
+                      </div>
+                      <span className="text-xs font-black text-slate-700 dark:text-slate-200">
+                        {cycle.completion}%
+                      </span>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      href={`/performance/reviews/${cycle.id}`}
+                      className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                    >
+                      Open
+                    </Link>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCycles.map(cycle => (
-            <div key={cycle.id} className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 hover:shadow-xl transition-all group">
-              <div className="flex items-start justify-between mb-6">
-                <div className={`p-3 rounded-xl ${
-                  cycle.status === 'Active' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
-                  cycle.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' :
-                  'bg-slate-50 text-slate-400 dark:bg-slate-800'
-                }`}>
-                  <TargetIcon size={24} />
-                </div>
-                <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
-                  cycle.status === 'Active' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' :
-                  cycle.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' :
-                  'bg-slate-100 text-slate-700'
-                }`}>
-                  {cycle.status}
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <Link href={`/performance/reviews/${cycle.id}`}>
-                  <h3 className="font-bold text-lg dark:text-white mb-2 group-hover:text-blue-600 transition-colors underline decoration-transparent group-hover:decoration-blue-600/30 underline-offset-4 uppercase tracking-tight">
-                    {cycle.name}
-                  </h3>
-                </Link>
-                <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <Calendar size={14} />
-                  {cycle.period}
-                </div>
-              </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-              <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-slate-500 font-medium uppercase font-mono">Current Completion</span>
-                  <span className="font-bold text-blue-600">{cycle.completion}%</span>
-                </div>
-                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 rounded-full" style={{ width: `${cycle.completion}%` }} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <Users size={14} />
-                    {cycle.participants} Participants
-                  </div>
-                  <Link href={`/performance/reviews/${cycle.id}`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
-                    <ExternalLink size={16} />
-                  </Link>
-                </div>
-              </div>
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen} contentClassName="max-w-3xl">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Cycle</DialogTitle>
+            <DialogDescription>
+              Configure review period, deadlines, and participant scope before launching.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70vh] space-y-5 overflow-y-auto p-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Name</span>
+                <Input defaultValue="Q3 2026 Growth Review" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Type</span>
+                <select className="h-11 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 text-sm text-[var(--text-primary)]">
+                  <option>Quarterly</option>
+                  <option>Annual</option>
+                  <option>Mid-year</option>
+                  <option>Probationary</option>
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Review period start</span>
+                <Input type="date" defaultValue="2026-07-01" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Review period end</span>
+                <Input type="date" defaultValue="2026-09-30" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Self-review due date</span>
+                <Input type="date" defaultValue="2026-10-06" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Manager review due date</span>
+                <Input type="date" defaultValue="2026-10-13" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Peer selection deadline</span>
+                <Input type="date" defaultValue="2026-09-28" />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-xs font-bold uppercase text-slate-500">Participants</span>
+                <select className="h-11 w-full rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] px-4 text-sm text-[var(--text-primary)]">
+                  <option>All employees</option>
+                  <option>Filter by department</option>
+                  <option>Filter by location</option>
+                  <option>Custom employee list</option>
+                </select>
+              </label>
             </div>
-          ))}
-        </div>
-      )}
+            <Card className="rounded-xl">
+              <CardContent className="grid gap-3 p-4 md:grid-cols-3">
+                {[
+                  ["Departments", "Engineering, Sales, Success"],
+                  ["Locations", "All US locations"],
+                  ["Visibility", "Employee sees after manager share"],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <p className="text-[11px] font-bold uppercase text-slate-500">{label}</p>
+                    <p className="mt-1 text-sm font-bold text-slate-950 dark:text-white">{value}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => setIsCreateOpen(false)}>
+              <ClipboardList size={16} />
+              Save Draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

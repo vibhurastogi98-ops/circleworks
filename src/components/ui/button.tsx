@@ -18,9 +18,9 @@ export function Button({
   
   const variants = {
     primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20",
-    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700",
-    outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800",
-    ghost: "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+    secondary: "bg-[var(--surface-inset)] text-[var(--text-primary)] hover:brightness-95 dark:hover:brightness-125",
+    outline: "border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--surface-inset)]",
+    ghost: "text-[var(--text-secondary)] hover:bg-[var(--surface-inset)]",
     danger: "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20",
   };
 

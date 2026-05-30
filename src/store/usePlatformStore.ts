@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type PlatformTheme = "light" | "dark";
+export type PlatformTheme = "light" | "dark" | "system";
+export type ResolvedPlatformTheme = "light" | "dark";
 
 export interface PlatformCompany {
   id: string;
@@ -71,6 +72,34 @@ interface PlatformState {
   closeTransientUi: () => void;
 }
 
+export function isPlatformTheme(value: unknown): value is PlatformTheme {
+  return value === "light" || value === "dark" || value === "system";
+}
+
+export function getSystemTheme(): ResolvedPlatformTheme {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export function resolvePlatformTheme(theme: PlatformTheme): ResolvedPlatformTheme {
+  return theme === "system" ? getSystemTheme() : theme;
+}
+
+export function applyPlatformTheme(theme: PlatformTheme) {
+  if (typeof document === "undefined") return;
+
+  const resolvedTheme = resolvePlatformTheme(theme);
+  document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = resolvedTheme;
+
+  try {
+    window.localStorage.setItem("theme", theme);
+  } catch {
+    // Storage can be unavailable in restricted browser modes.
+  }
+}
+
 const DEFAULT_COMPANIES: PlatformCompany[] = [
   {
     id: "circleworks-demo",
@@ -111,7 +140,7 @@ export const usePlatformStore = create<PlatformState>()(
       activeRoute: "/dashboard",
       notifications: [],
       unreadCount: 0,
-      theme: "light",
+      theme: "system",
       isDarkMode: false,
       complianceAlerts: { critical: 2, warning: 4 },
       hasComplianceAlert: true,
@@ -137,10 +166,14 @@ export const usePlatformStore = create<PlatformState>()(
         set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       setActiveRoute: (route) => set({ activeRoute: route }),
-      setTheme: (theme) => set({ theme, isDarkMode: theme === "dark" }),
+      setTheme: (theme) => {
+        applyPlatformTheme(theme);
+        set({ theme, isDarkMode: resolvePlatformTheme(theme) === "dark" });
+      },
       toggleDarkMode: () =>
         set((state) => {
-          const nextTheme = state.theme === "dark" ? "light" : "dark";
+          const nextTheme = state.isDarkMode ? "light" : "dark";
+          applyPlatformTheme(nextTheme);
           return { theme: nextTheme, isDarkMode: nextTheme === "dark" };
         }),
       dismissComplianceAlert: () =>
@@ -173,10 +206,23 @@ export const usePlatformStore = create<PlatformState>()(
     {
       name: "platform-storage",
       partialize: (state) => ({
-        theme: state.theme,
-        isDarkMode: state.theme === "dark",
         sidebarCollapsed: state.sidebarCollapsed,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+
+        let preferredTheme: PlatformTheme = "system";
+        try {
+          const storedTheme = window.localStorage.getItem("theme");
+          if (isPlatformTheme(storedTheme)) preferredTheme = storedTheme;
+        } catch {
+          // Fall back to the system preference when storage is unavailable.
+        }
+
+        applyPlatformTheme(preferredTheme);
+        state.theme = preferredTheme;
+        state.isDarkMode = resolvePlatformTheme(preferredTheme) === "dark";
+      },
     },
   ),
 );
