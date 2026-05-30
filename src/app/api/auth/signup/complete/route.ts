@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
-import { users, companies, employees, onboardingCases } from "@/db/schema";
+import { users, companies, employees, onboardingCases, contractors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const SIGNUP_DRAFT_COOKIE = "cw_signup_partial";
+const ACCOUNT_TYPES = new Set(["company", "agency", "creator_solo", "contractor_payer"]);
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,10 +35,35 @@ function parseSalary(value: unknown) {
   return Number.isFinite(amount) ? Math.round(amount) : 0;
 }
 
+function getAccountType(value: unknown) {
+  return typeof value === "string" && ACCOUNT_TYPES.has(value) ? value : "company";
+}
+
+function parseContractorCount(value: unknown) {
+  const count = Number(value);
+  return Number.isFinite(count) ? Math.max(0, Math.min(999, Math.round(count))) : 0;
+}
+
+function getAccountName(accountType: string, step1: Record<string, unknown> | undefined, step2: Record<string, unknown> | undefined) {
+  const companyName = typeof step2?.companyName === "string" ? step2.companyName.trim() : "";
+  if (companyName) return companyName;
+
+  const fullName = typeof step1?.fullName === "string" ? step1.fullName.trim() : "";
+  if (accountType === "creator_solo") return fullName ? `${fullName} Studio` : "Creator Studio";
+  if (accountType === "contractor_payer") return fullName ? `${fullName} Payments` : "Contractor Payments";
+  return "My Company";
+}
+
+function normalizeContractorW9Status(value: unknown) {
+  return value === "collected" ? "Collected" : "Pending";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { step1, step2, step3, step4, googleAuth } = body;
+    const { account, step1, step2, step3, step4, creator, contractor, googleAuth } = body;
+    const accountType = getAccountType(account?.accountType);
+    const fullFlowSignup = accountType === "company" || accountType === "agency";
 
     const email = (step1?.email as string)?.toLowerCase().trim();
 
@@ -101,7 +127,7 @@ export async function POST(req: NextRequest) {
         email,
         password,
         email_confirm: true,
-        user_metadata: { role: "admin", fullName: step1?.fullName },
+        user_metadata: { role: "admin", fullName: step1?.fullName, accountType },
       });
 
       if (authError || !authData.user) {
@@ -114,6 +140,7 @@ export async function POST(req: NextRequest) {
       supabaseUserId = authData.user.id;
     }
     const adminName = splitFullName(step1?.fullName);
+    const accountName = getAccountName(accountType, step1, step2);
 
     // Persist company + employee records
     try {
@@ -125,23 +152,53 @@ export async function POST(req: NextRequest) {
 
         const [company] = await tx
           .insert(companies)
-          .values({ name: step2?.companyName || "My Company" })
+          .values({
+            name: accountName,
+            accountType,
+            creatorEntityType: accountType === "creator_solo" ? creator?.entityType || null : null,
+            paySelfAsOwner: accountType === "creator_solo" ? Boolean(creator?.paySelfAsOwner) : false,
+            contractorCount:
+              accountType === "creator_solo"
+                ? parseContractorCount(creator?.contractorCount)
+                : accountType === "contractor_payer"
+                  ? 1
+                  : 0,
+          })
           .returning();
 
         await tx.insert(employees).values({
           userId: newUser.id,
           companyId: company.id,
-          firstName: step4?.isAdminEmployee ? (step4.firstName || adminName.firstName) : adminName.firstName,
-          lastName: step4?.isAdminEmployee ? (step4.lastName || adminName.lastName) : adminName.lastName,
+          firstName: fullFlowSignup && step4?.isAdminEmployee ? (step4.firstName || adminName.firstName) : adminName.firstName,
+          lastName: fullFlowSignup && step4?.isAdminEmployee ? (step4.lastName || adminName.lastName) : adminName.lastName,
           email,
-          jobTitle: step4?.isAdminEmployee ? (step4.title || "Company Admin") : "Company Admin",
-          startDate: step4?.isAdminEmployee ? normalizeDate(step4.startDate) : null,
-          payType: step4?.isAdminEmployee ? (step4.payType || "salary") : "salary",
-          salary: step4?.isAdminEmployee ? parseSalary(step4.payRate) : 0,
+          jobTitle:
+            accountType === "creator_solo"
+              ? "Owner"
+              : accountType === "contractor_payer"
+                ? "Contractor Program Admin"
+                : step4?.isAdminEmployee
+                  ? (step4.title || "Company Admin")
+                  : "Company Admin",
+          startDate: fullFlowSignup && step4?.isAdminEmployee ? normalizeDate(step4.startDate) : null,
+          payType: fullFlowSignup && step4?.isAdminEmployee ? (step4.payType || "salary") : "salary",
+          salary: fullFlowSignup && step4?.isAdminEmployee ? parseSalary(step4.payRate) : 0,
           status: "active",
         });
 
-        if (!step4?.skip && step4?.firstName && !step4?.isAdminEmployee) {
+        if (accountType === "contractor_payer" && contractor?.name && contractor?.email) {
+          const w9Status = normalizeContractorW9Status(contractor.w9Status);
+          await tx.insert(contractors).values({
+            companyId: company.id,
+            name: contractor.name,
+            email: contractor.email.toLowerCase().trim(),
+            status: "Onboarding",
+            w9Status,
+            onboardingStep: w9Status === "Collected" ? "W-9 Submitted" : "Invited",
+          });
+        }
+
+        if (fullFlowSignup && !step4?.skip && step4?.firstName && !step4?.isAdminEmployee) {
           const [firstEmployee] = await tx.insert(employees).values({
             userId: null,
             companyId: company.id,

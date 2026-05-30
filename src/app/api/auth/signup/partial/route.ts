@@ -6,7 +6,7 @@ const DRAFT_MAX_AGE = 60 * 60 * 24 * 14;
 
 const partialSignupSchema = z.object({
   email: z.string().trim().email().optional().or(z.literal("")),
-  step: z.number().int().min(0).max(4),
+  step: z.number().int().min(0).max(5),
   data: z.unknown().optional(),
 });
 

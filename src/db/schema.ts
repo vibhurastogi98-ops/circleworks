@@ -31,6 +31,10 @@ export const users = pgTable('users', {
 export const companies = pgTable('companies', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
+  accountType: text('account_type').default('company').notNull(),
+  creatorEntityType: text('creator_entity_type'),
+  paySelfAsOwner: boolean('pay_self_as_owner').default(false),
+  contractorCount: integer('contractor_count').default(0),
   logoUrl: text('logo_url'),
   createdAt: timestamp('created_at').defaultNow(),
 });

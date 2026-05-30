@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   BriefcaseBusiness,
+  Building2,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -14,9 +15,11 @@ import {
   CircleDollarSign,
   Eye,
   EyeOff,
+  FileText,
   HeartPulse,
   Loader2,
   Mail,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -28,15 +31,7 @@ import { z } from "zod";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 const DRAFT_KEY = "signup_in_progress";
-const STEP_COUNT = 5;
-
-const WIZARD_STEPS = [
-  { title: "Account", detail: "Create your login" },
-  { title: "Company", detail: "Legal profile" },
-  { title: "Payroll", detail: "Schedule basics" },
-  { title: "Employees", detail: "First team member" },
-  { title: "Ready", detail: "Launch CircleWorks" },
-];
+const FULL_FLOW_STEP_COUNT = 6;
 
 const TESTIMONIALS = [
   {
@@ -182,8 +177,52 @@ const PAY_SCHEDULES = [
 type PaySchedule = (typeof PAY_SCHEDULES)[number]["value"];
 type SignupProvider = Extract<Provider, "google" | "azure">;
 type SignupMode = "email" | "google" | "microsoft";
+type AccountType = "company" | "agency" | "creator_solo" | "contractor_payer";
+type CreatorEntityType = "sole-prop" | "llc" | "s-corp" | "";
+type ContractorW9Status = "request" | "collected";
+
+const ACCOUNT_TYPES = [
+  {
+    value: "company",
+    title: "Company",
+    description: "Run W-2 payroll, HR, benefits, and compliance for your team.",
+    icon: Building2,
+  },
+  {
+    value: "agency",
+    title: "Agency",
+    description: "Manage payroll, people, clients, and contractor operations.",
+    icon: BriefcaseBusiness,
+  },
+  {
+    value: "creator_solo",
+    title: "Creator/Solo",
+    description: "Set up your owner profile and contractor count without team payroll.",
+    icon: UserRound,
+  },
+  {
+    value: "contractor_payer",
+    title: "Contractor-payer",
+    description: "Start with 1099 contractor payments and W-9 collection.",
+    icon: FileText,
+  },
+] as const;
+
+const CREATOR_ENTITY_TYPES = [
+  { value: "sole-prop", label: "Sole Prop" },
+  { value: "llc", label: "LLC" },
+  { value: "s-corp", label: "S-Corp" },
+] as const;
+
+const CONTRACTOR_W9_OPTIONS = [
+  { value: "request", label: "Request W-9", detail: "Send the contractor a W-9 collection invite." },
+  { value: "collected", label: "Already collected", detail: "Mark the W-9 as collected during setup." },
+] as const;
 
 type WizardData = {
+  account: {
+    accountType: AccountType | "";
+  };
   step1: {
     fullName: string;
     email: string;
@@ -215,9 +254,22 @@ type WizardData = {
     payRate: string;
     skip: boolean;
   };
+  creator: {
+    entityType: CreatorEntityType;
+    paySelfAsOwner: boolean;
+    contractorCount: number;
+  };
+  contractor: {
+    name: string;
+    email: string;
+    w9Status: ContractorW9Status;
+  };
 };
 
 const INITIAL_DATA: WizardData = {
+  account: {
+    accountType: "",
+  },
   step1: {
     fullName: "",
     email: "",
@@ -249,6 +301,16 @@ const INITIAL_DATA: WizardData = {
     payRate: "",
     skip: false,
   },
+  creator: {
+    entityType: "",
+    paySelfAsOwner: true,
+    contractorCount: 0,
+  },
+  contractor: {
+    name: "",
+    email: "",
+    w9Status: "request",
+  },
 };
 
 const inputBase =
@@ -257,6 +319,20 @@ const selectBase =
   "h-12 w-full rounded-lg border bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 lg:h-10";
 const labelBase = "mb-1.5 block text-sm font-bold text-slate-800 lg:mb-1 lg:text-xs";
 const errorBase = "mt-1.5 text-sm font-medium text-red-600 lg:mt-1 lg:text-xs";
+
+const accountTypeSchema = z
+  .object({
+    accountType: z.enum(["company", "agency", "creator_solo", "contractor_payer"]).or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.accountType) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["accountType"],
+        message: "Choose the account type that best fits your setup",
+      });
+    }
+  });
 
 const step1Schema = z
   .object({
@@ -397,10 +473,41 @@ const step4Schema = z
     }
   });
 
+const creatorSchema = z
+  .object({
+    entityType: z.enum(["sole-prop", "llc", "s-corp"]).or(z.literal("")),
+    paySelfAsOwner: z.boolean(),
+    contractorCount: z
+      .number({
+        message: "Enter the number of contractors",
+      })
+      .int("Use a whole number")
+      .min(0, "Contractor count cannot be negative")
+      .max(999, "Enter fewer than 1,000 contractors"),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.entityType) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["entityType"],
+        message: "Select your entity type",
+      });
+    }
+  });
+
+const contractorSchema = z.object({
+  name: z.string().trim().min(2, "Contractor name is required"),
+  email: z.string().trim().email("Enter a valid contractor email"),
+  w9Status: z.enum(["request", "collected"]),
+});
+
+type AccountTypeValues = z.infer<typeof accountTypeSchema>;
 type Step1Values = z.infer<typeof step1Schema>;
 type Step2Values = z.infer<typeof step2Schema>;
 type Step3Values = z.infer<typeof step3Schema>;
 type Step4Values = z.infer<typeof step4Schema>;
+type CreatorValues = z.infer<typeof creatorSchema>;
+type ContractorValues = z.infer<typeof contractorSchema>;
 
 function getPasswordStrength(password: string) {
   let score = 0;
@@ -524,8 +631,47 @@ function InlineError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-function StepProgress({ step }: { step: number }) {
-  const progress = ((step + 1) / STEP_COUNT) * 100;
+function isFullFlow(accountType: AccountType | "") {
+  return accountType === "company" || accountType === "agency" || !accountType;
+}
+
+function getFlowSteps(accountType: AccountType | "") {
+  if (accountType === "creator_solo") {
+    return [
+      { title: "Type", detail: "Choose workspace" },
+      { title: "Account", detail: "Create your login" },
+      { title: "Solo", detail: "Entity setup" },
+      { title: "Ready", detail: "Launch CircleWorks" },
+    ];
+  }
+
+  if (accountType === "contractor_payer") {
+    return [
+      { title: "Type", detail: "Choose workspace" },
+      { title: "Account", detail: "Create your login" },
+      { title: "Contractor", detail: "First 1099 worker" },
+      { title: "Ready", detail: "Launch CircleWorks" },
+    ];
+  }
+
+  return [
+    { title: "Type", detail: "Choose workspace" },
+    { title: "Account", detail: "Create your login" },
+    { title: accountType === "agency" ? "Agency" : "Company", detail: "Legal profile" },
+    { title: "Payroll", detail: "Schedule basics" },
+    { title: "Employees", detail: "First team member" },
+    { title: "Ready", detail: "Launch CircleWorks" },
+  ];
+}
+
+function getSuccessStep(accountType: AccountType | "") {
+  return getFlowSteps(accountType).length - 1;
+}
+
+function StepProgress({ step, accountType }: { step: number; accountType: AccountType | "" }) {
+  const steps = getFlowSteps(accountType);
+  const displayStep = Math.min(step, steps.length - 1);
+  const progress = ((displayStep + 1) / steps.length) * 100;
 
   return (
     <div className="mb-8 lg:mb-5">
@@ -536,16 +682,18 @@ function StepProgress({ step }: { step: number }) {
         />
       </div>
       <p className="mt-3 text-sm font-semibold text-slate-500 lg:mt-2 lg:text-xs">
-        Step {step + 1} of {STEP_COUNT}
+        Step {displayStep + 1} of {steps.length}
       </p>
     </div>
   );
 }
 
-function LeftStepRail({ step }: { step: number }) {
+function LeftStepRail({ step, accountType }: { step: number; accountType: AccountType | "" }) {
+  const steps = getFlowSteps(accountType);
+
   return (
     <ol className="space-y-2.5">
-      {WIZARD_STEPS.map((wizardStep, index) => {
+      {steps.map((wizardStep, index) => {
         const complete = index < step;
         const active = index === step;
         return (
@@ -613,6 +761,79 @@ function RotatingTestimonial() {
         </motion.div>
       </AnimatePresence>
     </div>
+  );
+}
+
+function AccountTypeForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["account"];
+  onComplete: (data: WizardData["account"]) => void;
+}) {
+  const {
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AccountTypeValues>({
+    resolver: zodResolver(accountTypeSchema),
+    defaultValues: data,
+  });
+  const accountType = watch("accountType");
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["account"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">
+          What are you setting up?
+        </h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Choose the workspace type so signup only asks for what you need.
+        </p>
+      </header>
+
+      <fieldset>
+        <legend className="sr-only">Account type</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ACCOUNT_TYPES.map(({ value, title, description, icon: Icon }) => {
+            const active = accountType === value;
+
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() =>
+                  setValue("accountType", value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`min-h-40 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:min-h-32 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 shadow-sm"
+                    : "border-slate-300 bg-white hover:bg-slate-50"
+                }`}
+                aria-pressed={active}
+              >
+                <span
+                  className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${
+                    active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span className="block text-base font-bold text-slate-950">{title}</span>
+                <span className="mt-2 block text-sm leading-5 text-slate-500">{description}</span>
+              </button>
+            );
+          })}
+        </div>
+        <InlineError id="accountType-error" message={errors.accountType?.message} />
+      </fieldset>
+
+      <WizardActions />
+    </form>
   );
 }
 
@@ -1401,6 +1622,251 @@ function Step4Form({
   );
 }
 
+function CreatorSoloForm({
+  data,
+  loading,
+  onComplete,
+}: {
+  data: WizardData["creator"];
+  loading: boolean;
+  onComplete: (data: WizardData["creator"]) => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CreatorValues>({
+    resolver: zodResolver(creatorSchema),
+    defaultValues: data,
+  });
+  const entityType = watch("entityType");
+  const paySelfAsOwner = watch("paySelfAsOwner");
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["creator"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">
+          Set up your solo account
+        </h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          We&apos;ll skip team payroll and start with owner and contractor basics.
+        </p>
+      </header>
+
+      <fieldset>
+        <legend className={labelBase}>Entity type</legend>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {CREATOR_ENTITY_TYPES.map((option) => {
+            const active = entityType === option.value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("entityType", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`h-12 rounded-lg border text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <InlineError id="entityType-error" message={errors.entityType?.message} />
+      </fieldset>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <label className="flex items-start justify-between gap-4">
+          <span>
+            <span className="block text-sm font-bold text-slate-900">
+              Pay yourself as owner
+            </span>
+            <span className="mt-1 block text-sm leading-5 text-slate-500">
+              Keep owner compensation in your setup checklist.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            {...register("paySelfAsOwner")}
+            className="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+            aria-label="Pay yourself as owner"
+          />
+        </label>
+        <p className="mt-3 text-xs font-semibold text-slate-500">
+          {paySelfAsOwner ? "Owner pay will be included in onboarding." : "Owner pay will be skipped for now."}
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="contractorCount" className={labelBase}>
+          Number of contractors
+        </label>
+        <input
+          id="contractorCount"
+          type="number"
+          min={0}
+          inputMode="numeric"
+          {...register("contractorCount", { valueAsNumber: true })}
+          className={fieldClass(Boolean(errors.contractorCount))}
+          aria-invalid={Boolean(errors.contractorCount)}
+          aria-describedby={errors.contractorCount ? "contractorCount-error" : undefined}
+        />
+        <InlineError id="contractorCount-error" message={errors.contractorCount?.message} />
+      </div>
+
+      <div className="flex justify-end pt-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex h-12 min-w-40 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Setting up...
+            </>
+          ) : (
+            <>
+              Submit
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ContractorPayerForm({
+  data,
+  loading,
+  onComplete,
+}: {
+  data: WizardData["contractor"];
+  loading: boolean;
+  onComplete: (data: WizardData["contractor"]) => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ContractorValues>({
+    resolver: zodResolver(contractorSchema),
+    defaultValues: data,
+  });
+  const w9Status = watch("w9Status");
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["contractor"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">
+          Add your first contractor
+        </h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Skip W-2 payroll and benefits setup. Start with a 1099 contractor invite.
+        </p>
+      </header>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="contractorName" className={labelBase}>
+            Contractor name
+          </label>
+          <input
+            id="contractorName"
+            autoComplete="name"
+            {...register("name")}
+            className={fieldClass(Boolean(errors.name))}
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? "contractorName-error" : undefined}
+          />
+          <InlineError id="contractorName-error" message={errors.name?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="contractorEmail" className={labelBase}>
+            Contractor email
+          </label>
+          <input
+            id="contractorEmail"
+            type="email"
+            autoComplete="email"
+            {...register("email")}
+            className={fieldClass(Boolean(errors.email))}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "contractorEmail-error" : undefined}
+          />
+          <InlineError id="contractorEmail-error" message={errors.email?.message} />
+        </div>
+      </div>
+
+      <fieldset>
+        <legend className={labelBase}>W-9</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {CONTRACTOR_W9_OPTIONS.map((option) => {
+            const active = w9Status === option.value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("w9Status", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`min-h-24 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:min-h-20 lg:p-3 ${
+                  active
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-slate-300 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <span className="block text-sm font-bold text-slate-900">{option.label}</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-500 lg:text-xs">
+                  {option.detail}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="flex justify-end pt-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex h-12 min-w-40 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Setting up...
+            </>
+          ) : (
+            <>
+              Submit
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function Step5Success({ data }: { data: WizardData }) {
   const fired = useRef(false);
 
@@ -1410,7 +1876,11 @@ function Step5Success({ data }: { data: WizardData }) {
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
   }, []);
 
-  const payrollDate = data.step3.skipPayroll
+  const accountType = data.account.accountType || "company";
+  const accountTypeLabel = ACCOUNT_TYPES.find((type) => type.value === accountType)?.title || "Company";
+  const payrollDate = !isFullFlow(accountType)
+    ? "Not needed"
+    : data.step3.skipPayroll
     ? "Not set"
     : data.step3.firstPayrollDate
       ? new Date(`${data.step3.firstPayrollDate}T00:00:00`).toLocaleDateString("en-US", {
@@ -1419,31 +1889,87 @@ function Step5Success({ data }: { data: WizardData }) {
           year: "numeric",
         })
       : "Not set";
-  const employees = data.step4.skip ? "1 admin" : data.step4.isAdminEmployee ? "1 employee" : "2 employees";
+  const employees = accountType === "contractor_payer"
+    ? "1 contractor"
+    : accountType === "creator_solo"
+      ? `${data.creator.contractorCount} contractors`
+      : data.step4.skip
+        ? "1 admin"
+        : data.step4.isAdminEmployee
+          ? "1 employee"
+          : "2 employees";
 
-  const actionCards = [
-    {
-      title: "Run Your First Payroll",
-      description: "Review your pay schedule and launch your first run.",
-      href: "/app/payroll/run",
-      icon: CircleDollarSign,
-      tone: "bg-blue-50 text-blue-700 border-blue-100",
-    },
-    {
-      title: "Add Employees",
-      description: "Invite your team and finish employee records.",
-      href: "/app/employees/new",
-      icon: Users,
-      tone: "bg-green-50 text-green-700 border-green-100",
-    },
-    {
-      title: "Set Up Benefits",
-      description: "Configure medical, dental, vision, and 401k options.",
-      href: "/app/benefits",
-      icon: HeartPulse,
-      tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
-    },
-  ];
+  const actionCards = accountType === "contractor_payer"
+    ? [
+        {
+          title: "Open Contractors",
+          description: "Review W-9 status and contractor onboarding.",
+          href: "/contractors",
+          icon: FileText,
+          tone: "bg-blue-50 text-blue-700 border-blue-100",
+        },
+        {
+          title: "Create Payment",
+          description: "Queue your first 1099 contractor payment.",
+          href: "/contractors/payments",
+          icon: CircleDollarSign,
+          tone: "bg-green-50 text-green-700 border-green-100",
+        },
+        {
+          title: "1099 Center",
+          description: "Track year-end 1099-NEC filing readiness.",
+          href: "/contractors/1099s",
+          icon: Mail,
+          tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
+        },
+      ]
+    : accountType === "creator_solo"
+      ? [
+          {
+            title: "Open Contractors",
+            description: "Invite collaborators and collect W-9s.",
+            href: "/contractors",
+            icon: FileText,
+            tone: "bg-blue-50 text-blue-700 border-blue-100",
+          },
+          {
+            title: "Set Owner Pay",
+            description: "Review owner compensation tasks.",
+            href: "/app/payroll/run",
+            icon: CircleDollarSign,
+            tone: "bg-green-50 text-green-700 border-green-100",
+          },
+          {
+            title: "Company Settings",
+            description: "Finish entity and account details.",
+            href: "/settings/company",
+            icon: UserRound,
+            tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
+          },
+        ]
+      : [
+          {
+            title: "Run Your First Payroll",
+            description: "Review your pay schedule and launch your first run.",
+            href: "/app/payroll/run",
+            icon: CircleDollarSign,
+            tone: "bg-blue-50 text-blue-700 border-blue-100",
+          },
+          {
+            title: "Add Employees",
+            description: "Invite your team and finish employee records.",
+            href: "/app/employees/new",
+            icon: Users,
+            tone: "bg-green-50 text-green-700 border-green-100",
+          },
+          {
+            title: "Set Up Benefits",
+            description: "Configure medical, dental, vision, and 401k options.",
+            href: "/app/benefits",
+            icon: HeartPulse,
+            tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
+          },
+        ];
 
   return (
     <div className="space-y-7 lg:space-y-5">
@@ -1452,13 +1978,14 @@ function Step5Success({ data }: { data: WizardData }) {
           🎉 You&apos;re all set!
         </h2>
         <p className="mt-3 text-base font-medium text-slate-500 lg:mt-2 lg:text-sm">
-          {data.step2.companyName || "Your company"} is on the Starter plan. Estimated first payroll date: {payrollDate}.
+          {data.step2.companyName || data.step1.fullName || "Your account"} is on the Starter plan. Estimated first payroll date: {payrollDate}.
         </p>
       </header>
 
       <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
         {[
-          ["Company", data.step2.companyName || "Not set"],
+          ["Account type", accountTypeLabel],
+          ["Account", data.step2.companyName || data.step1.fullName || "Not set"],
           ["Employees", employees],
           ["Plan", "Starter"],
           ["Next payroll", payrollDate],
@@ -1535,6 +2062,7 @@ function sanitizeDraft(data: WizardData) {
 
 function toCompletePayload(data: WizardData, signupMode: SignupMode) {
   return {
+    account: data.account,
     step1: data.step1,
     step2: data.step2,
     step3: data.step3,
@@ -1549,6 +2077,8 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
       payRate: data.step4.payRate,
       skip: data.step4.skip,
     },
+    creator: data.creator,
+    contractor: data.contractor,
     googleAuth: signupMode !== "email",
   };
 }
@@ -1565,10 +2095,18 @@ function getSignupMode(rawMode: string | null): SignupMode {
   return "email";
 }
 
+function getAccountTypeFromSearch(rawType: string | null, rawPlan: string | null): AccountType | "" {
+  if (rawType === "company" || rawType === "agency" || rawType === "creator_solo" || rawType === "contractor_payer") {
+    return rawType;
+  }
+  if (rawPlan === "contractor") return "contractor_payer";
+  return "";
+}
+
 function getStepFromSearch(rawStep: string | null) {
   if (!rawStep) return null;
   const parsed = Number(rawStep);
-  return Number.isInteger(parsed) && parsed >= 1 && parsed <= STEP_COUNT
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= FULL_FLOW_STEP_COUNT
     ? parsed - 1
     : null;
 }
@@ -1580,12 +2118,30 @@ function SignupWizardInner() {
   const isOAuthSignup = signupMode !== "email";
   const oauthEmail = searchParams.get("email") || "";
   const oauthName = searchParams.get("name") || "";
+  const initialAccountType = getAccountTypeFromSearch(
+    searchParams.get("accountType"),
+    searchParams.get("plan")
+  );
   const requestedStep = getStepFromSearch(searchParams.get("step"));
 
-  const [step, setStep] = useState(requestedStep ?? (isOAuthSignup ? 1 : 0));
+  const [step, setStep] = useState(() => {
+    const initialStep =
+      requestedStep && !initialAccountType
+        ? 0
+        : requestedStep !== null
+          ? requestedStep
+          : isOAuthSignup && initialAccountType
+            ? 2
+            : 0;
+
+    return Math.min(initialStep, getSuccessStep(initialAccountType));
+  });
   const [direction, setDirection] = useState(1);
   const [wizardData, setWizardData] = useState<WizardData>(() => ({
     ...INITIAL_DATA,
+    account: {
+      accountType: initialAccountType,
+    },
     step1: isOAuthSignup
       ? {
           fullName: oauthName,
@@ -1610,23 +2166,28 @@ function SignupWizardInner() {
   const [completionLoading, setCompletionLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<SignupProvider | null>(null);
 
-  const hasProgress = step > 0 && step < 4;
+  const accountType = wizardData.account.accountType;
+  const successStep = getSuccessStep(accountType);
+  const hasProgress = step > 0 && step < successStep;
 
   const updateStepUrl = useCallback(
-    (nextStep: number) => {
+    (nextStep: number, nextAccountType = accountType) => {
       const params = new URLSearchParams(window.location.search);
       params.set("step", String(nextStep + 1));
+      if (nextAccountType) {
+        params.set("accountType", nextAccountType);
+      }
       router.replace(`/signup?${params.toString()}`, { scroll: false });
     },
-    [router]
+    [accountType, router]
   );
 
-  const goTo = useCallback((nextStep: number, nextDirection = 1) => {
+  const goTo = useCallback((nextStep: number, nextDirection = 1, nextAccountType = accountType) => {
     setDirection(nextDirection);
     setStep(nextStep);
-    updateStepUrl(nextStep);
+    updateStepUrl(nextStep, nextAccountType);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "auto" });
-  }, [updateStepUrl]);
+  }, [accountType, updateStepUrl]);
 
   useEffect(() => {
     if (!searchParams.get("step")) {
@@ -1685,7 +2246,7 @@ function SignupWizardInner() {
       setWizardData(nextData);
       saveDraftLocal(nextStep, nextData);
       await saveDraftBackend(nextStep, nextData);
-      goTo(nextStep, 1);
+      goTo(nextStep, 1, nextData.account.accountType);
     },
     [goTo, saveDraftBackend, saveDraftLocal, wizardData]
   );
@@ -1740,6 +2301,10 @@ function SignupWizardInner() {
     const restored = {
       ...INITIAL_DATA,
       ...draftCandidate.data,
+      account: {
+        ...INITIAL_DATA.account,
+        ...(draftCandidate.data.account ?? {}),
+      },
       step1: {
         ...INITIAL_DATA.step1,
         ...(draftCandidate.data.step1 ?? {}),
@@ -1756,12 +2321,24 @@ function SignupWizardInner() {
         ...INITIAL_DATA.step4,
         ...(draftCandidate.data.step4 ?? {}),
       },
+      creator: {
+        ...INITIAL_DATA.creator,
+        ...(draftCandidate.data.creator ?? {}),
+      },
+      contractor: {
+        ...INITIAL_DATA.contractor,
+        ...(draftCandidate.data.contractor ?? {}),
+      },
     };
 
     setWizardData(restored);
     setShowDraftBanner(false);
     setDraftCandidate(null);
-    goTo(restored.step1.password ? draftCandidate.step : 0, 1);
+    goTo(
+      restored.step1.password ? draftCandidate.step : restored.account.accountType ? 1 : 0,
+      1,
+      restored.account.accountType
+    );
   };
 
   const discardDraft = async () => {
@@ -1775,10 +2352,13 @@ function SignupWizardInner() {
     setApiError("");
 
     const supabase = createSupabaseBrowserClient();
+    const callbackParams = new URLSearchParams();
+    if (accountType) callbackParams.set("accountType", accountType);
+    const callbackQuery = callbackParams.toString();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${callbackQuery ? `?${callbackQuery}` : ""}`,
       },
     });
 
@@ -1793,7 +2373,8 @@ function SignupWizardInner() {
     setApiError("");
 
     try {
-      await saveDraftBackend(4, nextData);
+      const nextSuccessStep = getSuccessStep(nextData.account.accountType);
+      await saveDraftBackend(nextSuccessStep, nextData);
 
       const response = await fetch("/api/auth/signup/complete", {
         method: "POST",
@@ -1814,7 +2395,7 @@ function SignupWizardInner() {
 
       setWizardData(nextData);
       await clearDrafts();
-      goTo(4, 1);
+      goTo(nextSuccessStep, 1, nextData.account.accountType);
       router.refresh();
     } catch {
       setApiError("Network error. Please check your connection and try again.");
@@ -1833,6 +2414,58 @@ function SignupWizardInner() {
       ...wizardData,
       step4: {
         ...INITIAL_DATA.step4,
+        skip: true,
+      },
+    };
+    void completeSignup(nextData);
+  };
+
+  const handleCreatorComplete = (creator: WizardData["creator"]) => {
+    const nextData = {
+      ...wizardData,
+      creator,
+      step2: {
+        ...wizardData.step2,
+        companyName: wizardData.step2.companyName || `${wizardData.step1.fullName || "Creator"} Studio`,
+        companySize: "1–10",
+        industry: wizardData.step2.industry || "Other",
+      },
+      step3: {
+        ...INITIAL_DATA.step3,
+        skipPayroll: true,
+      },
+      step4: {
+        ...INITIAL_DATA.step4,
+        firstName: splitName(wizardData.step1.fullName).firstName,
+        lastName: splitName(wizardData.step1.fullName).lastName,
+        workEmail: wizardData.step1.email,
+        jobTitle: "Owner",
+        skip: true,
+      },
+    };
+    void completeSignup(nextData);
+  };
+
+  const handleContractorPayerComplete = (contractor: WizardData["contractor"]) => {
+    const nextData = {
+      ...wizardData,
+      contractor,
+      step2: {
+        ...wizardData.step2,
+        companyName: wizardData.step2.companyName || `${wizardData.step1.fullName || "Contractor"} Payments`,
+        companySize: "1–10",
+        industry: wizardData.step2.industry || "Professional Services",
+      },
+      step3: {
+        ...INITIAL_DATA.step3,
+        skipPayroll: true,
+      },
+      step4: {
+        ...INITIAL_DATA.step4,
+        firstName: splitName(wizardData.step1.fullName).firstName,
+        lastName: splitName(wizardData.step1.fullName).lastName,
+        workEmail: wizardData.step1.email,
+        jobTitle: "Contractor Program Admin",
         skip: true,
       },
     };
@@ -1890,7 +2523,7 @@ function SignupWizardInner() {
           <div>
             <p className="text-sm font-bold uppercase text-blue-200">Signup progress</p>
             <div className="mt-3">
-              <LeftStepRail step={step} />
+              <LeftStepRail step={step} accountType={accountType} />
             </div>
           </div>
 
@@ -1900,10 +2533,10 @@ function SignupWizardInner() {
 
       <section className="relative flex min-h-screen min-w-0 w-full flex-col overflow-x-hidden bg-white lg:h-screen lg:w-1/2 lg:overflow-hidden">
         <div className="sticky top-0 z-20 flex items-center justify-between bg-white px-5 py-5 sm:px-8">
-          {step > 0 && step < 4 ? (
+          {step > 0 && step < successStep ? (
             <button
               type="button"
-              onClick={() => goTo(step - 1, -1)}
+              onClick={() => goTo(isOAuthSignup && step === 2 ? 0 : step - 1, -1)}
               className="inline-flex items-center gap-2 rounded-lg px-1 py-2 text-sm font-bold text-slate-600 transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -1921,7 +2554,7 @@ function SignupWizardInner() {
         </div>
 
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-16 sm:px-8 lg:h-full lg:max-w-2xl lg:justify-start lg:px-10 lg:py-8 xl:max-w-3xl xl:px-12">
-          <StepProgress step={step} />
+          <StepProgress step={step} accountType={accountType} />
 
           {apiError && (
             <div
@@ -1944,25 +2577,48 @@ function SignupWizardInner() {
               transition={{ duration: 0.18 }}
             >
               {step === 0 && (
+                <AccountTypeForm
+                  data={wizardData.account}
+                  onComplete={(account) => void advance({ account }, isOAuthSignup ? 2 : 1)}
+                />
+              )}
+
+              {step === 1 && (
                 <Step1Form
                   data={wizardData.step1}
-                  onComplete={(step1) => void advance({ step1 }, 1)}
+                  onComplete={(step1) => void advance({ step1 }, 2)}
                   onOAuth={handleOAuthSignup}
                   oauthLoading={oauthLoading}
                 />
               )}
 
-              {step === 1 && (
+              {step === 2 && isFullFlow(accountType) && (
                 <Step2Form
                   data={wizardData.step2}
-                  onComplete={(step2) => void advance({ step2 }, 2)}
+                  onComplete={(step2) => void advance({ step2 }, 3)}
                 />
               )}
 
-              {step === 2 && (
+              {step === 2 && accountType === "creator_solo" && (
+                <CreatorSoloForm
+                  data={wizardData.creator}
+                  loading={completionLoading}
+                  onComplete={handleCreatorComplete}
+                />
+              )}
+
+              {step === 2 && accountType === "contractor_payer" && (
+                <ContractorPayerForm
+                  data={wizardData.contractor}
+                  loading={completionLoading}
+                  onComplete={handleContractorPayerComplete}
+                />
+              )}
+
+              {step === 3 && isFullFlow(accountType) && (
                 <Step3Form
                   data={wizardData.step3}
-                  onComplete={(step3) => void advance({ step3 }, 3)}
+                  onComplete={(step3) => void advance({ step3 }, 4)}
                   onSkip={() =>
                     void advance(
                       {
@@ -1973,13 +2629,13 @@ function SignupWizardInner() {
                           skipPayroll: true,
                         },
                       },
-                      3
+                      4
                     )
                   }
                 />
               )}
 
-              {step === 3 && (
+              {step === 4 && isFullFlow(accountType) && (
                 <Step4Form
                   adminEmail={wizardData.step1.email}
                   adminName={wizardData.step1.fullName}
@@ -1990,7 +2646,7 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 4 && <Step5Success data={wizardData} />}
+              {step === successStep && <Step5Success data={wizardData} />}
             </motion.div>
           </AnimatePresence>
         </div>

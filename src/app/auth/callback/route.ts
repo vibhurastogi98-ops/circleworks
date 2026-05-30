@@ -9,7 +9,15 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
   const requestedNext = searchParams.get("next");
+  const requestedAccountType = searchParams.get("accountType");
   const next = requestedNext?.startsWith("/") ? requestedNext : null;
+  const accountType =
+    requestedAccountType === "company" ||
+    requestedAccountType === "agency" ||
+    requestedAccountType === "creator_solo" ||
+    requestedAccountType === "contractor_payer"
+      ? requestedAccountType
+      : null;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
@@ -72,6 +80,7 @@ export async function GET(request: NextRequest) {
     const signupMode =
       authProvider === "azure" || authProvider === "microsoft" ? "microsoft" : "google";
     const params = new URLSearchParams({ mode: signupMode, email: normalizedEmail, name: fullName });
+    if (accountType) params.set("accountType", accountType);
     destination = `${origin}/signup?${params.toString()}`;
   }
 

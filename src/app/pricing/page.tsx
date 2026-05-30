@@ -28,6 +28,14 @@ import Footer from "@/components/Footer";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 type BillingCycle = "monthly" | "annual";
+type ComparisonValue = boolean | string;
+type ComparisonRow = {
+  feature: string;
+  contractor: ComparisonValue;
+  starter: ComparisonValue;
+  pro: ComparisonValue;
+  enterprise: ComparisonValue;
+};
 
 // ─── Animated Number ───────────────────────────────────────────────────────
 function AnimatedNumber({
@@ -80,36 +88,55 @@ function AnimatedNumber({
 }
 
 // ─── Data ──────────────────────────────────────────────────────────────────
-const COMPARISON_TABLE = [
+const COMPARISON_TABLE: { category: string; rows: ComparisonRow[] }[] = [
   {
     category: "Core Payroll",
     rows: [
       {
-        feature: "Full Payroll Processing",
+        feature: "Full W-2 Payroll Processing",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
-        feature: "All 50 States + DC",
+        feature: "W-2 Payroll in All 50 States + DC",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
-        feature: "Auto Tax Filing & Payments",
+        feature: "Payroll Tax Filing & Payments",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
-        feature: "W-2 & 1099 Generation",
+        feature: "W-2 Generation",
+        contractor: false,
+        starter: true,
+        pro: true,
+        enterprise: true,
+      },
+      {
+        feature: "Automatic 1099-NEC Filing",
+        contractor: true,
+        starter: true,
+        pro: true,
+        enterprise: true,
+      },
+      {
+        feature: "Unlimited 1099 Payments",
+        contractor: true,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Multi-state Payroll",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
@@ -121,32 +148,56 @@ const COMPARISON_TABLE = [
     rows: [
       {
         feature: "HRIS & Employee Records",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Onboarding Workflows",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
       },
-      { feature: "I-9 / E-Verify", starter: true, pro: true, enterprise: true },
-      { feature: "Hiring / ATS", starter: false, pro: true, enterprise: true },
+      {
+        feature: "Contractor Self-service",
+        contractor: true,
+        starter: true,
+        pro: true,
+        enterprise: true,
+      },
+      {
+        feature: "I-9 / E-Verify",
+        contractor: false,
+        starter: true,
+        pro: true,
+        enterprise: true,
+      },
+      {
+        feature: "Hiring / ATS",
+        contractor: false,
+        starter: false,
+        pro: true,
+        enterprise: true,
+      },
       {
         feature: "Benefits Administration",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Performance Reviews & OKRs",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Learning Management (LMS)",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
@@ -158,25 +209,36 @@ const COMPARISON_TABLE = [
     rows: [
       {
         feature: "Time Tracking & Scheduling",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
       {
         feature: "PTO & Leave Management",
+        contractor: false,
         starter: "Basic",
         pro: true,
         enterprise: true,
       },
       {
         feature: "Expense Management",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Contractor Payments",
+        contractor: true,
         starter: true,
+        pro: true,
+        enterprise: true,
+      },
+      {
+        feature: "International Payments",
+        contractor: true,
+        starter: false,
         pro: true,
         enterprise: true,
       },
@@ -187,24 +249,28 @@ const COMPARISON_TABLE = [
     rows: [
       {
         feature: "Standard Reports",
+        contractor: false,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Advanced Analytics",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
       {
         feature: "AI Circe Assistant",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Custom Dashboards",
+        contractor: false,
         starter: false,
         pro: "5",
         enterprise: "Unlimited",
@@ -216,55 +282,70 @@ const COMPARISON_TABLE = [
     rows: [
       {
         feature: "Mobile App (iOS & Android)",
+        contractor: true,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
         feature: "Accountant Access",
+        contractor: true,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
         feature: "QuickBooks / Xero Sync",
+        contractor: true,
         starter: true,
         pro: true,
         enterprise: true,
       },
       {
         feature: "API + Webhooks",
+        contractor: false,
         starter: false,
         pro: "Add-on",
         enterprise: true,
       },
       {
         feature: "20+ Integrations",
+        contractor: false,
         starter: false,
         pro: true,
         enterprise: true,
       },
-      { feature: "SSO / SAML", starter: false, pro: false, enterprise: true },
+      {
+        feature: "SSO / SAML",
+        contractor: false,
+        starter: false,
+        pro: false,
+        enterprise: true,
+      },
       {
         feature: "Custom Roles & Permissions",
+        contractor: false,
         starter: false,
         pro: false,
         enterprise: true,
       },
       {
         feature: "Dedicated Customer Success Mgr",
+        contractor: false,
         starter: false,
         pro: false,
         enterprise: true,
       },
       {
         feature: "Enterprise SLA",
+        contractor: false,
         starter: false,
         pro: false,
         enterprise: true,
       },
       {
         feature: "White-label Accountant Portal",
+        contractor: false,
         starter: false,
         pro: false,
         enterprise: true,
@@ -326,7 +407,7 @@ const ENTERPRISE_LOGOS = [
 ];
 
 // ─── Cell renderer ─────────────────────────────────────────────────────────
-function TableCell({ value }: { value: boolean | string }) {
+function TableCell({ value }: { value: ComparisonValue }) {
   if (value === true)
     return (
       <Check className="mx-auto text-emerald-500" size={20} strokeWidth={3} />
@@ -398,6 +479,8 @@ export function PricingPage() {
   const isAnnual = billing === "annual";
 
   // Per-seat pricing
+  const contractorBase = 35;
+  const contractorSeat = 6;
   const starterSeat = isAnnual ? 6.72 : 8;
   const proBase = isAnnual ? 66 : 79;
   const proSeat = isAnnual ? 11.76 : 14;
@@ -485,14 +568,79 @@ export function PricingPage() {
 
         {/* ── PRICING CARDS ────────────────────────────────────────────── */}
         <section className="relative z-10 -mt-12 pb-24 px-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-              {/* STARTER */}
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+              {/* CONTRACTOR */}
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0 }}
+                className="bg-white rounded-lg border border-emerald-200 p-8 shadow-lg flex flex-col"
+              >
+                <div className="mb-6">
+                  <span className="text-xs font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+                    Contractor-only teams
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-900 mt-4 mb-2">
+                    Contractor
+                  </h2>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-4xl font-black text-slate-900">
+                      $<AnimatedNumber value={contractorBase} />
+                    </span>
+                    <span className="text-lg text-slate-400 font-semibold pb-1">
+                      /mo base
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1 text-slate-600">
+                    <span className="text-2xl font-black text-emerald-600">
+                      $<AnimatedNumber value={contractorSeat} />
+                    </span>
+                    <span className="text-sm">per paid contractor/month</span>
+                  </div>
+                  <p className="text-slate-500 text-sm mt-2">
+                    Billed only in months a contractor is paid
+                  </p>
+                </div>
+
+                <ul className="space-y-3 flex-1 mb-8">
+                  {[
+                    "Unlimited 1099 payments",
+                    "Automatic 1099-NEC filing",
+                    "Contractor self-service",
+                    "International payments",
+                    "No W-2 payroll",
+                  ].map((f) => (
+                    <li
+                      key={f}
+                      className="flex items-center gap-3 text-slate-700 text-sm font-medium"
+                    >
+                      <Check
+                        className="text-emerald-500 shrink-0"
+                        size={18}
+                        strokeWidth={3}
+                      />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/signup?plan=contractor"
+                  id="contractor-cta"
+                  className="w-full text-center px-6 py-3.5 rounded-full bg-emerald-600 text-white font-bold text-[15px] hover:bg-emerald-700 transition-colors"
+                >
+                  Start Free
+                </Link>
+              </motion.div>
+
+              {/* STARTER */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.05 }}
                 className="bg-white rounded-lg border border-[#0A1628] p-8 shadow-lg flex flex-col"
               >
                 <div className="mb-6">
@@ -563,7 +711,7 @@ export function PricingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="relative rounded-lg p-[2px] bg-gradient-to-b from-blue-500 via-indigo-500 to-cyan-500 shadow-[0_0_60px_rgba(99,102,241,0.4)] scale-[1.04] z-10 flex flex-col"
+                className="relative rounded-lg p-[2px] bg-gradient-to-b from-blue-500 via-indigo-500 to-cyan-500 shadow-[0_0_60px_rgba(99,102,241,0.4)] xl:scale-[1.04] z-10 flex flex-col"
               >
                 <div className="bg-white rounded-md p-8 flex flex-col h-full">
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -648,7 +796,7 @@ export function PricingPage() {
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
                 className="bg-[#0A1628] rounded-lg p-8 shadow-lg flex flex-col border border-white/10"
               >
                 <div className="mb-6">
@@ -726,7 +874,7 @@ export function PricingPage() {
 
         {/* ── FEATURE COMPARISON TABLE ──────────────────────────────────── */}
         <section className="py-24 bg-slate-50">
-          <div className="max-w-5xl mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-14">
               <h2 className="text-4xl font-black text-slate-900 mb-3">
                 Compare all features
@@ -738,12 +886,15 @@ export function PricingPage() {
 
             {/* Scrollable table on mobile */}
             <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
+              <table className="w-full min-w-[940px] border-separate border-spacing-0 text-sm">
                 {/* Sticky header */}
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#0A1628] text-white">
-                    <th className="sticky left-0 z-30 bg-[#0A1628] text-left p-5 font-bold text-slate-300 w-2/5 min-w-[230px]">
+                    <th className="sticky left-0 z-30 bg-[#0A1628] text-left p-5 font-bold text-slate-300 w-[32%] min-w-[230px]">
                       Feature
+                    </th>
+                    <th className="p-5 text-center font-black text-emerald-300">
+                      Contractor
                     </th>
                     <th className="p-5 text-center font-black">Starter</th>
                     <th className="p-5 text-center font-black text-blue-300">
@@ -763,6 +914,7 @@ export function PricingPage() {
                         <td className="px-5 py-3" />
                         <td className="px-5 py-3" />
                         <td className="px-5 py-3" />
+                        <td className="px-5 py-3" />
                       </tr>
                       {group.rows.map((row, i) => {
                         const rowBg = i % 2 === 0 ? "bg-white" : "bg-slate-50";
@@ -773,6 +925,9 @@ export function PricingPage() {
                               className={`sticky left-0 z-10 px-5 py-3.5 text-slate-700 font-medium ${rowBg}`}
                             >
                               {row.feature}
+                            </td>
+                            <td className="px-5 py-3.5 text-center">
+                              <TableCell value={row.contractor} />
                             </td>
                             <td className="px-5 py-3.5 text-center">
                               <TableCell value={row.starter} />
