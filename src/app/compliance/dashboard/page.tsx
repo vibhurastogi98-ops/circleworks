@@ -1,434 +1,362 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Shield, AlertTriangle, AlertCircle, Info, ChevronRight,
-  FileCheck, HeartPulse, Users, FileText, BookOpen, UserPlus,
-  Calendar, ExternalLink, X
+  Activity,
+  AlertCircle,
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  FileCheck2,
+  Info,
+  Radio,
+  RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import {
-  complianceAlerts,
-  complianceCalendar,
-  quickStatusCards,
-  type CalendarEvent,
-} from "@/data/mockCompliance";
+  calculateComplianceHealthScore,
+  complianceAlertsLiveSeed,
+  complianceFilingDeadlines,
+  complianceStatusCards,
+  sortComplianceAlerts,
+  type ComplianceAlertItem,
+  type ComplianceSeverity,
+} from "@/data/complianceModule";
 
-/* ─── Health Score Gauge ──────────────────────────────────────────── */
+const severityClasses: Record<ComplianceSeverity, string> = {
+  critical: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+  warning:
+    "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300",
+  info: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300",
+};
 
-function HealthScoreGauge({ score }: { score: number }) {
-  const radius = 88;
-  const stroke = 10;
-  const normalizedRadius = radius - stroke;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const progress = (score / 100) * circumference;
+const severityIcons = {
+  critical: AlertCircle,
+  warning: AlertTriangle,
+  info: Info,
+};
 
-  const color =
-    score > 80 ? "#22c55e" : score >= 60 ? "#eab308" : "#ef4444";
-  const label = score > 80 ? "Good" : score >= 60 ? "Fair" : "At Risk";
-  const bgRing = score > 80 ? "#dcfce7" : score >= 60 ? "#fef9c3" : "#fee2e2";
-
-  return (
-    <div className="flex flex-col items-center">
-      <svg width={200} height={200} className="drop-shadow-lg">
-        <circle
-          cx={100}
-          cy={100}
-          r={normalizedRadius}
-          fill="none"
-          stroke={bgRing}
-          strokeWidth={stroke}
-          className="dark:opacity-20"
-        />
-        <circle
-          cx={100}
-          cy={100}
-          r={normalizedRadius}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeDasharray={`${progress} ${circumference - progress}`}
-          strokeDashoffset={circumference * 0.25}
-          strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-          style={{ filter: `drop-shadow(0 0 6px ${color}40)` }}
-        />
-        {/* Center text */}
-        <text
-          x="50%"
-          y="46%"
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-slate-900 dark:fill-white"
-          style={{ fontSize: "48px", fontWeight: 900, fontFamily: "Inter, system-ui, sans-serif" }}
-        >
-          {score}
-        </text>
-      </svg>
-      <p className="text-lg font-black mt-1" style={{ color }}>
-        {label}
-      </p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-        Compliance Health Score
-      </p>
-    </div>
-  );
+function wait(ms = 150) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/* ─── Alert Card ──────────────────────────────────────────────────── */
+async function getComplianceDashboardData() {
+  await wait();
+  return {
+    alerts: complianceAlertsLiveSeed,
+    filings: complianceFilingDeadlines,
+    statusCards: complianceStatusCards,
+  };
+}
 
-function AlertCard({ alert }: { alert: typeof complianceAlerts[0] }) {
-  const config = {
-    critical: { border: "border-red-200 dark:border-red-900/50", bg: "bg-red-50 dark:bg-red-950/30", btn: "bg-red-600 hover:bg-red-700 text-white", icon: AlertCircle, iconColor: "text-red-500" },
-    warning: { border: "border-amber-200 dark:border-amber-900/50", bg: "bg-amber-50 dark:bg-amber-950/30", btn: "bg-amber-600 hover:bg-amber-700 text-white", icon: AlertTriangle, iconColor: "text-amber-500" },
-    info: { border: "border-blue-200 dark:border-blue-900/50", bg: "bg-blue-50 dark:bg-blue-950/30", btn: "bg-blue-600 hover:bg-blue-700 text-white", icon: Info, iconColor: "text-blue-500" },
-  }[alert.severity];
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
 
-  const Icon = config.icon;
+function useComplianceAlertStream(initialAlerts: ComplianceAlertItem[]) {
+  const [alerts, setAlerts] = useState(initialAlerts);
+  const [connection, setConnection] = useState<"connecting" | "connected" | "demo" | "offline">("connecting");
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
+
+  useEffect(() => {
+    setAlerts(initialAlerts);
+  }, [initialAlerts]);
+
+  useEffect(() => {
+    const wsUrl = process.env.NEXT_PUBLIC_COMPLIANCE_WS_URL;
+
+    if (!wsUrl) {
+      setConnection("demo");
+      const timer = window.setInterval(() => {
+        setLastUpdated(new Date());
+      }, 15000);
+      return () => window.clearInterval(timer);
+    }
+
+    const socket = new WebSocket(wsUrl);
+    socket.addEventListener("open", () => setConnection("connected"));
+    socket.addEventListener("close", () => setConnection("offline"));
+    socket.addEventListener("error", () => setConnection("offline"));
+    socket.addEventListener("message", (event) => {
+      try {
+        const payload = JSON.parse(event.data) as
+          | { type: "alerts"; alerts: ComplianceAlertItem[] }
+          | { type: "alert"; alert: ComplianceAlertItem };
+        if (payload.type === "alerts") {
+          setAlerts(payload.alerts);
+        }
+        if (payload.type === "alert") {
+          setAlerts((current) => sortComplianceAlerts([payload.alert, ...current]));
+        }
+        setLastUpdated(new Date());
+      } catch {
+        setConnection("offline");
+      }
+    });
+
+    return () => socket.close();
+  }, []);
+
+  return {
+    alerts: sortComplianceAlerts(alerts),
+    connection,
+    lastUpdated,
+  };
+}
+
+function HealthGauge({ score }: { score: number }) {
+  const radius = 52;
+  const stroke = 10;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score < 60 ? "#dc2626" : score <= 80 ? "#f97316" : "#16a34a";
+  const label = score < 60 ? "At risk" : score <= 80 ? "Needs attention" : "Healthy";
 
   return (
-    <div className={`rounded-xl border ${config.border} ${config.bg} p-4 flex flex-col gap-3`}>
-      <div className="flex items-start gap-3">
-        <Icon size={18} className={`${config.iconColor} mt-0.5 flex-shrink-0`} />
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{alert.title}</h4>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{alert.description}</p>
-          {alert.deadline && (
-            <p className="text-[10px] font-bold text-slate-500 mt-1.5 uppercase tracking-wider">
-              Due: {new Date(alert.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </p>
-          )}
+    <div className="flex items-center gap-5">
+      <div className="relative h-32 w-32">
+        <svg className="h-32 w-32 -rotate-90" viewBox="0 0 112 112" aria-label={`Compliance health score ${score}`}>
+          <circle
+            cx="56"
+            cy="56"
+            r={normalizedRadius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={stroke}
+            className="text-slate-100 dark:text-slate-800"
+          />
+          <circle
+            cx="56"
+            cy="56"
+            r={normalizedRadius}
+            fill="none"
+            stroke={color}
+            strokeLinecap="round"
+            strokeWidth={stroke}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl font-black text-slate-950 dark:text-white">{score}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Score</span>
         </div>
       </div>
-      <Link
-        href={alert.actionHref || "#"}
-        className="self-start"
-      >
-        <Button size="sm" className={config.btn}>
-          {alert.actionLabel}
-        </Button>
-      </Link>
+      <div>
+        <p className="text-sm font-bold uppercase tracking-wide text-slate-500">Compliance Health Score</p>
+        <h2 className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{label}</h2>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600 dark:text-slate-400">
+          Weighted from open critical, warning, and informational alerts. Resolve critical items first to recover the
+          score fastest.
+        </p>
+      </div>
     </div>
   );
 }
 
-/* ─── Calendar Timeline ───────────────────────────────────────────── */
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-24 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="h-80 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse lg:col-span-2" />
+        <div className="h-80 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+      </div>
+      <div className="h-56 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+    </div>
+  );
+}
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function CalendarTimeline() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [tooltip, setTooltip] = useState<{ event: CalendarEvent; x: number; y: number } | null>(null);
-  const [drawerEvent, setDrawerEvent] = useState<CalendarEvent | null>(null);
-
-  // Group events by month
-  const eventsByMonth: Record<number, CalendarEvent[]> = {};
-  complianceCalendar.forEach((ev) => {
-    const m = new Date(ev.date).getMonth();
-    if (!eventsByMonth[m]) eventsByMonth[m] = [];
-    eventsByMonth[m].push(ev);
+export default function ComplianceDashboard() {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["compliance", "dashboard"],
+    queryFn: getComplianceDashboardData,
   });
 
-  const currentMonth = new Date().getMonth();
+  const initialAlerts = data?.alerts ?? [];
+  const { alerts, connection, lastUpdated } = useComplianceAlertStream(initialAlerts);
+  const healthScore = useMemo(() => calculateComplianceHealthScore(alerts), [alerts]);
+
+  if (isLoading) return <DashboardSkeleton />;
+
+  if (isError || !data) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+        <h2 className="text-lg font-bold">Something went wrong</h2>
+        <p className="mt-1 text-sm">Compliance dashboard data could not be loaded.</p>
+        <Button className="mt-4" onClick={() => refetch()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-slate-500" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Compliance Calendar</h3>
-          </div>
-          <div className="flex items-center gap-4 text-xs font-medium">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Federal</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> State</span>
-          </div>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Compliance</p>
+          <h1 className="mt-1 text-3xl font-black text-slate-950 dark:text-white">Compliance Dashboard</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            I-9, E-Verify, EEO-1, OSHA, labor law, ACA, and filing risk in one operational view.
+          </p>
         </div>
-        <div ref={scrollRef} className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
-          <div className="flex min-w-[1200px]">
-            {MONTHS.map((month, mi) => (
-              <div
-                key={month}
-                className={`flex-1 min-w-[100px] border-r border-slate-100 dark:border-slate-800 last:border-r-0 ${
-                  mi === currentMonth ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
-                }`}
-              >
-                <div className={`text-center py-2 text-xs font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 ${
-                  mi === currentMonth ? "text-blue-600 dark:text-blue-400" : "text-slate-500"
-                }`}>
-                  {month}
-                  {mi === currentMonth && <span className="ml-1 text-[9px]">●</span>}
-                </div>
-                <div className="p-2 flex flex-col gap-1.5 min-h-[120px]">
-                  {(eventsByMonth[mi] || []).map((ev) => (
-                    <button
-                      key={ev.id}
-                      onClick={() => setDrawerEvent(ev)}
-                      onMouseEnter={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setTooltip({ event: ev, x: rect.left + rect.width / 2, y: rect.top });
-                      }}
-                      onMouseLeave={() => setTooltip(null)}
-                      className={`text-left text-[10px] font-bold px-2 py-1.5 rounded-md cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md truncate ${
-                        ev.type === "federal"
-                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                          : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                      }`}
+        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          <Radio size={14} className={connection === "offline" ? "text-red-500" : "text-green-500"} />
+          {connection === "demo" ? "WebSocket demo stream" : `WebSocket ${connection}`}
+          <span className="font-medium text-slate-400">Updated {lastUpdated.toLocaleTimeString()}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        {data.statusCards.map((card) => (
+          <Link
+            key={card.id}
+            href={card.href}
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{card.label}</p>
+              <span
+                className={
+                  card.status === "healthy"
+                    ? "h-2.5 w-2.5 rounded-full bg-green-500"
+                    : card.status === "attention"
+                      ? "h-2.5 w-2.5 rounded-full bg-orange-500"
+                      : "h-2.5 w-2.5 rounded-full bg-red-500"
+                }
+              />
+            </div>
+            <p className="mt-3 text-2xl font-black text-slate-950 dark:text-white">{card.metric}</p>
+            <p className="mt-2 min-h-10 text-xs leading-5 text-slate-500 dark:text-slate-400">{card.description}</p>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.8fr)]">
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-col justify-between gap-3 border-b border-slate-200 p-5 dark:border-slate-800 sm:flex-row sm:items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-red-500" />
+                <h2 className="text-lg font-black text-slate-950 dark:text-white">Alerts Panel</h2>
+              </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Sorted by severity, then due date. Critical items always float to the top.
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw size={15} />
+              Refresh
+            </Button>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {alerts.map((alert) => {
+              const Icon = severityIcons[alert.severity];
+              return (
+                <div key={alert.id} className="grid gap-4 p-5 lg:grid-cols-[160px_minmax(0,1fr)_160px] lg:items-center">
+                  <div>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${severityClasses[alert.severity]}`}
                     >
-                      {ev.formNumber}
-                      {ev.state ? ` (${ev.state})` : ""}
-                    </button>
-                  ))}
+                      <Icon size={13} />
+                      {alert.severity}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-950 dark:text-white">{alert.description}</p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      Affected: {alert.affectedEmployees.join(", ")} · Due {formatDate(alert.dueDate)}
+                    </p>
+                  </div>
+                  <Link href={alert.href} className="lg:justify-self-end">
+                    <Button size="sm">
+                      {alert.ctaLabel}
+                      <ChevronRight size={14} />
+                    </Button>
+                  </Link>
                 </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <HealthGauge score={healthScore} />
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            {(["critical", "warning", "info"] as ComplianceSeverity[]).map((severity) => (
+              <div key={severity} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                <p className="text-xs font-bold uppercase text-slate-500">{severity}</p>
+                <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+                  {alerts.filter((alert) => alert.severity === severity).length}
+                </p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
-        <div
-          className="fixed z-[100] pointer-events-none bg-slate-900 text-white rounded-lg px-3 py-2 text-xs shadow-xl max-w-[260px]"
-          style={{ left: tooltip.x - 130, top: tooltip.y - 80 }}
-        >
-          <div className="font-bold mb-0.5">{tooltip.event.name}</div>
-          <div className="text-slate-300 text-[10px] mb-1">Form {tooltip.event.formNumber}</div>
-          <div className="text-red-300 text-[10px]">⚠ {tooltip.event.consequence}</div>
+      <section className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={18} className="text-blue-600" />
+            <h2 className="text-lg font-black text-slate-950 dark:text-white">Upcoming Filings Calendar</h2>
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Next 60 days</span>
         </div>
-      )}
-
-      {/* Filing Detail Drawer */}
-      {drawerEvent && (
-        <div className="fixed inset-0 z-[200] flex justify-end">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setDrawerEvent(null)} />
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Filing Detail</h3>
-              <button onClick={() => setDrawerEvent(null)} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                <X size={18} className="text-slate-500" />
-              </button>
-            </div>
-            <div className="p-6 flex flex-col gap-5">
-              <div>
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Filing Name</div>
-                <div className="text-base font-bold text-slate-900 dark:text-white">{drawerEvent.name}</div>
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description</div>
-                <div className="text-sm text-slate-600 dark:text-slate-400">{drawerEvent.description}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+          {data.filings.map((filing) => (
+            <div key={filing.id} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Form Number</div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">{drawerEvent.formNumber}</div>
+                  <p className="text-xs font-black uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                    {filing.type}
+                  </p>
+                  <h3 className="mt-1 font-black text-slate-950 dark:text-white">{filing.title}</h3>
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Due Date</div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">
-                    {new Date(drawerEvent.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Type</div>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    drawerEvent.type === "federal"
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                  }`}>
-                    {drawerEvent.type === "federal" ? "Federal" : drawerEvent.state}
-                  </span>
-                </div>
+                <span
+                  className={
+                    filing.status === "ready"
+                      ? "rounded-full bg-green-100 px-2 py-1 text-[11px] font-bold text-green-700 dark:bg-green-500/15 dark:text-green-300"
+                      : filing.status === "needs_review"
+                        ? "rounded-full bg-orange-100 px-2 py-1 text-[11px] font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"
+                        : "rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  }
+                >
+                  {filing.status.replace("_", " ")}
+                </span>
               </div>
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4">
-                <div className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                  <AlertTriangle size={12} /> Consequence of Missing
-                </div>
-                <div className="text-sm text-red-700 dark:text-red-300">{drawerEvent.consequence}</div>
-              </div>
-              <Link
-                href="/compliance/tax-filings"
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors mt-2"
-              >
-                View in Tax Filings <ExternalLink size={14} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-/* ─── Quick Status Grid ───────────────────────────────────────────── */
-
-const iconMap: Record<string, React.ElementType> = {
-  FileCheck, HeartPulse, Users, FileText, BookOpen, UserPlus,
-};
-
-function StatusCard({ card }: { card: typeof quickStatusCards[0] }) {
-  const Icon = iconMap[card.icon] || Shield;
-
-  const statusColors = {
-    compliant: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800",
-    attention: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
-    pending: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-  }[card.status];
-
-  const iconBg = {
-    compliant: "bg-green-50 dark:bg-green-900/20 text-green-500",
-    attention: "bg-amber-50 dark:bg-amber-900/20 text-amber-500",
-    overdue: "bg-red-50 dark:bg-red-900/20 text-red-500",
-    pending: "bg-blue-50 dark:bg-blue-900/20 text-blue-500",
-  }[card.status];
-
-  return (
-    <Link
-      href={card.href}
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800 transition-all group"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
-          <Icon size={20} />
-        </div>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusColors}`}>
-          {card.statusLabel}
-        </span>
-      </div>
-      <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{card.label}</h4>
-      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-        Updated {new Date(card.lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-      </p>
-      <span className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-2 inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        Review <ChevronRight size={12} />
-      </span>
-    </Link>
-  );
-}
-
-/* ─── Main Dashboard ──────────────────────────────────────────────── */
-
-export default function ComplianceDashboard() {
-  const { data } = useQuery({
-    queryKey: ["compliance-dashboard"],
-    queryFn: async () => ({
-      alerts: complianceAlerts,
-      calendar: complianceCalendar,
-      quickStatuses: quickStatusCards,
-      positiveFactorCredits: 16,
-    }),
-    initialData: {
-      alerts: complianceAlerts,
-      calendar: complianceCalendar,
-      quickStatuses: quickStatusCards,
-      positiveFactorCredits: 16,
-    },
-  });
-
-  // Health score: 100 - open critical alerts (-10 each) - warnings (-3 each) + positive compliance factors.
-  const criticals = data.alerts.filter((a) => a.severity === "critical").length;
-  const warnings = data.alerts.filter((a) => a.severity === "warning").length;
-  const score = Math.max(0, Math.min(100, 100 - criticals * 10 - warnings * 3 + data.positiveFactorCredits));
-
-  const criticalAlerts = data.alerts.filter((a) => a.severity === "critical");
-  const warningAlerts = data.alerts.filter((a) => a.severity === "warning");
-  const infoAlerts = data.alerts.filter((a) => a.severity === "info");
-
-  return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Shield size={24} className="text-blue-600" />
-            Compliance Dashboard
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Monitor compliance health, alerts, and upcoming deadlines.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/compliance/tax-filings" className="px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
-            Tax Filings
-          </Link>
-          <Link href="/compliance/i9" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
-            Run Audit
-          </Link>
-        </div>
-      </div>
-
-      {/* Health Score */}
-      <div className="flex justify-center">
-        <Card className="w-full max-w-sm">
-          <CardContent className="flex flex-col items-center justify-center p-6">
-            <HealthScoreGauge score={score} />
-            <div className="mt-4 grid grid-cols-3 gap-2 w-full text-center">
-              <div className="rounded-xl bg-red-50 dark:bg-red-950/30 px-3 py-2">
-                <p className="text-lg font-black text-red-600 dark:text-red-400">{criticals}</p>
-                <p className="text-[10px] font-bold uppercase text-red-500">Critical</p>
-              </div>
-              <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
-                <p className="text-lg font-black text-amber-600 dark:text-amber-400">{warnings}</p>
-                <p className="text-[10px] font-bold uppercase text-amber-500">Warnings</p>
-              </div>
-              <div className="rounded-xl bg-green-50 dark:bg-green-950/30 px-3 py-2">
-                <p className="text-lg font-black text-green-600 dark:text-green-400">+{data.positiveFactorCredits}</p>
-                <p className="text-[10px] font-bold uppercase text-green-500">Factors</p>
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <span className="text-slate-500 dark:text-slate-400">{filing.jurisdiction} · {filing.owner}</span>
+                <span className="font-bold text-slate-950 dark:text-white">{formatDate(filing.dueDate)}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alerts by Severity */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Critical */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 px-1">
-              <AlertCircle size={14} className="text-red-500" />
-              <span className="text-xs font-black text-red-600 dark:text-red-400 uppercase tracking-wider">
-                Critical ({criticalAlerts.length})
-              </span>
-            </div>
-            {criticalAlerts.map((a) => <AlertCard key={a.id} alert={a} />)}
-          </div>
-          {/* Warning */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 px-1">
-              <AlertTriangle size={14} className="text-amber-500" />
-              <span className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                Warnings ({warningAlerts.length})
-              </span>
-            </div>
-            {warningAlerts.map((a) => <AlertCard key={a.id} alert={a} />)}
-          </div>
-          {/* Info */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 px-1">
-              <Info size={14} className="text-blue-500" />
-              <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                Info ({infoAlerts.length})
-              </span>
-            </div>
-            {infoAlerts.map((a) => <AlertCard key={a.id} alert={a} />)}
-          </div>
-        </div>
-
-      {/* Calendar */}
-      <CalendarTimeline />
-
-      {/* Quick Status Grid */}
-      <div>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Quick Status</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {data.quickStatuses.map((card) => (
-            <StatusCard key={card.id} card={card} />
           ))}
         </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+          <ShieldCheck size={16} className="text-green-600" />
+          Compliance module sources are linked inside each detail screen. This dashboard is an operational tracker, not
+          legal advice.
+        </div>
+      </section>
+
+      <div className="hidden items-center gap-2 text-xs text-slate-400" aria-hidden="true">
+        <Activity size={12} />
+        <FileCheck2 size={12} />
+        <CheckCircle2 size={12} />
       </div>
     </div>
   );

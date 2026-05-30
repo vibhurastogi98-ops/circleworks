@@ -1,246 +1,417 @@
 "use client";
 
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, Download, Search, CheckCircle2, Clock, AlertTriangle,
-  AlertCircle, RefreshCw, Shield, FileCheck, ExternalLink
+  AlertCircle,
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  FileCheck2,
+  Plus,
+  Search,
+  ShieldCheck,
 } from "lucide-react";
-import { i9Records, type I9Status } from "@/data/mockCompliance";
 
-const STATUS_CONFIG: Record<I9Status, { label: string; color: string; icon: React.ElementType }> = {
-  complete: { label: "Complete", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800", icon: CheckCircle2 },
-  pending: { label: "Pending", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800", icon: Clock },
-  expiring: { label: "Expiring", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800", icon: AlertTriangle },
-  expired: { label: "Expired", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800", icon: AlertCircle },
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { i9ManagementRecords, type I9ManagementRecord, type I9Status } from "@/data/complianceModule";
+
+const statusStyles: Record<I9Status, string> = {
+  Complete: "border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300",
+  "Pending Section 2":
+    "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300",
+  "Expiring Soon":
+    "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300",
+  Expired: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+  "Not Started":
+    "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
 
-const EVERIFY_CONFIG: Record<string, { label: string; color: string }> = {
-  verified: { label: "Verified", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-  pending: { label: "Pending", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  case_closed: { label: "Case Closed", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400" },
-  referred: { label: "Referred", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-  not_submitted: { label: "Not Submitted", color: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
+const statusOrder: Record<I9Status, number> = {
+  Expired: 0,
+  "Expiring Soon": 1,
+  "Pending Section 2": 2,
+  "Not Started": 3,
+  Complete: 4,
 };
 
-export default function I9Page() {
-  const [statusFilter, setStatusFilter] = useState<I9Status | "all">("all");
-  const [search, setSearch] = useState("");
-  const [reverifyModal, setReverifyModal] = useState<string | null>(null);
+function wait(ms = 150) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const sorted = [...i9Records].sort((a, b) => {
-    const order: Record<I9Status, number> = { expired: 0, expiring: 1, pending: 2, complete: 3 };
-    const statusDiff = order[a.i9Status] - order[b.i9Status];
-    if (statusDiff !== 0) return statusDiff;
-    const aExpiry = a.expirationDate ? new Date(a.expirationDate).getTime() : Number.POSITIVE_INFINITY;
-    const bExpiry = b.expirationDate ? new Date(b.expirationDate).getTime() : Number.POSITIVE_INFINITY;
-    return aExpiry - bExpiry;
-  });
+async function getI9Records() {
+  await wait();
+  return i9ManagementRecords;
+}
 
-  const filtered = sorted.filter((r) => {
-    if (statusFilter !== "all" && r.i9Status !== statusFilter) return false;
-    if (search && !r.employeeName.toLowerCase().includes(search.toLowerCase()) && !r.employeeId.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+function formatDate(date?: string) {
+  if (!date) return "N/A";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
 
-  const counts = {
-    complete: i9Records.filter((r) => r.i9Status === "complete").length,
-    pending: i9Records.filter((r) => r.i9Status === "pending").length,
-    expiring: i9Records.filter((r) => r.i9Status === "expiring").length,
-    expired: i9Records.filter((r) => r.i9Status === "expired").length,
+function daysUntil(date?: string) {
+  if (!date) return Number.POSITIVE_INFINITY;
+  const oneDay = 1000 * 60 * 60 * 24;
+  return Math.ceil((new Date(date).getTime() - Date.now()) / oneDay);
+}
+
+function StatusBadge({ status }: { status: I9Status }) {
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${statusStyles[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+function I9Skeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-24 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+      <div className="h-96 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+    </div>
+  );
+}
+
+function AddI9Dialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [employeeId, setEmployeeId] = useState(i9ManagementRecords[0]?.employeeId ?? "");
+  const [eVerifyEnabled, setEVerifyEnabled] = useState(true);
+  const employee = i9ManagementRecords.find((record) => record.employeeId === employeeId) ?? i9ManagementRecords[0];
+
+  const close = () => {
+    setStep(1);
+    onOpenChange(false);
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <Link href="/compliance/dashboard" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-            <ArrowLeft size={18} className="text-slate-500" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileCheck size={22} className="text-blue-600" />
-              I-9 Verification
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Audit log, re-verification, and E-Verify status for all employees.</p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Add I-9</DialogTitle>
+          <DialogDescription>
+            Select an employee, confirm Section 1 profile details, then complete Section 2 document verification.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex gap-2">
+          {[1, 2].map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setStep(item as 1 | 2)}
+              className={`h-2 flex-1 rounded-full ${step >= item ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800"}`}
+              aria-label={`Go to step ${item}`}
+            />
+          ))}
+        </div>
+
+        {step === 1 ? (
+          <div className="grid gap-4">
+            <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+              Employee
+              <select
+                value={employeeId}
+                onChange={(event) => setEmployeeId(event.target.value)}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              >
+                {i9ManagementRecords.map((record) => (
+                  <option key={record.id} value={record.employeeId}>
+                    {record.employee} · {record.employeeId}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Name</p>
+                <p className="mt-1 font-black text-slate-950 dark:text-white">{employee.employee}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Role</p>
+                <p className="mt-1 font-black text-slate-950 dark:text-white">{employee.role}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Department</p>
+                <p className="mt-1 font-black text-slate-950 dark:text-white">{employee.department}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Hire date</p>
+                <p className="mt-1 font-black text-slate-950 dark:text-white">{formatDate(employee.hireDate)}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+              Document list
+              <select className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <option>List A</option>
+                <option>List B + C</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+              Document type
+              <select className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                <option>U.S. Passport</option>
+                <option>Permanent Resident Card</option>
+                <option>Employment Authorization Document</option>
+                <option>Driver license + Social Security card</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+              Document number
+              <Input placeholder="A12345678" />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700 dark:text-slate-300">
+              Expiry date
+              <Input type="date" />
+            </label>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800 sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={eVerifyEnabled}
+                onChange={(event) => setEVerifyEnabled(event.target.checked)}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              <span>
+                <span className="block text-sm font-black text-slate-950 dark:text-white">Submit to E-Verify</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  Auto-submit when Section 2 is completed and update status from the USCIS webhook.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={close}>
+            Cancel
+          </Button>
+          {step === 1 ? (
+            <Button onClick={() => setStep(2)}>Next: Section 2</Button>
+          ) : (
+            <Button onClick={close}>Complete I-9</Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function I9ManagementPage() {
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<I9Status | "all">("all");
+  const [expiryFilter, setExpiryFilter] = useState<30 | 60 | 90 | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["compliance", "i9"],
+    queryFn: getI9Records,
+  });
+
+  const records = useMemo(() => {
+    const base = [...(data ?? [])].sort((a, b) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      return daysUntil(a.expiryDate) - daysUntil(b.expiryDate);
+    });
+
+    return base.filter((record) => {
+      const matchesSearch =
+        record.employee.toLowerCase().includes(query.toLowerCase()) ||
+        record.employeeId.toLowerCase().includes(query.toLowerCase()) ||
+        record.department.toLowerCase().includes(query.toLowerCase());
+      const matchesStatus = statusFilter === "all" || record.status === statusFilter;
+      const matchesExpiry = !expiryFilter || daysUntil(record.expiryDate) <= expiryFilter;
+      return matchesSearch && matchesStatus && matchesExpiry;
+    });
+  }, [data, expiryFilter, query, statusFilter]);
+
+  const validPercent = data?.length
+    ? Math.round((data.filter((record) => record.status === "Complete").length / data.length) * 100)
+    : 0;
+
+  if (isLoading) return <I9Skeleton />;
+
+  if (isError || !data) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+        <h2 className="text-lg font-bold">Something went wrong</h2>
+        <p className="mt-1 text-sm">I-9 records could not be loaded.</p>
+        <Button className="mt-4" onClick={() => refetch()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Compliance</p>
+          <h1 className="mt-1 flex items-center gap-2 text-3xl font-black text-slate-950 dark:text-white">
+            <FileCheck2 size={26} className="text-blue-600" />
+            I-9 Management
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            Section 1, Section 2, document expiration, reverification, and E-Verify submission readiness.
+          </p>
+        </div>
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus size={16} />
+          Add I-9
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs font-bold uppercase text-slate-500">Valid I-9s</p>
+          <p className="mt-2 text-3xl font-black text-slate-950 dark:text-white">{validPercent}%</p>
+        </div>
+        {(["Expired", "Expiring Soon", "Pending Section 2"] as I9Status[]).map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === status ? "all" : status)}
+            className="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+          >
+            <p className="text-xs font-bold uppercase text-slate-500">{status}</p>
+            <p className="mt-2 text-3xl font-black text-slate-950 dark:text-white">
+              {data.filter((record) => record.status === status).length}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search employee, ID, or department"
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[30, 60, 90].map((days) => (
+              <Button
+                key={days}
+                variant={expiryFilter === days ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setExpiryFilter(expiryFilter === days ? null : (days as 30 | 60 | 90))}
+              >
+                <CalendarClock size={14} />
+                Expiring in {days}
+              </Button>
+            ))}
+            {(query || statusFilter !== "all" || expiryFilter) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setStatusFilter("all");
+                  setExpiryFilter(null);
+                }}
+              >
+                Clear
+              </Button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
-            <Download size={16} /> Export Audit Log
-          </button>
-        </div>
       </div>
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {(Object.keys(counts) as I9Status[]).map((status) => {
-          const cfg = STATUS_CONFIG[status];
-          const Icon = cfg.icon;
-          const isActive = statusFilter === status;
-          return (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(isActive ? "all" : status)}
-              className={`bg-white dark:bg-slate-900 border rounded-xl p-4 shadow-sm text-left transition-all ${
-                isActive ? "border-blue-400 dark:border-blue-600 ring-2 ring-blue-100 dark:ring-blue-900/30" : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={14} className={status === "expired" ? "text-red-500" : status === "expiring" ? "text-amber-500" : status === "pending" ? "text-blue-500" : "text-green-500"} />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{cfg.label}</span>
-              </div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white">{counts[status]}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search employees..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
-          />
-        </div>
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Sorted by expiry date within each I-9 status bucket.
-        </span>
-        {(statusFilter !== "all" || search) && (
-          <button onClick={() => { setStatusFilter("all"); setSearch(""); }} className="text-xs font-bold text-blue-600 dark:text-blue-400">
-            Clear Filters
-          </button>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-medium">
+          <table className="w-full min-w-[1100px] text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
-                <th className="px-6 py-3">Employee</th>
-                <th className="px-6 py-3">ID</th>
-                <th className="px-6 py-3">Dept</th>
-                <th className="px-6 py-3">I-9 Status</th>
-                <th className="px-6 py-3">Expiry</th>
-                <th className="px-6 py-3">Document</th>
-                <th className="px-6 py-3">E-Verify</th>
-                <th className="px-6 py-3">Case #</th>
-                <th className="px-6 py-3 text-right">Action</th>
+                <th className="px-5 py-3">Employee</th>
+                <th className="px-5 py-3">Hire Date</th>
+                <th className="px-5 py-3">Section 1</th>
+                <th className="px-5 py-3">Section 2</th>
+                <th className="px-5 py-3">Document Type</th>
+                <th className="px-5 py-3">Expiry Date</th>
+                <th className="px-5 py-3">Re-verify Date</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtered.map((rec) => {
-                const cfg = STATUS_CONFIG[rec.i9Status];
-                const StatusIcon = cfg.icon;
-                const ev = EVERIFY_CONFIG[rec.eVerifyStatus];
-                return (
-                  <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{rec.employeeName}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{rec.employeeId}</td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{rec.department}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${cfg.color}`}>
-                        <StatusIcon size={10} />
-                        {cfg.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-xs">
-                      {rec.expirationDate
-                        ? new Date(rec.expirationDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                        : "N/A"
-                      }
-                    </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 max-w-[180px] truncate text-xs">{rec.documentType}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ev.color}`}>
-                        {ev.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-[11px] text-slate-500">{rec.eVerifyCaseNumber || "—"}</td>
-                    <td className="px-6 py-4 text-right">
-                      {(rec.i9Status === "expired" || rec.i9Status === "expiring") && (
-                        <button
-                          onClick={() => setReverifyModal(rec.id)}
-                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm inline-flex items-center gap-1"
-                        >
-                          <RefreshCw size={12} /> Re-verify
-                        </button>
+              {records.map((record: I9ManagementRecord) => (
+                <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                  <td className="px-5 py-4">
+                    <p className="font-black text-slate-950 dark:text-white">{record.employee}</p>
+                    <p className="text-xs text-slate-500">
+                      {record.employeeId} · {record.department}
+                    </p>
+                  </td>
+                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{formatDate(record.hireDate)}</td>
+                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{record.section1Status}</td>
+                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{record.section2Status}</td>
+                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
+                    <span className="font-medium">{record.documentList}</span>
+                    <p className="max-w-[220px] truncate text-xs text-slate-500">{record.documentType}</p>
+                  </td>
+                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{formatDate(record.expiryDate)}</td>
+                  <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{formatDate(record.reverifyDate)}</td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={record.status} />
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <Button size="sm" variant={record.status === "Complete" ? "outline" : "primary"}>
+                      {record.status === "Complete" ? (
+                        <>
+                          <ShieldCheck size={14} />
+                          Audit
+                        </>
+                      ) : (
+                        <>
+                          {record.status === "Expired" ? <AlertCircle size={14} /> : <AlertTriangle size={14} />}
+                          Resolve
+                        </>
                       )}
-                      {rec.i9Status === "pending" && (
-                        <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
-                          Complete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Re-verify Modal */}
-      {reverifyModal && (() => {
-        const rec = i9Records.find((r) => r.id === reverifyModal);
-        if (!rec) return null;
-        return (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setReverifyModal(null)} />
-            <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md animate-in zoom-in-95 duration-200">
-              <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <RefreshCw size={18} className="text-amber-500" /> I-9 Section 3 Re-verification
-                </h3>
-                <p className="text-sm text-slate-500 mt-1">{rec.employeeName} — {rec.employeeId}</p>
-              </div>
-              <div className="p-6 flex flex-col gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Current Document</label>
-                  <p className="text-sm text-slate-900 dark:text-white font-medium">{rec.documentType}</p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Expiration Date</label>
-                  <p className="text-sm text-red-600 dark:text-red-400 font-medium">
-                    {rec.expirationDate
-                      ? new Date(rec.expirationDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                      : "N/A"
-                    }
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">New Document Title</label>
-                  <input type="text" placeholder="Employment Authorization Document" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">New Expiration Date</label>
-                  <input type="date" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Document Number</label>
-                  <input type="text" placeholder="A12345678" className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white" />
-                </div>
-              </div>
-              <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-                <button onClick={() => setReverifyModal(null)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                  Cancel
-                </button>
-                <button onClick={() => setReverifyModal(null)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
-                  Complete Re-verification
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200">
+        <div className="flex gap-3">
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+          <p className="text-sm leading-6">
+            Form I-9 verifies identity and employment authorization for employees hired in the United States. E-Verify
+            cases are auto-submitted when Section 2 is completed and the toggle is enabled.
+          </p>
+        </div>
+      </div>
+
+      <AddI9Dialog open={addOpen} onOpenChange={setAddOpen} />
+      <Link href="/compliance/everify" className="sr-only">
+        E-Verify
+      </Link>
     </div>
   );
 }
