@@ -10,6 +10,8 @@
     "check:bundle-budget": "node ./scripts/check-route-bundle-budget.mjs",
     "lhci": "lhci autorun",
     "start": "next start",
+    "email:dev": "email dev --dir emails --port 3001",
+    "email:test": "vitest run src/emails-react/emailTemplates.test.tsx",
     "lint": "eslint",
     "antigravity": "node ./scripts/antigravity.js",
     "antigravity:on": "node ./scripts/antigravity.js on",
@@ -23,6 +25,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
     "@react-pdf/renderer": "^4.3.3",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
@@ -72,6 +76,7 @@
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
     "@next/bundle-analyzer": "^16.2.6",
+    "@react-email/ui": "^6.5.0",
     "@tailwindcss/postcss": "^4",
     "@types/mjml": "^5.0.0",
     "@types/node": "^20",
@@ -81,7 +86,9 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "react-email": "^6.5.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }

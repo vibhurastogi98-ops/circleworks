@@ -2,21 +2,17 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import mjml2html from "mjml";
-import * as postmark from "postmark";
 
 import {
   commonBrandVars,
   getTransactionalEmailTemplate,
   type TransactionalEmailTemplateSlug,
 } from "@/emails/transactionalEmailTemplates";
-
-// Initialize the Postmark client. 
-// Uses a dummy key "server_token" in dev/testing if env var isn't explicitly set locally.
-const client = new postmark.ServerClient(
-  process.env.POSTMARK_API_KEY ||
-    process.env.POSTMARK_SERVER_TOKEN ||
-    "dummy_postmark_key"
-);
+import {
+  renderCircleWorksEmail,
+  type EmailTemplateSlug,
+  type TemplateProps,
+} from "@/emails-react";
 
 type EmailTemplateVariables = Record<
   string,
@@ -37,7 +33,7 @@ type EmailBranding = {
   unsubscribeUrl?: string;
 };
 
-interface SendEmailParams {
+interface RawSendEmailParams {
   to: string;
   subject: string;
   html: string;
@@ -47,44 +43,92 @@ interface SendEmailParams {
   messageStream?: string;
 }
 
+type TemplateSendEmailParams<TTemplate extends EmailTemplateSlug = EmailTemplateSlug> = {
+  to: string;
+  template: TTemplate;
+  props: TemplateProps<TTemplate>;
+  from?: string;
+  attachments?: EmailAttachment[];
+  messageStream?: string;
+};
+
+type SendEmailParams = RawSendEmailParams | TemplateSendEmailParams;
+
+function isTemplateEmail(params: SendEmailParams): params is TemplateSendEmailParams {
+  return "template" in params;
+}
+
+function getPostmarkToken() {
+  return process.env.POSTMARK_API_KEY || process.env.POSTMARK_SERVER_TOKEN || "";
+}
+
+async function postToPostmark(payload: Record<string, unknown>) {
+  const token = getPostmarkToken();
+  if (!token || token === "dummy_postmark_key" || token === "server_token") {
+    console.warn("[Postmark] Server token not configured; skipping email send.");
+    return false;
+  }
+
+  const response = await fetch("https://api.postmarkapp.com/email", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Postmark-Server-Token": token,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Postmark API returned ${response.status}: ${body}`);
+  }
+
+  return true;
+}
+
 /**
- * Fire-and-forget email sender utilizing Postmark's REST API.
+ * Fire-and-forget email sender utilizing Postmark's REST API. Supports both
+ * raw HTML payloads and the Prompt 26 React Email template API:
+ * sendEmail({ to, template, props }).
  * Designed to gracefully catch errors so caller process isn't interrupted.
  */
-export async function sendEmail({
-  to,
-  subject,
-  html,
-  from,
-  text,
-  attachments,
-  messageStream,
-}: SendEmailParams) {
-  const fromEmail = from || process.env.POSTMARK_SENDER_EMAIL || "hello@circleworks.com";
-  const postmarkAttachments = attachments?.map(
+export async function sendEmail(params: SendEmailParams) {
+  const fromEmail = params.from || process.env.POSTMARK_SENDER_EMAIL || "hello@circleworks.com";
+  const postmarkAttachments = params.attachments?.map(
     ({ ContentID = null, ...attachment }) => ({
       ...attachment,
       ContentID,
-    })
+    }),
   );
 
   try {
-    // Attempt standard Postmark dispatch
-    const response = await client.sendEmail({
+    const rendered = isTemplateEmail(params)
+      ? await renderCircleWorksEmail({
+          template: params.template,
+          props: params.props,
+        })
+      : {
+          subject: params.subject,
+          html: params.html,
+          text: params.text,
+        };
+
+    await postToPostmark({
       From: fromEmail,
-      To: to,
-      Subject: subject,
-      HtmlBody: html,
-      TextBody: text,
+      To: params.to,
+      Subject: rendered.subject,
+      HtmlBody: rendered.html,
+      TextBody: rendered.text,
       Attachments: postmarkAttachments,
-      MessageStream: messageStream || "outbound" // explicitly defining transactional outbox stream
+      MessageStream: params.messageStream || "outbound",
     });
-    
-    console.log(`[Postmark] Email successfully sent to ${to}. MessageID: ${response.MessageID}`);
+
+    console.log(`[Postmark] Email successfully sent to ${params.to}.`);
     return true;
   } catch (error) {
     // Non-blocking catch natively allows caller processes (like Employee Creation) to finish
-    console.error(`[Postmark Error] Failed to send email to ${to}:`, error);
+    console.error(`[Postmark Error] Failed to send email to ${params.to}:`, error);
     return false;
   }
 }
