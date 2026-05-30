@@ -80,6 +80,13 @@ function toIso(value: Date | string | null | undefined) {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
+function getSecondaryAction(metadata: Record<string, unknown> | undefined) {
+  const secondaryLabel = metadata?.secondaryActionLabel;
+  const secondaryLink = metadata?.secondaryActionLink;
+  if (typeof secondaryLabel !== "string" || typeof secondaryLink !== "string") return null;
+  return { label: secondaryLabel, link: secondaryLink };
+}
+
 export function mapNotificationRow(row: typeof notifications.$inferSelect): NotificationRecord {
   const definition = getNotificationDefinition(row.type);
 
@@ -282,11 +289,20 @@ export async function createNotificationForEmployee({
       .limit(1);
 
     if (employee?.email) {
+      const resolvedMessage = message || definition.message;
+      const primaryLabel = actionLabel || definition.actionLabel;
+      const primaryLink = link || definition.link;
+      const secondaryAction = getSecondaryAction(metadata);
+      const secondaryHtml = secondaryAction
+        ? ` <a href="${secondaryAction.link}">${secondaryAction.label}</a>`
+        : "";
+      const secondaryText = secondaryAction ? `\n${secondaryAction.label}: ${secondaryAction.link}` : "";
+
       await sendEmail({
         to: employee.email,
         subject: title || definition.title,
-        html: `<p>${message || definition.message}</p><p><a href="${link || definition.link}">${actionLabel || definition.actionLabel}</a></p>`,
-        text: `${message || definition.message}\n${link || definition.link}`,
+        html: `<p>${resolvedMessage}</p><p><a href="${primaryLink}">${primaryLabel}</a>${secondaryHtml}</p>`,
+        text: `${resolvedMessage}\n${primaryLabel}: ${primaryLink}${secondaryText}`,
       });
     }
   }

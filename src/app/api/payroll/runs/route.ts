@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { payrolls, payrollTimeImports, employees, users } from "@/db/schema";
+import { employees, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { getTimesheetHoursImport } from "@/lib/payroll/timesheet-import";
-import { syncPayrollBenefitDeductionsForRun } from "@/lib/payroll/deductions";
-import { getPayrollEwaRepayments } from "@/lib/payroll/ewa-repayments";
 import { requireApiPermission } from "@/lib/apiRbac";
+import { createPayrollRunWithEngine } from "@/lib/payroll/run-engine";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,80 +33,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const [run] = await db
-      .insert(payrolls)
-      .values({ companyId, payPeriodStart, payPeriodEnd, checkDate, status: "draft", type })
-      .returning({ id: payrolls.id });
-
-    // Auto-import approved time entries for all hourly employees in the pay period.
-    const importResult = await getTimesheetHoursImport(String(run.id), {
-      useScheduledHoursForMissing: timeImportMissingMode === "scheduled",
+    const result = await createPayrollRunWithEngine({
+      companyId,
+      payPeriodStart,
+      payPeriodEnd,
+      checkDate,
+      type,
+      timeImportMissingMode,
     });
 
-    if (timeImportMissingMode === "wait" && importResult.summary.missingCount > 0) {
-      await db.delete(payrolls).where(eq(payrolls.id, run.id));
+    if (!result.ok) {
       return NextResponse.json(
         {
-          error: "TIMESHEETS_MISSING",
-          message: `${importResult.summary.missingCount} employees missing timesheets`,
-          preflight: importResult.summary,
-          options: {
-            continueWithApproved: `Continue with ${importResult.summary.approvedCount}`,
-            waitForRemaining: `Wait for remaining ${importResult.summary.missingCount}`,
-            useScheduledHoursForMissing: "Use scheduled hours for missing",
-          },
+          error: result.error,
+          message: result.message,
+          preflight: result.preflight,
+          options: result.options,
         },
-        { status: 409 }
+        { status: result.status }
       );
     }
-    const importedAt = new Date();
 
-    for (const line of importResult.imports) {
-      await db.insert(payrollTimeImports).values({
-        payrollId: run.id,
-        employeeId: Number(line.employeeId),
-        timesheetId: line.timesheetId ?? null,
-        source: line.source,
-        regularHours: line.regularHours,
-        overtimeHours: line.overtimeHours,
-        doubleTimeHours: line.doubleTimeHours,
-        totalHours: line.totalHours,
-        dailyBreakdown: JSON.stringify(line.days),
-        lateWithinCutoff: line.lateWithinCutoff,
-        partialPeriodReason: line.partialPeriodReason ?? null,
-        manuallyOverridden: false,
-        importedAt,
-        updatedAt: importedAt,
-      });
-    }
-
-    // Auto-sync active benefit enrollments into deduction line items for the draft.
-    const deductionResult = await syncPayrollBenefitDeductionsForRun(run.id);
-    const ewaResult = await getPayrollEwaRepayments(String(run.id));
-
-    return NextResponse.json(
-      {
-        run: { id: run.id, payPeriodStart, payPeriodEnd, checkDate, status: "draft", type },
-        preflight: {
-          ...importResult.summary,
-          benefitDeductions: {
-            lineCount: deductionResult.deductions.length,
-            totalAmount: deductionResult.deductions.reduce((sum, line) => sum + line.perPaycheckAmount, 0),
-            paySchedule: deductionResult.paySchedule,
-          },
-          ewaRepayments: {
-            lineCount: ewaResult.ewaRepayments.length,
-            totalAmount: ewaResult.ewaRepayments
-              .filter((line) => line.includeInThisRun && !line.deferToNextRun)
-              .reduce((sum, line) => sum + line.deductionAmount, 0),
-            blockedCount: ewaResult.ewaRepayments.filter(
-              (line) => line.blockedByMinimumWage && line.includeInThisRun && !line.deferToNextRun
-            ).length,
-          },
-        },
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ run: result.run, preflight: result.preflight }, { status: result.status });
   } catch (error: any) {
     console.error("[POST /api/payroll/runs]", error);
     return NextResponse.json(

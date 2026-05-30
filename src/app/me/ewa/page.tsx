@@ -1,75 +1,295 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Banknote, Zap, CheckCircle2, Clock, AlertCircle, X, ArrowRight, ShieldCheck, Info } from "lucide-react";
-import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
+import React, { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  CheckCircle2,
+  Info,
+  ShieldCheck,
+  WalletCards,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
+
+import { useEmployeeSelfService } from "@/hooks/useEmployeePortal";
+
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+});
+
+function formatCurrency(value: number) {
+  return currency.format(value);
+}
+
+function formatLocalDate(value: string, options: Intl.DateTimeFormatOptions) {
+  const normalizedValue = value.includes("T") ? value : `${value}T00:00:00`;
+  return new Date(normalizedValue).toLocaleDateString("en-US", options);
+}
 
 export default function EwaPage() {
   const { data: portalData } = useEmployeeSelfService();
-  const [showRequest, setShowRequest] = useState(false);
-  const [requestAmount, setRequestAmount] = useState(100);
   const data = portalData.ewa;
+  const maxAdvance = Math.max(0, Math.floor(data.availableAmount / 25) * 25);
+  const canRequestAdvance = maxAdvance >= 25;
+  const sliderMax = Math.max(25, maxAdvance);
+  const [requestAmount, setRequestAmount] = useState(
+    Math.min(250, maxAdvance),
+  );
+  const selectedAmount = canRequestAdvance
+    ? Math.min(requestAmount, maxAdvance)
+    : 0;
+  const nextPayday = formatLocalDate(data.nextPayDate, {
+    month: "short",
+    day: "numeric",
+  });
 
-  const pctEarned = Math.round((data.availableAmount / data.maxPerPayPeriod) * 100);
+  const amountOptions = useMemo(
+    () =>
+      data.suggestedAmounts
+        .filter((amount) => amount <= maxAdvance)
+        .slice(0, 4),
+    [data.suggestedAmounts, maxAdvance],
+  );
 
   const handleRequest = () => {
-    if (requestAmount < 25) { toast.error("Minimum request is $25"); return; }
-    if (requestAmount > data.availableAmount) { toast.error("Amount exceeds available balance"); return; }
-    toast.success(`$${requestAmount} early pay requested! ACH transfer initiated.`);
-    setShowRequest(false);
+    if (selectedAmount < 25) {
+      toast.error("Minimum advance is $25");
+      return;
+    }
+    if (selectedAmount > data.availableAmount) {
+      toast.error("Amount exceeds your available Early Pay balance");
+      return;
+    }
+
+    toast.success(
+      `${formatCurrency(selectedAmount)} is on the way. Repayment auto-deducts from your next payroll on ${nextPayday}.`,
+    );
   };
 
   return (
     <>
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Early Access Pay</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Access up to 50% of your earned wages before payday</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          Early Pay
+        </h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Use a portion of wages you have already earned this pay period.
+        </p>
       </div>
 
-      {/* Available Amount Hero */}
-      <motion.div
+      <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 dark:from-violet-900/20 dark:via-slate-800/40 dark:to-fuchsia-900/10 p-6 md:p-8"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700/60 dark:bg-slate-800/40"
       >
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="flex-1">
-            <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Available for Early Pay</p>
-            <p className="text-4xl font-black text-slate-900 dark:text-white mb-2">
-              ${data.availableAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-            <div className="w-full max-w-xs h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mb-2">
-              <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all" style={{ width: `${pctEarned}%` }} />
-            </div>
-            <p className="text-[12px] text-slate-500 dark:text-slate-400">
-              ${data.earnedWages.toLocaleString('en-US', { minimumFractionDigits: 2 })} earned · 50% accessible · Next payday: {new Date(data.nextPayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </p>
-          </div>
-          <button
-            onClick={() => setShowRequest(true)}
-            className="h-12 px-8 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[14px] font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 w-fit"
-          >
-            <Zap size={18} /> Request Early Pay
-          </button>
-        </div>
-      </motion.div>
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="p-5 md:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
+                    <Zap size={22} />
+                  </span>
+                  <div>
+                    <p className="text-[12px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                      Available now
+                    </p>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      {data.provider.displayName} -{" "}
+                      {data.provider.transferRail}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-6 text-5xl font-black tracking-normal text-slate-950 dark:text-white">
+                  {formatCurrency(data.availableAmount)}
+                </p>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  {data.earnedPercent}% of this pay period is earned, with{" "}
+                  {data.accessiblePercent}% available for Early Pay.
+                </p>
+              </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Request History */}
-        <div className="lg:col-span-2">
-          <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3">Request History</h2>
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 overflow-hidden">
-            <div className="hidden sm:grid grid-cols-[1fr_auto_1fr_auto] gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700/40 text-[12px] font-bold text-slate-500 uppercase tracking-wide">
-              <span>Date</span><span>Amount</span><span>Repayment</span><span>Status</span>
+              <div className="rounded-xl border border-slate-200 px-4 py-3 text-right dark:border-slate-700/60">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Next payday
+                </p>
+                <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+                  {nextPayday}
+                </p>
+              </div>
             </div>
-            {data.requests.map((req, i) => (
-              <motion.div key={req.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2 sm:gap-4 px-4 py-3 border-b border-slate-100 dark:border-slate-700/30 hover:bg-slate-50 dark:hover:bg-slate-700/20 transition-colors items-center">
-                <span className="text-[13px] text-slate-600 dark:text-slate-300">{new Date(req.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span className="text-[14px] font-bold text-slate-900 dark:text-white">${req.amount.toFixed(2)}</span>
-                <span className="text-[12px] text-slate-500">{new Date(req.repaymentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (next payroll)</span>
-                <span className="px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1 w-fit">
+
+            <div className="mt-7">
+              <div className="mb-2 flex items-center justify-between text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                <span>Earned this period</span>
+                <span>{formatCurrency(data.earnedWages)}</span>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${Math.min(100, data.earnedPercent)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-8 rounded-xl bg-slate-50 p-4 dark:bg-slate-900/30">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Advance amount
+                  </p>
+                  <p className="mt-1 text-3xl font-black text-slate-950 dark:text-white">
+                    {formatCurrency(selectedAmount)}
+                  </p>
+                </div>
+                <p className="text-right text-[12px] text-slate-500 dark:text-slate-400">
+                  Auto-deducts from next run
+                </p>
+              </div>
+
+              <input
+                type="range"
+                aria-label="Early Pay advance amount"
+                min={25}
+                max={sliderMax}
+                step={25}
+                value={selectedAmount}
+                disabled={!canRequestAdvance}
+                onChange={(event) => setRequestAmount(Number(event.target.value))}
+                className="mt-5 w-full accent-emerald-600"
+              />
+              <div className="mt-1 flex justify-between text-[11px] text-slate-400">
+                <span>$25</span>
+                <span>{formatCurrency(maxAdvance)}</span>
+              </div>
+
+              {amountOptions.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {amountOptions.map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => setRequestAmount(amount)}
+                      className={`h-9 rounded-lg px-4 text-[13px] font-bold transition-colors ${
+                        selectedAmount === amount
+                          ? "bg-slate-950 text-white dark:bg-white dark:text-slate-950"
+                          : "bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      {formatCurrency(amount)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleRequest}
+                disabled={!canRequestAdvance}
+                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[14px] font-black text-white shadow-sm transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
+              >
+                <Zap size={18} /> Get paid now
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 bg-slate-50 p-5 dark:border-slate-700/40 dark:bg-slate-900/30 lg:border-l lg:border-t-0">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
+              <div className="rounded-2xl bg-emerald-50 p-4 dark:bg-emerald-900/20">
+                <div className="flex items-center justify-between">
+                  <WalletCards
+                    size={20}
+                    className="text-emerald-600 dark:text-emerald-300"
+                  />
+                  <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+                    Ready
+                  </span>
+                </div>
+                <p className="mt-5 text-[12px] font-semibold text-emerald-700 dark:text-emerald-200">
+                  Early Pay balance
+                </p>
+                <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">
+                  {formatCurrency(data.availableAmount)}
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-3 text-[13px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">
+                    Transfer
+                  </span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {data.provider.settlementTiming}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">
+                    Fee
+                  </span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-300">
+                    $0.00
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">
+                    Repayment
+                  </span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {nextPayday}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-blue-50 p-3 text-[12px] leading-5 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+              <Info size={15} className="mt-0.5 shrink-0" />
+              <p>{data.repayment.description}; no separate payment is due.</p>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <h2 className="mb-3 text-[15px] font-bold text-slate-900 dark:text-white">
+            Early Pay history
+          </h2>
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700/60 dark:bg-slate-800/40">
+            <div className="hidden grid-cols-[1fr_auto_1fr_auto] gap-4 border-b border-slate-100 bg-slate-50 px-4 py-3 text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:border-slate-700/40 dark:bg-slate-800/80 sm:grid">
+              <span>Date</span>
+              <span>Amount</span>
+              <span>Repayment</span>
+              <span>Status</span>
+            </div>
+            {data.requests.map((req, index) => (
+              <motion.div
+                key={req.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.04 }}
+                className="grid grid-cols-1 items-center gap-2 border-b border-slate-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-slate-50 dark:border-slate-700/30 dark:hover:bg-slate-700/20 sm:grid-cols-[1fr_auto_1fr_auto] sm:gap-4"
+              >
+                <span className="text-[13px] text-slate-600 dark:text-slate-300">
+                  {formatLocalDate(req.requestedAt, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+                <span className="text-[14px] font-bold text-slate-900 dark:text-white">
+                  {formatCurrency(req.amount)}
+                </span>
+                <span className="text-[12px] text-slate-500">
+                  {formatLocalDate(req.repaymentDate, {
+                    month: "short",
+                    day: "numeric",
+                  })}{" "}
+                  via {req.repaymentMethod}
+                </span>
+                <span className="flex w-fit items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
                   <CheckCircle2 size={11} /> {req.status}
                 </span>
               </motion.div>
@@ -77,76 +297,25 @@ export default function EwaPage() {
           </div>
         </div>
 
-        {/* Eligibility */}
         <div>
-          <h2 className="text-[15px] font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+          <h2 className="mb-3 flex items-center gap-2 text-[15px] font-bold text-slate-900 dark:text-white">
             <ShieldCheck size={16} className="text-emerald-500" /> Eligibility
           </h2>
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 p-4 space-y-3">
-            {data.eligibilityRequirements.map((req, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[12px] text-slate-600 dark:text-slate-300">{req}</p>
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700/60 dark:bg-slate-800/40">
+            {data.eligibilityRequirements.map((requirement) => (
+              <div key={requirement} className="flex items-start gap-2">
+                <CheckCircle2
+                  size={14}
+                  className="mt-0.5 shrink-0 text-emerald-500"
+                />
+                <p className="text-[12px] text-slate-600 dark:text-slate-300">
+                  {requirement}
+                </p>
               </div>
             ))}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-700/40">
-              <div className="flex items-center gap-2">
-                <Info size={14} className="text-blue-500" />
-                <p className="text-[12px] text-blue-700 dark:text-blue-300 font-medium">Fee: $0 — CircleWorks covers all EWA fees</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
-
-      {/* Request Modal */}
-      <AnimatePresence>
-        {showRequest && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowRequest(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-sm">
-              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Request Early Pay</h2>
-                <button onClick={() => setShowRequest(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"><X size={18} /></button>
-              </div>
-              <div className="p-5 space-y-5">
-                <div className="text-center">
-                  <p className="text-[12px] text-slate-500 mb-1">Select Amount</p>
-                  <p className="text-4xl font-black text-slate-900 dark:text-white mb-2">${requestAmount}</p>
-                  <input
-                    type="range"
-                    min={25} max={Math.floor(data.availableAmount)} step={25}
-                    value={requestAmount}
-                    onChange={e => setRequestAmount(Number(e.target.value))}
-                    className="w-full accent-violet-600"
-                  />
-                  <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-                    <span>$25</span>
-                    <span>${Math.floor(data.availableAmount)}</span>
-                  </div>
-                </div>
-                {/* Quick Amounts */}
-                <div className="flex gap-2 justify-center">
-                  {[100, 250, 500].filter(a => a <= data.availableAmount).map(amt => (
-                    <button key={amt} onClick={() => setRequestAmount(amt)} className={`px-4 py-2 rounded-lg text-[13px] font-bold transition-all ${requestAmount === amt ? "bg-violet-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"}`}>
-                      ${amt}
-                    </button>
-                  ))}
-                </div>
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 space-y-1.5">
-                  <div className="flex justify-between text-[12px]"><span className="text-slate-500">Transfer Method</span><span className="font-semibold text-slate-900 dark:text-white">Instant ACH</span></div>
-                  <div className="flex justify-between text-[12px]"><span className="text-slate-500">Fee</span><span className="font-semibold text-emerald-600">$0.00</span></div>
-                  <div className="flex justify-between text-[12px]"><span className="text-slate-500">Repayment</span><span className="font-semibold text-slate-900 dark:text-white">{new Date(data.nextPayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span></div>
-                </div>
-              </div>
-              <div className="p-5 border-t border-slate-100 dark:border-slate-700">
-                <button onClick={handleRequest} className="w-full h-10 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold flex items-center justify-center gap-2 transition-all shadow-sm">
-                  <Zap size={16} /> Confirm — ${requestAmount} via Instant ACH
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

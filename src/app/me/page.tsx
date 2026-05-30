@@ -16,6 +16,7 @@ import {
   Plane,
   Thermometer,
   User as UserIcon,
+  Zap,
 } from "lucide-react";
 
 import {
@@ -97,6 +98,10 @@ function renderAnnouncementBody(body: string) {
     .replace(/\n/g, "<br />");
 }
 
+function formatLocalDate(value: string, options: Intl.DateTimeFormatOptions) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", options);
+}
+
 type EmployeeAnnouncement = {
   id: number;
   title: string;
@@ -109,6 +114,103 @@ type EmployeeAnnouncement = {
   priority: "Normal" | "Important" | "Urgent";
   attachments: Array<{ name: string; url: string; type: string; size: number }>;
 };
+
+type EarlyPayCardProps = {
+  ewa: {
+    provider: {
+      displayName: string;
+      transferRail: string;
+      settlementTiming: string;
+    };
+    earnedWages: number;
+    earnedPercent: number;
+    accessiblePercent: number;
+    availableAmount: number;
+    nextPayDate: string;
+    repayment: {
+      description: string;
+    };
+  };
+};
+
+function EarlyPayCard({ ewa }: EarlyPayCardProps) {
+  const earnedProgress = Math.min(100, Math.max(0, ewa.earnedPercent));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700/60 dark:bg-slate-800/40"
+    >
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="p-5 md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
+                  <Zap size={18} />
+                </span>
+                <div>
+                  <h2 className="text-[15px] font-bold text-slate-900 dark:text-white">
+                    Early Pay
+                  </h2>
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                    {ewa.provider.displayName} · {ewa.provider.transferRail}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-5 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Available now
+              </p>
+              <p className="mt-1 text-3xl font-black text-slate-950 dark:text-white">
+                {ewa.availableAmount.toLocaleString("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                  minimumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+            <Link
+              href="/me/ewa"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-[13px] font-bold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+            >
+              <Zap size={15} /> Get paid now
+            </Link>
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between text-[12px] text-slate-500 dark:text-slate-400">
+              <span>{ewa.earnedPercent}% of this period earned</span>
+              <span>{ewa.accessiblePercent}% accessible</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+              <div
+                className="h-full rounded-full bg-emerald-500"
+                style={{ width: `${earnedProgress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 bg-slate-50 p-5 dark:border-slate-700/40 dark:bg-slate-900/30 lg:border-l lg:border-t-0">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Next payroll
+          </p>
+          <p className="mt-1 text-lg font-black text-slate-900 dark:text-white">
+            {formatLocalDate(ewa.nextPayDate, {
+              month: "short",
+              day: "numeric",
+            })}
+          </p>
+          <p className="mt-3 text-[13px] leading-5 text-slate-600 dark:text-slate-300">
+            {ewa.repayment.description}. Funds arrive{" "}
+            {ewa.provider.settlementTiming.toLowerCase()}.
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function AnnouncementsWidget() {
   const { data: portalData } = useEmployeeSelfService();
@@ -346,8 +448,10 @@ export default function EmployeeHomePage() {
   const user = { firstName: "Guest", lastName: "Employee" };
 
   const { data } = useEmployeePortal();
+  const { data: selfServiceData } = useEmployeeSelfService();
 
   const profile = data?.profile;
+  const ewa = selfServiceData?.ewa;
   const payStubs = data?.payStubs?.length ? data.payStubs : mockPayStubs;
   const firstName = profile?.firstName || user?.firstName || "there";
   const latestStub = payStubs[0] || mockPayStubs[0];
@@ -415,6 +519,8 @@ export default function EmployeeHomePage() {
           ))}
         </div>
       </div>
+
+      {ewa ? <EarlyPayCard ewa={ewa} /> : null}
 
       {/* PTO Balances */}
       <div>

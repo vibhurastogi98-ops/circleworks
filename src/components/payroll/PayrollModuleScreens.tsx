@@ -54,6 +54,8 @@ import type {
   EwaData,
   GarnishmentData,
   OffCycleData,
+  PayrollAutoPilotBanner,
+  PayrollAutoPilotSchedule,
   PayrollHistoryData,
   PayrollHubData,
   PayrollLineStatus,
@@ -66,7 +68,7 @@ import type {
   PayrollSettingsData,
   PayrollTaxSetupData,
   PaystubData,
-  PayType,
+  WorkerType,
 } from "@/lib/payroll-module-data";
 
 type ApiResponse<T extends PayrollModuleData> = {
@@ -86,6 +88,9 @@ const statusStyles: Record<string, string> = {
   Processing: "border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200",
   Paid: "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200",
   Failed: "border-red-200 bg-red-100 text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200",
+  On: "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200",
+  Paused: "border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200",
+  Off: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200",
   Verified: "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200",
   Flagged: "border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200",
   Error: "border-red-200 bg-red-100 text-red-800 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200",
@@ -180,6 +185,8 @@ function usePayrollAction() {
     },
   });
 }
+
+type PayrollAction = ReturnType<typeof usePayrollAction>;
 
 function downloadCsv(filename: string, rows: Array<Array<string | number>>) {
   const csv = rows
@@ -308,8 +315,120 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{children}</label>;
 }
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="inline-flex items-center gap-3">
+      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={cx(
+          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+          checked ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700",
+        )}
+      >
+        <span
+          className={cx(
+            "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-5" : "translate-x-0.5",
+          )}
+        />
+      </span>
+    </label>
+  );
+}
+
+function AutoPilotHubBanner({
+  autoPilot,
+  action,
+}: {
+  autoPilot: PayrollAutoPilotBanner | null;
+  action: PayrollAction;
+}) {
+  const enabled = Boolean(autoPilot?.enabled);
+  const pausePayload = autoPilot
+    ? {
+        scheduleId: autoPilot.scheduleId,
+        scheduleName: autoPilot.scheduleName,
+        nextRunLabel: autoPilot.nextRunLabel,
+        reviewHref: autoPilot.reviewHref,
+        pauseHref: autoPilot.pauseHref,
+      }
+    : {};
+
+  return (
+    <Card className="overflow-hidden border-blue-200 bg-blue-50/80 dark:border-blue-500/30 dark:bg-blue-500/10">
+      <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-black uppercase tracking-wide text-white">
+              AutoPilot
+            </span>
+            <ToggleSwitch
+              checked={enabled}
+              label={enabled ? "On" : "Off"}
+              onChange={(checked) =>
+                action.mutate({
+                  action: checked ? "payroll.autopilot.enable" : "payroll.autopilot.pause",
+                  screen: "hub",
+                  payload: pausePayload,
+                })
+              }
+            />
+          </div>
+          {autoPilot ? (
+            <>
+              <h2 className="mt-3 text-lg font-black text-slate-950 dark:text-white">
+                AutoPilot is on — next run {autoPilot.nextRunLabel}, auto-submits in {autoPilot.autoSubmitInDays} days.
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                Using last run&apos;s config from {autoPilot.lastRunId}: {autoPilot.lastRunConfig}. Admin review email and notification go out {autoPilot.notificationWindowHours}h before submit.
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 text-sm font-semibold text-slate-600 dark:text-slate-300">
+              Turn on AutoPilot for a pay schedule to auto-run payroll from the last successful configuration.
+            </p>
+          )}
+        </div>
+        {autoPilot ? (
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={autoPilot.reviewHref}
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-white px-4 text-sm font-black text-blue-700 shadow-sm transition hover:bg-blue-50 dark:bg-slate-950 dark:text-blue-300"
+            >
+              Review
+            </Link>
+            <button
+              type="button"
+              onClick={() => action.mutate({ action: "payroll.autopilot.pause", screen: "hub", payload: pausePayload })}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-blue-200 bg-white/80 px-4 text-sm font-black text-slate-700 transition hover:bg-white dark:border-blue-400/30 dark:bg-slate-950 dark:text-slate-200"
+            >
+              Pause
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
 export function PayrollHubScreen() {
   const query = usePayrollModule<PayrollHubData>("hub");
+  const action = usePayrollAction();
 
   if (query.isLoading && !query.data) return <PayrollRunSkeleton />;
   if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
@@ -329,6 +448,8 @@ export function PayrollHubScreen() {
         </>
       }
     >
+      <AutoPilotHubBanner autoPilot={data.autoPilot} action={action} />
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {data.kpis.map((kpi) => (
           <Link
@@ -444,8 +565,9 @@ export function RunPayrollScreen() {
   const [processingOpen, setProcessingOpen] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
   const [search, setSearch] = useState("");
+  const [schedule, setSchedule] = useState("all");
+  const [workerType, setWorkerType] = useState<"All" | WorkerType>("All");
   const [department, setDepartment] = useState("All");
-  const [payType, setPayType] = useState("All");
   const [status, setStatus] = useState("All");
   const [flaggedOnly, setFlaggedOnly] = useState(false);
 
@@ -505,22 +627,37 @@ export function RunPayrollScreen() {
   if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const data = query.data.data;
+  const scheduleOptions = [
+    { id: "all", label: "All schedules" },
+    ...data.schedules.map((item) => ({ id: item.id, label: `${item.frequency} - ${item.name}` })),
+  ];
+  const workerTypes: Array<"All" | WorkerType> = ["All", "Employee", "Contractor"];
   const departments = ["All", ...Array.from(new Set(data.employees.map((employee) => employee.department)))];
-  const payTypes: Array<"All" | PayType> = ["All", "Salary", "Hourly", "Contractor"];
   const statuses: Array<"All" | PayrollLineStatus> = ["All", "Verified", "Flagged", "Error"];
   const hasErrors = data.employees.some((employee) => employee.status === "Error");
   const filteredEmployees = data.employees.filter((employee) => {
-    const matchesSearch = `${employee.name} ${employee.title}`.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = `${employee.name} ${employee.title} ${employee.department} ${employee.scheduleName} ${employee.workerType} ${employee.contractorCompany || ""}`.toLowerCase().includes(search.toLowerCase());
+    const matchesSchedule = schedule === "all" || employee.scheduleId === schedule;
+    const matchesWorkerType = workerType === "All" || employee.workerType === workerType;
     const matchesDepartment = department === "All" || employee.department === department;
-    const matchesPayType = payType === "All" || employee.payType === payType;
     const matchesStatus = status === "All" || employee.status === status;
     const matchesFlagged = !flaggedOnly || employee.status !== "Verified";
-    return matchesSearch && matchesDepartment && matchesPayType && matchesStatus && matchesFlagged;
+    return matchesSearch && matchesSchedule && matchesWorkerType && matchesDepartment && matchesStatus && matchesFlagged;
   });
   const selectedCount = selected.size;
   const verifiedCount = data.employees.filter((employee) => employee.status === "Verified").length;
   const flaggedCount = data.employees.filter((employee) => employee.status === "Flagged").length;
   const errorCount = data.employees.filter((employee) => employee.status === "Error").length;
+  const getSummaryLineValue = (employee: PayrollRunData["employees"][number]) => {
+    const taxTotal = Object.values(employee.taxes).reduce((sum, value) => sum + value, 0);
+    if (summaryModal === "Employee Gross") return employee.workerType === "Employee" ? employee.grossPay : 0;
+    if (summaryModal === "Contractor Gross") return employee.workerType === "Contractor" ? employee.grossPay : 0;
+    if (summaryModal === "Employee Taxes") return employee.workerType === "Employee" ? taxTotal : 0;
+    return employee.grossPay;
+  };
+  const summaryLines = data.employees
+    .map((employee) => ({ employee, value: getSummaryLineValue(employee) }))
+    .filter(({ value }) => !summaryModal || summaryModal === "Total Gross" || value > 0);
 
   const toggleSelected = (employeeId: string) => {
     setSelected((current) => {
@@ -556,7 +693,7 @@ export function RunPayrollScreen() {
     <PageShell
       screen="run"
       title="Run Payroll"
-      description="Review every employee line, fix exceptions, route approval, and submit ACH-ready payroll."
+      description="Review W-2 employee and 1099 contractor lines across weekly, biweekly, and semi-monthly schedules."
       actions={
         <>
           <button
@@ -585,8 +722,17 @@ export function RunPayrollScreen() {
             type="button"
             onClick={() =>
               downloadCsv("payroll-draft.csv", [
-                ["Employee", "Gross", "Deductions", "Net", "Status"],
-                ...data.employees.map((employee) => [employee.name, employee.grossPay, employee.deductions, employee.netPay, employee.status]),
+                ["Worker", "Worker Type", "Schedule", "Frequency", "Gross", "Deductions", "Net", "Status"],
+                ...data.employees.map((employee) => [
+                  employee.name,
+                  employee.workerType,
+                  employee.scheduleName,
+                  employee.scheduleFrequency,
+                  employee.grossPay,
+                  employee.deductions,
+                  employee.netPay,
+                  employee.status,
+                ]),
               ])
             }
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
@@ -597,28 +743,60 @@ export function RunPayrollScreen() {
       </Card>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Total Gross" value={money(data.totals.gross)} onClick={() => setSummaryModal("Total Gross")} />
-        <SummaryCard label="Total Taxes" value={money(data.totals.taxes)} onClick={() => setSummaryModal("Total Taxes")} />
-        <SummaryCard label="Total Net" value={money(data.totals.net)} onClick={() => setSummaryModal("Total Net")} />
-        <SummaryCard label="Employer Cost" value={money(data.totals.employerCost)} onClick={() => setSummaryModal("Employer Cost")} />
+        <SummaryCard label="Employee Gross" value={money(data.totals.employeeGross)} onClick={() => setSummaryModal("Employee Gross")} />
+        <SummaryCard label="Contractor Gross" value={money(data.totals.contractorGross)} onClick={() => setSummaryModal("Contractor Gross")} />
+        <SummaryCard label="Total Gross" value={money(data.totals.totalGross)} onClick={() => setSummaryModal("Total Gross")} />
+        <SummaryCard label="Employee Taxes" value={money(data.totals.employeeTaxes)} onClick={() => setSummaryModal("Employee Taxes")} />
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-3">
+        {data.schedules.map((item) => (
+          <Card key={item.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{item.frequency}</p>
+                <h3 className="mt-1 font-bold text-slate-950 dark:text-white">{item.name}</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {item.workerCount} workers - Check date {item.checkDate}
+                </p>
+              </div>
+              <span className="rounded-lg bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-200">
+                {money(item.totalGross)}
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs font-bold uppercase text-slate-400">Employees</p>
+                <p className="mt-1 font-bold text-slate-950 dark:text-white">{money(item.employeeGross)}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase text-slate-400">Contractors</p>
+                <p className="mt-1 font-bold text-slate-950 dark:text-white">{money(item.contractorGross)}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
       </section>
 
       <Card className="overflow-hidden">
-        <div className="grid gap-3 border-b border-slate-200 p-4 dark:border-slate-800 xl:grid-cols-[minmax(240px,1fr)_160px_140px_150px_auto_auto]">
+        <div className="grid gap-3 border-b border-slate-200 p-4 dark:border-slate-800 xl:grid-cols-[minmax(220px,1fr)_190px_150px_150px_140px_auto_auto]">
           <label className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search employees..."
+              placeholder="Search workers..."
               className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800"
             />
           </label>
+          <select value={schedule} onChange={(event) => setSchedule(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
+            {scheduleOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+          <select value={workerType} onChange={(event) => setWorkerType(event.target.value as "All" | WorkerType)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
+            {workerTypes.map((item) => <option key={item}>{item === "All" ? "All workers" : item}</option>)}
+          </select>
           <select value={department} onChange={(event) => setDepartment(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
             {departments.map((item) => <option key={item}>{item}</option>)}
-          </select>
-          <select value={payType} onChange={(event) => setPayType(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
-            {payTypes.map((item) => <option key={item}>{item}</option>)}
           </select>
           <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900">
             {statuses.map((item) => <option key={item}>{item}</option>)}
@@ -649,11 +827,13 @@ export function RunPayrollScreen() {
         ) : null}
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-left text-sm">
+          <table className="w-full min-w-[1320px] text-left text-sm">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800/60">
               <tr>
                 <th className="px-4 py-3"> </th>
-                <th className="px-4 py-3">Employee</th>
+                <th className="px-4 py-3">Worker</th>
+                <th className="px-4 py-3">Schedule</th>
+                <th className="px-4 py-3">Worker type</th>
                 <th className="px-4 py-3">Pay type</th>
                 <th className="px-4 py-3 text-right">Hours</th>
                 <th className="px-4 py-3 text-right">Gross pay</th>
@@ -677,7 +857,7 @@ export function RunPayrollScreen() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <input type="checkbox" checked={selected.has(employee.id)} onChange={() => toggleSelected(employee.id)} />
-                          <button type="button" onClick={() => toggleExpanded(employee.id)} aria-label={`Toggle ${employee.name} tax breakdown`}>
+                          <button type="button" onClick={() => toggleExpanded(employee.id)} aria-label={`Toggle ${employee.name} pay details`}>
                             <ChevronDown className={cx("h-4 w-4 transition", expanded.has(employee.id) && "rotate-180")} />
                           </button>
                         </div>
@@ -692,6 +872,22 @@ export function RunPayrollScreen() {
                             <span className="block text-xs text-slate-500">{employee.title} - {employee.department}</span>
                           </span>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="block font-semibold text-slate-800 dark:text-slate-100">{employee.scheduleName}</span>
+                        <span className="block text-xs text-slate-500">{employee.scheduleFrequency} - {employee.checkDate}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={cx(
+                            "inline-flex rounded-full border px-2.5 py-1 text-xs font-bold",
+                            employee.workerType === "Employee"
+                              ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-200"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200",
+                          )}
+                        >
+                          {employee.taxForm}
+                        </span>
                       </td>
                       <td className="px-4 py-4">{employee.payType}</td>
                       <td className="px-4 py-4 text-right">
@@ -728,22 +924,43 @@ export function RunPayrollScreen() {
                     {expanded.has(employee.id) ? (
                       <tr className="bg-slate-50 dark:bg-slate-950" key={`${employee.id}-taxes`}>
                         <td />
-                        <td colSpan={8} className="px-4 py-4">
-                          <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-6">
-                            {[
-                              ["Federal IT", employee.taxes.federalIT],
-                              ["FICA SS", employee.taxes.ficaSS],
-                              ["FICA Med", employee.taxes.ficaMed],
-                              ["State IT", employee.taxes.stateIT],
-                              ["Local IT", employee.taxes.localIT],
-                              ["Net", employee.netPay],
-                            ].map(([label, value]) => (
-                              <div key={label}>
-                                <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
-                                <p className="mt-1 font-bold text-slate-950 dark:text-white">{money(Number(value))}</p>
+                        <td colSpan={10} className="px-4 py-4">
+                          {employee.workerType === "Employee" ? (
+                            <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-6">
+                              {[
+                                ["Federal IT", employee.taxes.federalIT],
+                                ["FICA SS", employee.taxes.ficaSS],
+                                ["FICA Med", employee.taxes.ficaMed],
+                                ["State IT", employee.taxes.stateIT],
+                                ["Local IT", employee.taxes.localIT],
+                                ["Net", employee.netPay],
+                              ].map(([label, value]) => (
+                                <div key={label}>
+                                  <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
+                                  <p className="mt-1 font-bold text-slate-950 dark:text-white">{money(Number(value))}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                              <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                                1099 contractor payment line. No employee tax withholding is calculated for this worker.
+                              </p>
+                              <div className="mt-4 grid gap-3 md:grid-cols-4">
+                                {[
+                                  ["Company", employee.contractorCompany || "Independent"],
+                                  ["Form", employee.taxForm],
+                                  ["Gross payment", money(employee.grossPay)],
+                                  ["Net payment", money(employee.netPay)],
+                                ].map(([label, value]) => (
+                                  <div key={label}>
+                                    <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
+                                    <p className="mt-1 font-bold text-slate-950 dark:text-white">{value}</p>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ) : null}
@@ -758,6 +975,8 @@ export function RunPayrollScreen() {
       <div className="sticky bottom-4 z-20 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2 text-sm font-semibold">
+            <span>{data.totals.employeeCount} employees</span>
+            <span>{data.totals.contractorCount} contractors</span>
             <span>{verifiedCount} verified</span>
             <span className="text-amber-600">{flaggedCount} flagged</span>
             <span className="text-red-600">{errorCount} errors</span>
@@ -774,13 +993,13 @@ export function RunPayrollScreen() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{summaryModal} breakdown</DialogTitle>
-            <DialogDescription>Totals are calculated from current employee line items.</DialogDescription>
+            <DialogDescription>Totals are calculated from current worker line items.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 p-6">
-            {data.employees.map((employee) => (
+            {summaryLines.map(({ employee, value }) => (
               <div key={employee.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800">
                 <span className="font-semibold">{employee.name}</span>
-                <span>{summaryModal === "Total Taxes" ? money(Object.values(employee.taxes).reduce((a, b) => a + b, 0)) : money(employee.grossPay)}</span>
+                <span>{money(value)}</span>
               </div>
             ))}
           </div>
@@ -1051,10 +1270,124 @@ export function EwaScreen() {
   if (query.isLoading && !query.data) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
+  const totalAvailable = data.employees.reduce((sum, employee) => sum + employee.available, 0);
+  const totalOutstanding = data.advances.reduce((sum, advance) => sum + advance.remainingBalance, 0);
+  const totalPendingRepayments = data.repayments.reduce((sum, repayment) => sum + repayment.amount, 0);
+  const formatDate = (value: string) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
   return (
-    <PageShell screen="ewa" title="Earned Wage Access" description={`Administer EWA availability, advance requests, and next-run repayments with ${data.provider}.`}>
-      <section className="grid gap-4 md:grid-cols-3">{data.employees.map((employee) => <Card key={employee.id} className="p-5"><p className="font-bold">{employee.name}</p><p className="mt-2 text-sm text-slate-500">{employee.percent}% of earned wages available</p><p className="mt-3 text-2xl font-bold">{money(employee.available)}</p><div className="mt-4 h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-blue-600" style={{ width: `${employee.percent}%` }} /></div></Card>)}</section>
-      <section className="grid gap-6 lg:grid-cols-2"><SimpleList title="Recent advance requests" items={data.requests.map((r) => [`${r.employee} - ${money(r.amount)}`, `${r.status} - ${r.requestedAt}`])} /><SimpleList title="Pending repayments on next run" items={data.repayments.map((r) => [`${r.employee} - ${money(r.amount)}`, r.nextRun])} /></section>
+    <PageShell
+      screen="ewa"
+      title="Earned Wage Access"
+      description={`Monitor worker advances, provider funding, and pending payroll repayments through ${data.provider.displayName}.`}
+    >
+      <section className="grid gap-4 md:grid-cols-3">
+        <Card className="p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-slate-500">Provider</p>
+              <p className="mt-2 text-2xl font-black">{data.provider.displayName}</p>
+            </div>
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <WalletCards className="h-5 w-5" />
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-slate-500">{data.provider.transferRail} - {data.provider.settlementTiming}</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm text-slate-500">Available earned wages</p>
+          <p className="mt-2 text-2xl font-black">{money(totalAvailable)}</p>
+          <p className="mt-3 text-sm text-slate-500">{data.employees.length} eligible workers this period</p>
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm text-slate-500">Pending repayments</p>
+          <p className="mt-2 text-2xl font-black">{money(totalPendingRepayments)}</p>
+          <p className="mt-3 text-sm text-slate-500">{money(totalOutstanding)} outstanding across active advances</p>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {data.employees.map((employee) => (
+          <Card key={employee.id} className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold">{employee.name}</p>
+                <p className="mt-1 text-sm text-slate-500">{money(employee.earnedWages)} earned this period</p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {employee.nextPayDate}
+              </span>
+            </div>
+            <p className="mt-4 text-2xl font-black">{money(employee.available)}</p>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${employee.percent}%` }} />
+            </div>
+            <p className="mt-2 text-sm text-slate-500">{employee.percent}% of earned wages available</p>
+          </Card>
+        ))}
+      </section>
+
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-2 border-b border-slate-100 p-5 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="font-bold">Active advances</h2>
+            <p className="mt-1 text-sm text-slate-500">Issued EWA draws that will be collected through payroll deduction.</p>
+          </div>
+          <StatusBadge status="Active" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800">
+              <tr>{["Worker", "Issued", "Provider", "Advance", "Remaining", "Status"].map((header) => <th key={header} className="px-5 py-3">{header}</th>)}</tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {data.advances.map((advance) => (
+                <tr key={advance.id}>
+                  <td className="px-5 py-4 font-bold">{advance.employee}</td>
+                  <td className="px-5 py-4">{formatDate(advance.issuedAt)}</td>
+                  <td className="px-5 py-4">{advance.provider}</td>
+                  <td className="px-5 py-4">{money(advance.amount)}</td>
+                  <td className="px-5 py-4 font-bold">{money(advance.remainingBalance)}</td>
+                  <td className="px-5 py-4"><StatusBadge status={advance.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="overflow-hidden">
+          <div className="border-b border-slate-100 p-5 dark:border-slate-800">
+            <h2 className="font-bold">Pending repayments</h2>
+            <p className="mt-1 text-sm text-slate-500">Amounts queued to auto-deduct from the next payroll run.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800">
+                <tr>{["Worker", "Deduction", "Next run", "Remaining", "Status"].map((header) => <th key={header} className="px-5 py-3">{header}</th>)}</tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {data.repayments.map((repayment) => (
+                  <tr key={repayment.id}>
+                    <td className="px-5 py-4 font-bold">{repayment.employee}</td>
+                    <td className="px-5 py-4 font-bold">{money(repayment.amount)}</td>
+                    <td className="px-5 py-4">{repayment.nextRun}</td>
+                    <td className="px-5 py-4">{money(repayment.remainingBalance)}</td>
+                    <td className="px-5 py-4"><StatusBadge status={repayment.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+        <SimpleList title="Recent advance requests" items={data.requests.map((r) => [`${r.employee} - ${money(r.amount)}`, `${r.status} - ${r.requestedAt}`])} />
+      </section>
     </PageShell>
   );
 }
@@ -1075,12 +1408,200 @@ export function BridgeScreen() {
 export function PayrollSettingsScreen() {
   const query = usePayrollModule<PayrollSettingsData>("settings");
   const action = usePayrollAction();
+  const [autoPilotSchedules, setAutoPilotSchedules] = useState<PayrollAutoPilotSchedule[]>([]);
+
+  useEffect(() => {
+    if (query.data?.data.autoPilotSchedules) {
+      setAutoPilotSchedules(query.data.data.autoPilotSchedules);
+    }
+  }, [query.data?.data.autoPilotSchedules]);
+
   if (query.isLoading && !query.data) return <LoadingState />;
   if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
+
+  const toggleAutoPilot = (schedule: PayrollAutoPilotSchedule, enabled: boolean) => {
+    setAutoPilotSchedules((current) =>
+      current.map((item) =>
+        item.id === schedule.id
+          ? { ...item, enabled, status: enabled ? "On" : "Paused", reminderStatus: enabled ? "Queued" : "Not scheduled" }
+          : item,
+      ),
+    );
+
+    action.mutate({
+      action: enabled ? "payroll.autopilot.enable" : "payroll.autopilot.pause",
+      screen: "settings",
+      payload: {
+        scheduleId: schedule.id,
+        scheduleName: schedule.name,
+        nextRunLabel: schedule.nextRunLabel,
+        reviewHref: schedule.reviewHref,
+        pauseHref: schedule.pauseHref,
+      },
+    });
+  };
+
+  const sendReviewWindow = (schedule: PayrollAutoPilotSchedule) => {
+    action.mutate({
+      action: "payroll.autopilot.review-window",
+      screen: "settings",
+      payload: {
+        scheduleId: schedule.id,
+        scheduleName: schedule.name,
+        nextRunLabel: schedule.nextRunLabel,
+        reviewHref: schedule.reviewHref,
+        pauseHref: schedule.pauseHref,
+      },
+    });
+  };
+
   return (
-    <PageShell screen="settings" title="Payroll Settings" description="Configure check date calculation, funding account, ACH timing, approval chains, and notifications." actions={<PrimaryButton onClick={() => action.mutate({ action: "payroll.settings.save", screen: "settings" })}>Save Settings</PrimaryButton>}>
-      <section className="grid gap-6 lg:grid-cols-2"><Card className="p-5"><h2 className="font-bold">Processing rules</h2><div className="mt-4 grid gap-4"><label><FieldLabel>Check date calculation</FieldLabel><select defaultValue={data.checkDateCalculation} className="mt-2 h-10 w-full rounded-lg border px-3 dark:bg-slate-900"><option>Business days</option><option>Calendar days</option></select></label><label><FieldLabel>ACH timing</FieldLabel><select defaultValue={data.achTiming} className="mt-2 h-10 w-full rounded-lg border px-3 dark:bg-slate-900"><option>2-day</option><option>Next-day</option></select></label><div><FieldLabel>Bank account</FieldLabel><p className="mt-2 rounded-lg border p-3 font-bold dark:border-slate-700">{data.bankAccount}</p><button className="mt-2 text-sm font-bold text-blue-700">Connect with Plaid</button></div></div></Card><Card className="p-5"><h2 className="font-bold">Approval Chain Setup</h2><div className="mt-4 space-y-3">{data.approvalChain.map((approver) => <div key={approver.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-800"><span><span className="block font-bold">{approver.name}</span><span className="text-sm text-slate-500">{approver.role}</span></span><Edit3 className="h-4 w-4 text-slate-400" /></div>)}</div></Card></section><Card className="p-5"><h2 className="font-bold">Notification preferences</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{data.notifications.map((n) => <label key={n.label} className="flex items-center justify-between rounded-lg border border-slate-200 p-3 dark:border-slate-800"><span className="font-semibold">{n.label}</span><input type="checkbox" defaultChecked={n.enabled} /></label>)}</div></Card>
+    <PageShell
+      screen="settings"
+      title="Payroll Settings"
+      description="Configure check date calculation, funding account, ACH timing, approval chains, AutoPilot, and notifications."
+      actions={<PrimaryButton onClick={() => action.mutate({ action: "payroll.settings.save", screen: "settings" })}>Save Settings</PrimaryButton>}
+    >
+      <Card className="p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-lg font-black text-slate-950 dark:text-white">AutoPilot</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+              Auto-run payroll each period with no manual input by reusing the last successful run&apos;s employee lines, deductions, ACH timing, and approval config.
+            </p>
+          </div>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+            48h review window
+          </span>
+        </div>
+
+        <div className="mt-5 divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+          {autoPilotSchedules.map((schedule) => (
+            <div key={schedule.id} className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] lg:items-center">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="font-black text-slate-950 dark:text-white">{schedule.name}</h3>
+                  <StatusBadge status={schedule.status} />
+                </div>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {schedule.frequency} - next run {schedule.nextRunLabel}; auto-submit {schedule.autoSubmitInDays > 0 ? `in ${schedule.autoSubmitInDays} days` : "not scheduled"}.
+                </p>
+                <p className="mt-1 text-xs font-semibold text-slate-400">
+                  Last config: {schedule.lastRunId} - {schedule.lastRunConfig}
+                </p>
+              </div>
+
+              <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between gap-3">
+                  <span>Admin reminder</span>
+                  <span className="font-bold">{schedule.notificationWindowHours}h before submit</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span>Reminder status</span>
+                  <span className="font-bold">{schedule.reminderStatus}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <ToggleSwitch
+                  checked={schedule.enabled}
+                  label="AutoPilot"
+                  onChange={(checked) => toggleAutoPilot(schedule, checked)}
+                />
+                <Link
+                  href={schedule.reviewHref}
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:text-slate-200"
+                >
+                  Review
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => toggleAutoPilot(schedule, false)}
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-black text-slate-700 transition hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:text-slate-200"
+                >
+                  Pause this run
+                </button>
+                <button
+                  type="button"
+                  onClick={() => sendReviewWindow(schedule)}
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-3 text-xs font-black text-white transition hover:bg-blue-700"
+                >
+                  Send 48h notice
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <h2 className="font-bold">Processing rules</h2>
+          <div className="mt-4 grid gap-4">
+            <label>
+              <FieldLabel>Check date calculation</FieldLabel>
+              <select defaultValue={data.checkDateCalculation} className="mt-2 h-10 w-full rounded-lg border px-3 dark:bg-slate-900">
+                <option>Business days</option>
+                <option>Calendar days</option>
+              </select>
+            </label>
+            <label>
+              <FieldLabel>ACH timing</FieldLabel>
+              <select defaultValue={data.achTiming} className="mt-2 h-10 w-full rounded-lg border px-3 dark:bg-slate-900">
+                <option>2-day</option>
+                <option>Next-day</option>
+              </select>
+            </label>
+            <div>
+              <FieldLabel>Bank account</FieldLabel>
+              <p className="mt-2 rounded-lg border p-3 font-bold dark:border-slate-700">{data.bankAccount}</p>
+              <button className="mt-2 text-sm font-bold text-blue-700">Connect with Plaid</button>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="font-bold">Approval Chain Setup</h2>
+          <div className="mt-4 space-y-3">
+            {data.approvalChain.map((approver) => (
+              <div key={approver.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
+                <span>
+                  <span className="block font-bold">{approver.name}</span>
+                  <span className="text-sm text-slate-500">{approver.role}</span>
+                </span>
+                <Edit3 className="h-4 w-4 text-slate-400" />
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <Card className="p-5">
+          <h2 className="font-bold">Notification preferences</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {data.notifications.map((n) => (
+              <label key={n.label} className="flex items-center justify-between rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                <span className="font-semibold">{n.label}</span>
+                <input type="checkbox" defaultChecked={n.enabled} />
+              </label>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="font-bold">AutoPilot audit trail</h2>
+          <div className="mt-4 space-y-3">
+            {data.autoPilotAuditTrail.map((item) => (
+              <div key={`${item.time}-${item.action}`} className="border-l-2 border-blue-200 pl-4">
+                <p className="text-sm font-bold">{item.action}</p>
+                <p className="text-xs text-slate-500">{item.actor} - {item.time}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
     </PageShell>
   );
 }

@@ -4,10 +4,26 @@ import EmployeeSidebar from "@/components/EmployeeSidebar";
 import EmployeeTopBar from "@/components/EmployeeTopBar";
 import { useAuth } from "@/context/AuthContext";
 
+const employeePortalRoles = new Set([
+  "admin",
+  "administrator",
+  "employee",
+  "manager",
+  "owner",
+  "people manager",
+  "staff",
+  "super admin",
+  "worker",
+]);
+
+function canAccessEmployeePortal(role?: string | null) {
+  const normalized = (role ?? "employee").trim().toLowerCase().replace(/_/g, " ");
+  return employeePortalRoles.has(normalized);
+}
 
 export default function EmployeePortalLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useAuth();
-  const isBlocked = isLoaded && user && user.role.toLowerCase() !== "employee";
+  const isBlocked = isLoaded && user && !canAccessEmployeePortal(user.role);
 
   if (isBlocked) {
     return (
@@ -20,8 +36,8 @@ export default function EmployeePortalLayout({ children }: { children: React.Rea
             Employee access required
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            This self-service portal is only available to users with the
-            EMPLOYEE role.
+            This self-service portal is only available to users with employee
+            self-service access.
           </p>
         </div>
       </div>

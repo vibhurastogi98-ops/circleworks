@@ -163,6 +163,13 @@ function getItemIcon(notification: NotificationRecord) {
   return categoryMeta[notification.category].icon;
 }
 
+function getSecondaryAction(notification: NotificationRecord) {
+  const secondaryLabel = notification.metadata?.secondaryActionLabel;
+  const secondaryLink = notification.metadata?.secondaryActionLink;
+  if (typeof secondaryLabel !== "string" || typeof secondaryLink !== "string") return null;
+  return { label: secondaryLabel, link: secondaryLink };
+}
+
 function NotificationsEmptyState() {
   return (
     <div className="p-4">
@@ -178,6 +185,7 @@ function NotificationsEmptyState() {
 function NotificationItem({ notification, onClose }: { notification: NotificationRecord; onClose: () => void }) {
   const meta = categoryMeta[notification.category];
   const Icon = getItemIcon(notification);
+  const secondaryAction = getSecondaryAction(notification);
   const readClass = notification.isRead
     ? "bg-white hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900"
     : "bg-blue-50 hover:bg-blue-50/80 dark:bg-blue-500/10 dark:hover:bg-blue-500/15";
@@ -214,14 +222,25 @@ function NotificationItem({ notification, onClose }: { notification: Notificatio
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
               {meta.label}
             </span>
-            <Link
-              href={notification.link}
-              onClick={onClose}
-              className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-700 dark:text-blue-400"
-            >
-              {notification.actionLabel || "Open"}
-              <ArrowRight size={13} />
-            </Link>
+            <div className="flex items-center gap-3">
+              {secondaryAction ? (
+                <Link
+                  href={secondaryAction.link}
+                  onClick={onClose}
+                  className="text-xs font-black text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  {secondaryAction.label}
+                </Link>
+              ) : null}
+              <Link
+                href={notification.link}
+                onClick={onClose}
+                className="inline-flex items-center gap-1 text-xs font-black text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              >
+                {notification.actionLabel || "Open"}
+                <ArrowRight size={13} />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

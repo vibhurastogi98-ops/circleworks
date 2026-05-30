@@ -2,6 +2,8 @@
 // 🧑‍💼 EMPLOYEE SELF-SERVICE PORTAL — Mock Data
 // =============================================================================
 
+import { calculateEwaAvailability, getEwaProvider } from '@/lib/ewa/providers';
+
 // ── Employee Profile ──
 export const mockEmployeeProfile = {
   id: 'EMP-001',
@@ -378,14 +380,32 @@ export const mockGoals: Goal[] = [
 // ── EWA (Earned Wage Access) ──
 export type EwaRequest = {
   id: string; amount: number; requestedAt: string; status: 'Completed' | 'Processing' | 'Failed';
-  repaymentDate: string; fee: number;
+  repaymentDate: string; fee: number; provider: string; repaymentMethod: string;
 };
 
-export const mockEwaData = {
+const mockEwaProvider = getEwaProvider('dailypay');
+const mockEwaAvailability = calculateEwaAvailability({
   earnedWages: 3240.50,
-  availableAmount: 1620.25, // 50% of earned
+  accessiblePercent: 0.5,
+  maxPerPayPeriod: 2500,
+});
+
+export const mockEwaData = {
+  provider: mockEwaProvider,
+  currentPeriodGross: 5200,
+  earnedWages: 3240.50,
+  earnedPercent: 62,
+  accessiblePercent: 50,
+  availableAmount: mockEwaAvailability.availableAmount,
+  availablePercent: mockEwaAvailability.percentOfEarnedAccessible,
   maxPerPayPeriod: 2500,
   nextPayDate: '2026-04-18',
+  repayment: {
+    method: 'Automatic payroll deduction',
+    nextRunId: 'pr-2026-0418',
+    description: 'Auto-deducts from your next payroll',
+  },
+  suggestedAmounts: [100, 250, 500, 1000],
   eligibilityRequirements: [
     'Must have completed 90 days of employment',
     'No active disciplinary actions',
@@ -394,9 +414,9 @@ export const mockEwaData = {
     'Available funds reset after each payroll',
   ],
   requests: [
-    { id: 'EWA-001', amount: 500, requestedAt: '2026-03-28T14:30:00Z', status: 'Completed' as const, repaymentDate: '2026-04-04', fee: 0 },
-    { id: 'EWA-002', amount: 300, requestedAt: '2026-03-14T09:15:00Z', status: 'Completed' as const, repaymentDate: '2026-03-21', fee: 0 },
-    { id: 'EWA-003', amount: 750, requestedAt: '2026-02-25T16:45:00Z', status: 'Completed' as const, repaymentDate: '2026-03-07', fee: 0 },
+    { id: 'EWA-001', amount: 500, requestedAt: '2026-03-28T14:30:00Z', status: 'Completed' as const, repaymentDate: '2026-04-04', fee: 0, provider: mockEwaProvider.displayName, repaymentMethod: 'Payroll deduction' },
+    { id: 'EWA-002', amount: 300, requestedAt: '2026-03-14T09:15:00Z', status: 'Completed' as const, repaymentDate: '2026-03-21', fee: 0, provider: mockEwaProvider.displayName, repaymentMethod: 'Payroll deduction' },
+    { id: 'EWA-003', amount: 750, requestedAt: '2026-02-25T16:45:00Z', status: 'Completed' as const, repaymentDate: '2026-03-07', fee: 0, provider: mockEwaProvider.displayName, repaymentMethod: 'Payroll deduction' },
   ] as EwaRequest[],
 };
 
