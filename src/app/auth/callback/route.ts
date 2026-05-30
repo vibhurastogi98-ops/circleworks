@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
   const accountType =
     requestedAccountType === "company" ||
     requestedAccountType === "agency" ||
-    requestedAccountType === "creator_solo" ||
-    requestedAccountType === "contractor_payer"
+    requestedAccountType === "creator_solo"
       ? requestedAccountType
       : null;
 

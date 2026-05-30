@@ -177,9 +177,8 @@ const PAY_SCHEDULES = [
 type PaySchedule = (typeof PAY_SCHEDULES)[number]["value"];
 type SignupProvider = Extract<Provider, "google" | "azure">;
 type SignupMode = "email" | "google" | "microsoft";
-type AccountType = "company" | "agency" | "creator_solo" | "contractor_payer";
+type AccountType = "company" | "agency" | "creator_solo";
 type CreatorEntityType = "sole-prop" | "llc" | "s-corp" | "";
-type ContractorW9Status = "request" | "collected";
 
 const ACCOUNT_TYPES = [
   {
@@ -196,15 +195,9 @@ const ACCOUNT_TYPES = [
   },
   {
     value: "creator_solo",
-    title: "Creator/Solo",
+    title: "Creator / Solo",
     description: "Set up your owner profile and contractor count without team payroll.",
     icon: UserRound,
-  },
-  {
-    value: "contractor_payer",
-    title: "Contractor-payer",
-    description: "Start with 1099 contractor payments and W-9 collection.",
-    icon: FileText,
   },
 ] as const;
 
@@ -212,11 +205,6 @@ const CREATOR_ENTITY_TYPES = [
   { value: "sole-prop", label: "Sole Prop" },
   { value: "llc", label: "LLC" },
   { value: "s-corp", label: "S-Corp" },
-] as const;
-
-const CONTRACTOR_W9_OPTIONS = [
-  { value: "request", label: "Request W-9", detail: "Send the contractor a W-9 collection invite." },
-  { value: "collected", label: "Already collected", detail: "Mark the W-9 as collected during setup." },
 ] as const;
 
 type WizardData = {
@@ -258,11 +246,6 @@ type WizardData = {
     entityType: CreatorEntityType;
     paySelfAsOwner: boolean;
     contractorCount: number;
-  };
-  contractor: {
-    name: string;
-    email: string;
-    w9Status: ContractorW9Status;
   };
 };
 
@@ -306,11 +289,6 @@ const INITIAL_DATA: WizardData = {
     paySelfAsOwner: true,
     contractorCount: 0,
   },
-  contractor: {
-    name: "",
-    email: "",
-    w9Status: "request",
-  },
 };
 
 const inputBase =
@@ -322,7 +300,7 @@ const errorBase = "mt-1.5 text-sm font-medium text-red-600 lg:mt-1 lg:text-xs";
 
 const accountTypeSchema = z
   .object({
-    accountType: z.enum(["company", "agency", "creator_solo", "contractor_payer"]).or(z.literal("")),
+    accountType: z.enum(["company", "agency", "creator_solo"]).or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (!data.accountType) {
@@ -495,19 +473,12 @@ const creatorSchema = z
     }
   });
 
-const contractorSchema = z.object({
-  name: z.string().trim().min(2, "Contractor name is required"),
-  email: z.string().trim().email("Enter a valid contractor email"),
-  w9Status: z.enum(["request", "collected"]),
-});
-
 type AccountTypeValues = z.infer<typeof accountTypeSchema>;
 type Step1Values = z.infer<typeof step1Schema>;
 type Step2Values = z.infer<typeof step2Schema>;
 type Step3Values = z.infer<typeof step3Schema>;
 type Step4Values = z.infer<typeof step4Schema>;
 type CreatorValues = z.infer<typeof creatorSchema>;
-type ContractorValues = z.infer<typeof contractorSchema>;
 
 function getPasswordStrength(password: string) {
   let score = 0;
@@ -641,15 +612,6 @@ function getFlowSteps(accountType: AccountType | "") {
       { title: "Type", detail: "Choose workspace" },
       { title: "Account", detail: "Create your login" },
       { title: "Solo", detail: "Entity setup" },
-      { title: "Ready", detail: "Launch CircleWorks" },
-    ];
-  }
-
-  if (accountType === "contractor_payer") {
-    return [
-      { title: "Type", detail: "Choose workspace" },
-      { title: "Account", detail: "Create your login" },
-      { title: "Contractor", detail: "First 1099 worker" },
       { title: "Ready", detail: "Launch CircleWorks" },
     ];
   }
@@ -795,7 +757,7 @@ function AccountTypeForm({
 
       <fieldset>
         <legend className="sr-only">Account type</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           {ACCOUNT_TYPES.map(({ value, title, description, icon: Icon }) => {
             const active = accountType === value;
 
@@ -1747,126 +1709,6 @@ function CreatorSoloForm({
   );
 }
 
-function ContractorPayerForm({
-  data,
-  loading,
-  onComplete,
-}: {
-  data: WizardData["contractor"];
-  loading: boolean;
-  onComplete: (data: WizardData["contractor"]) => void;
-}) {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<ContractorValues>({
-    resolver: zodResolver(contractorSchema),
-    defaultValues: data,
-  });
-  const w9Status = watch("w9Status");
-
-  return (
-    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["contractor"]))} noValidate className="space-y-5 lg:space-y-4">
-      <header>
-        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">
-          Add your first contractor
-        </h2>
-        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
-          Skip W-2 payroll and benefits setup. Start with a 1099 contractor invite.
-        </p>
-      </header>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label htmlFor="contractorName" className={labelBase}>
-            Contractor name
-          </label>
-          <input
-            id="contractorName"
-            autoComplete="name"
-            {...register("name")}
-            className={fieldClass(Boolean(errors.name))}
-            aria-invalid={Boolean(errors.name)}
-            aria-describedby={errors.name ? "contractorName-error" : undefined}
-          />
-          <InlineError id="contractorName-error" message={errors.name?.message} />
-        </div>
-
-        <div>
-          <label htmlFor="contractorEmail" className={labelBase}>
-            Contractor email
-          </label>
-          <input
-            id="contractorEmail"
-            type="email"
-            autoComplete="email"
-            {...register("email")}
-            className={fieldClass(Boolean(errors.email))}
-            aria-invalid={Boolean(errors.email)}
-            aria-describedby={errors.email ? "contractorEmail-error" : undefined}
-          />
-          <InlineError id="contractorEmail-error" message={errors.email?.message} />
-        </div>
-      </div>
-
-      <fieldset>
-        <legend className={labelBase}>W-9</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {CONTRACTOR_W9_OPTIONS.map((option) => {
-            const active = w9Status === option.value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
-                  setValue("w9Status", option.value, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
-                }
-                className={`min-h-24 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:min-h-20 lg:p-3 ${
-                  active
-                    ? "border-blue-600 bg-blue-50"
-                    : "border-slate-300 bg-white hover:bg-slate-50"
-                }`}
-              >
-                <span className="block text-sm font-bold text-slate-900">{option.label}</span>
-                <span className="mt-1 block text-sm leading-5 text-slate-500 lg:text-xs">
-                  {option.detail}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <div className="flex justify-end pt-1">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex h-12 min-w-40 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Setting up...
-            </>
-          ) : (
-            <>
-              Submit
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </>
-          )}
-        </button>
-      </div>
-    </form>
-  );
-}
-
 function Step5Success({ data }: { data: WizardData }) {
   const fired = useRef(false);
 
@@ -1889,87 +1731,61 @@ function Step5Success({ data }: { data: WizardData }) {
           year: "numeric",
         })
       : "Not set";
-  const employees = accountType === "contractor_payer"
-    ? "1 contractor"
-    : accountType === "creator_solo"
-      ? `${data.creator.contractorCount} contractors`
-      : data.step4.skip
-        ? "1 admin"
-        : data.step4.isAdminEmployee
-          ? "1 employee"
-          : "2 employees";
+  const employees = accountType === "creator_solo"
+    ? `${data.creator.contractorCount} contractors`
+    : data.step4.skip
+      ? "1 admin"
+      : data.step4.isAdminEmployee
+        ? "1 employee"
+        : "2 employees";
 
-  const actionCards = accountType === "contractor_payer"
+  const actionCards = accountType === "creator_solo"
     ? [
         {
           title: "Open Contractors",
-          description: "Review W-9 status and contractor onboarding.",
+          description: "Invite collaborators and collect W-9s.",
           href: "/contractors",
           icon: FileText,
           tone: "bg-blue-50 text-blue-700 border-blue-100",
         },
         {
-          title: "Create Payment",
-          description: "Queue your first 1099 contractor payment.",
-          href: "/contractors/payments",
+          title: "Set Owner Pay",
+          description: "Review owner compensation tasks.",
+          href: "/app/payroll/run",
           icon: CircleDollarSign,
           tone: "bg-green-50 text-green-700 border-green-100",
         },
         {
-          title: "1099 Center",
-          description: "Track year-end 1099-NEC filing readiness.",
-          href: "/contractors/1099s",
-          icon: Mail,
+          title: "Company Settings",
+          description: "Finish entity and account details.",
+          href: "/settings/company",
+          icon: UserRound,
           tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
         },
       ]
-    : accountType === "creator_solo"
-      ? [
-          {
-            title: "Open Contractors",
-            description: "Invite collaborators and collect W-9s.",
-            href: "/contractors",
-            icon: FileText,
-            tone: "bg-blue-50 text-blue-700 border-blue-100",
-          },
-          {
-            title: "Set Owner Pay",
-            description: "Review owner compensation tasks.",
-            href: "/app/payroll/run",
-            icon: CircleDollarSign,
-            tone: "bg-green-50 text-green-700 border-green-100",
-          },
-          {
-            title: "Company Settings",
-            description: "Finish entity and account details.",
-            href: "/settings/company",
-            icon: UserRound,
-            tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
-          },
-        ]
-      : [
-          {
-            title: "Run Your First Payroll",
-            description: "Review your pay schedule and launch your first run.",
-            href: "/app/payroll/run",
-            icon: CircleDollarSign,
-            tone: "bg-blue-50 text-blue-700 border-blue-100",
-          },
-          {
-            title: "Add Employees",
-            description: "Invite your team and finish employee records.",
-            href: "/app/employees/new",
-            icon: Users,
-            tone: "bg-green-50 text-green-700 border-green-100",
-          },
-          {
-            title: "Set Up Benefits",
-            description: "Configure medical, dental, vision, and 401k options.",
-            href: "/app/benefits",
-            icon: HeartPulse,
-            tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
-          },
-        ];
+    : [
+        {
+          title: "Run Your First Payroll",
+          description: "Review your pay schedule and launch your first run.",
+          href: "/app/payroll/run",
+          icon: CircleDollarSign,
+          tone: "bg-blue-50 text-blue-700 border-blue-100",
+        },
+        {
+          title: "Add Employees",
+          description: "Invite your team and finish employee records.",
+          href: "/app/employees/new",
+          icon: Users,
+          tone: "bg-green-50 text-green-700 border-green-100",
+        },
+        {
+          title: "Set Up Benefits",
+          description: "Configure medical, dental, vision, and 401k options.",
+          href: "/app/benefits",
+          icon: HeartPulse,
+          tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
+        },
+      ];
 
   return (
     <div className="space-y-7 lg:space-y-5">
@@ -2078,7 +1894,6 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
       skip: data.step4.skip,
     },
     creator: data.creator,
-    contractor: data.contractor,
     googleAuth: signupMode !== "email",
   };
 }
@@ -2095,11 +1910,14 @@ function getSignupMode(rawMode: string | null): SignupMode {
   return "email";
 }
 
+function normalizeAccountType(value: unknown): AccountType | "" {
+  return value === "company" || value === "agency" || value === "creator_solo" ? value : "";
+}
+
 function getAccountTypeFromSearch(rawType: string | null, rawPlan: string | null): AccountType | "" {
-  if (rawType === "company" || rawType === "agency" || rawType === "creator_solo" || rawType === "contractor_payer") {
-    return rawType;
-  }
-  if (rawPlan === "contractor") return "contractor_payer";
+  const accountType = normalizeAccountType(rawType);
+  if (accountType) return accountType;
+  if (rawPlan === "contractor") return "creator_solo";
   return "";
 }
 
@@ -2298,44 +2116,45 @@ function SignupWizardInner() {
 
   const restoreDraft = () => {
     if (!draftCandidate) return;
-    const restored = {
+    const draftData = draftCandidate.data;
+    const restoredAccountType = normalizeAccountType(draftData.account?.accountType);
+    const restored: WizardData = {
       ...INITIAL_DATA,
-      ...draftCandidate.data,
       account: {
-        ...INITIAL_DATA.account,
-        ...(draftCandidate.data.account ?? {}),
+        accountType: restoredAccountType,
       },
       step1: {
         ...INITIAL_DATA.step1,
-        ...(draftCandidate.data.step1 ?? {}),
+        ...(draftData.step1 ?? {}),
       },
       step2: {
         ...INITIAL_DATA.step2,
-        ...(draftCandidate.data.step2 ?? {}),
+        ...(draftData.step2 ?? {}),
       },
       step3: {
         ...INITIAL_DATA.step3,
-        ...(draftCandidate.data.step3 ?? {}),
+        ...(draftData.step3 ?? {}),
       },
       step4: {
         ...INITIAL_DATA.step4,
-        ...(draftCandidate.data.step4 ?? {}),
+        ...(draftData.step4 ?? {}),
       },
       creator: {
         ...INITIAL_DATA.creator,
-        ...(draftCandidate.data.creator ?? {}),
-      },
-      contractor: {
-        ...INITIAL_DATA.contractor,
-        ...(draftCandidate.data.contractor ?? {}),
+        ...(draftData.creator ?? {}),
       },
     };
 
     setWizardData(restored);
     setShowDraftBanner(false);
     setDraftCandidate(null);
+    const resumeStep = restored.step1.password
+      ? Math.min(draftCandidate.step, getSuccessStep(restored.account.accountType))
+      : restored.account.accountType
+        ? 1
+        : 0;
     goTo(
-      restored.step1.password ? draftCandidate.step : restored.account.accountType ? 1 : 0,
+      resumeStep,
       1,
       restored.account.accountType
     );
@@ -2440,32 +2259,6 @@ function SignupWizardInner() {
         lastName: splitName(wizardData.step1.fullName).lastName,
         workEmail: wizardData.step1.email,
         jobTitle: "Owner",
-        skip: true,
-      },
-    };
-    void completeSignup(nextData);
-  };
-
-  const handleContractorPayerComplete = (contractor: WizardData["contractor"]) => {
-    const nextData = {
-      ...wizardData,
-      contractor,
-      step2: {
-        ...wizardData.step2,
-        companyName: wizardData.step2.companyName || `${wizardData.step1.fullName || "Contractor"} Payments`,
-        companySize: "1–10",
-        industry: wizardData.step2.industry || "Professional Services",
-      },
-      step3: {
-        ...INITIAL_DATA.step3,
-        skipPayroll: true,
-      },
-      step4: {
-        ...INITIAL_DATA.step4,
-        firstName: splitName(wizardData.step1.fullName).firstName,
-        lastName: splitName(wizardData.step1.fullName).lastName,
-        workEmail: wizardData.step1.email,
-        jobTitle: "Contractor Program Admin",
         skip: true,
       },
     };
@@ -2604,14 +2397,6 @@ function SignupWizardInner() {
                   data={wizardData.creator}
                   loading={completionLoading}
                   onComplete={handleCreatorComplete}
-                />
-              )}
-
-              {step === 2 && accountType === "contractor_payer" && (
-                <ContractorPayerForm
-                  data={wizardData.contractor}
-                  loading={completionLoading}
-                  onComplete={handleContractorPayerComplete}
                 />
               )}
 
