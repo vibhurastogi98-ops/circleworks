@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -80,6 +80,10 @@ import {
 } from "@/data/mockAts";
 import { employees, getEmployeeName } from "@/lib/hris-module-data";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/EmptyState";
+import ErrorState from "@/components/ErrorState";
+import { CandidatesEmptyIllustration, HiringEmptyIllustration } from "@/components/StateIllustrations";
+import { ATSKanbanSkeleton } from "@/components/skeletons";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
@@ -126,7 +130,6 @@ function useAtsOverviewData() {
   return useQuery({
     queryKey: ["ats", "overview"],
     queryFn: () => fetchJson("/api/ats/overview", getAtsOverview()),
-    initialData: getAtsOverview(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -135,7 +138,6 @@ function useAtsJobsData() {
   return useQuery({
     queryKey: ["ats", "jobs"],
     queryFn: () => fetchJson<{ jobs: AtsJob[] }>("/api/ats/jobs", { jobs: getAtsJobs() }),
-    initialData: { jobs: getAtsJobs() },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -144,7 +146,6 @@ function useAtsCandidatesData() {
   return useQuery({
     queryKey: ["ats", "candidates"],
     queryFn: () => fetchJson<{ candidates: AtsCandidate[] }>("/api/ats/candidates", { candidates: getAtsCandidates() }),
-    initialData: { candidates: getAtsCandidates() },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -357,7 +358,17 @@ function RichTextJobEditor({ value, onChange }: { value: string; onChange: (valu
 }
 
 function AtsOverviewScreen() {
-  const { data: overview, isFetching, isError } = useAtsOverviewData();
+  const { data: overview, isLoading, isFetching, isError, error, refetch } = useAtsOverviewData();
+  if (isLoading && !overview) return <ATSKanbanSkeleton />;
+  if (isError || !overview) {
+    return (
+      <ErrorState
+        title="Something went wrong"
+        description={error instanceof Error ? error.message : "Hiring overview could not load."}
+        retry={() => void refetch()}
+      />
+    );
+  }
   const stageTotals = STAGES.map((stage) => ({
     stage,
     count: overview.candidates.filter((candidate) => candidate.stage === stage.id).length,
@@ -486,13 +497,30 @@ function AtsOverviewScreen() {
 function JobsScreen() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<JobStatus | "All">("All");
-  const { data: jobsData, isFetching } = useAtsJobsData();
-  const [jobs, setJobs] = useState(jobsData.jobs);
+  const { data: jobsData, isLoading, isFetching, isError, error, refetch } = useAtsJobsData();
+  const [jobs, setJobs] = useState<AtsJob[]>([]);
 
-  const filteredJobs = jobs.filter((job) => {
+  useEffect(() => {
+    if (jobsData?.jobs) setJobs(jobsData.jobs);
+  }, [jobsData?.jobs]);
+
+  if (isLoading && !jobsData) return <ATSKanbanSkeleton />;
+  if (isError || !jobsData) {
+    return (
+      <ErrorState
+        title="Something went wrong"
+        description={error instanceof Error ? error.message : "Job postings could not load."}
+        retry={() => void refetch()}
+      />
+    );
+  }
+
+  const visibleJobs = jobs.length ? jobs : jobsData.jobs;
+  const filteredJobs = visibleJobs.filter((job) => {
     const haystack = `${job.title} ${job.department} ${job.location}`.toLowerCase();
     return haystack.includes(query.toLowerCase()) && (status === "All" || job.status === status);
   });
+  const hasActiveJobs = visibleJobs.some((job) => job.status === "Active");
 
   const toggleStatus = (job: AtsJob) => {
     const nextStatus: JobStatus = job.status === "Paused" ? "Active" : "Paused";
@@ -543,6 +571,21 @@ function JobsScreen() {
         </div>
       </div>
 
+      {!hasActiveJobs && !query ? (
+        <EmptyState
+          illustration={<HiringEmptyIllustration />}
+          title="No active jobs"
+          description="Post your first job and start hiring"
+          cta={{ label: "Create Job", href: "/hiring/jobs/new" }}
+        />
+      ) : filteredJobs.length === 0 ? (
+        <EmptyState
+          illustration={<HiringEmptyIllustration />}
+          title="No active jobs"
+          description="Post your first job and start hiring"
+          cta={{ label: "Create Job", href: "/hiring/jobs/new" }}
+        />
+      ) : (
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">
@@ -598,6 +641,7 @@ function JobsScreen() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -1386,12 +1430,27 @@ function CandidatesScreen() {
   const [jobId, setJobId] = useState("All");
   const [selectedCandidate, setSelectedCandidate] = useState<AtsCandidate | null>(null);
   const jobs = getAtsJobs();
-  const { data: candidatesData, isFetching } = useAtsCandidatesData();
+  const { data: candidatesData, isLoading, isFetching, isError, error, refetch } = useAtsCandidatesData();
+  if (isLoading && !candidatesData) return <ATSKanbanSkeleton />;
+  if (isError || !candidatesData) {
+    return (
+      <ErrorState
+        title="Something went wrong"
+        description={error instanceof Error ? error.message : "Candidates could not load."}
+        retry={() => void refetch()}
+      />
+    );
+  }
   const candidates = candidatesData.candidates;
   const filtered = candidates.filter((candidate) => {
     const haystack = `${getCandidateName(candidate)} ${candidate.email} ${candidate.currentTitle}`.toLowerCase();
     return haystack.includes(query.toLowerCase()) && (stage === "All" || candidate.stage === stage) && (jobId === "All" || candidate.jobId === jobId);
   });
+  const clearFilters = () => {
+    setQuery("");
+    setStage("All");
+    setJobId("All");
+  };
 
   return (
     <div className="space-y-6">
@@ -1420,6 +1479,14 @@ function CandidatesScreen() {
         </button>
       </div>
 
+      {filtered.length === 0 ? (
+        <EmptyState
+          illustration={<CandidatesEmptyIllustration />}
+          title="No candidates match your filters"
+          description="Try adjusting your filters or search"
+          cta={{ label: "Clear Filters", onClick: clearFilters }}
+        />
+      ) : (
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-sm">
@@ -1465,6 +1532,7 @@ function CandidatesScreen() {
           </table>
         </div>
       </div>
+      )}
       <CandidateDrawer candidate={selectedCandidate} open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)} />
     </div>
   );

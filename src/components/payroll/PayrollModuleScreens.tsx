@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertTriangle,
   ArrowRight,
   Banknote,
   Briefcase,
@@ -42,6 +41,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import EmptyState from "@/components/EmptyState";
+import QueryErrorState from "@/components/ErrorState";
+import { PayrollEmptyIllustration } from "@/components/StateIllustrations";
+import { PayStubSkeleton, PayrollRunSkeleton } from "@/components/skeletons";
+import { showMutationErrorToast } from "@/lib/mutationToasts";
 import { useSocketStore } from "@/store/useSocketStore";
 import type {
   BridgeData,
@@ -207,34 +211,19 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function LoadingState({ title = "Loading payroll data" }: { title?: string }) {
-  return (
-    <div className="flex min-h-[420px] items-center justify-center">
-      <div className="flex flex-col items-center gap-3 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-sm font-semibold">{title}</p>
-      </div>
-    </div>
-  );
+  if (title.toLowerCase().includes("pay stub") || title.toLowerCase().includes("paystub")) {
+    return <PayStubSkeleton />;
+  }
+  return <PayrollRunSkeleton />;
 }
 
-function ErrorState({ retry }: { retry: () => void }) {
+function ErrorState({ retry, error }: { retry: () => void; error?: unknown }) {
   return (
-    <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm dark:border-red-500/30 dark:bg-slate-900">
-      <AlertTriangle className="mx-auto h-10 w-10 text-red-500" />
-      <h2 className="mt-4 text-lg font-bold text-slate-950 dark:text-white">
-        Payroll data could not load
-      </h2>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-        Check your connection and retry. Unsaved payroll edits are not submitted.
-      </p>
-      <button
-        type="button"
-        onClick={retry}
-        className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-      >
-        Retry
-      </button>
-    </div>
+    <QueryErrorState
+      title="Something went wrong"
+      description={error instanceof Error ? error.message : "Payroll data could not load. Check your connection and retry."}
+      retry={retry}
+    />
   );
 }
 
@@ -322,8 +311,8 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 export function PayrollHubScreen() {
   const query = usePayrollModule<PayrollHubData>("hub");
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <PayrollRunSkeleton />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const data = query.data.data;
 
@@ -370,22 +359,22 @@ export function PayrollHubScreen() {
         ))}
       </section>
 
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-          <div>
-            <h2 className="text-base font-bold text-slate-950 dark:text-white">Active runs</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current drafts, approvals, and processing batches.</p>
+      {data.activeRuns.length === 0 ? (
+        <EmptyState
+          illustration={<PayrollEmptyIllustration />}
+          title="No payroll runs yet"
+          description="Start your first payroll run in minutes"
+          cta={{ label: "Run Payroll", href: "/payroll/run" }}
+        />
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <div>
+              <h2 className="text-base font-bold text-slate-950 dark:text-white">Active runs</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current drafts, approvals, and processing batches.</p>
+            </div>
+            <GhostLink href="/payroll/run">Start Run</GhostLink>
           </div>
-          <GhostLink href="/payroll/run">Start Run</GhostLink>
-        </div>
-        {data.activeRuns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <Banknote className="h-12 w-12 text-blue-500" />
-            <h3 className="mt-4 text-lg font-bold text-slate-950 dark:text-white">Set up your first payroll</h3>
-            <p className="mt-2 max-w-md text-sm text-slate-500">Complete schedules, tax setup, and employee payment details before the first run.</p>
-            <GhostLink href="/payroll/schedule">Open setup wizard</GhostLink>
-          </div>
-        ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800/60">
@@ -416,8 +405,8 @@ export function PayrollHubScreen() {
               </tbody>
             </table>
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
     </PageShell>
   );
 }
@@ -480,10 +469,14 @@ export function RunPayrollScreen() {
       });
       return { previous };
     },
-    onError: (_error, _variables, context) => {
+    onError: (_error, variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(["payroll", "module", "run", "current"], context.previous);
       }
+      showMutationErrorToast({
+        action: "update payroll line",
+        retry: () => updateLine.mutate(variables),
+      });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["payroll", "module", "run"] }),
   });
@@ -508,8 +501,8 @@ export function RunPayrollScreen() {
     return () => window.clearInterval(id);
   }, [processingOpen]);
 
-  if (query.isLoading) return <LoadingState title="Loading payroll draft" />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <PayrollRunSkeleton />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const data = query.data.data;
   const departments = ["All", ...Array.from(new Set(data.employees.map((employee) => employee.department)))];
@@ -851,8 +844,8 @@ export function RunPayrollScreen() {
 export function CompletedRunDetailScreen({ runId }: { runId: string }) {
   const query = usePayrollModule<CompletedRunData>("completed-run", runId);
   const action = usePayrollAction();
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <PayStubSkeleton />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const { run, lineItems, journalEntries, auditTrail } = query.data.data;
 
   return (
@@ -911,8 +904,8 @@ export function PaystubsScreen({ runId }: { runId: string }) {
   const query = usePayrollModule<PaystubData>("paystubs", runId);
   const action = usePayrollAction();
   const [search, setSearch] = useState("");
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const stubs = query.data.data.stubs.filter((stub) => stub.employee.toLowerCase().includes(search.toLowerCase()));
   return (
     <PageShell screen="paystubs" title="Pay Stubs" description="Search, preview, and download individual pay stub PDFs or export the full run as a ZIP." actions={<PrimaryButton onClick={() => action.mutate({ action: "payroll.paystubs.zip", screen: "paystubs" })}><FileArchive className="h-4 w-4" /> Download All ZIP</PrimaryButton>}>
@@ -935,8 +928,8 @@ export function OffCycleScreen() {
   const action = usePayrollAction();
   const [step, setStep] = useState(1);
   const [reason, setReason] = useState("Bonus");
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <PageShell screen="off-cycle" title="Off-Cycle Payroll" description="Create a bonus, correction, commission, or termination pay run with tax preview and approval.">
@@ -961,8 +954,8 @@ export function PayrollHistoryScreen() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [type, setType] = useState("All");
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const runs = query.data.data.runs.filter((run) => {
     return (
       `${run.id} ${run.payPeriod}`.toLowerCase().includes(search.toLowerCase()) &&
@@ -997,8 +990,8 @@ export function ContractorsScreen() {
   const query = usePayrollModule<ContractorPaymentData>("contractors");
   const action = usePayrollAction();
   const [amounts, setAmounts] = useState<Record<string, number>>({});
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const contractors = query.data.data.contractors;
   const total = contractors.reduce((sum, c) => sum + (amounts[c.id] ?? c.amount), 0);
   return (
@@ -1012,8 +1005,8 @@ export function ScheduleScreen() {
   const query = usePayrollModule<PayrollScheduleData>("schedule");
   const action = usePayrollAction();
   const [modalOpen, setModalOpen] = useState(false);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <PageShell screen="schedule" title="Pay Schedules" description="Manage active payroll schedules and preview six months of upcoming check dates." actions={<PrimaryButton onClick={() => setModalOpen(true)}><Plus className="h-4 w-4" /> Add Schedule</PrimaryButton>}>
@@ -1027,8 +1020,8 @@ export function TaxSetupScreen() {
   const query = usePayrollModule<PayrollTaxSetupData>("tax-setup");
   const action = usePayrollAction();
   const [modalOpen, setModalOpen] = useState(false);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <PageShell screen="tax-setup" title="Tax Setup" description="Configure Federal EIN, state employer accounts, SUTA rates, state forms, and EFTPS status." actions={<PrimaryButton onClick={() => setModalOpen(true)}><Plus className="h-4 w-4" /> Add State</PrimaryButton>}>
@@ -1043,8 +1036,8 @@ export function GarnishmentsScreen() {
   const query = usePayrollModule<GarnishmentData>("garnishments");
   const action = usePayrollAction();
   const [modalOpen, setModalOpen] = useState(false);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   return (
     <PageShell screen="garnishments" title="Garnishments" description="Manage child support, IRS levies, student loans, creditor orders, priority, and document evidence." actions={<PrimaryButton onClick={() => setModalOpen(true)}><Plus className="h-4 w-4" /> Add Garnishment</PrimaryButton>}>
       <Card className="overflow-hidden"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800"><tr>{["Employee", "Type", "Amount", "Priority", "Effective", "Court order", "Status"].map((h) => <th key={h} className="px-5 py-3">{h}</th>)}</tr></thead><tbody className="divide-y divide-slate-100 dark:divide-slate-800">{query.data.data.orders.map((order) => <tr key={order.id}><td className="px-5 py-4 font-bold">{order.employee}</td><td className="px-5 py-4">{order.type}</td><td className="px-5 py-4">{order.amount}</td><td className="px-5 py-4">{order.priority}</td><td className="px-5 py-4">{order.effectiveDate}</td><td className="px-5 py-4">{order.courtOrder}</td><td className="px-5 py-4"><StatusBadge status={order.status} /></td></tr>)}</tbody></table></Card>
@@ -1055,8 +1048,8 @@ export function GarnishmentsScreen() {
 
 export function EwaScreen() {
   const query = usePayrollModule<EwaData>("ewa");
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <PageShell screen="ewa" title="Earned Wage Access" description={`Administer EWA availability, advance requests, and next-run repayments with ${data.provider}.`}>
@@ -1069,8 +1062,8 @@ export function EwaScreen() {
 export function BridgeScreen() {
   const query = usePayrollModule<BridgeData>("bridge");
   const action = usePayrollAction();
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <PageShell screen="bridge" title="Payroll Bridge" description="Apply for a payroll line of credit based on payroll history, Plaid bank data, and Parafin or Capchase underwriting." actions={<PrimaryButton onClick={() => action.mutate({ action: "payroll.bridge.apply", screen: "bridge" })}>Submit Application</PrimaryButton>}>
@@ -1082,8 +1075,8 @@ export function BridgeScreen() {
 export function PayrollSettingsScreen() {
   const query = usePayrollModule<PayrollSettingsData>("settings");
   const action = usePayrollAction();
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <PageShell screen="settings" title="Payroll Settings" description="Configure check date calculation, funding account, ACH timing, approval chains, and notifications." actions={<PrimaryButton onClick={() => action.mutate({ action: "payroll.settings.save", screen: "settings" })}>Save Settings</PrimaryButton>}>
@@ -1095,8 +1088,8 @@ export function PayrollSettingsScreen() {
 export function PayrollReportsScreen() {
   const query = usePayrollModule<PayrollReportsData>("reports");
   const action = usePayrollAction();
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   return (
     <PageShell screen="reports" title="Payroll Reports" description="Download payroll summary, tax liability, deductions, and journal entry reports as Excel or CSV.">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{query.data.data.reports.map((report) => <Card key={report.id} className="p-5"><FileSpreadsheet className="h-6 w-6 text-blue-600" /><h2 className="mt-4 font-bold">{report.name}</h2><p className="mt-2 text-sm text-slate-500">{report.description}</p><p className="mt-3 text-xs font-bold text-slate-400">Last run {report.lastRun}</p><button onClick={() => action.mutate({ action: "payroll.report.download", screen: "reports", payload: { id: report.id } })} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-sm font-bold dark:border-slate-700"><Download className="h-4 w-4" /> Download {report.format}</button></Card>)}</section>

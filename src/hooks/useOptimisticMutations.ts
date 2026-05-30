@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showMutationErrorToast } from "@/lib/mutationToasts";
 
 interface OptimisticMutationOptions<TData, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;
@@ -11,6 +12,7 @@ interface OptimisticMutationOptions<TData, TVariables> {
   onError?: (error: Error, variables: TVariables) => void;
   successMessage?: string | ((data: TData, variables: TVariables) => string);
   errorMessage?: string;
+  actionLabel?: string | ((variables: TVariables) => string);
   invalidateQueries?: string[][];
 }
 
@@ -24,10 +26,26 @@ export function useOptimisticMutation<TData = unknown, TVariables = unknown>({
   onSuccess,
   onError,
   successMessage,
-  errorMessage = "Something went wrong. Please try again.",
+  errorMessage,
+  actionLabel = "complete this action",
   invalidateQueries = [],
 }: OptimisticMutationOptions<TData, TVariables>) {
   const queryClient = useQueryClient();
+
+  const invalidate = () => {
+    invalidateQueries.forEach(([queryKey, ...params]) => {
+      queryClient.invalidateQueries({ queryKey: [queryKey, ...params] });
+    });
+  };
+
+  const showSuccess = (data: TData, variables: TVariables) => {
+    if (!successMessage) return;
+    const message =
+      typeof successMessage === "function"
+        ? successMessage(data, variables)
+        : successMessage;
+    toast.success(message);
+  };
 
   return useMutation({
     mutationFn,
@@ -65,26 +83,29 @@ export function useOptimisticMutation<TData = unknown, TVariables = unknown>({
         });
       }
 
-      // Show error toast
-      toast.error(errorMessage);
+      const action =
+        typeof actionLabel === "function" ? actionLabel(variables) : actionLabel;
+      const retry = () => {
+        void mutationFn(variables)
+          .then((data) => {
+            invalidate();
+            showSuccess(data as TData, variables as TVariables);
+            onSuccess?.(data as TData, variables as TVariables);
+          })
+          .catch(() => {
+            showMutationErrorToast({ action, retry });
+          });
+      };
+
+      if (errorMessage) toast.error(errorMessage);
+      showMutationErrorToast({ action, retry });
 
       // Call custom error handler
       onError?.(error, variables);
     },
     onSuccess: (data, variables) => {
-      // Invalidate queries to refetch fresh data
-      invalidateQueries.forEach(([queryKey, ...params]) => {
-        queryClient.invalidateQueries({ queryKey: [queryKey, ...params] });
-      });
-
-      // Show success toast
-      if (successMessage) {
-        const message =
-          typeof successMessage === "function"
-            ? successMessage(data as TData, variables as TVariables)
-            : successMessage;
-        toast.success(message);
-      }
+      invalidate();
+      showSuccess(data as TData, variables as TVariables);
 
       // Call custom success handler
       onSuccess?.(data, variables);
@@ -156,6 +177,7 @@ export function useOptimisticEmployeeUpdate() {
       },
     ],
     successMessage: "Employee profile updated",
+    actionLabel: "update employee",
     invalidateQueries: [["employees"], ["employee"]],
   });
 }
@@ -202,6 +224,7 @@ export function useOptimisticPtoApproval() {
     ],
     successMessage: (data, variables) =>
       variables.approved ? "PTO request approved" : "PTO request denied",
+    actionLabel: "update PTO request",
     invalidateQueries: [["pto-requests"]],
   });
 }
@@ -241,6 +264,7 @@ export function useOptimisticExpenseApproval() {
     ],
     successMessage: (data, variables) =>
       variables.approved ? "Expense approved" : "Expense denied",
+    actionLabel: "update expense",
     invalidateQueries: [["expenses"]],
   });
 }
@@ -288,6 +312,7 @@ export function useOptimisticAtsStageChange() {
       },
     ],
     successMessage: "Candidate stage updated",
+    actionLabel: "update candidate stage",
     invalidateQueries: [["candidates"], ["candidate"]],
   });
 }

@@ -28,6 +28,8 @@ import {
   type NotificationRecord,
   useNotificationStore,
 } from "@/store/useNotificationStore";
+import EmptyState from "@/components/EmptyState";
+import { NotificationsEmptyIllustration } from "@/components/StateIllustrations";
 
 type NotificationTab = "all" | "payroll" | "hr" | "compliance" | "time" | "expenses" | "hiring";
 
@@ -161,14 +163,14 @@ function getItemIcon(notification: NotificationRecord) {
   return categoryMeta[notification.category].icon;
 }
 
-function EmptyState() {
+function NotificationsEmptyState() {
   return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center px-8 text-center">
-      <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-3xl shadow-inner dark:bg-blue-500/10">
-        🎉
-      </div>
-      <h3 className="text-sm font-black text-slate-950 dark:text-white">All caught up!</h3>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">No notifications in this view.</p>
+    <div className="p-4">
+      <EmptyState
+        illustration={<NotificationsEmptyIllustration />}
+        title="All caught up! 🎉"
+        description="You have no new notifications"
+      />
     </div>
   );
 }
@@ -348,7 +350,7 @@ export default function NotificationPanel({
                   <NotificationItem key={notification.id} notification={notification} onClose={onClose} />
                 ))
               ) : (
-                <EmptyState />
+                <NotificationsEmptyState />
               )}
             </div>
           </motion.aside>

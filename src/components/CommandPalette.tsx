@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/command";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import type { SearchResponse, SearchResult, SearchSection } from "@/lib/search/types";
+import { SearchEmptyIllustration } from "@/components/StateIllustrations";
 
 const RECENT_SEARCH_KEY = "recent_search_items";
 const LEGACY_RECENT_SEARCH_KEY = "circleworks:command-recents";
@@ -51,6 +52,7 @@ type PaletteItem = SearchResult & {
 };
 
 const SEARCH_TYPES = "employees,payroll,documents,reports,jobs";
+const SUGGESTED_SEARCHES = ["payroll runs", "employees", "PTO requests"];
 const RESULT_SECTION_ORDER: SearchSection[] = [
   "EMPLOYEES",
   "PAYROLL RUNS",
@@ -551,11 +553,27 @@ export default function CommandPalette() {
             </div>
           ) : (
             <CommandEmpty>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
-                <Search size={22} />
+              <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center">
+                <SearchEmptyIllustration className="h-24 w-24" />
               </div>
-              <p className="font-black text-slate-950 dark:text-white">No results found</p>
-              <p className="mt-1">Try an employee, payroll run, document, report, job, candidate, or setting.</p>
+              <p className="font-black text-slate-950 dark:text-white">No results for &quot;{trimmedQuery}&quot;</p>
+              <p className="mt-1">Try different keywords or check spelling</p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {SUGGESTED_SEARCHES.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => {
+                      setQuery(suggestion);
+                      setSearchData(null);
+                      inputRef.current?.focus();
+                    }}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </CommandEmpty>
           )}
         </CommandList>

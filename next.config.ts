@@ -124,14 +124,6 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
-      ...(isDevelopment
-        ? []
-        : [
-            {
-              source: "/_next/static/:path*",
-              headers: [immutableCacheHeader],
-            },
-          ]),
       ...publicStaticAssets.map((source) => ({
         source,
         headers: [isDevelopment ? devCacheHeader : immutableCacheHeader],

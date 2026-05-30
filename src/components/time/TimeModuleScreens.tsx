@@ -49,6 +49,10 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/EmptyState";
+import ErrorState from "@/components/ErrorState";
+import { PtoEmptyIllustration } from "@/components/StateIllustrations";
+import { CalendarSkeleton } from "@/components/skeletons";
 import {
   Dialog,
   DialogContent,
@@ -628,12 +632,7 @@ function MetricCard({
 }
 
 function LoadingState({ title }: { title: string }) {
-  return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
-      <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      <p className="text-sm font-semibold">{title}</p>
-    </div>
-  );
+  return <CalendarSkeleton />;
 }
 
 type OverviewData = ReturnType<typeof buildOverviewData>;
@@ -1321,14 +1320,16 @@ export function IndividualTimesheetScreen({ employeeId }: { employeeId: string }
 }
 
 export function PtoManagementScreen() {
-  const { data: balances = [] } = useQuery({
+  const balancesQuery = useQuery({
     queryKey: ["time", "pto", "balances"],
     queryFn: () => resolveTimeData(buildPtoBalances),
   });
-  const { data: initialRequests = [] } = useQuery({
+  const requestsQuery = useQuery({
     queryKey: ["time", "pto", "requests"],
     queryFn: () => resolveTimeData(buildPtoRequests),
   });
+  const balances = balancesQuery.data ?? [];
+  const initialRequests = requestsQuery.data ?? [];
   const [requests, setRequests] = useState<PtoRequestRow[]>([]);
   const [balanceDepartment, setBalanceDepartment] = useState("All");
   const [requestStatus, setRequestStatus] = useState("All");
@@ -1339,6 +1340,24 @@ export function PtoManagementScreen() {
   useEffect(() => {
     if (initialRequests.length) setRequests(initialRequests);
   }, [initialRequests]);
+
+  if ((balancesQuery.isLoading && !balancesQuery.data) || (requestsQuery.isLoading && !requestsQuery.data)) {
+    return <CalendarSkeleton />;
+  }
+
+  if (balancesQuery.isError || requestsQuery.isError) {
+    const error = balancesQuery.error || requestsQuery.error;
+    return (
+      <ErrorState
+        title="Something went wrong"
+        description={error instanceof Error ? error.message : "PTO requests could not load."}
+        retry={() => {
+          void balancesQuery.refetch();
+          void requestsQuery.refetch();
+        }}
+      />
+    );
+  }
 
   const filteredBalances = balances.filter((balance) => balanceDepartment === "All" || balance.department === balanceDepartment);
   const filteredRequests = requests.filter((request) => {
@@ -1437,6 +1456,15 @@ export function PtoManagementScreen() {
                 </Select>
               </div>
             </div>
+            {filteredRequests.length === 0 ? (
+              <div className="p-5">
+                <EmptyState
+                  illustration={<PtoEmptyIllustration />}
+                  title="No PTO requests"
+                  description="Requests will appear here for your approval"
+                />
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-left text-sm">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950/40">
@@ -1496,6 +1524,7 @@ export function PtoManagementScreen() {
                 </tbody>
               </table>
             </div>
+            )}
           </section>
         </TabsContent>
 

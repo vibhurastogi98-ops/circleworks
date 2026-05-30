@@ -12,6 +12,7 @@ import { Toaster } from "sonner";
 import QueryProvider from "@/components/QueryProvider";
 import SocketProvider from "@/components/SocketProvider";
 import { AuthProvider } from "@/context/AuthContext";
+import OfflineToast from "@/components/OfflineToast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -100,6 +101,7 @@ export default function RootLayout({
 
       <body className={`${inter.variable} ${inter.className} antialiased`} suppressHydrationWarning>
         <Toaster position="top-right" richColors />
+        <OfflineToast />
         <KeyboardShortcuts />
         <CookieBanner />
         

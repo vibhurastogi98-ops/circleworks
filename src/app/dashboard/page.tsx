@@ -28,7 +28,6 @@ import {
   DollarSign,
   FileWarning,
   Heart,
-  Loader2,
   PieChart,
   Play,
   Receipt,
@@ -51,6 +50,8 @@ import type {
   HeadcountBreakdownPoint,
   PayrollTrendPoint,
 } from "@/lib/dashboard-data";
+import ErrorState from "@/components/ErrorState";
+import { DashboardSkeleton } from "@/components/skeletons";
 
 type DateRange = "Last 7 days" | "Last 30 days" | "This Quarter" | "Custom";
 
@@ -197,23 +198,6 @@ function buildActivityFromSocket(
     timeAgo: "now",
     timestamp: now.toISOString(),
   };
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-6">
-      <div className="h-28 animate-pulse rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div
-            key={index}
-            className="h-36 animate-pulse rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
-          />
-        ))}
-      </div>
-      <div className="h-72 animate-pulse rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
-    </div>
-  );
 }
 
 function PageHeader({
@@ -837,13 +821,17 @@ export default function DashboardPage() {
   const payrollTrend = payrollTrendQuery.data ?? [];
   const headcountBreakdown = headcountBreakdownQuery.data ?? [];
   const isLoading =
-    overviewQuery.isLoading ||
-    payrollTrendQuery.isLoading ||
-    headcountBreakdownQuery.isLoading;
+    (overviewQuery.isLoading && !overviewQuery.data) ||
+    (payrollTrendQuery.isLoading && !payrollTrendQuery.data) ||
+    (headcountBreakdownQuery.isLoading && !headcountBreakdownQuery.data);
   const hasError =
     overviewQuery.isError ||
     payrollTrendQuery.isError ||
     headcountBreakdownQuery.isError;
+  const queryError =
+    overviewQuery.error ||
+    payrollTrendQuery.error ||
+    headcountBreakdownQuery.error;
 
   const kpis = useMemo(() => overview?.kpis ?? [], [overview?.kpis]);
 
@@ -860,15 +848,15 @@ export default function DashboardPage() {
   if (!overview || hasError) {
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-3xl items-center justify-center px-4">
-        <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm dark:border-red-500/30 dark:bg-slate-900">
-          <AlertTriangle className="mx-auto h-10 w-10 text-red-500" />
-          <h1 className="mt-4 text-lg font-bold text-slate-950 dark:text-white">
-            Dashboard data could not load
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Refresh the page or try again in a moment.
-          </p>
-        </div>
+        <ErrorState
+          title="Something went wrong"
+          description={queryError instanceof Error ? queryError.message : "Dashboard data could not load."}
+          retry={() => {
+            void overviewQuery.refetch();
+            void payrollTrendQuery.refetch();
+            void headcountBreakdownQuery.refetch();
+          }}
+        />
       </div>
     );
   }

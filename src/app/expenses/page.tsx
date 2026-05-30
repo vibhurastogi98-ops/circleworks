@@ -14,6 +14,8 @@ import {
   ArrowUpRight
 } from "lucide-react";
 import { getExpenseSummaryStats } from "@/data/mockExpenses";
+import EmptyState from "@/components/EmptyState";
+import { ExpensesEmptyIllustration } from "@/components/StateIllustrations";
 import { 
   PieChart, 
   Pie, 
@@ -28,6 +30,11 @@ const COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f97316', '#eab308', '#22c55e'
 export default function ExpensesOverview() {
   const [mounted, setMounted] = React.useState(false);
   const stats = getExpenseSummaryStats();
+  const hasExpenses =
+    stats.pendingReports > 0 ||
+    stats.pendingAmount > 0 ||
+    stats.violationCount > 0 ||
+    stats.categoryData.length > 0;
 
   React.useEffect(() => {
     setMounted(true);
@@ -62,6 +69,15 @@ export default function ExpensesOverview() {
         </div>
       </div>
 
+      {!hasExpenses ? (
+        <EmptyState
+          illustration={<ExpensesEmptyIllustration />}
+          title="No expenses submitted"
+          description="Employees can submit receipts from the mobile app"
+          cta={{ label: "Learn More", href: "/expenses/policies" }}
+        />
+      ) : (
+        <>
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
@@ -180,6 +196,8 @@ export default function ExpensesOverview() {
         </div>
 
       </div>
+        </>
+      )}
 
     </div>
   );

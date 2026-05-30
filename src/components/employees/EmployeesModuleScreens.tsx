@@ -56,6 +56,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import EmptyState from "@/components/EmptyState";
+import QueryErrorState from "@/components/ErrorState";
+import { EmployeesEmptyIllustration } from "@/components/StateIllustrations";
+import { EmployeeTableSkeleton, ProfileSkeleton } from "@/components/skeletons";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import type {
   ActivityData,
@@ -214,30 +218,19 @@ function useHrisAction() {
 }
 
 function LoadingState({ title = "Loading employee data" }: { title?: string }) {
-  return (
-    <div className="flex min-h-[420px] items-center justify-center">
-      <div className="flex flex-col items-center gap-3 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-sm font-semibold">{title}</p>
-      </div>
-    </div>
-  );
+  if (title.toLowerCase().includes("profile") || title.toLowerCase().includes("editor") || title.toLowerCase().includes("termination")) {
+    return <ProfileSkeleton />;
+  }
+  return <EmployeeTableSkeleton />;
 }
 
-function ErrorState({ retry }: { retry: () => void }) {
+function ErrorState({ retry, error }: { retry: () => void; error?: unknown }) {
   return (
-    <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm dark:border-red-500/30 dark:bg-slate-900">
-      <AlertTriangle className="mx-auto h-10 w-10 text-red-500" />
-      <h2 className="mt-4 text-lg font-bold text-slate-950 dark:text-white">Employee data could not load</h2>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Check your connection and retry.</p>
-      <button
-        type="button"
-        onClick={retry}
-        className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-      >
-        Retry
-      </button>
-    </div>
+    <QueryErrorState
+      title="Something went wrong"
+      description={error instanceof Error ? error.message : "Employee data could not load. Check your connection and retry."}
+      retry={retry}
+    />
   );
 }
 
@@ -418,10 +411,35 @@ export function EmployeesDirectoryScreen() {
     router.replace(`/employees?${params.toString()}`, { scroll: false });
   }, [department, location, manager, payType, router, search, status, statusPill, urlReady, view]);
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <EmployeeTableSkeleton />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const data = query.data.data;
+  if (data.employees.length === 0) {
+    return (
+      <PageShell
+        title="Employees"
+        description="Manage employee records, reporting lines, payroll attributes, documents, and lifecycle status."
+        actions={
+          <>
+            <Link href="/employees/new" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">
+              <Plus className="h-4 w-4" /> Add Employee
+            </Link>
+            <Link href="/employees/bulk" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              <Upload className="h-4 w-4" /> Import CSV
+            </Link>
+          </>
+        }
+      >
+        <EmptyState
+          illustration={<EmployeesEmptyIllustration />}
+          title="No employees yet"
+          description="Your team will appear here"
+          cta={{ label: "Add Your First Employee", href: "/employees/new" }}
+        />
+      </PageShell>
+    );
+  }
   const employees = data.employees.filter((employee) => {
     const haystack = `${employeeName(employee)} ${employee.email} ${employee.title}`.toLowerCase();
     const matchesSearch = haystack.includes(search.toLowerCase());
@@ -831,8 +849,8 @@ export function AddEmployeeWizardScreen() {
     accountNumber: "",
   });
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
 
   const setField = (field: keyof typeof form, value: string) => {
@@ -1038,8 +1056,8 @@ export function EmployeeProfileShell({
   const query = useHrisModule<ProfileData>("profile", employeeId);
   const [actionsOpen, setActionsOpen] = useState(false);
 
-  if (query.isLoading) return <LoadingState title="Loading employee profile" />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState title="Loading employee profile" />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const employee = query.data.data.employee;
   const base = `/employees/${employee.id}`;
@@ -1123,8 +1141,8 @@ export function EmployeeOverviewScreen({ employeeId }: { employeeId: string }) {
   const action = useHrisAction();
   const [editing, setEditing] = useState<string | null>(null);
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const { employee, manager, directReports, keyDates } = query.data.data;
 
   const fields = [
@@ -1210,8 +1228,8 @@ export function EmployeeCompensationScreen({ employeeId }: { employeeId: string 
   const action = useHrisAction();
   const [modalOpen, setModalOpen] = useState(false);
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   const range = data.payBand.max - data.payBand.min;
   const position = Math.min(100, Math.max(0, ((data.payBand.employeeRate - data.payBand.min) / range) * 100));
@@ -1275,8 +1293,8 @@ export function EmployeeDocumentsScreen({ employeeId }: { employeeId: string }) 
   const action = useHrisAction();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
 
   return (
@@ -1361,8 +1379,8 @@ export function EmployeeActivityScreen({ employeeId }: { employeeId: string }) {
   const query = useHrisModule<ActivityData>("activity", employeeId);
   const [type, setType] = useState("All");
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const events = query.data.data.events.filter((event) => type === "All" || event.type === type);
   const types = ["All", ...Array.from(new Set(query.data.data.events.map((event) => event.type)))];
 
@@ -1392,8 +1410,8 @@ export function BulkImportScreen() {
   const action = useHrisAction();
   const [step, setStep] = useState(1);
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
 
   return (
@@ -1493,8 +1511,8 @@ export function OrgChartScreen() {
   const [department, setDepartment] = useState("All");
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRecord | null>(null);
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const data = query.data.data;
   const visibleEmployees = department === "All" ? data.employees : data.employees.filter((employee) => employee.department === department);
@@ -1584,8 +1602,8 @@ function FlowNode({ employee }: { employee: EmployeeRecord }) {
 
 export function EmployeeBenefitsScreen({ employeeId }: { employeeId: string }) {
   const query = useHrisModule<BenefitsTabData>("benefits", employeeId);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <div className="grid gap-6">
@@ -1609,8 +1627,8 @@ export function EmployeeBenefitsScreen({ employeeId }: { employeeId: string }) {
 
 export function EmployeeTimeScreen({ employeeId }: { employeeId: string }) {
   const query = useHrisModule<TimeTabData>("time", employeeId);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <div className="grid gap-6">
@@ -1634,8 +1652,8 @@ export function EmployeeTimeScreen({ employeeId }: { employeeId: string }) {
 
 export function EmployeePayrollScreen({ employeeId }: { employeeId: string }) {
   const query = useHrisModule<PayrollTabData>("payroll", employeeId);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <div className="grid gap-6">
@@ -1655,8 +1673,8 @@ export function EmployeePayrollScreen({ employeeId }: { employeeId: string }) {
 
 export function EmployeePerformanceScreen({ employeeId }: { employeeId: string }) {
   const query = useHrisModule<PerformanceTabData>("performance", employeeId);
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   const data = query.data.data;
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -1748,8 +1766,8 @@ export function EmployeeEditScreen({ employeeId }: { employeeId: string }) {
     }
   }, [query.data]);
 
-  if (query.isLoading) return <LoadingState title="Loading employee editor" />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState title="Loading employee editor" />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const { employee, directReports } = query.data.data;
   const setField = <Field extends keyof EmployeeEditForm>(field: Field, value: EmployeeEditForm[Field]) => {
@@ -1891,8 +1909,8 @@ export function EmployeeTerminateScreen({ employeeId }: { employeeId: string }) 
   const [confirmation, setConfirmation] = useState("");
   const [completed, setCompleted] = useState(false);
 
-  if (query.isLoading) return <LoadingState title="Loading termination workflow" />;
-  if (query.isError || !query.data) return <ErrorState retry={() => void query.refetch()} />;
+  if (query.isLoading && !query.data) return <LoadingState title="Loading termination workflow" />;
+  if (query.isError || !query.data) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
 
   const employee = query.data.data.employee;
   const name = employeeName(employee);
