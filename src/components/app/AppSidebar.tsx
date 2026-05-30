@@ -119,8 +119,9 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Contractors",
     icon: Handshake,
-    href: "/contractors",
+    href: "/app/contractors",
     children: [
+      { label: "Contractor Module", href: "/app/contractors" },
       { label: "Contractor Hub", href: "/contractors" },
       { label: "Onboarding", href: "/contractors/onboarding" },
       { label: "Contracts", href: "/contractors/contracts" },
