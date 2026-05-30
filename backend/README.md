@@ -72,12 +72,12 @@ Swagger docs at `http://localhost:3001/docs`
 
 ### API Versioning
 
-All endpoints use the `/api/v1` prefix.
+All endpoints use the `/v1` prefix.
 
 ```
-POST /api/v1/auth/login
-GET /api/v1/employees
-POST /api/v1/payroll/runs
+POST /v1/auth/login
+GET /v1/employees
+POST /v1/payroll/runs
 ```
 
 ### Authentication
@@ -100,7 +100,7 @@ Authorization: Bearer <access_token>
 - Bulk operations: **10 requests per hour** per company
 - Report generation: **20 requests per hour** per user
 - Company aggregate: **1,000 requests per minute** per company
-- Public API developer keys: **60 requests per minute** per key
+- Public API developer keys: **100 requests per minute** per key by default, configurable with `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_MS`
 - Returns `429 Too Many Requests` with `Retry-After` and `X-RateLimit-*` headers when exceeded
 
 ### Cursor Pagination
@@ -108,14 +108,14 @@ Authorization: Bearer <access_token>
 All list endpoints use cursor pagination:
 
 ```http
-GET /api/v2/employees?cursor={opaque_cursor}&limit=25&direction=next
+GET /v1/employees?cursor={opaque_cursor}&limit=25&direction=next
 ```
 
 - Default limits: employees `25`, payroll runs `20`, audit logs `50`
 - Maximum limit: `100`; larger values return `400 limit_exceeded`
 - Cursor payload: base64 encoded `{ "id": "lastItemId", "sort_field": "lastItemSortValue" }`
 - Response envelope: `{ data, pagination: { cursor_next, cursor_prev, has_next, has_prev, total_count } }`
-- `/api/v1/employees` offset pagination is deprecated; use `/api/v2/employees`
+- `/v1/employees` supports the primary employee list endpoint.
 
 ### Error Handling
 
@@ -128,7 +128,7 @@ All errors follow a consistent format:
   "error": "BAD_REQUEST",
   "requestId": "uuid-here",
   "timestamp": "2024-01-15T10:30:00Z",
-  "path": "/api/v1/auth/register"
+  "path": "/v1/auth/register"
 }
 ```
 
@@ -511,7 +511,12 @@ Configure in your deployment platform:
 
 - **Sentry** - Error tracking & monitoring
 - **Winston** - Application logging
-- **Health Check** - `GET /health`
+- **Health Check** - `GET /v1/health`
+- **WebSocket Event Contract** - see `WEBSOCKET_EVENTS.md`
+
+### Railway
+
+`railway.json` uses the production Dockerfile and `/v1/health` as the healthcheck path. Configure `api.circleworks.com` as the custom domain in Railway after the service is provisioned.
 
 ## Security
 

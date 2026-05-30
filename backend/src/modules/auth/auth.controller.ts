@@ -46,8 +46,15 @@ export class AuthController {
     const result = await this.authService.login(loginDto, {
       deviceInfo: this.resolveDeviceInfo(req),
     });
-    this.setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenMaxAge);
-    return this.withoutRefreshToken(result);
+    if (result.mfaRequired) {
+      return result;
+    }
+    this.setRefreshTokenCookie(
+      res,
+      result.refreshToken,
+      result.refreshTokenMaxAge,
+    );
+    return this.toAuthResponse(result);
   }
 
   @Post('refresh')
@@ -57,10 +64,15 @@ export class AuthController {
     @Request() req: any,
     @Response({ passthrough: true }) res: ExpressResponse,
   ) {
-    const refreshToken = refreshTokenDto.refreshToken || this.getCookie(req, 'refresh_token');
+    const refreshToken =
+      refreshTokenDto.refreshToken || this.getCookie(req, 'refresh_token');
     const result = await this.authService.refresh({ refreshToken });
-    this.setRefreshTokenCookie(res, result.refreshToken, result.refreshTokenMaxAge);
-    return this.withoutRefreshToken(result);
+    this.setRefreshTokenCookie(
+      res,
+      result.refreshToken,
+      result.refreshTokenMaxAge,
+    );
+    return this.toAuthResponse(result);
   }
 
   @Post('logout')
@@ -71,7 +83,8 @@ export class AuthController {
     @Body() body: { refreshToken?: string },
     @Response({ passthrough: true }) res: ExpressResponse,
   ) {
-    const refreshToken = body.refreshToken || this.getCookie(req, 'refresh_token');
+    const refreshToken =
+      body.refreshToken || this.getCookie(req, 'refresh_token');
     this.clearRefreshTokenCookie(res);
     return this.authService.logout(req.user.id, refreshToken);
   }
@@ -92,8 +105,14 @@ export class AuthController {
   @Post('sessions/revoke-others')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard('jwt'))
-  async revokeOtherSessions(@Request() req: any, @Body() body: { currentSessionId?: string }) {
-    return this.authService.revokeOtherSessions(req.user.id, body.currentSessionId);
+  async revokeOtherSessions(
+    @Request() req: any,
+    @Body() body: { currentSessionId?: string },
+  ) {
+    return this.authService.revokeOtherSessions(
+      req.user.id,
+      body.currentSessionId,
+    );
   }
 
   @Post('forgot-password')
@@ -116,7 +135,10 @@ export class AuthController {
     @Body() changePasswordDto: ChangePasswordDto,
     @Response({ passthrough: true }) res: ExpressResponse,
   ) {
-    const result = await this.authService.changePassword(req.user.id, changePasswordDto);
+    const result = await this.authService.changePassword(
+      req.user.id,
+      changePasswordDto,
+    );
     this.clearRefreshTokenCookie(res);
     return result;
   }
@@ -151,7 +173,11 @@ export class AuthController {
     return { user: req.user };
   }
 
-  private setRefreshTokenCookie(res: ExpressResponse, refreshToken: string, maxAgeSeconds: number) {
+  private setRefreshTokenCookie(
+    res: ExpressResponse,
+    refreshToken: string,
+    maxAgeSeconds: number,
+  ) {
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -171,9 +197,25 @@ export class AuthController {
     });
   }
 
-  private withoutRefreshToken(result: any) {
-    const { refreshToken, refreshTokenMaxAge, ...publicResult } = result;
-    return publicResult;
+  private toAuthResponse(result: any) {
+    const {
+      accessToken,
+      refreshToken,
+      refreshTokenMaxAge,
+      expiresIn,
+      tokenType,
+      ...publicResult
+    } = result;
+    return {
+      ...publicResult,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: expiresIn,
+      token_type: tokenType,
+      accessToken,
+      expiresIn,
+      tokenType,
+    };
   }
 
   private getCookie(req: any, name: string) {
@@ -189,7 +231,12 @@ export class AuthController {
 
   private resolveDeviceInfo(req: any) {
     const userAgent = String(req.headers?.['user-agent'] || 'Unknown device');
-    const ip = String(req.headers?.['x-forwarded-for'] || req.ip || req.socket?.remoteAddress || 'Unknown location')
+    const ip = String(
+      req.headers?.['x-forwarded-for'] ||
+        req.ip ||
+        req.socket?.remoteAddress ||
+        'Unknown location',
+    )
       .split(',')[0]
       .trim();
 

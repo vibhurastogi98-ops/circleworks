@@ -1,11 +1,15 @@
 import { RATE_LIMIT_RULES, RateLimitRule } from './rate-limit.constants';
 
 function normalizePath(path: string) {
-  return path.replace(/^\/api\/v\d+/, '').split('?')[0] || '/';
+  return path.replace(/^\/(?:api\/)?v\d+/, '').split('?')[0] || '/';
 }
 
 function isBulkPath(path: string) {
-  return path.includes('/batch') || path.includes('/bulk') || path.includes('/import');
+  return (
+    path.includes('/batch') ||
+    path.includes('/bulk') ||
+    path.includes('/import')
+  );
 }
 
 function isAuthCredentialPath(path: string) {
@@ -34,14 +38,26 @@ function isPayrollProcessingPath(path: string, method: string) {
 
 function isReportGenerationPath(path: string, method: string) {
   if (!path.startsWith('/reports')) return false;
-  return ['POST', 'PUT', 'PATCH'].includes(method) || path.includes('/generate') || path.includes('/export');
+  return (
+    ['POST', 'PUT', 'PATCH'].includes(method) ||
+    path.includes('/generate') ||
+    path.includes('/export')
+  );
 }
 
-export function classifyRateLimitRules(path: string, method: string, hasApiKey: boolean): RateLimitRule[] {
+export function classifyRateLimitRules(
+  path: string,
+  method: string,
+  hasApiKey: boolean,
+): RateLimitRule[] {
   const normalizedPath = normalizePath(path);
   const normalizedMethod = method.toUpperCase();
 
-  if (normalizedPath === '/health' || normalizedPath === '/' || normalizedPath.startsWith('/docs')) {
+  if (
+    normalizedPath === '/health' ||
+    normalizedPath === '/' ||
+    normalizedPath.startsWith('/docs')
+  ) {
     return [];
   }
 

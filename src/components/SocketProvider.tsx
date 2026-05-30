@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useSocketStore } from "@/store/useSocketStore";
 import { useWebSocketEvents } from "@/hooks/useWebSocketEvents";
 import { useAuth } from "@/context/AuthContext";
@@ -22,13 +28,17 @@ const SocketContext = createContext<SocketContextType>({
 
 export const useSocket = () => useContext(SocketContext);
 
-export default function SocketProvider({ children }: { children: React.ReactNode }) {
+export default function SocketProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const isConnected = useSocketStore((s) => s.isConnected);
   const socket = useSocketStore((s) => s.socket);
   const realtimeSyncPaused = useSocketStore((s) => s.realtimeSyncPaused);
   const disconnectAtMs = useSocketStore((s) => s.disconnectAtMs);
-  const { connect, disconnect, manualReconnect } = useSocketStore();
-  const { isLoaded, isSignedIn, user } = useAuth();
+  const { connect, disconnect, manualReconnect, joinRooms } = useSocketStore();
+  const { accessToken, isLoaded, isSignedIn, user } = useAuth();
   const currentCompany = usePlatformStore((s) => s.currentCompany);
   const [now, setNow] = useState(() => Date.now());
 
@@ -42,20 +52,25 @@ export default function SocketProvider({ children }: { children: React.ReactNode
       return;
     }
 
-    connect("");
-  }, [isLoaded, isSignedIn, connect, disconnect]);
+    connect(accessToken ?? undefined, {
+      companyId: currentCompany.id,
+      userId: user?.userId,
+    });
+  }, [
+    accessToken,
+    currentCompany.id,
+    isLoaded,
+    isSignedIn,
+    user?.userId,
+    connect,
+    disconnect,
+  ]);
 
   useEffect(() => {
     if (!socket || !isConnected || !user?.userId) return;
 
-    const rooms = [
-      `company:${currentCompany.id}`,
-      `user:${user.userId}`,
-    ];
-
-    socket.emit("join", { rooms });
-    socket.emit("notification.join", { rooms });
-  }, [socket, isConnected, user?.userId, currentCompany.id]);
+    joinRooms(currentCompany.id, user.userId);
+  }, [socket, isConnected, user?.userId, currentCompany.id, joinRooms]);
 
   useEffect(() => {
     if (isConnected || !disconnectAtMs) return;
@@ -77,7 +92,7 @@ export default function SocketProvider({ children }: { children: React.ReactNode
       realtimeDataStale,
       manualReconnect,
     }),
-    [isConnected, realtimeSyncPaused, realtimeDataStale, manualReconnect]
+    [isConnected, realtimeSyncPaused, realtimeDataStale, manualReconnect],
   );
 
   return (

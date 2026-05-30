@@ -13,7 +13,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CompaniesService } from './companies.service';
 
-@Controller('companies')
+@Controller(['company', 'companies'])
 @UseGuards(AuthGuard('jwt'))
 export class CompaniesController {
   constructor(private companiesService: CompaniesService) {}
@@ -49,7 +49,28 @@ export class CompaniesController {
 
   @Post('switch')
   @HttpCode(HttpStatus.OK)
-  async switchCompany(@Request() req: any, @Body() body: { companyId: string }) {
+  async switchCompany(
+    @Request() req: any,
+    @Body() body: { companyId: string },
+  ) {
     return this.companiesService.switchCompany(req.user.id, body.companyId);
+  }
+}
+
+@Controller('invitations')
+@UseGuards(AuthGuard('jwt'))
+export class InvitationsController {
+  constructor(private companiesService: CompaniesService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async inviteUser(
+    @Body() body: { companyId: string; email: string; role?: string },
+  ) {
+    return this.companiesService.inviteUser(
+      body.companyId,
+      body.email,
+      body.role,
+    );
   }
 }

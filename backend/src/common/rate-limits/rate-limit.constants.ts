@@ -61,11 +61,10 @@ export const RATE_LIMIT_RULES = {
   publicApiKey: {
     id: 'public_api_key',
     scope: 'key',
-    points: 60,
+    points: 100,
     durationSeconds: 60,
     keyPrefix: 'rl:key',
   },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitRuleId = keyof typeof RATE_LIMIT_RULES;
-

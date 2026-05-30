@@ -24,13 +24,17 @@ type NotificationState = {
   loadNotifications: () => Promise<void>;
   addNotification: (notification: IncomingNotification) => NotificationRecord;
   setNotifications: (notifications: NotificationRecord[]) => void;
+  syncUnreadCount: (unreadCount: number) => void;
   markAsRead: (id: string) => void;
   markVisibleAsRead: (ids: string[]) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   clearNotifications: () => void;
 };
 
-function normalizeCategory(value: unknown, fallback: NotificationCategory): NotificationCategory {
+function normalizeCategory(
+  value: unknown,
+  fallback: NotificationCategory,
+): NotificationCategory {
   const categories: NotificationCategory[] = [
     "payroll",
     "hr",
@@ -43,12 +47,24 @@ function normalizeCategory(value: unknown, fallback: NotificationCategory): Noti
     "system",
     "billing",
   ];
-  return categories.includes(value as NotificationCategory) ? (value as NotificationCategory) : fallback;
+  return categories.includes(value as NotificationCategory)
+    ? (value as NotificationCategory)
+    : fallback;
 }
 
-function normalizeSeverity(value: unknown, fallback: NotificationSeverity): NotificationSeverity {
-  const severities: NotificationSeverity[] = ["success", "info", "warning", "critical"];
-  return severities.includes(value as NotificationSeverity) ? (value as NotificationSeverity) : fallback;
+function normalizeSeverity(
+  value: unknown,
+  fallback: NotificationSeverity,
+): NotificationSeverity {
+  const severities: NotificationSeverity[] = [
+    "success",
+    "info",
+    "warning",
+    "critical",
+  ];
+  return severities.includes(value as NotificationSeverity)
+    ? (value as NotificationSeverity)
+    : fallback;
 }
 
 function sortNotifications(notifications: NotificationRecord[]) {
@@ -61,17 +77,26 @@ function getUnreadCount(notifications: NotificationRecord[]) {
   return notifications.filter((notification) => !notification.isRead).length;
 }
 
-function normalizeIncoming(notification: IncomingNotification): NotificationRecord {
-  const type = notification.type ?? notification.eventType ?? "system.new_feature";
+function normalizeIncoming(
+  notification: IncomingNotification,
+): NotificationRecord {
+  const type =
+    notification.type ?? notification.eventType ?? "system.new_feature";
   const definition = getNotificationDefinition(type);
 
   return {
-    id: notification.id ?? `live-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id:
+      notification.id ??
+      `live-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     type: definition.type,
     category: normalizeCategory(notification.category, definition.category),
     title: notification.title ?? definition.title,
-    message: notification.message ?? notification.description ?? definition.message,
-    timestamp: notification.timestamp ?? notification.createdAt ?? new Date().toISOString(),
+    message:
+      notification.message ?? notification.description ?? definition.message,
+    timestamp:
+      notification.timestamp ??
+      notification.createdAt ??
+      new Date().toISOString(),
     isRead: notification.isRead ?? false,
     link: notification.link ?? definition.link,
     actionLabel: notification.actionLabel ?? definition.actionLabel,
@@ -94,20 +119,32 @@ async function persistReadState(ids?: string[]) {
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: createDemoNotifications(),
-  unreadCount: createDemoNotifications().filter((notification) => !notification.isRead).length,
+  unreadCount: createDemoNotifications().filter(
+    (notification) => !notification.isRead,
+  ).length,
   isLoading: false,
   lastLoadedAt: null,
 
   loadNotifications: async () => {
     set({ isLoading: true });
     try {
-      const response = await fetch("/api/notifications", { credentials: "include" });
+      const response = await fetch("/api/notifications", {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to load notifications");
-      const data = (await response.json()) as { notifications?: IncomingNotification[] };
-      const notifications = sortNotifications((data.notifications ?? []).map(normalizeIncoming));
+      const data = (await response.json()) as {
+        notifications?: IncomingNotification[];
+      };
+      const notifications = sortNotifications(
+        (data.notifications ?? []).map(normalizeIncoming),
+      );
       set({
-        notifications: notifications.length ? notifications : createDemoNotifications(),
-        unreadCount: getUnreadCount(notifications.length ? notifications : createDemoNotifications()),
+        notifications: notifications.length
+          ? notifications
+          : createDemoNotifications(),
+        unreadCount: getUnreadCount(
+          notifications.length ? notifications : createDemoNotifications(),
+        ),
         lastLoadedAt: new Date().toISOString(),
       });
     } catch {
@@ -125,8 +162,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   addNotification: (incoming) => {
     const notification = normalizeIncoming(incoming);
     set((state) => {
-      const withoutDuplicate = state.notifications.filter((item) => item.id !== notification.id);
-      const notifications = sortNotifications([notification, ...withoutDuplicate]);
+      const withoutDuplicate = state.notifications.filter(
+        (item) => item.id !== notification.id,
+      );
+      const notifications = sortNotifications([
+        notification,
+        ...withoutDuplicate,
+      ]);
       return {
         notifications,
         unreadCount: getUnreadCount(notifications),
@@ -140,10 +182,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ notifications: sorted, unreadCount: getUnreadCount(sorted) });
   },
 
+  syncUnreadCount: (unreadCount) =>
+    set({ unreadCount: Math.max(0, unreadCount) }),
+
   markAsRead: (id) => {
     set((state) => {
       const notifications = state.notifications.map((notification) =>
-        notification.id === id ? { ...notification, isRead: true } : notification,
+        notification.id === id
+          ? { ...notification, isRead: true }
+          : notification,
       );
       return { notifications, unreadCount: getUnreadCount(notifications) };
     });
@@ -155,7 +202,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set((state) => {
       const idSet = new Set(ids);
       const notifications = state.notifications.map((notification) =>
-        idSet.has(notification.id) ? { ...notification, isRead: true } : notification,
+        idSet.has(notification.id)
+          ? { ...notification, isRead: true }
+          : notification,
       );
       return { notifications, unreadCount: getUnreadCount(notifications) };
     });
@@ -164,7 +213,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   markAllAsRead: async () => {
     set((state) => ({
-      notifications: state.notifications.map((notification) => ({ ...notification, isRead: true })),
+      notifications: state.notifications.map((notification) => ({
+        ...notification,
+        isRead: true,
+      })),
       unreadCount: 0,
     }));
     await persistReadState();

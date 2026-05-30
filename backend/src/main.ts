@@ -17,13 +17,21 @@ async function bootstrap() {
   }
 
   // CORS
-  const productionOrigins = ['https://circleworks.com', 'https://app.circleworks.com'];
-  const configuredOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean);
-  const productionConfiguredOrigins = configuredOrigins?.filter((origin) => origin !== '*');
-  let corsOrigins = configuredOrigins || ['http://localhost:3000'];
+  const productionOrigins = ['https://app.circleworks.com'];
+  const configuredOrigins = process.env.CORS_ORIGIN?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const productionConfiguredOrigins = configuredOrigins?.filter(
+    (origin) => origin !== '*',
+  );
+  let corsOrigins = productionConfiguredOrigins?.length
+    ? productionConfiguredOrigins
+    : productionOrigins;
 
   if (process.env.NODE_ENV === 'production') {
-    corsOrigins = productionConfiguredOrigins?.length ? productionConfiguredOrigins : productionOrigins;
+    corsOrigins = productionConfiguredOrigins?.length
+      ? productionConfiguredOrigins
+      : productionOrigins;
   }
 
   app.enableCors({
@@ -32,7 +40,7 @@ async function bootstrap() {
   });
 
   // API Versioning
-  app.setGlobalPrefix(`api/${process.env.API_VERSION || 'v1'}`);
+  app.setGlobalPrefix(process.env.API_VERSION || 'v1');
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -53,7 +61,11 @@ async function bootstrap() {
     .setVersion('1.0.0')
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' })
-    .setContact('CircleWorks', 'https://circleworks.com', 'support@circleworks.com')
+    .setContact(
+      'CircleWorks',
+      'https://circleworks.com',
+      'support@circleworks.com',
+    )
     .setLicense('MIT', 'https://github.com/circleworks/api')
     .build();
 

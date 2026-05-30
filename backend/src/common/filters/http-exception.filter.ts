@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import * as Sentry from '@sentry/node';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -43,6 +44,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exception.stack,
         requestId,
       );
+      Sentry.captureException(exception, {
+        tags: { requestId: String(requestId) },
+        extra: { path: request.url, method: request.method },
+      });
     }
 
     response.status(status).json({

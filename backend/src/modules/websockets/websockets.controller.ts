@@ -1,5 +1,12 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  Get,
+} from '@nestjs/common';
 import { WebsocketsService } from './websockets.service';
+import { EventsGateway } from './events.gateway';
 
 interface NotificationTestDto {
   userId: string;
@@ -11,13 +18,23 @@ interface NotificationTestDto {
 
 @Controller('websocket/test')
 export class WebsocketsController {
-  constructor(private readonly websocketsService: WebsocketsService) {}
+  constructor(
+    private readonly websocketsService: WebsocketsService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
+
+  @Get('metrics')
+  getMetrics() {
+    return this.eventsGateway.getMetrics();
+  }
 
   @Post('notification')
   async emitNotification(@Body() body: NotificationTestDto) {
     const { userId, title, description, type = 'SYSTEM', metadata } = body;
     if (!userId || !title || !description) {
-      throw new BadRequestException('userId, title, and description are required');
+      throw new BadRequestException(
+        'userId, title, and description are required',
+      );
     }
 
     const notification = {

@@ -20,6 +20,7 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
+  accessToken: string | null;
   isLoaded: boolean;
   isSignedIn: boolean;
   signOut: (opts?: { redirectUrl?: string }) => Promise<void>;
@@ -28,6 +29,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  accessToken: null,
   isLoaded: false,
   isSignedIn: false,
   signOut: async () => {},
@@ -45,6 +47,7 @@ function mapSupabaseUser(supabaseUser: User | null): AuthUser | null {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
 
@@ -53,15 +56,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       setUser(null);
+      setAccessToken(null);
       setIsLoaded(true);
       return;
     }
 
     try {
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+      const [
+        {
+          data: { user: supabaseUser },
+        },
+        {
+          data: { session },
+        },
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+      ]);
       setUser(mapSupabaseUser(supabaseUser));
+      setAccessToken(session?.access_token ?? null);
     } catch {
       setUser(null);
+      setAccessToken(null);
     } finally {
       setIsLoaded(true);
     }
@@ -77,12 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("online", refreshWhenOnline);
 
     // Listen to auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(mapSupabaseUser(session?.user ?? null));
-        setIsLoaded(true);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(mapSupabaseUser(session?.user ?? null));
+      setAccessToken(session?.access_token ?? null);
+      setIsLoaded(true);
+    });
 
     return () => {
       window.removeEventListener("online", refreshWhenOnline);
@@ -97,14 +114,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetch("/api/auth/logout", { method: "POST", credentials: "include" }),
       ]);
       setUser(null);
+      setAccessToken(null);
       router.push(opts?.redirectUrl || "/login");
     },
-    [supabase, router]
+    [supabase, router],
   );
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoaded, isSignedIn: !!user, signOut, refreshUser }}
+      value={{
+        user,
+        accessToken,
+        isLoaded,
+        isSignedIn: !!user,
+        signOut,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

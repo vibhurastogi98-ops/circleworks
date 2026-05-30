@@ -1,9 +1,8 @@
 import { create } from "zustand";
 import { io, Socket } from "socket.io-client";
 
-/** Sec. 02 — WS reconnection backoff (max 6 attempts before pause banner). */
-const RECONNECT_BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 32000] as const;
-const MAX_RECONNECT_ATTEMPTS = 6;
+const MAX_RECONNECT_DELAY_MS = 30000;
+const MAX_RECONNECT_ATTEMPTS = 10;
 
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -24,9 +23,15 @@ interface SocketState {
   lastDisconnectIso: string | null;
   /** Wall clock when disconnect began (for >30s stale UI) */
   disconnectAtMs: number | null;
-  connect: (token?: string) => void;
+  companyId: string | null;
+  userId: string | null;
+  connect: (
+    token?: string,
+    options?: { companyId?: string; userId?: string },
+  ) => void;
   disconnect: () => void;
   manualReconnect: () => void;
+  joinRooms: (companyId?: string, userId?: string) => void;
   clearLastDisconnectIso: () => void;
   emit: (event: string, data: any) => void;
   on: (event: string, callback: (data: any) => void) => void;
@@ -34,18 +39,20 @@ interface SocketState {
 }
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
-const ENABLE_WEBSOCKETS = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKETS === "true";
-const isLocalWebSocketUrl = WS_URL ? /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(WS_URL) : false;
-const shouldConnectWebSocket = Boolean(WS_URL && (ENABLE_WEBSOCKETS || !isLocalWebSocketUrl));
+const shouldConnectWebSocket = Boolean(WS_URL);
 
-function scheduleReconnect(socket: Socket, get: () => SocketState, set: (p: Partial<SocketState>) => void) {
+function scheduleReconnect(
+  socket: Socket,
+  get: () => SocketState,
+  set: (p: Partial<SocketState>) => void,
+) {
   const { reconnectAttempts, realtimeSyncPaused } = get();
   if (realtimeSyncPaused) return;
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     set({ realtimeSyncPaused: true });
     return;
   }
-  const delay = RECONNECT_BACKOFF_MS[Math.min(reconnectAttempts, RECONNECT_BACKOFF_MS.length - 1)];
+  const delay = Math.min(1000 * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY_MS);
   clearReconnectTimer();
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
@@ -64,10 +71,12 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   realtimeSyncPaused: false,
   lastDisconnectIso: null,
   disconnectAtMs: null,
+  companyId: null,
+  userId: null,
 
   clearLastDisconnectIso: () => set({ lastDisconnectIso: null }),
 
-  connect: (token?: string) => {
+  connect: (token?: string, options = {}) => {
     const { socket: existingSocket, disconnect } = get();
 
     if (!shouldConnectWebSocket || !WS_URL) {
@@ -81,7 +90,11 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     }
 
     const socket = io(WS_URL, {
-      auth: token ? { token } : undefined,
+      auth: {
+        ...(token ? { token } : {}),
+        ...(options.companyId ? { companyId: options.companyId } : {}),
+        ...(options.userId ? { userId: options.userId } : {}),
+      },
       transports: ["websocket", "polling"],
       reconnection: false,
       withCredentials: true,
@@ -94,6 +107,16 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         reconnectAttempts: 0,
         realtimeSyncPaused: false,
         disconnectAtMs: null,
+        companyId: options.companyId || get().companyId,
+        userId: options.userId || get().userId,
+      });
+      get().joinRooms(options.companyId, options.userId);
+    });
+
+    socket.on("connected", (data: { companyId?: string; userId?: string }) => {
+      set({
+        companyId: data.companyId || options.companyId || get().companyId,
+        userId: data.userId || options.userId || get().userId,
       });
     });
 
@@ -120,19 +143,21 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     });
 
     socket.on("connect_error", (err) => {
-      set({ isConnected: false, disconnectAtMs: get().disconnectAtMs ?? Date.now() });
+      set({
+        isConnected: false,
+        disconnectAtMs: get().disconnectAtMs ?? Date.now(),
+      });
       if (process.env.NODE_ENV === "development") {
         console.info("Realtime socket connect_error:", err?.message);
       }
+      scheduleReconnect(socket, get, set);
     });
 
-    socket.on("reconnect", () => {
-      if (process.env.NODE_ENV === "development") {
-        console.log("WebSocket reconnected");
-      }
+    set({
+      socket,
+      companyId: options.companyId || null,
+      userId: options.userId || null,
     });
-
-    set({ socket });
   },
 
   manualReconnect: () => {
@@ -151,6 +176,27 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     }
   },
 
+  joinRooms: (companyId?: string, userId?: string) => {
+    const { socket } = get();
+    const nextCompanyId = companyId || get().companyId;
+    const nextUserId = userId || get().userId;
+    const rooms = [
+      nextCompanyId ? `company:${nextCompanyId}` : null,
+      nextUserId ? `user:${nextUserId}` : null,
+    ].filter(Boolean);
+
+    if (nextCompanyId || nextUserId) {
+      set({
+        companyId: nextCompanyId || null,
+        userId: nextUserId || null,
+      });
+    }
+
+    if (socket?.connected && rooms.length) {
+      socket.emit("join", { companyId: nextCompanyId, rooms });
+    }
+  },
+
   disconnect: () => {
     clearReconnectTimer();
     const { socket } = get();
@@ -163,6 +209,8 @@ export const useSocketStore = create<SocketState>((set, get) => ({
         realtimeSyncPaused: false,
         lastDisconnectIso: null,
         disconnectAtMs: null,
+        companyId: null,
+        userId: null,
       });
     }
   },
