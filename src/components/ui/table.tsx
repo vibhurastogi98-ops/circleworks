@@ -20,8 +20,12 @@ export function TableBody({ children, className = "" }: { children: React.ReactN
   return <tbody className={`divide-y divide-[var(--border-muted)] ${className}`}>{children}</tbody>;
 }
 
-export function TableRow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <tr className={`transition-colors hover:bg-[var(--surface-inset)] ${className}`}>{children}</tr>;
+export function TableRow({ children, className = "", ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
+  return (
+    <tr className={`transition-colors hover:bg-[var(--surface-inset)] ${className}`} {...props}>
+      {children}
+    </tr>
+  );
 }
 
 export function TableHead({ children, className = "", ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {

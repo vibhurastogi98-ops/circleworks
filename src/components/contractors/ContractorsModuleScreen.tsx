@@ -1254,6 +1254,7 @@ export function ContractorsModuleScreen() {
   const moduleQuery = useQuery({
     queryKey: ["contractors-module"],
     queryFn: fetchContractorModuleData,
+    retry: 1,
   });
 
   const scopedContractors = useMemo(() => {

@@ -280,9 +280,9 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Agency",
     icon: Building2,
-    href: "/agency/clients",
+    href: "/app/clients",
     children: [
-      { label: "Clients", href: "/agency/clients" },
+      { label: "Clients", href: "/app/clients" },
       { label: "Billing", href: "/agency/billing" },
       { label: "Profitability", href: "/agency/profitability" },
     ],
@@ -384,7 +384,11 @@ export default function AppSidebar() {
   const [mounted, setMounted] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const creatorMode = isCreatorAccountType(accountType);
-  const baseNavItems = creatorMode ? CREATOR_NAV_ITEMS : NAV_ITEMS;
+  const agencyMode = accountType === "agency";
+  const baseNavItems = useMemo(
+    () => (creatorMode ? CREATOR_NAV_ITEMS : NAV_ITEMS.filter((item) => agencyMode || item.label !== "Agency")),
+    [agencyMode, creatorMode],
+  );
 
   useEffect(() => {
     setMounted(true);

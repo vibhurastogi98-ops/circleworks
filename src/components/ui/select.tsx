@@ -58,12 +58,13 @@ export function SelectTrigger({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [setOpen]);
 
   return (
     <button
+      type="button"
       ref={containerRef}
       onClick={() => setOpen(!open)}
       className={`flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-zinc-50 ${className}`}
@@ -96,6 +97,7 @@ export function SelectItem({ value, children, className = "" }: { value: string;
 
   return (
     <button
+      type="button"
       onClick={() => setValue(value)}
       className={`relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-9 text-sm outline-none hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${isSelected ? 'bg-slate-50 dark:bg-slate-800 font-bold' : ''} ${className}`}
     >

@@ -1981,6 +1981,25 @@ export const agencyProjects = pgTable('agency_projects', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+export const agencyClientAssignments = pgTable('agency_client_assignments', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  clientId: integer('client_id').references(() => agencyClients.id, { onDelete: 'cascade' }).notNull(),
+  projectId: integer('project_id').references(() => agencyProjects.id, { onDelete: 'cascade' }).notNull(),
+  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+  contractorId: integer('contractor_id').references(() => contractors.id, { onDelete: 'set null' }),
+  workerType: text('worker_type').default('Employee').notNull(), // Employee, Contractor
+  workerName: text('worker_name').notNull(),
+  workerEmail: text('worker_email'),
+  role: text('role'),
+  payRate: real('pay_rate').default(0).notNull(),
+  billRate: real('bill_rate').default(0).notNull(),
+  hoursPerMonth: real('hours_per_month').default(0).notNull(),
+  status: text('status').default('Active').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export const agencyInvoices = pgTable('agency_invoices', {
   id: serial('id').primaryKey(),
   clientId: integer('client_id').references(() => agencyClients.id, { onDelete: 'cascade' }),
@@ -2016,11 +2035,21 @@ export const agencyClientsRelations = relations(agencyClients, ({ one, many }) =
   company: one(companies, { fields: [agencyClients.companyId], references: [companies.id] }),
   invoices: many(agencyInvoices),
   projects: many(agencyProjects),
+  assignments: many(agencyClientAssignments),
 }));
 
-export const agencyProjectsRelations = relations(agencyProjects, ({ one }) => ({
+export const agencyProjectsRelations = relations(agencyProjects, ({ one, many }) => ({
   client: one(agencyClients, { fields: [agencyProjects.clientId], references: [agencyClients.id] }),
   company: one(companies, { fields: [agencyProjects.companyId], references: [companies.id] }),
+  assignments: many(agencyClientAssignments),
+}));
+
+export const agencyClientAssignmentsRelations = relations(agencyClientAssignments, ({ one }) => ({
+  company: one(companies, { fields: [agencyClientAssignments.companyId], references: [companies.id] }),
+  client: one(agencyClients, { fields: [agencyClientAssignments.clientId], references: [agencyClients.id] }),
+  project: one(agencyProjects, { fields: [agencyClientAssignments.projectId], references: [agencyProjects.id] }),
+  employee: one(employees, { fields: [agencyClientAssignments.employeeId], references: [employees.id] }),
+  contractor: one(contractors, { fields: [agencyClientAssignments.contractorId], references: [contractors.id] }),
 }));
 
 export const agencyInvoicesRelations = relations(agencyInvoices, ({ one, many }) => ({

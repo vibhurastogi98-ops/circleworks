@@ -540,6 +540,7 @@ export const screenPermissionRules: Array<{ prefix: string; permission: string }
   { prefix: "/app/pay-myself", permission: "run_payroll" },
   { prefix: "/app/taxes", permission: "view_tax_filings" },
   { prefix: "/app/documents", permission: "view_documents" },
+  { prefix: "/app/clients", permission: "view_agency_clients" },
   { prefix: "/app/contractors", permission: "view_contractors" },
   { prefix: "/app/automations", permission: "manage_workflows" },
   { prefix: "/payroll/run", permission: "run_payroll" },
