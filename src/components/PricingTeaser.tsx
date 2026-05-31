@@ -21,6 +21,11 @@ type Plan = {
   variant: "starter" | "pro" | "enterprise";
 };
 
+const FILING_INCLUDED_MESSAGE =
+  "Tax filing included on every plan — federal, state & local, filed automatically. No hidden fees.";
+const FILING_COMPARISON_MESSAGE =
+  "Many payroll providers charge extra filing fees at quarter-end, year-end, or by jurisdiction. CircleWorks includes filing in every plan.";
+
 const plans: Plan[] = [
   {
     name: "Starter",
@@ -200,6 +205,26 @@ export function PricingTeaser() {
           <p className="mt-4 text-[18px] font-medium text-gray-500">
             No setup fees. No hidden costs. Cancel anytime.
           </p>
+
+          <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                <Check className="h-5 w-5 text-emerald-600" strokeWidth={3} />
+              </span>
+              <div>
+                <p className="text-base font-bold leading-6 text-emerald-950">
+                  {FILING_INCLUDED_MESSAGE}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-emerald-700">
+                  Automated filings are part of the subscription, not a surprise line item.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold leading-6 text-blue-900">
+            {FILING_COMPARISON_MESSAGE}
+          </div>
 
           <div className="mt-8 inline-flex rounded-full border border-gray-200 bg-gray-100 p-1">
             {(["monthly", "annual"] as const).map((cycle) => {

@@ -167,7 +167,19 @@ const productWhyLinks: MenuLink[] = [
   },
 ];
 
-const companySizeLinks: MenuLink[] = [
+const featuredSolutionLinks: MenuLink[] = [
+  {
+    label: "Agencies",
+    href: "/solutions/agencies",
+    description: "Multi-client payroll and reporting",
+    icon: Briefcase,
+  },
+  {
+    label: "Creators",
+    href: "/solutions/creators",
+    description: "Owner payroll, 1099s, and write-offs",
+    icon: Sparkles,
+  },
   {
     label: "Startups",
     href: "/solutions/startups",
@@ -175,16 +187,25 @@ const companySizeLinks: MenuLink[] = [
     icon: Rocket,
   },
   {
+    label: "Tech Companies",
+    href: "/solutions/tech",
+    description: "Remote-first payroll and compliance",
+    icon: AppWindow,
+  },
+  {
+    label: "Restaurants",
+    href: "/solutions/restaurants",
+    description: "Hourly, tipped, and shift-based teams",
+    icon: Receipt,
+  },
+];
+
+const teamSizeLinks: MenuLink[] = [
+  {
     label: "SMBs (10-250)",
     href: "/solutions/smbs",
     description: "Simple workflows for growing teams",
     icon: Users,
-  },
-  {
-    label: "Mid-Market (250-2000)",
-    href: "/solutions/mid-market",
-    description: "Controls for multi-site operations",
-    icon: Building2,
   },
   {
     label: "Enterprise (2000+)",
@@ -196,34 +217,34 @@ const companySizeLinks: MenuLink[] = [
 
 const industryLinks: MenuLink[] = [
   {
-    label: "Technology",
-    href: "/solutions/technology",
-    description: "Fast-moving distributed teams",
-    icon: AppWindow,
-  },
-  {
     label: "Healthcare",
     href: "/solutions/healthcare",
     description: "Credentialed teams and compliance",
     icon: Heart,
   },
   {
-    label: "Retail",
+    label: "Retail & Ecommerce",
     href: "/solutions/retail",
     description: "Hourly, seasonal, and multi-location",
     icon: Building2,
   },
   {
-    label: "Non-Profit",
-    href: "/solutions/non-profit",
+    label: "Professional Services",
+    href: "/solutions/services",
+    description: "Client teams, projects, and approvals",
+    icon: Briefcase,
+  },
+  {
+    label: "Nonprofit",
+    href: "/solutions/nonprofit",
     description: "Grant-aware people operations",
     icon: Landmark,
   },
   {
-    label: "Professional Services",
-    href: "/solutions/professional-services",
-    description: "Client teams, projects, and approvals",
-    icon: Briefcase,
+    label: "Technology & SaaS",
+    href: "/solutions/tech",
+    description: "Fast-moving distributed teams",
+    icon: AppWindow,
   },
 ];
 
@@ -415,6 +436,7 @@ function MobileLinkList({
 
 function getMenuWidth(menu: MenuKey) {
   if (menu === "product") return "w-[640px]";
+  if (menu === "solutions") return "w-[680px]";
   if (menu === "integrations") return "w-[280px]";
   return "w-[480px]";
 }
@@ -510,14 +532,23 @@ export function Navbar(_props: NavbarProps = {}) {
     setMobileSection(null);
   };
 
-  const openMobile = () => {
+  const openMobileDrawer = (section?: MenuKey) => {
     if (mobileRevealTimerRef.current) clearTimeout(mobileRevealTimerRef.current);
     if (mobileCloseTimerRef.current) clearTimeout(mobileCloseTimerRef.current);
+    if (section) setMobileSection(section);
     setMobileOpen(true);
     mobileRevealTimerRef.current = setTimeout(() => {
       setMobileVisible(true);
       mobileRevealTimerRef.current = null;
     }, 0);
+  };
+
+  const openMobile = () => {
+    openMobileDrawer();
+  };
+
+  const openMobileSection = (section: MenuKey) => {
+    openMobileDrawer(section);
   };
 
   const closeMobile = () => {
@@ -713,17 +744,44 @@ export function Navbar(_props: NavbarProps = {}) {
 
     if (menu === "solutions") {
       return (
-        <div className="grid grid-cols-2 divide-x divide-gray-200">
-          <MenuSection title="By Company Size">
-            {companySizeLinks.map((item) => (
-              <DesktopMenuLink key={item.label} item={item} close={closeAll} />
-            ))}
-          </MenuSection>
-          <MenuSection title="By Industry" subtle>
-            {industryLinks.map((item) => (
-              <DesktopMenuLink key={item.label} item={item} close={closeAll} />
-            ))}
-          </MenuSection>
+        <div>
+          <div className="grid grid-cols-2 divide-x divide-gray-200">
+            <MenuSection title="Featured Solutions">
+              {featuredSolutionLinks.map((item) => (
+                <DesktopMenuLink key={item.label} item={item} close={closeAll} />
+              ))}
+            </MenuSection>
+            <MenuSection title="By Industry" subtle>
+              {industryLinks.map((item) => (
+                <DesktopMenuLink key={item.label} item={item} close={closeAll} />
+              ))}
+            </MenuSection>
+          </div>
+          <div className="border-t border-gray-200 bg-gray-50 p-4">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+              By Team Size
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {teamSizeLinks.map((item) => (
+                <DesktopMenuLink
+                  key={item.label}
+                  item={item}
+                  close={closeAll}
+                  compact
+                />
+              ))}
+              <Link
+                href="/solutions"
+                role="menuitem"
+                data-menu-item
+                onClick={closeAll}
+                className="flex items-center justify-between rounded-lg p-2 text-sm font-semibold text-blue-600 outline-none transition-colors hover:bg-blue-50 focus-visible:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
+                View all solutions
+                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
         </div>
       );
     }
@@ -789,7 +847,7 @@ export function Navbar(_props: NavbarProps = {}) {
         ref={navRef}
         role="navigation"
         aria-label="Primary navigation"
-        className="sticky top-0 z-50 h-16 border-b border-[#E5E7EB] bg-white backdrop-blur-sm"
+        className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white backdrop-blur-sm"
         onMouseLeave={scheduleClose}
       >
         <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4 sm:px-6 xl:px-8">
@@ -890,9 +948,13 @@ export function Navbar(_props: NavbarProps = {}) {
             </Link>
             <Link
               href="/signup"
-              className="whitespace-nowrap rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              className="inline-flex items-center whitespace-nowrap rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
             >
-              Start Free <span aria-hidden="true">&mdash;</span> No Credit Card
+              <span>Start Free</span>
+              <span className="hidden xl:ml-1 xl:inline-flex xl:items-center xl:gap-1">
+                <span aria-hidden="true">&mdash;</span>
+                <span>No Credit Card</span>
+              </span>
             </Link>
           </div>
 
@@ -907,6 +969,32 @@ export function Navbar(_props: NavbarProps = {}) {
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
+        </div>
+
+        <div className="border-t border-gray-100 bg-white lg:hidden">
+          <div className="mx-auto flex h-11 max-w-[1200px] items-center gap-2 overflow-x-auto px-4 sm:px-6">
+            {navItems.map((item) =>
+              item.key === "pricing" ? (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  onClick={closeAll}
+                  className="flex h-8 shrink-0 items-center rounded-full border border-gray-200 px-3 text-xs font-black text-gray-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => openMobileSection(item.key)}
+                  className="flex h-8 shrink-0 items-center rounded-full border border-gray-200 px-3 text-xs font-black text-gray-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                >
+                  {item.label}
+                </button>
+              ),
+            )}
+          </div>
         </div>
       </nav>
 
@@ -975,8 +1063,20 @@ export function Navbar(_props: NavbarProps = {}) {
                 }
               >
                 <div className="space-y-4">
-                  <MobileLinkList links={companySizeLinks} close={closeAll} />
+                  <MobileLinkList
+                    links={featuredSolutionLinks}
+                    close={closeAll}
+                  />
                   <MobileLinkList links={industryLinks} close={closeAll} />
+                  <MobileLinkList links={teamSizeLinks} close={closeAll} />
+                  <Link
+                    href="/solutions"
+                    onClick={closeAll}
+                    className="ml-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50"
+                  >
+                    View all solutions
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
                 </div>
               </MobileAccordion>
 

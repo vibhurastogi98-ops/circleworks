@@ -37,6 +37,11 @@ type ComparisonRow = {
   enterprise: ComparisonValue;
 };
 
+const FILING_INCLUDED_MESSAGE =
+  "Tax filing included on every plan — federal, state & local, filed automatically. No hidden fees.";
+const FILING_COMPARISON_MESSAGE =
+  "Competitors often add filing fees at quarter-end, year-end, or for local jurisdictions. CircleWorks includes filing in every plan so payroll costs stay predictable.";
+
 // ─── Animated Number ───────────────────────────────────────────────────────
 function AnimatedNumber({
   value,
@@ -109,6 +114,13 @@ const COMPARISON_TABLE: { category: string; rows: ComparisonRow[] }[] = [
       {
         feature: "Payroll Tax Filing & Payments",
         contractor: false,
+        starter: true,
+        pro: true,
+        enterprise: true,
+      },
+      {
+        feature: "Filing included — no filing add-ons",
+        contractor: true,
         starter: true,
         pro: true,
         enterprise: true,
@@ -360,6 +372,10 @@ const FAQS = [
     a: "Yes! The Starter plan is completely free. You pay $8/employee/mo for payroll processing, but the platform itself has no base fee, no contracts, and no setup cost.",
   },
   {
+    q: "Do you charge per payroll run?",
+    a: "No. Unlimited runs on every plan.",
+  },
+  {
     q: "How does the 60-day money-back guarantee work?",
     a: "If you upgrade to an annual Pro or Enterprise plan and aren't fully satisfied within the first 60 days, we'll refund 100% of your purchase — no questions asked.",
   },
@@ -532,9 +548,27 @@ export function PricingPage() {
               <h1 className="text-5xl md:text-[56px] font-black text-white leading-tight mb-5">
                 Simple pricing for every US company
               </h1>
-              <p className="text-xl text-slate-300 mb-12">
+              <p className="text-xl text-slate-300 mb-6">
                 No contracts. No setup fees. Cancel anytime.
               </p>
+
+              <div className="mx-auto mb-4 flex max-w-3xl flex-col gap-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-5 py-4 text-left shadow-lg shadow-emerald-950/20 sm:flex-row sm:items-start">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-400/20">
+                  <Check className="h-5 w-5 text-emerald-300" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-white">
+                    {FILING_INCLUDED_MESSAGE}
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-100/80">
+                    Built into every tier, including Contractor.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mx-auto mb-10 max-w-2xl rounded-lg border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-300">
+                {FILING_COMPARISON_MESSAGE}
+              </div>
 
               {/* Billing Toggle */}
               <div className="inline-flex flex-wrap items-center justify-center gap-1 rounded-full bg-white/10 p-1">

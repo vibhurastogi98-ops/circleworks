@@ -5,6 +5,10 @@ const faqs = [
       "Yes. CircleWorks supports payroll across all 50 states, including payroll tax calculations, filings, and direct deposit workflows.",
   },
   {
+    question: "Do you charge per payroll run?",
+    answer: "No. Unlimited runs on every plan.",
+  },
+  {
     question: "Does CircleWorks replace separate HR, hiring, and benefits tools?",
     answer:
       "CircleWorks brings payroll, HRIS, ATS, onboarding, benefits, time, compliance, and reporting into one employee system of record.",
