@@ -39,6 +39,7 @@ import {
 import { usePlatformStore } from "@/store/usePlatformStore";
 import type { SearchResponse, SearchResult, SearchSection } from "@/lib/search/types";
 import { SearchEmptyIllustration } from "@/components/StateIllustrations";
+import { isCreatorAccountType } from "@/lib/creator-mode";
 
 const RECENT_SEARCH_KEY = "recent_search_items";
 const LEGACY_RECENT_SEARCH_KEY = "circleworks:command-recents";
@@ -122,6 +123,57 @@ const QUICK_ACTIONS: PaletteItem[] = [
     subtitle: "Open the interview calendar",
     href: "/hiring/interviews",
     icon: "CalendarClock",
+  },
+];
+
+const CREATOR_QUICK_ACTIONS: PaletteItem[] = [
+  {
+    id: "creator_pay_myself",
+    commandValue: "creator_pay_myself",
+    sectionTitle: "QUICK ACTIONS",
+    analyticsType: "quick_action",
+    entityType: "payroll",
+    section: "PAYROLL RUNS",
+    title: "Pay Myself",
+    subtitle: "Run owner payroll",
+    href: "/app/pay-myself",
+    icon: "PlayCircle",
+  },
+  {
+    id: "creator_contractors",
+    commandValue: "creator_contractors",
+    sectionTitle: "QUICK ACTIONS",
+    analyticsType: "quick_action",
+    entityType: "employees",
+    section: "EMPLOYEES",
+    title: "Contractors",
+    subtitle: "Review contractor payments and 1099s",
+    href: "/app/contractors",
+    icon: "Users",
+  },
+  {
+    id: "creator_taxes",
+    commandValue: "creator_taxes",
+    sectionTitle: "QUICK ACTIONS",
+    analyticsType: "quick_action",
+    entityType: "reports",
+    section: "REPORTS",
+    title: "Taxes",
+    subtitle: "Estimate quarterly taxes and forms",
+    href: "/app/taxes",
+    icon: "ShieldCheck",
+  },
+  {
+    id: "creator_documents",
+    commandValue: "creator_documents",
+    sectionTitle: "QUICK ACTIONS",
+    analyticsType: "quick_action",
+    entityType: "documents",
+    section: "DOCUMENTS",
+    title: "Documents",
+    subtitle: "Open tax and payroll documents",
+    href: "/app/documents",
+    icon: "FileText",
   },
 ];
 
@@ -292,6 +344,7 @@ export default function CommandPalette() {
   const queryClient = useQueryClient();
   const {
     currentCompany,
+    accountType,
     isCommandPaletteOpen,
     setCommandPaletteOpen,
     setPayrollRunning,
@@ -308,6 +361,9 @@ export default function CommandPalette() {
 
   const trimmedQuery = query.trim();
   const isSettlingDebounce = trimmedQuery.length >= 2 && debouncedQuery !== trimmedQuery;
+  const creatorMode = isCreatorAccountType(accountType);
+  const quickActions = creatorMode ? CREATOR_QUICK_ACTIONS : QUICK_ACTIONS;
+  const searchTypes = creatorMode ? "payroll,documents,reports" : SEARCH_TYPES;
 
   const sections = useMemo(() => {
     if (!trimmedQuery) {
@@ -318,14 +374,14 @@ export default function CommandPalette() {
         },
         {
           title: "QUICK ACTIONS" as PaletteSectionTitle,
-          items: QUICK_ACTIONS,
+          items: quickActions,
         },
       ].filter((section) => section.title === "QUICK ACTIONS" || section.items.length);
     }
 
     if (trimmedQuery.length < 2) return [];
     return groupedResults(searchData?.results ?? []);
-  }, [recents, searchData?.results, trimmedQuery]);
+  }, [quickActions, recents, searchData?.results, trimmedQuery]);
 
   const visibleItems = useMemo(() => sections.flatMap((section) => section.items), [sections]);
   const isLoading = isSettlingDebounce || searchLoading;
@@ -364,13 +420,13 @@ export default function CommandPalette() {
       queryStartedAtRef.current = performance.now();
 
       try {
-        const queryKey = ["global-search", currentCompany.id, searchTerm, SEARCH_TYPES] as const;
+        const queryKey = ["global-search", currentCompany.id, searchTerm, searchTypes] as const;
         const cached = queryClient.getQueryData<SearchResponse>(queryKey);
         const data = cached ?? (await (async () => {
           const params = new URLSearchParams({
             q: searchTerm,
             companyId: currentCompany.id,
-            types: SEARCH_TYPES,
+            types: searchTypes,
           });
           const response = await fetch(`/api/search?${params.toString()}`, {
             credentials: "include",
@@ -392,7 +448,7 @@ export default function CommandPalette() {
     }, 150);
 
     return () => window.clearTimeout(timeout);
-  }, [currentCompany.id, isCommandPaletteOpen, queryClient, trimmedQuery]);
+  }, [currentCompany.id, isCommandPaletteOpen, queryClient, searchTypes, trimmedQuery]);
 
   useEffect(() => {
     if (!visibleItems.length) {
@@ -490,8 +546,16 @@ export default function CommandPalette() {
             ref={inputRef}
             value={query}
             onValueChange={setQuery}
-            placeholder="Search employees, payroll runs, documents..."
-            aria-label="Search employees, payroll runs, documents"
+            placeholder={
+              creatorMode
+                ? "Search contractors, tax forms, documents..."
+                : "Search employees, payroll runs, documents..."
+            }
+            aria-label={
+              creatorMode
+                ? "Search contractors, tax forms, documents"
+                : "Search employees, payroll runs, documents"
+            }
             autoFocus
           />
           {isLoading ? <Loader2 size={18} className="shrink-0 animate-spin text-blue-600" /> : null}
@@ -515,7 +579,7 @@ export default function CommandPalette() {
                           onClick={() => {
                             clearRecentItems();
                             setRecents([]);
-                            setSelectedValue(QUICK_ACTIONS[0]?.commandValue ?? "");
+                            setSelectedValue(quickActions[0]?.commandValue ?? "");
                           }}
                           className="text-[11px] font-black normal-case tracking-normal text-blue-600 hover:text-blue-700 dark:text-blue-400"
                         >

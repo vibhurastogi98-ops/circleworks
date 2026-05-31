@@ -29,6 +29,7 @@ import { useDataSync } from "@/hooks/useDataSync";
 import { useDashboardRealtimeStore } from "@/store/useDashboardRealtimeStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { isCreatorAccountType } from "@/lib/creator-mode";
 import Breadcrumb from "@/components/Breadcrumb";
 import CommandPalette from "@/components/CommandPalette";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
@@ -120,6 +121,7 @@ export default function AppTopBar() {
   const { signOut } = useAuth();
   const {
     currentUser,
+    accountType,
     sidebarCollapsed,
     isDarkMode,
     setTheme,
@@ -147,7 +149,8 @@ export default function AppTopBar() {
   const avatarUrl =
     currentUser.avatarUrl ||
     `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(currentUser.email)}&backgroundColor=transparent`;
-  const canRunPayroll = ["admin", "hr"].includes(currentUser.role);
+  const creatorMode = isCreatorAccountType(accountType);
+  const canRunPayroll = !creatorMode && ["admin", "hr"].includes(currentUser.role);
   const pathParts = pathname.split("/").filter(Boolean);
   const title = getRouteTitle(pathParts);
   const breadcrumbItems = pathParts.map((part, index) => {
@@ -254,7 +257,9 @@ export default function AppTopBar() {
             >
               <Search size={16} className="shrink-0" />
               <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium">
-                Search employees, payroll runs, documents... (Cmd+K)
+                {creatorMode
+                  ? "Search contractors, tax forms, documents... (Cmd+K)"
+                  : "Search employees, payroll runs, documents... (Cmd+K)"}
               </span>
               <kbd className="hidden h-5 items-center rounded border border-slate-300 bg-white px-1.5 font-mono text-[10px] font-bold text-slate-500 shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 sm:inline-flex">
                 Cmd K
@@ -445,7 +450,7 @@ export default function AppTopBar() {
         </header>
 
         <AnimatePresence>
-          {complianceAlerts.critical > 0 && (
+          {!creatorMode && complianceAlerts.critical > 0 && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}

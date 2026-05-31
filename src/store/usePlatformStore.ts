@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import {
+  isCreatorAccountType,
+  normalizeAccountType,
+  type PlatformAccountType,
+} from "@/lib/creator-mode";
+
 export type PlatformTheme = "light" | "dark" | "system";
 export type ResolvedPlatformTheme = "light" | "dark";
 
@@ -10,6 +16,10 @@ export interface PlatformCompany {
   logo?: string;
   domain?: string;
   role?: string;
+  accountType?: PlatformAccountType;
+  creatorEntityType?: string | null;
+  paySelfAsOwner?: boolean;
+  contractorCount?: number;
 }
 
 export interface PlatformUser {
@@ -34,6 +44,8 @@ export interface ComplianceAlertSummary {
 interface PlatformState {
   currentCompany: PlatformCompany;
   companies: PlatformCompany[];
+  accountType: PlatformAccountType;
+  isCreatorMode: boolean;
   currentUser: PlatformUser;
   sidebarOpen: boolean;
   isSidebarOpen: boolean;
@@ -52,6 +64,7 @@ interface PlatformState {
   isCommandPaletteOpen: boolean;
   isCirceOpen: boolean;
   setCurrentCompany: (company: PlatformCompany) => void;
+  setAccountType: (accountType: string | null | undefined) => void;
   setCurrentUser: (user: PlatformUser) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -106,18 +119,21 @@ const DEFAULT_COMPANIES: PlatformCompany[] = [
     name: "CircleWorks Demo",
     domain: "circleworks.com",
     role: "Owner",
+    accountType: "company",
   },
   {
     id: "northstar-studios",
     name: "Northstar Studios",
     domain: "northstar.example",
     role: "Accountant",
+    accountType: "agency",
   },
   {
     id: "bluebird-agency",
     name: "Bluebird Agency",
     domain: "bluebird.example",
     role: "Accountant",
+    accountType: "agency",
   },
 ];
 
@@ -133,6 +149,8 @@ export const usePlatformStore = create<PlatformState>()(
     (set) => ({
       currentCompany: DEFAULT_COMPANIES[0],
       companies: DEFAULT_COMPANIES,
+      accountType: DEFAULT_COMPANIES[0].accountType ?? "company",
+      isCreatorMode: false,
       currentUser: DEFAULT_USER,
       sidebarOpen: false,
       isSidebarOpen: false,
@@ -150,7 +168,24 @@ export const usePlatformStore = create<PlatformState>()(
       notificationCount: 0,
       isCommandPaletteOpen: false,
       isCirceOpen: false,
-      setCurrentCompany: (company) => set({ currentCompany: company }),
+      setCurrentCompany: (company) =>
+        set((state) => {
+          const accountType = normalizeAccountType(company.accountType ?? state.accountType);
+          return {
+            currentCompany: { ...company, accountType },
+            accountType,
+            isCreatorMode: isCreatorAccountType(accountType),
+          };
+        }),
+      setAccountType: (value) =>
+        set((state) => {
+          const accountType = normalizeAccountType(value);
+          return {
+            accountType,
+            isCreatorMode: isCreatorAccountType(accountType),
+            currentCompany: { ...state.currentCompany, accountType },
+          };
+        }),
       setCurrentUser: (user) =>
         set({
           currentUser: user,
@@ -207,6 +242,8 @@ export const usePlatformStore = create<PlatformState>()(
       name: "platform-storage",
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
+        accountType: state.accountType,
+        currentCompany: state.currentCompany,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
@@ -222,6 +259,9 @@ export const usePlatformStore = create<PlatformState>()(
         applyPlatformTheme(preferredTheme);
         state.theme = preferredTheme;
         state.isDarkMode = resolvePlatformTheme(preferredTheme) === "dark";
+        state.accountType = normalizeAccountType(state.accountType ?? state.currentCompany.accountType);
+        state.isCreatorMode = isCreatorAccountType(state.accountType);
+        state.currentCompany = { ...state.currentCompany, accountType: state.accountType };
       },
     },
   ),

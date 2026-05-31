@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore, type PlatformUser } from "@/store/usePlatformStore";
+import { getCreatorModeRedirect, isCreatorAccountType, normalizeAccountType } from "@/lib/creator-mode";
 import AppSidebar from "@/components/app/AppSidebar";
 import AppTopBar from "@/components/app/AppTopBar";
 import OnboardingTour from "@/components/OnboardingTour";
@@ -23,6 +24,7 @@ const PLATFORM_ROUTE_PREFIXES = [
   "/reports",
   "/settings",
   "/app",
+  "/documents",
   "/help",
   "/contractors",
   "/agency",
@@ -49,13 +51,18 @@ function displayNameFromEmail(email: string) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { user } = useAuth();
   const {
+    accountType,
+    isCreatorMode,
     sidebarCollapsed,
     setActiveRoute,
     setSidebarOpen,
     setCurrentUser,
+    setCurrentCompany,
+    setAccountType,
     complianceAlerts,
   } = usePlatformStore();
   const usePlatformShell = shouldUsePlatformShell(pathname);
@@ -68,6 +75,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setActiveRoute(pathname);
     setSidebarOpen(false);
   }, [pathname, setActiveRoute, setSidebarOpen]);
+
+  useEffect(() => {
+    if (!mounted || !usePlatformShell || !isCreatorMode) return;
+    const redirectTo = getCreatorModeRedirect(pathname);
+    if (redirectTo && redirectTo !== pathname) router.replace(redirectTo);
+  }, [isCreatorMode, mounted, pathname, router, usePlatformShell]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -90,12 +103,67 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, [setCurrentUser, user]);
 
+  useEffect(() => {
+    if (!mounted || !usePlatformShell) return;
+
+    let cancelled = false;
+
+    const hydrateCompanyContext = async () => {
+      try {
+        const response = await fetch("/api/users/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          company?: {
+            id?: string | number | null;
+            name?: string | null;
+            accountType?: string | null;
+            creatorEntityType?: string | null;
+            paySelfAsOwner?: boolean | null;
+            contractorCount?: number | null;
+            logoUrl?: string | null;
+          };
+          user?: { accountType?: string | null };
+        };
+        if (cancelled) return;
+
+        const resolvedAccountType = normalizeAccountType(data.company?.accountType ?? data.user?.accountType ?? accountType);
+        setAccountType(resolvedAccountType);
+
+        if (data.company?.id || data.company?.name) {
+          setCurrentCompany({
+            id: String(data.company.id ?? "creator-company"),
+            name: data.company.name || "Creator Studio",
+            logo: data.company.logoUrl || undefined,
+            domain: isCreatorAccountType(resolvedAccountType) ? "Creator workspace" : "Workspace",
+            role: "Owner",
+            accountType: resolvedAccountType,
+            creatorEntityType: data.company.creatorEntityType ?? null,
+            paySelfAsOwner: Boolean(data.company.paySelfAsOwner),
+            contractorCount: data.company.contractorCount ?? 0,
+          });
+          setAccountType(resolvedAccountType);
+        }
+      } catch (error) {
+        console.error("[AppShell company hydrate]", error);
+      }
+    };
+
+    void hydrateCompanyContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountType, isCreatorMode, mounted, setAccountType, setCurrentCompany, usePlatformShell]);
+
   if (!usePlatformShell) {
     return <div className="marketing-surface">{children}</div>;
   }
 
   const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;
-  const renderedComplianceCritical = mounted ? complianceAlerts.critical : 0;
+  const renderedComplianceCritical = mounted && !isCreatorMode ? complianceAlerts.critical : 0;
   const shellOffset = renderedSidebarCollapsed
     ? "lg:pl-[72px]"
     : "lg:pl-[72px] xl:pl-[240px]";

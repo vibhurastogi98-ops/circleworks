@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Clock,
   DollarSign,
+  FileText,
   Handshake,
   Heart,
   HelpCircle,
@@ -31,6 +32,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { isCreatorAccountType } from "@/lib/creator-mode";
 import { getAtsOverview } from "@/data/mockAts";
 import {
   Dialog,
@@ -294,6 +296,15 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Help", icon: HelpCircle, href: "/help" },
 ];
 
+const CREATOR_NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Pay Myself", icon: DollarSign, href: "/app/pay-myself" },
+  { label: "Contractors", icon: Handshake, href: "/app/contractors" },
+  { label: "Taxes", icon: Shield, href: "/app/taxes" },
+  { label: "Expenses", icon: Receipt, href: "/expenses" },
+  { label: "Documents", icon: FileText, href: "/app/documents" },
+];
+
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -318,8 +329,8 @@ function navItemMatchesPath(item: NavItem, pathname: string) {
   );
 }
 
-function getOpenGroupsForPath(pathname: string) {
-  return NAV_ITEMS.reduce<Record<string, boolean>>((groups, item) => {
+function getOpenGroupsForPath(pathname: string, items: NavItem[]) {
+  return items.reduce<Record<string, boolean>>((groups, item) => {
     if (item.children?.length && navItemMatchesPath(item, pathname)) {
       groups[item.label] = true;
     }
@@ -361,6 +372,7 @@ export default function AppSidebar() {
     currentCompany,
     companies,
     currentUser,
+    accountType,
     sidebarOpen,
     sidebarCollapsed,
     payrollRunInProgress,
@@ -371,6 +383,8 @@ export default function AppSidebar() {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const creatorMode = isCreatorAccountType(accountType);
+  const baseNavItems = creatorMode ? CREATOR_NAV_ITEMS : NAV_ITEMS;
 
   useEffect(() => {
     setMounted(true);
@@ -378,20 +392,23 @@ export default function AppSidebar() {
 
   useEffect(() => {
     if (!mounted) return;
-    const activeGroups = getOpenGroupsForPath(pathname);
+    const activeGroups = getOpenGroupsForPath(pathname, baseNavItems);
     if (!Object.keys(activeGroups).length) return;
     setOpenGroups((current) => ({ ...current, ...activeGroups }));
-  }, [mounted, pathname]);
+  }, [baseNavItems, mounted, pathname]);
 
   const navItems = useMemo<NavItem[]>(
     () =>
-      NAV_ITEMS.map((item) => {
+      baseNavItems.map((item) => {
         if (item.divider) return item;
-        if (item.label === "Payroll") {
+        if (item.label === "Payroll" || item.label === "Pay Myself") {
           return {
             ...item,
             badge: payrollRunInProgress ? { text: "DRAFT", tone: "draft" } : undefined,
           };
+        }
+        if (creatorMode && item.label === "Contractors" && currentCompany.contractorCount) {
+          return { ...item, badge: { count: currentCompany.contractorCount } };
         }
         if (item.label === "Hiring") return { ...item, badge: { count: getAtsOverview().openReqCount } };
         if (item.label === "Onboarding") return { ...item, badge: { count: 4 } };
@@ -408,7 +425,7 @@ export default function AppSidebar() {
         }
         return item;
       }),
-    [complianceAlerts.critical, payrollRunInProgress],
+    [baseNavItems, complianceAlerts.critical, creatorMode, currentCompany.contractorCount, payrollRunInProgress],
   );
 
   const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;
