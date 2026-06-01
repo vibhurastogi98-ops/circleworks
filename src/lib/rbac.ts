@@ -615,6 +615,8 @@ export const apiPermissionRules: Array<{ method?: string; prefix: string; permis
   { prefix: "/api/compliance/pay-equity", permission: "view_pay_equity" },
   { prefix: "/api/compliance/paid-leave", permission: "view_paid_leave" },
   { prefix: "/api/compliance", permission: "view_compliance" },
+  { method: "GET", prefix: "/api/onboarding/checklist", permission: "view_onboarding" },
+  { method: "PATCH", prefix: "/api/onboarding/checklist", permission: "manage_onboarding" },
   { prefix: "/api/onboarding", permission: "view_onboarding" },
   { method: "POST", prefix: "/api/onboarding", permission: "manage_onboarding" },
   { method: "POST", prefix: "/api/assets/assign", permission: "assign_assets" },

@@ -4776,7 +4776,7 @@ function SignupWizardInner() {
         )}
       </AnimatePresence>
 
-      <aside className="hidden h-screen w-1/2 flex-col overflow-hidden bg-[#0A1628] px-8 py-7 text-white lg:flex xl:px-12">
+      <aside className="hidden h-screen w-1/2 flex-col overflow-y-auto overflow-x-hidden bg-[#0A1628] px-8 py-7 text-white lg:flex xl:px-12">
         <div>
           <Link
             href="/"
@@ -4803,7 +4803,7 @@ function SignupWizardInner() {
         </div>
       </aside>
 
-      <section className="relative flex min-h-screen min-w-0 w-full flex-col overflow-x-hidden bg-white lg:h-screen lg:w-1/2 lg:overflow-hidden">
+      <section className="relative flex min-h-screen min-w-0 w-full flex-col overflow-x-hidden bg-white lg:h-screen lg:w-1/2 lg:overflow-y-auto">
         <div className="sticky top-0 z-20 flex items-center justify-between bg-white px-5 py-5 sm:px-8">
           {step > 0 && step < successStep ? (
             <button
@@ -4825,7 +4825,7 @@ function SignupWizardInner() {
           </Link>
         </div>
 
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-16 sm:px-8 lg:h-full lg:max-w-2xl lg:justify-start lg:px-10 lg:py-8 xl:max-w-3xl xl:px-12">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-16 sm:px-8 lg:max-w-2xl lg:justify-start lg:px-10 lg:py-8 xl:max-w-3xl xl:px-12">
           <StepProgress step={step} accountType={accountType} />
 
           {apiError && (

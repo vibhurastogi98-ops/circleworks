@@ -27,6 +27,7 @@ import {
   toLegacyCreatorEntityType,
   type AccountType,
 } from "@/lib/account-types";
+import { buildInitialOnboardingChecklistProgress } from "@/lib/onboarding-checklist";
 import { getWizardStepIds } from "@/lib/signup-wizard-engine";
 
 const SIGNUP_DRAFT_COOKIE = "cw_signup_partial";
@@ -411,21 +412,31 @@ export async function POST(req: NextRequest) {
           })
           .returning();
 
+        const completedSignupSteps = getWizardStepIds(accountType).filter((step) => step !== "complete");
+        const initialOnboardingProgress = buildInitialOnboardingChecklistProgress(
+          accountType,
+          {
+            entityType,
+            creatorEntityType: accountType === "creator" ? toLegacyCreatorEntityType(creator?.entityType) : null,
+          },
+          completedSignupSteps,
+        );
+
         await tx
           .insert(onboardingProgress)
           .values({
             accountId: company.id,
-            currentStep: "complete",
-            completedSteps: getWizardStepIds(accountType).filter((step) => step !== "complete"),
-            status: "complete",
+            currentStep: initialOnboardingProgress.currentStep,
+            completedSteps: initialOnboardingProgress.completedSteps,
+            status: initialOnboardingProgress.status,
             updatedAt: new Date(),
           })
           .onConflictDoUpdate({
             target: onboardingProgress.accountId,
             set: {
-              currentStep: "complete",
-              completedSteps: getWizardStepIds(accountType).filter((step) => step !== "complete"),
-              status: "complete",
+              currentStep: initialOnboardingProgress.currentStep,
+              completedSteps: initialOnboardingProgress.completedSteps,
+              status: initialOnboardingProgress.status,
               updatedAt: new Date(),
             },
           });

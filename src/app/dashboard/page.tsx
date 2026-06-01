@@ -50,6 +50,7 @@ import type {
   PayrollTrendPoint,
 } from "@/lib/dashboard-data";
 import ErrorState from "@/components/ErrorState";
+import OnboardingChecklistWidget from "@/components/dashboard/OnboardingChecklistWidget";
 import { DashboardSkeleton } from "@/components/skeletons";
 
 type DateRange = "Last 7 days" | "Last 30 days" | "This Quarter" | "Custom";
@@ -753,6 +754,7 @@ export default function DashboardPage() {
   const {
     currentCompany,
     currentUser,
+    accountType,
     payrollRunInProgress,
     setPayrollRunning,
   } = usePlatformStore();
@@ -900,6 +902,13 @@ export default function DashboardPage() {
         dateRange={dateRange}
         setDateRange={setDateRange}
         onRunPayroll={startPayrollRun}
+      />
+
+      <OnboardingChecklistWidget
+        companyId={currentCompany.id}
+        accountType={currentCompany.accountType ?? accountType}
+        entityType={currentCompany.entityType}
+        creatorEntityType={currentCompany.creatorEntityType}
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
