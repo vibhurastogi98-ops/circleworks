@@ -31,7 +31,7 @@ import { z } from "zod";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 const DRAFT_KEY = "signup_in_progress";
-const FULL_FLOW_STEP_COUNT = 6;
+const FULL_FLOW_STEP_COUNT = 8;
 
 const TESTIMONIALS = [
   {
@@ -179,6 +179,9 @@ type SignupProvider = Extract<Provider, "google" | "azure">;
 type SignupMode = "email" | "google" | "microsoft";
 type AccountType = "company" | "agency" | "creator";
 type CreatorEntityType = "sole-prop" | "llc" | "s-corp" | "";
+type CompanyEntityType = "sole_prop" | "smllc" | "mmllc" | "s_corp" | "c_corp" | "none" | "";
+type FundingMethod = "plaid" | "manual" | "";
+type AdminRole = "owner" | "admin";
 
 const ACCOUNT_TYPES = [
   {
@@ -207,6 +210,15 @@ const CREATOR_ENTITY_TYPES = [
   { value: "s-corp", label: "S-Corp" },
 ] as const;
 
+const COMPANY_ENTITY_TYPES = [
+  { value: "sole_prop", label: "Sole proprietorship" },
+  { value: "smllc", label: "Single-member LLC" },
+  { value: "mmllc", label: "Multi-member LLC" },
+  { value: "s_corp", label: "S corp" },
+  { value: "c_corp", label: "C corp" },
+  { value: "none", label: "Not sure yet" },
+] as const;
+
 type WizardData = {
   account: {
     accountType: AccountType | "";
@@ -217,6 +229,40 @@ type WizardData = {
     password: string;
     confirmPassword: string;
     agreedToTerms: boolean;
+    role: AdminRole;
+  };
+  companyBusiness: {
+    legalName: string;
+    dba: string;
+    ein: string;
+    entityType: CompanyEntityType;
+    industry: string;
+    employeeCount: string;
+    workStates: string[];
+  };
+  companyBankFunding: {
+    method: FundingMethod;
+    institutionName: string;
+    accountType: "checking" | "savings";
+    accountMask: string;
+    routingMask: string;
+    bankAccountToken: string;
+    verified: boolean;
+  };
+  companyTaxSetup: {
+    federalEinConfirmed: boolean;
+    stateTaxIdText: string;
+    registrationStates: string[];
+  };
+  companyPaySchedule: {
+    frequency: PaySchedule | "";
+    firstPayDate: string;
+    payPeriodStart: string;
+    payPeriodEnd: string;
+  };
+  companyInvites: {
+    emails: string;
+    skip: boolean;
   };
   step2: {
     companyName: string;
@@ -259,6 +305,40 @@ const INITIAL_DATA: WizardData = {
     password: "",
     confirmPassword: "",
     agreedToTerms: false,
+    role: "owner",
+  },
+  companyBusiness: {
+    legalName: "",
+    dba: "",
+    ein: "",
+    entityType: "",
+    industry: "",
+    employeeCount: "",
+    workStates: [],
+  },
+  companyBankFunding: {
+    method: "",
+    institutionName: "",
+    accountType: "checking",
+    accountMask: "",
+    routingMask: "",
+    bankAccountToken: "",
+    verified: false,
+  },
+  companyTaxSetup: {
+    federalEinConfirmed: false,
+    stateTaxIdText: "",
+    registrationStates: [],
+  },
+  companyPaySchedule: {
+    frequency: "",
+    firstPayDate: "",
+    payPeriodStart: "",
+    payPeriodEnd: "",
+  },
+  companyInvites: {
+    emails: "",
+    skip: false,
   },
   step2: {
     companyName: "",
@@ -312,6 +392,12 @@ const accountTypeSchema = z
     }
   });
 
+const hiddenBooleanSchema = z.preprocess((value) => {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+}, z.boolean());
+
 const step1Schema = z
   .object({
     fullName: z.string().trim().min(2, "Full name is required"),
@@ -321,10 +407,157 @@ const step1Schema = z
     agreedToTerms: z.boolean().refine((value) => value, {
       message: "You must agree to the Terms of Service and Privacy Policy",
     }),
+    role: z.enum(["owner", "admin"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords do not match",
+  });
+
+const companyBusinessSchema = z.object({
+  legalName: z.string().trim().min(2, "Legal business name is required"),
+  dba: z.string().trim(),
+  ein: z
+    .string()
+    .min(10, "EIN is required")
+    .regex(/^\d{2}-\d{7}$/, "EIN must be formatted as XX-XXXXXXX"),
+  entityType: z.enum(["sole_prop", "smllc", "mmllc", "s_corp", "c_corp", "none"]).or(z.literal("")),
+  industry: z.string().min(1, "Select an industry"),
+  employeeCount: z.string().trim().min(1, "Employee count is required"),
+  workStates: z.array(z.string()).min(1, "Select at least one work state"),
+}).superRefine((data, ctx) => {
+  if (!data.entityType) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["entityType"],
+      message: "Select an entity type",
+    });
+  }
+
+  const employeeCount = Number(data.employeeCount);
+  if (!Number.isInteger(employeeCount) || employeeCount < 1) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["employeeCount"],
+      message: "Enter at least 1 employee",
+    });
+  }
+});
+
+const companyBankFundingSchema = z.object({
+  method: z.enum(["plaid", "manual"]).or(z.literal("")),
+  institutionName: z.string().trim(),
+  accountType: z.enum(["checking", "savings"]),
+  accountMask: z.string(),
+  routingMask: z.string(),
+  bankAccountToken: z.string(),
+  verified: hiddenBooleanSchema,
+}).superRefine((data, ctx) => {
+  if (!data.method) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["method"],
+      message: "Choose a funding method",
+    });
+    return;
+  }
+
+  if (!data.bankAccountToken || !data.accountMask || !data.routingMask) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["method"],
+      message: "Complete bank verification before continuing",
+    });
+  }
+});
+
+const companyTaxSetupSchema = z.object({
+  federalEinConfirmed: z.boolean().refine((value) => value, {
+    message: "Confirm the federal EIN before continuing",
+  }),
+  stateTaxIdText: z.string(),
+  registrationStates: z.array(z.string()),
+});
+
+const companyPayScheduleSchema = z
+  .object({
+    frequency: z.enum(["bi-weekly", "semi-monthly", "weekly", "monthly", ""]),
+    firstPayDate: z.string(),
+    payPeriodStart: z.string(),
+    payPeriodEnd: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.frequency) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["frequency"],
+        message: "Select a pay frequency",
+      });
+    }
+
+    if (!data.firstPayDate) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["firstPayDate"],
+        message: "Choose a first pay date",
+      });
+    } else if (data.firstPayDate < getMinPayrollDate()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["firstPayDate"],
+        message: "First pay date must be at least 4 business days from today",
+      });
+    }
+
+    if (!data.payPeriodStart) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["payPeriodStart"],
+        message: "Choose a pay period start",
+      });
+    }
+
+    if (!data.payPeriodEnd) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["payPeriodEnd"],
+        message: "Choose a pay period end",
+      });
+    } else if (data.payPeriodStart && data.payPeriodEnd < data.payPeriodStart) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["payPeriodEnd"],
+        message: "Pay period end must be after the start date",
+      });
+    }
+  });
+
+const companyInvitesSchema = z
+  .object({
+    emails: z.string(),
+    skip: hiddenBooleanSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.skip) return;
+
+    const emails = parseInviteEmails(data.emails);
+    if (emails.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["emails"],
+        message: "Enter at least one employee email or skip for later",
+      });
+      return;
+    }
+
+    const invalid = emails.find((email) => !z.string().email().safeParse(email).success);
+    if (invalid) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["emails"],
+        message: `${invalid} is not a valid email`,
+      });
+    }
   });
 
 const step2Schema = z.object({
@@ -475,6 +708,13 @@ const creatorSchema = z
 
 type AccountTypeValues = z.infer<typeof accountTypeSchema>;
 type Step1Values = z.infer<typeof step1Schema>;
+type CompanyBusinessValues = z.infer<typeof companyBusinessSchema>;
+type CompanyBankFundingFormValues = z.input<typeof companyBankFundingSchema>;
+type CompanyBankFundingValues = z.output<typeof companyBankFundingSchema>;
+type CompanyTaxSetupValues = z.infer<typeof companyTaxSetupSchema>;
+type CompanyPayScheduleValues = z.infer<typeof companyPayScheduleSchema>;
+type CompanyInvitesFormValues = z.input<typeof companyInvitesSchema>;
+type CompanyInvitesValues = z.output<typeof companyInvitesSchema>;
 type Step2Values = z.infer<typeof step2Schema>;
 type Step3Values = z.infer<typeof step3Schema>;
 type Step4Values = z.infer<typeof step4Schema>;
@@ -524,6 +764,38 @@ function getMinPayrollDate() {
 function formatEin(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 9);
   return digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
+}
+
+function maskEin(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 4 ? `**-***${digits.slice(-4)}` : "";
+}
+
+function last4(value: string) {
+  return value.replace(/\D/g, "").slice(-4);
+}
+
+function createBankToken(method: Exclude<FundingMethod, "">) {
+  const randomPart =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().replace(/-/g, "")
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+
+  return `bank_${method}_${randomPart.slice(0, 32)}`;
+}
+
+function parseInviteEmails(value: string) {
+  return value
+    .split(/[\n,;]+/)
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function formatEmailsSummary(value: string) {
+  const emails = parseInviteEmails(value);
+  if (emails.length === 0) return "No invitations queued";
+  if (emails.length === 1) return emails[0];
+  return `${emails.length} invitations queued`;
 }
 
 function splitName(name: string) {
@@ -607,6 +879,19 @@ function isFullFlow(accountType: AccountType | "") {
 }
 
 function getFlowSteps(accountType: AccountType | "") {
+  if (accountType === "company") {
+    return [
+      { title: "Type", detail: "Choose workspace" },
+      { title: "Business", detail: "Company details" },
+      { title: "Admin", detail: "Owner account" },
+      { title: "Bank", detail: "Funding source" },
+      { title: "Taxes", detail: "Federal & state" },
+      { title: "Schedule", detail: "Pay calendar" },
+      { title: "Invite", detail: "Employees" },
+      { title: "Review", detail: "Finish setup" },
+    ];
+  }
+
   if (accountType === "creator") {
     return [
       { title: "Type", detail: "Choose workspace" },
@@ -818,6 +1103,7 @@ function Step1Form({
     clearErrors,
     setError,
     setFocus,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<Step1Values>({
@@ -827,6 +1113,7 @@ function Step1Form({
 
   const password = watch("password");
   const agreedToTerms = watch("agreedToTerms");
+  const role = watch("role");
   const strength = getPasswordStrength(password);
 
   const handleOAuthClick = (provider: SignupProvider) => {
@@ -1001,6 +1288,37 @@ function Step1Form({
         </div>
       </div>
 
+      <fieldset>
+        <legend className={labelBase}>Admin role</legend>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Owner", value: "owner" as const },
+            { label: "Admin", value: "admin" as const },
+          ].map((option) => {
+            const active = role === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("role", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`h-12 rounded-lg border text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <div>
         <label className="flex items-start gap-3 text-sm font-medium text-slate-700">
           <input
@@ -1041,6 +1359,742 @@ function Step1Form({
         Start for free — no credit card required
       </p>
     </form>
+  );
+}
+
+function CompanyBusinessDetailsForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["companyBusiness"];
+  onComplete: (data: WizardData["companyBusiness"]) => void;
+}) {
+  const [stateToAdd, setStateToAdd] = useState("");
+  const {
+    control,
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CompanyBusinessValues>({
+    resolver: zodResolver(companyBusinessSchema),
+    defaultValues: data,
+  });
+  const entityType = watch("entityType");
+  const workStates = watch("workStates") ?? [];
+  const availableStates = US_STATES.filter((state) => !workStates.includes(state));
+
+  const addWorkState = () => {
+    if (!stateToAdd || workStates.includes(stateToAdd)) return;
+    setValue("workStates", [...workStates, stateToAdd], {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setStateToAdd("");
+  };
+
+  const removeWorkState = (state: string) => {
+    setValue("workStates", workStates.filter((item) => item !== state), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["companyBusiness"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Business details</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          These details drive employer payroll, tax, and compliance setup.
+        </p>
+      </header>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="legalName" className={labelBase}>Legal business name</label>
+          <input
+            id="legalName"
+            autoFocus
+            {...register("legalName")}
+            className={fieldClass(Boolean(errors.legalName))}
+            aria-invalid={Boolean(errors.legalName)}
+            aria-describedby={errors.legalName ? "legalName-error" : undefined}
+          />
+          <InlineError id="legalName-error" message={errors.legalName?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="dba" className={labelBase}>DBA</label>
+          <input
+            id="dba"
+            placeholder="Optional"
+            {...register("dba")}
+            className={fieldClass(Boolean(errors.dba))}
+            aria-invalid={Boolean(errors.dba)}
+            aria-describedby={errors.dba ? "dba-error" : undefined}
+          />
+          <InlineError id="dba-error" message={errors.dba?.message} />
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="companyEin" className={labelBase}>EIN</label>
+          <Controller
+            name="ein"
+            control={control}
+            render={({ field }) => (
+              <input
+                id="companyEin"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="XX-XXXXXXX"
+                value={field.value}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                onChange={(event) => field.onChange(formatEin(event.target.value))}
+                className={`${fieldClass(Boolean(errors.ein))} font-mono`}
+                aria-invalid={Boolean(errors.ein)}
+                aria-describedby={errors.ein ? "companyEin-error" : undefined}
+              />
+            )}
+          />
+          <InlineError id="companyEin-error" message={errors.ein?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="employeeCount" className={labelBase}>Employee count</label>
+          <input
+            id="employeeCount"
+            inputMode="numeric"
+            placeholder="12"
+            {...register("employeeCount")}
+            className={fieldClass(Boolean(errors.employeeCount))}
+            aria-invalid={Boolean(errors.employeeCount)}
+            aria-describedby={errors.employeeCount ? "employeeCount-error" : undefined}
+          />
+          <InlineError id="employeeCount-error" message={errors.employeeCount?.message} />
+        </div>
+      </div>
+
+      <fieldset>
+        <legend className={labelBase}>Entity type</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {COMPANY_ENTITY_TYPES.map((option) => {
+            const active = entityType === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("entityType", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`min-h-12 rounded-lg border px-3 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <InlineError id="companyEntityType-error" message={errors.entityType?.message} />
+      </fieldset>
+
+      <div>
+        <label htmlFor="companyIndustry" className={labelBase}>Industry</label>
+        <select
+          id="companyIndustry"
+          {...register("industry")}
+          className={selectClass(Boolean(errors.industry))}
+          aria-invalid={Boolean(errors.industry)}
+          aria-describedby={errors.industry ? "companyIndustry-error" : undefined}
+        >
+          <option value="">Select industry</option>
+          {INDUSTRIES.map((industry) => (
+            <option key={industry} value={industry}>{industry}</option>
+          ))}
+        </select>
+        <InlineError id="companyIndustry-error" message={errors.industry?.message} />
+      </div>
+
+      <div>
+        <label htmlFor="workState" className={labelBase}>Work states</label>
+        <div className="flex gap-2">
+          <select
+            id="workState"
+            value={stateToAdd}
+            onChange={(event) => setStateToAdd(event.target.value)}
+            className={selectClass(Boolean(errors.workStates))}
+          >
+            <option value="">Select state</option>
+            {availableStates.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={addWorkState}
+            className="h-12 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10"
+          >
+            Add
+          </button>
+        </div>
+        {workStates.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {workStates.map((state) => (
+              <button
+                key={state}
+                type="button"
+                onClick={() => removeWorkState(state)}
+                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700"
+                title={`Remove ${state}`}
+              >
+                {state} ×
+              </button>
+            ))}
+          </div>
+        )}
+        <InlineError id="workStates-error" message={errors.workStates?.message} />
+      </div>
+
+      <WizardActions />
+    </form>
+  );
+}
+
+function CompanyBankFundingForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["companyBankFunding"];
+  onComplete: (data: WizardData["companyBankFunding"]) => void;
+}) {
+  const [accountNumber, setAccountNumber] = useState("");
+  const [routingNumber, setRoutingNumber] = useState("");
+  const {
+    register,
+    handleSubmit,
+    setError,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CompanyBankFundingFormValues, unknown, CompanyBankFundingValues>({
+    resolver: zodResolver(companyBankFundingSchema),
+    defaultValues: data,
+  });
+  const method = watch("method");
+  const accountType = watch("accountType");
+  const accountMask = watch("accountMask");
+  const routingMask = watch("routingMask");
+
+  const clearTokenizedBank = () => {
+    setValue("bankAccountToken", "", { shouldDirty: true });
+    setValue("accountMask", "", { shouldDirty: true });
+    setValue("routingMask", "", { shouldDirty: true });
+    setValue("verified", false, { shouldDirty: true });
+  };
+
+  const connectPlaid = () => {
+    setValue("method", "plaid", { shouldDirty: true, shouldValidate: true });
+    setValue("institutionName", "Plaid verified bank", { shouldDirty: true });
+    setValue("accountType", "checking", { shouldDirty: true });
+    setValue("accountMask", "0000", { shouldDirty: true });
+    setValue("routingMask", "0000", { shouldDirty: true });
+    setValue("bankAccountToken", `plaid_${Date.now().toString(36)}`, { shouldDirty: true, shouldValidate: true });
+    setValue("verified", true, { shouldDirty: true });
+    setAccountNumber("");
+    setRoutingNumber("");
+  };
+
+  const tokenizeManualAccount = () => {
+    const accountDigits = accountNumber.replace(/\D/g, "");
+    const routingDigits = routingNumber.replace(/\D/g, "");
+
+    if (routingDigits.length !== 9) {
+      setError("method", { type: "manual", message: "Routing number must be 9 digits" });
+      return;
+    }
+
+    if (accountDigits.length < 4) {
+      setError("method", { type: "manual", message: "Account number must include at least 4 digits" });
+      return;
+    }
+
+    setValue("method", "manual", { shouldDirty: true, shouldValidate: true });
+    setValue("institutionName", "Manual bank account", { shouldDirty: true });
+    setValue("accountMask", last4(accountDigits), { shouldDirty: true });
+    setValue("routingMask", last4(routingDigits), { shouldDirty: true });
+    setValue("bankAccountToken", createBankToken("manual"), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setValue("verified", false, { shouldDirty: true });
+    setAccountNumber("");
+    setRoutingNumber("");
+  };
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["companyBankFunding"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Bank funding</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Connect payroll funding. Manual account details are tokenized and never saved as raw values.
+        </p>
+      </header>
+
+      <fieldset>
+        <legend className={labelBase}>Funding method</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={connectPlaid}
+            className={`min-h-24 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              method === "plaid" ? "border-blue-600 bg-blue-50" : "border-slate-300 bg-white hover:bg-slate-50"
+            }`}
+          >
+            <span className="block text-sm font-bold text-slate-900">Connect with Plaid</span>
+            <span className="mt-2 block text-sm leading-5 text-slate-500">Fast bank verification for payroll funding.</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setValue("method", "manual", { shouldDirty: true, shouldValidate: true });
+              clearTokenizedBank();
+            }}
+            className={`min-h-24 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              method === "manual" ? "border-blue-600 bg-blue-50" : "border-slate-300 bg-white hover:bg-slate-50"
+            }`}
+          >
+            <span className="block text-sm font-bold text-slate-900">Enter manually</span>
+            <span className="mt-2 block text-sm leading-5 text-slate-500">Type routing and account details for tokenization.</span>
+          </button>
+        </div>
+        <InlineError id="fundingMethod-error" message={errors.method?.message} />
+      </fieldset>
+
+      {method === "manual" && (
+        <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <fieldset>
+            <legend className={labelBase}>Account type</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {(["checking", "savings"] as const).map((option) => {
+                const active = accountType === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setValue("accountType", option, { shouldDirty: true })}
+                    className={`h-11 rounded-lg border text-sm font-bold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                      active
+                        ? "border-blue-600 bg-white text-blue-700"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="routingNumber" className={labelBase}>Routing number</label>
+              <input
+                id="routingNumber"
+                inputMode="numeric"
+                value={routingNumber}
+                onChange={(event) => {
+                  setRoutingNumber(event.target.value.replace(/\D/g, "").slice(0, 9));
+                  clearTokenizedBank();
+                }}
+                className={fieldClass(false)}
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label htmlFor="accountNumber" className={labelBase}>Account number</label>
+              <input
+                id="accountNumber"
+                inputMode="numeric"
+                value={accountNumber}
+                onChange={(event) => {
+                  setAccountNumber(event.target.value.replace(/\D/g, ""));
+                  clearTokenizedBank();
+                }}
+                className={fieldClass(false)}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={tokenizeManualAccount}
+            className="h-11 rounded-lg bg-[#0A1628] px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            Tokenize account
+          </button>
+        </div>
+      )}
+
+      {(accountMask || routingMask) && (
+        <dl className="grid gap-3 rounded-lg border border-green-200 bg-green-50 p-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-bold uppercase text-green-700">Account</dt>
+            <dd className="mt-1 font-mono text-sm font-bold text-slate-900">••••{accountMask}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-bold uppercase text-green-700">Routing</dt>
+            <dd className="mt-1 font-mono text-sm font-bold text-slate-900">••••{routingMask}</dd>
+          </div>
+        </dl>
+      )}
+
+      <input type="hidden" {...register("method")} />
+      <input type="hidden" {...register("institutionName")} />
+      <input type="hidden" {...register("accountType")} />
+      <input type="hidden" {...register("accountMask")} />
+      <input type="hidden" {...register("routingMask")} />
+      <input type="hidden" {...register("bankAccountToken")} />
+      <input type="hidden" {...register("verified")} />
+
+      <WizardActions />
+    </form>
+  );
+}
+
+function CompanyTaxSetupForm({
+  data,
+  business,
+  onComplete,
+}: {
+  data: WizardData["companyTaxSetup"];
+  business: WizardData["companyBusiness"];
+  onComplete: (data: WizardData["companyTaxSetup"]) => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CompanyTaxSetupValues>({
+    resolver: zodResolver(companyTaxSetupSchema),
+    defaultValues: data,
+  });
+  const registrationStates = watch("registrationStates") ?? [];
+
+  const toggleRegistrationState = (state: string) => {
+    const next = registrationStates.includes(state)
+      ? registrationStates.filter((item) => item !== state)
+      : [...registrationStates, state];
+    setValue("registrationStates", next, { shouldDirty: true, shouldValidate: true });
+  };
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["companyTaxSetup"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Tax setup</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Confirm federal details and tell us where state registrations are still needed.
+        </p>
+      </header>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <dt className="text-xs font-bold uppercase text-slate-500">Federal EIN</dt>
+        <dd className="mt-1 font-mono text-lg font-bold text-slate-900">{maskEin(business.ein)}</dd>
+        <label className="mt-4 flex items-start gap-3 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            {...register("federalEinConfirmed")}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+            aria-invalid={Boolean(errors.federalEinConfirmed)}
+            aria-describedby={errors.federalEinConfirmed ? "federalEinConfirmed-error" : undefined}
+          />
+          <span>I confirm this EIN is correct for federal payroll tax filings.</span>
+        </label>
+        <InlineError id="federalEinConfirmed-error" message={errors.federalEinConfirmed?.message} />
+      </div>
+
+      <div>
+        <label htmlFor="stateTaxIdText" className={labelBase}>State tax IDs</label>
+        <textarea
+          id="stateTaxIdText"
+          rows={4}
+          placeholder="Example: California SIT 1234567, New York UI 7654321"
+          {...register("stateTaxIdText")}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      <fieldset>
+        <legend className={labelBase}>Trigger state registration where missing</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {business.workStates.map((state) => {
+            const active = registrationStates.includes(state);
+            return (
+              <button
+                key={state}
+                type="button"
+                onClick={() => toggleRegistrationState(state)}
+                className={`min-h-11 rounded-lg border px-3 text-left text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {state}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <WizardActions />
+    </form>
+  );
+}
+
+function CompanyPayScheduleForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["companyPaySchedule"];
+  onComplete: (data: WizardData["companyPaySchedule"]) => void;
+}) {
+  const minPayrollDate = useMemo(() => getMinPayrollDate(), []);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CompanyPayScheduleValues>({
+    resolver: zodResolver(companyPayScheduleSchema),
+    defaultValues: data,
+  });
+  const frequency = watch("frequency");
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["companyPaySchedule"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Pay schedule</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Set the cadence, first pay date, and first pay period.
+        </p>
+      </header>
+
+      <fieldset>
+        <legend className={labelBase}>Frequency</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PAY_SCHEDULES.map(({ value, label, detail, icon: Icon }) => {
+            const active = frequency === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() =>
+                  setValue("frequency", value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`min-h-24 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:min-h-20 lg:p-3 ${
+                  active
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-slate-300 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <Icon className={`mb-3 h-5 w-5 lg:mb-2 lg:h-4 lg:w-4 ${active ? "text-blue-700" : "text-slate-500"}`} aria-hidden="true" />
+                <span className="block text-sm font-bold text-slate-900">{label}</span>
+                <span className="mt-1 block text-sm text-slate-500 lg:text-xs">{detail}</span>
+              </button>
+            );
+          })}
+        </div>
+        <InlineError id="companyFrequency-error" message={errors.frequency?.message} />
+      </fieldset>
+
+      <div>
+        <label htmlFor="firstPayDate" className={labelBase}>First pay date</label>
+        <input
+          id="firstPayDate"
+          type="date"
+          min={minPayrollDate}
+          {...register("firstPayDate")}
+          className={fieldClass(Boolean(errors.firstPayDate))}
+          aria-invalid={Boolean(errors.firstPayDate)}
+          aria-describedby={errors.firstPayDate ? "firstPayDate-error" : undefined}
+        />
+        <InlineError id="firstPayDate-error" message={errors.firstPayDate?.message} />
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="payPeriodStart" className={labelBase}>Pay period start</label>
+          <input
+            id="payPeriodStart"
+            type="date"
+            {...register("payPeriodStart")}
+            className={fieldClass(Boolean(errors.payPeriodStart))}
+            aria-invalid={Boolean(errors.payPeriodStart)}
+            aria-describedby={errors.payPeriodStart ? "payPeriodStart-error" : undefined}
+          />
+          <InlineError id="payPeriodStart-error" message={errors.payPeriodStart?.message} />
+        </div>
+        <div>
+          <label htmlFor="payPeriodEnd" className={labelBase}>Pay period end</label>
+          <input
+            id="payPeriodEnd"
+            type="date"
+            {...register("payPeriodEnd")}
+            className={fieldClass(Boolean(errors.payPeriodEnd))}
+            aria-invalid={Boolean(errors.payPeriodEnd)}
+            aria-describedby={errors.payPeriodEnd ? "payPeriodEnd-error" : undefined}
+          />
+          <InlineError id="payPeriodEnd-error" message={errors.payPeriodEnd?.message} />
+        </div>
+      </div>
+
+      <WizardActions />
+    </form>
+  );
+}
+
+function CompanyInviteEmployeesForm({
+  data,
+  onComplete,
+  onSkip,
+}: {
+  data: WizardData["companyInvites"];
+  onComplete: (data: WizardData["companyInvites"]) => void;
+  onSkip: () => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CompanyInvitesFormValues, unknown, CompanyInvitesValues>({
+    resolver: zodResolver(companyInvitesSchema),
+    defaultValues: data,
+  });
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["companyInvites"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Invite employees</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Paste emails separated by commas or new lines. You can also skip and invite later.
+        </p>
+      </header>
+
+      <div>
+        <label htmlFor="inviteEmails" className={labelBase}>Employee emails</label>
+        <textarea
+          id="inviteEmails"
+          rows={7}
+          placeholder="alex@company.com, jordan@company.com"
+          {...register("emails")}
+          className={`w-full rounded-lg border bg-white px-3 py-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
+            errors.emails ? "border-red-400 bg-red-50" : "border-slate-300"
+          }`}
+          aria-invalid={Boolean(errors.emails)}
+          aria-describedby={errors.emails ? "inviteEmails-error" : undefined}
+        />
+        <InlineError id="inviteEmails-error" message={errors.emails?.message} />
+      </div>
+
+      <input type="hidden" {...register("skip")} />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={onSkip}
+          className="h-12 rounded-lg border border-slate-300 px-5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10"
+        >
+          Skip for later
+        </button>
+        <button
+          type="submit"
+          className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
+        >
+          Queue invites
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function CompanyReviewFinish({
+  data,
+  loading,
+  onFinish,
+}: {
+  data: WizardData;
+  loading: boolean;
+  onFinish: () => void;
+}) {
+  const summaryRows = [
+    ["Legal name", data.companyBusiness.legalName],
+    ["DBA", data.companyBusiness.dba || "None"],
+    ["EIN", maskEin(data.companyBusiness.ein)],
+    ["Entity", COMPANY_ENTITY_TYPES.find((type) => type.value === data.companyBusiness.entityType)?.label || "Not set"],
+    ["Work states", data.companyBusiness.workStates.join(", ") || "Not set"],
+    ["Funding", data.companyBankFunding.method === "plaid" ? "Plaid connected" : `Manual account ••••${data.companyBankFunding.accountMask}`],
+    ["Tax registration", data.companyTaxSetup.registrationStates.length ? data.companyTaxSetup.registrationStates.join(", ") : "No missing registrations marked"],
+    ["Pay schedule", data.companyPaySchedule.frequency || "Not set"],
+    ["First pay date", data.companyPaySchedule.firstPayDate || "Not set"],
+    ["Invites", data.companyInvites.skip ? "Skipped for later" : formatEmailsSummary(data.companyInvites.emails)],
+  ];
+
+  return (
+    <div className="space-y-6 lg:space-y-5">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Review & finish</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Confirm your employer setup. Finishing marks onboarding complete and opens your company dashboard.
+        </p>
+      </header>
+
+      <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+        {summaryRows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs font-bold uppercase text-slate-500">{label}</dt>
+            <dd className="mt-1 text-sm font-bold text-slate-900">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onFinish}
+          disabled={loading}
+          className="flex h-12 min-w-44 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Finishing...
+            </>
+          ) : (
+            <>
+              Finish setup
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1873,26 +2927,78 @@ function sanitizeDraft(data: WizardData) {
       password: "",
       confirmPassword: "",
     },
+    companyBankFunding: {
+      ...data.companyBankFunding,
+      accountMask: data.companyBankFunding.accountMask,
+      routingMask: data.companyBankFunding.routingMask,
+      bankAccountToken: data.companyBankFunding.bankAccountToken,
+    },
   };
 }
 
 function toCompletePayload(data: WizardData, signupMode: SignupMode) {
+  const accountType = data.account.accountType || "company";
+  const isCompany = accountType === "company";
+  const adminName = splitName(data.step1.fullName);
+  const companyStep2 = {
+    companyName: data.companyBusiness.legalName,
+    companySize: data.companyBusiness.employeeCount,
+    industry: data.companyBusiness.industry,
+    primaryState: data.companyBusiness.workStates[0] || "",
+    multipleStates: data.companyBusiness.workStates.length > 1,
+    dba: data.companyBusiness.dba,
+    ein: data.companyBusiness.ein,
+    entityType: data.companyBusiness.entityType,
+    workStates: data.companyBusiness.workStates,
+  };
+  const companyStep3 = {
+    ein: data.companyBusiness.ein,
+    paySchedule: data.companyPaySchedule.frequency,
+    firstPayrollDate: data.companyPaySchedule.firstPayDate,
+    payPeriodStart: data.companyPaySchedule.payPeriodStart,
+    payPeriodEnd: data.companyPaySchedule.payPeriodEnd,
+    skipPayroll: false,
+  };
+  const companyStep4 = {
+    isAdminEmployee: true,
+    firstName: adminName.firstName,
+    lastName: adminName.lastName,
+    employeeEmail: data.step1.email,
+    title: data.step1.role === "owner" ? "Owner" : "Administrator",
+    startDate: "",
+    payType: "salary",
+    payRate: "",
+    skip: true,
+  };
+
   return {
     account: data.account,
     step1: data.step1,
-    step2: data.step2,
-    step3: data.step3,
-    step4: {
-      isAdminEmployee: data.step4.isAdminEmployee,
-      firstName: data.step4.firstName,
-      lastName: data.step4.lastName,
-      employeeEmail: data.step4.workEmail,
-      title: data.step4.jobTitle,
-      startDate: data.step4.startDate,
-      payType: data.step4.payType,
-      payRate: data.step4.payRate,
-      skip: data.step4.skip,
-    },
+    step2: isCompany ? companyStep2 : data.step2,
+    step3: isCompany ? companyStep3 : data.step3,
+    step4: isCompany
+      ? companyStep4
+      : {
+          isAdminEmployee: data.step4.isAdminEmployee,
+          firstName: data.step4.firstName,
+          lastName: data.step4.lastName,
+          employeeEmail: data.step4.workEmail,
+          title: data.step4.jobTitle,
+          startDate: data.step4.startDate,
+          payType: data.step4.payType,
+          payRate: data.step4.payRate,
+          skip: data.step4.skip,
+        },
+    business: isCompany ? data.companyBusiness : null,
+    bankFunding: isCompany ? data.companyBankFunding : null,
+    taxSetup: isCompany ? data.companyTaxSetup : null,
+    paySchedule: isCompany ? data.companyPaySchedule : null,
+    employeeInvites: isCompany
+      ? {
+          emails: parseInviteEmails(data.companyInvites.emails),
+          skip: data.companyInvites.skip,
+        }
+      : null,
     creator: data.creator,
     googleAuth: signupMode !== "email",
   };
@@ -1952,7 +3058,9 @@ function SignupWizardInner() {
         : requestedStep !== null
           ? requestedStep
           : isOAuthSignup && initialAccountType
-            ? 2
+            ? initialAccountType === "company"
+              ? 3
+              : 2
             : 0;
 
     return Math.min(initialStep, getSuccessStep(initialAccountType));
@@ -1970,6 +3078,7 @@ function SignupWizardInner() {
           password: "__oauth_password__",
           confirmPassword: "__oauth_password__",
           agreedToTerms: true,
+          role: "owner",
         }
       : INITIAL_DATA.step1,
     step4: isOAuthSignup
@@ -1988,6 +3097,7 @@ function SignupWizardInner() {
   const [oauthLoading, setOauthLoading] = useState<SignupProvider | null>(null);
 
   const accountType = wizardData.account.accountType;
+  const companyPath = accountType === "company";
   const successStep = getSuccessStep(accountType);
   const hasProgress = step > 0 && step < successStep;
 
@@ -2130,6 +3240,26 @@ function SignupWizardInner() {
         ...INITIAL_DATA.step1,
         ...(draftData.step1 ?? {}),
       },
+      companyBusiness: {
+        ...INITIAL_DATA.companyBusiness,
+        ...(draftData.companyBusiness ?? {}),
+      },
+      companyBankFunding: {
+        ...INITIAL_DATA.companyBankFunding,
+        ...(draftData.companyBankFunding ?? {}),
+      },
+      companyTaxSetup: {
+        ...INITIAL_DATA.companyTaxSetup,
+        ...(draftData.companyTaxSetup ?? {}),
+      },
+      companyPaySchedule: {
+        ...INITIAL_DATA.companyPaySchedule,
+        ...(draftData.companyPaySchedule ?? {}),
+      },
+      companyInvites: {
+        ...INITIAL_DATA.companyInvites,
+        ...(draftData.companyInvites ?? {}),
+      },
       step2: {
         ...INITIAL_DATA.step2,
         ...(draftData.step2 ?? {}),
@@ -2176,6 +3306,7 @@ function SignupWizardInner() {
     const supabase = createSupabaseBrowserClient();
     const callbackParams = new URLSearchParams();
     if (accountType) callbackParams.set("accountType", accountType);
+    if (accountType === "company") callbackParams.set("step", "4");
     const callbackQuery = callbackParams.toString();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -2190,7 +3321,10 @@ function SignupWizardInner() {
     }
   };
 
-  const completeSignup = async (nextData: WizardData) => {
+  const completeSignup = async (
+    nextData: WizardData,
+    options: { redirectToDashboard?: boolean } = {},
+  ) => {
     setCompletionLoading(true);
     setApiError("");
 
@@ -2217,6 +3351,11 @@ function SignupWizardInner() {
 
       setWizardData(nextData);
       await clearDrafts();
+      if (options.redirectToDashboard) {
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
       goTo(nextSuccessStep, 1, nextData.account.accountType);
       router.refresh();
     } catch {
@@ -2224,6 +3363,10 @@ function SignupWizardInner() {
     } finally {
       setCompletionLoading(false);
     }
+  };
+
+  const finishCompanySignup = () => {
+    void completeSignup(wizardData, { redirectToDashboard: true });
   };
 
   const handleStep4Complete = (step4: WizardData["step4"]) => {
@@ -2375,11 +3518,23 @@ function SignupWizardInner() {
               {step === 0 && (
                 <AccountTypeForm
                   data={wizardData.account}
-                  onComplete={(account) => void advance({ account }, isOAuthSignup ? 2 : 1)}
+                  onComplete={(account) =>
+                    void advance(
+                      { account },
+                      account.accountType === "company" ? 1 : isOAuthSignup ? 2 : 1,
+                    )
+                  }
                 />
               )}
 
-              {step === 1 && (
+              {step === 1 && companyPath && (
+                <CompanyBusinessDetailsForm
+                  data={wizardData.companyBusiness}
+                  onComplete={(companyBusiness) => void advance({ companyBusiness }, 2)}
+                />
+              )}
+
+              {step === 1 && !companyPath && (
                 <Step1Form
                   data={wizardData.step1}
                   onComplete={(step1) => void advance({ step1 }, 2)}
@@ -2388,7 +3543,16 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 2 && isFullFlow(accountType) && (
+              {step === 2 && companyPath && (
+                <Step1Form
+                  data={wizardData.step1}
+                  onComplete={(step1) => void advance({ step1 }, 3)}
+                  onOAuth={handleOAuthSignup}
+                  oauthLoading={oauthLoading}
+                />
+              )}
+
+              {step === 2 && accountType === "agency" && (
                 <Step2Form
                   data={wizardData.step2}
                   onComplete={(step2) => void advance({ step2 }, 3)}
@@ -2403,7 +3567,14 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 3 && isFullFlow(accountType) && (
+              {step === 3 && companyPath && (
+                <CompanyBankFundingForm
+                  data={wizardData.companyBankFunding}
+                  onComplete={(companyBankFunding) => void advance({ companyBankFunding }, 4)}
+                />
+              )}
+
+              {step === 3 && accountType === "agency" && (
                 <Step3Form
                   data={wizardData.step3}
                   onComplete={(step3) => void advance({ step3 }, 4)}
@@ -2423,7 +3594,15 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 4 && isFullFlow(accountType) && (
+              {step === 4 && companyPath && (
+                <CompanyTaxSetupForm
+                  data={wizardData.companyTaxSetup}
+                  business={wizardData.companyBusiness}
+                  onComplete={(companyTaxSetup) => void advance({ companyTaxSetup }, 5)}
+                />
+              )}
+
+              {step === 4 && accountType === "agency" && (
                 <Step4Form
                   adminEmail={wizardData.step1.email}
                   adminName={wizardData.step1.fullName}
@@ -2434,7 +3613,40 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === successStep && <Step5Success data={wizardData} />}
+              {step === 5 && companyPath && (
+                <CompanyPayScheduleForm
+                  data={wizardData.companyPaySchedule}
+                  onComplete={(companyPaySchedule) => void advance({ companyPaySchedule }, 6)}
+                />
+              )}
+
+              {step === 6 && companyPath && (
+                <CompanyInviteEmployeesForm
+                  data={wizardData.companyInvites}
+                  onComplete={(companyInvites) => void advance({ companyInvites }, 7)}
+                  onSkip={() =>
+                    void advance(
+                      {
+                        companyInvites: {
+                          emails: "",
+                          skip: true,
+                        },
+                      },
+                      7,
+                    )
+                  }
+                />
+              )}
+
+              {step === 7 && companyPath && (
+                <CompanyReviewFinish
+                  data={wizardData}
+                  loading={completionLoading}
+                  onFinish={finishCompanySignup}
+                />
+              )}
+
+              {step === successStep && !companyPath && <Step5Success data={wizardData} />}
             </motion.div>
           </AnimatePresence>
         </div>

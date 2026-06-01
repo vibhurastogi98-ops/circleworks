@@ -20,10 +20,13 @@ describe("account type foundation", () => {
   it("uses account-specific wizard step sequences", () => {
     expect(getWizardStepIds("company")).toEqual([
       "account_type",
-      "credentials",
-      "company_profile",
-      "payroll_setup",
-      "first_employee",
+      "business_details",
+      "admin_account",
+      "bank_funding",
+      "tax_setup",
+      "pay_schedule",
+      "invite_employees",
+      "review_finish",
       "complete",
     ]);
     expect(getWizardStepIds("agency")).toContain("agency_profile");
@@ -52,13 +55,13 @@ describe("account type foundation", () => {
   it("advances to complete when the terminal step is reached", () => {
     const progress = resolveWizardState({
       accountType: "company",
-      currentStep: "first_employee",
+      currentStep: "review_finish",
     });
     const next = completeWizardStep(progress);
 
     expect(next.currentStep).toBe("complete");
     expect(next.status).toBe("complete");
-    expect(next.completedSteps).toContain("first_employee");
+    expect(next.completedSteps).toContain("review_finish");
   });
 
   it("returns the account capability matrix", () => {

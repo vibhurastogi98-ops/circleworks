@@ -46,7 +46,15 @@ function parseContractorCount(value: unknown) {
   return Number.isFinite(count) ? Math.max(0, Math.min(999, Math.round(count))) : 0;
 }
 
-function getAccountName(accountType: AccountType, step1: Record<string, unknown> | undefined, step2: Record<string, unknown> | undefined) {
+function getAccountName(
+  accountType: AccountType,
+  step1: Record<string, unknown> | undefined,
+  step2: Record<string, unknown> | undefined,
+  business: Record<string, unknown> | undefined,
+) {
+  const legalName = typeof business?.legalName === "string" ? business.legalName.trim() : "";
+  if (legalName) return legalName;
+
   const companyName = typeof step2?.companyName === "string" ? step2.companyName.trim() : "";
   if (companyName) return companyName;
 
@@ -58,10 +66,15 @@ function getAccountName(accountType: AccountType, step1: Record<string, unknown>
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { account, step1, step2, step3, step4, creator, googleAuth } = body;
+    const { account, step1, step2, step3, step4, creator, business, googleAuth } = body;
     const accountType = normalizeAccountType(account?.accountType);
     const fullFlowSignup = accountType === "company" || accountType === "agency";
-    const entityType = accountType === "creator" ? normalizeEntityType(creator?.entityType) : null;
+    const entityType =
+      accountType === "creator"
+        ? normalizeEntityType(creator?.entityType)
+        : accountType === "company"
+          ? normalizeEntityType(business?.entityType ?? step2?.entityType)
+          : null;
 
     const email = (step1?.email as string)?.toLowerCase().trim();
 
@@ -138,7 +151,7 @@ export async function POST(req: NextRequest) {
       supabaseUserId = authData.user.id;
     }
     const adminName = splitFullName(step1?.fullName);
-    const accountName = getAccountName(accountType, step1, step2);
+    const accountName = getAccountName(accountType, step1, step2, business);
 
     // Persist company + employee records
     try {

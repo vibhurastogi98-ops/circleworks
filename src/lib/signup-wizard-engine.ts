@@ -6,6 +6,13 @@ export type OnboardingProgressStatus = (typeof ONBOARDING_PROGRESS_STATUSES)[num
 export type WizardStepId =
   | "account_type"
   | "credentials"
+  | "business_details"
+  | "admin_account"
+  | "bank_funding"
+  | "tax_setup"
+  | "pay_schedule"
+  | "invite_employees"
+  | "review_finish"
   | "company_profile"
   | "agency_profile"
   | "payroll_setup"
@@ -31,11 +38,14 @@ export type WizardProgressState = {
 export const SIGNUP_WIZARD_STEPS = {
   company: [
     { id: "account_type", title: "Type", detail: "Choose workspace" },
-    { id: "credentials", title: "Account", detail: "Create login" },
-    { id: "company_profile", title: "Company", detail: "Legal profile" },
-    { id: "payroll_setup", title: "Payroll", detail: "Schedule basics", skippable: true },
-    { id: "first_employee", title: "Employees", detail: "First team member", skippable: true },
-    { id: "complete", title: "Ready", detail: "Launch CircleWorks", terminal: true },
+    { id: "business_details", title: "Business", detail: "Company details" },
+    { id: "admin_account", title: "Admin", detail: "Owner account" },
+    { id: "bank_funding", title: "Bank", detail: "Funding source" },
+    { id: "tax_setup", title: "Taxes", detail: "Federal & state" },
+    { id: "pay_schedule", title: "Schedule", detail: "Pay calendar" },
+    { id: "invite_employees", title: "Invite", detail: "Employees", skippable: true },
+    { id: "review_finish", title: "Review", detail: "Finish setup" },
+    { id: "complete", title: "Ready", detail: "Company dashboard", terminal: true },
   ],
   agency: [
     { id: "account_type", title: "Type", detail: "Choose workspace" },

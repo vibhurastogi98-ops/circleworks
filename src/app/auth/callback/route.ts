@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const requestedNext = searchParams.get("next");
   const requestedAccountType = searchParams.get("accountType");
+  const requestedStep = searchParams.get("step");
   const next = requestedNext?.startsWith("/") ? requestedNext : null;
   const accountType =
     requestedAccountType === "company" ||
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
       authProvider === "azure" || authProvider === "microsoft" ? "microsoft" : "google";
     const params = new URLSearchParams({ mode: signupMode, email: normalizedEmail, name: fullName });
     if (accountType) params.set("accountType", accountType);
+    if (requestedStep && /^\d+$/.test(requestedStep)) params.set("step", requestedStep);
     destination = `${origin}/signup?${params.toString()}`;
   }
 
