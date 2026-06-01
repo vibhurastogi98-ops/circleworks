@@ -5,7 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore, type PlatformUser } from "@/store/usePlatformStore";
-import { getCreatorModeRedirect, isCreatorAccountType, normalizeAccountType } from "@/lib/creator-mode";
+import {
+  getAccountTypeRouteRedirect,
+  isCreatorAccountType,
+  normalizeAccountType,
+} from "@/lib/creator-mode";
 import AppSidebar from "@/components/app/AppSidebar";
 import AppTopBar from "@/components/app/AppTopBar";
 import OnboardingTour from "@/components/OnboardingTour";
@@ -53,6 +57,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [companyContextHydrated, setCompanyContextHydrated] = useState(false);
   const { user } = useAuth();
   const {
     accountType,
@@ -66,6 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     complianceAlerts,
   } = usePlatformStore();
   const usePlatformShell = shouldUsePlatformShell(pathname);
+  const normalizedAccountType = normalizeAccountType(accountType);
 
   useEffect(() => {
     setMounted(true);
@@ -77,10 +83,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname, setActiveRoute, setSidebarOpen]);
 
   useEffect(() => {
-    if (!mounted || !usePlatformShell || !isCreatorMode) return;
-    const redirectTo = getCreatorModeRedirect(pathname);
+    if (!mounted || !usePlatformShell || !companyContextHydrated) return;
+    const redirectTo = getAccountTypeRouteRedirect(normalizedAccountType, pathname);
     if (redirectTo && redirectTo !== pathname) router.replace(redirectTo);
-  }, [isCreatorMode, mounted, pathname, router, usePlatformShell]);
+  }, [companyContextHydrated, mounted, normalizedAccountType, pathname, router, usePlatformShell]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -137,7 +143,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             id: String(data.company.id ?? "creator-company"),
             name: data.company.name || "Creator Studio",
             logo: data.company.logoUrl || undefined,
-            domain: isCreatorAccountType(resolvedAccountType) ? "Creator workspace" : "Workspace",
+            domain: isCreatorAccountType(resolvedAccountType)
+              ? "Creator workspace"
+              : resolvedAccountType === "agency"
+                ? "Agency workspace"
+                : "Workspace",
             role: "Owner",
             accountType: resolvedAccountType,
             creatorEntityType: data.company.creatorEntityType ?? null,
@@ -148,6 +158,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("[AppShell company hydrate]", error);
+      } finally {
+        if (!cancelled) setCompanyContextHydrated(true);
       }
     };
 

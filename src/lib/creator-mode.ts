@@ -39,6 +39,10 @@ export function isCreatorAccountType(value?: string | null) {
   return normalizeAccountType(value) === "creator_solo";
 }
 
+export function isAgencyAccountType(value?: string | null) {
+  return normalizeAccountType(value) === "agency";
+}
+
 function pathStartsWith(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
@@ -72,6 +76,17 @@ const creatorGuardedPrefixes = [
   "/agency",
 ];
 
+const creatorOnlyPrefixes = [
+  "/app/pay-myself",
+  "/app/taxes",
+  "/app/documents",
+];
+
+const agencyOnlyPrefixes = [
+  "/app/clients",
+  "/agency",
+];
+
 export function isCreatorRouteAllowed(pathname: string) {
   if (!creatorGuardedPrefixes.some((prefix) => pathStartsWith(pathname, prefix))) {
     return true;
@@ -83,4 +98,25 @@ export function isCreatorRouteAllowed(pathname: string) {
 export function getCreatorModeRedirect(pathname: string) {
   if (pathname === "/app") return "/dashboard";
   return isCreatorRouteAllowed(pathname) ? null : "/dashboard";
+}
+
+export function getAccountTypeRouteRedirect(accountType: string | null | undefined, pathname: string) {
+  const normalizedAccountType = normalizeAccountType(accountType);
+
+  if (normalizedAccountType === "creator_solo") {
+    return getCreatorModeRedirect(pathname);
+  }
+
+  if (creatorOnlyPrefixes.some((prefix) => pathStartsWith(pathname, prefix))) {
+    return "/dashboard";
+  }
+
+  if (
+    normalizedAccountType !== "agency" &&
+    agencyOnlyPrefixes.some((prefix) => pathStartsWith(pathname, prefix))
+  ) {
+    return "/dashboard";
+  }
+
+  return null;
 }

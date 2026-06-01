@@ -32,7 +32,7 @@ import {
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import { isCreatorAccountType } from "@/lib/creator-mode";
+import { isAgencyAccountType, isCreatorAccountType, normalizeAccountType } from "@/lib/creator-mode";
 import { getAtsOverview } from "@/data/mockAts";
 import {
   Dialog,
@@ -67,8 +67,49 @@ type NavItem = {
   divider?: boolean;
 };
 
+const DASHBOARD_NAV_ITEM: NavItem = { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" };
+
+const CONTRACTORS_NAV_ITEM: NavItem = {
+  label: "Contractors",
+  icon: Handshake,
+  href: "/app/contractors",
+  children: [
+    { label: "Contractor Module", href: "/app/contractors" },
+    { label: "Contractor Hub", href: "/contractors" },
+    { label: "Onboarding", href: "/contractors/onboarding" },
+    { label: "Contracts", href: "/contractors/contracts" },
+    { label: "Payments", href: "/contractors/payments" },
+    { label: "1099s", href: "/contractors/1099s" },
+    { label: "Portal", href: "/contractors/portal" },
+  ],
+};
+
+const AGENCY_CONTRACTORS_NAV_ITEM: NavItem = {
+  ...CONTRACTORS_NAV_ITEM,
+  badge: { text: "1099" },
+  children: [
+    { label: "Contractor Payments", href: "/app/contractors" },
+    { label: "Pay Contractors", href: "/contractors/payments" },
+    { label: "1099 Tracking", href: "/contractors/1099s" },
+    { label: "Onboarding", href: "/contractors/onboarding" },
+    { label: "Contracts", href: "/contractors/contracts" },
+    { label: "Portal", href: "/contractors/portal" },
+  ],
+};
+
+const CLIENTS_NAV_ITEM: NavItem = {
+  label: "Clients",
+  icon: Building2,
+  href: "/app/clients",
+  children: [
+    { label: "Client Billing", href: "/app/clients" },
+    { label: "Billing", href: "/agency/billing" },
+    { label: "Profitability", href: "/agency/profitability" },
+  ],
+};
+
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  DASHBOARD_NAV_ITEM,
   {
     label: "Payroll",
     icon: DollarSign,
@@ -118,20 +159,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Termination Workflow", href: "/employees/1/terminate" },
     ],
   },
-  {
-    label: "Contractors",
-    icon: Handshake,
-    href: "/app/contractors",
-    children: [
-      { label: "Contractor Module", href: "/app/contractors" },
-      { label: "Contractor Hub", href: "/contractors" },
-      { label: "Onboarding", href: "/contractors/onboarding" },
-      { label: "Contracts", href: "/contractors/contracts" },
-      { label: "Payments", href: "/contractors/payments" },
-      { label: "1099s", href: "/contractors/1099s" },
-      { label: "Portal", href: "/contractors/portal" },
-    ],
-  },
+  CONTRACTORS_NAV_ITEM,
   {
     label: "Hiring",
     icon: Briefcase,
@@ -277,16 +305,6 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Legacy Workflows", href: "/settings/workflows" },
     ],
   },
-  {
-    label: "Agency",
-    icon: Building2,
-    href: "/app/clients",
-    children: [
-      { label: "Clients", href: "/app/clients" },
-      { label: "Billing", href: "/agency/billing" },
-      { label: "Profitability", href: "/agency/profitability" },
-    ],
-  },
   { label: "Divider", icon: LayoutDashboard, divider: true },
   {
     label: "Settings",
@@ -297,12 +315,21 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const CREATOR_NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  DASHBOARD_NAV_ITEM,
   { label: "Pay Myself", icon: DollarSign, href: "/app/pay-myself" },
   { label: "Contractors", icon: Handshake, href: "/app/contractors" },
   { label: "Taxes", icon: Shield, href: "/app/taxes" },
   { label: "Expenses", icon: Receipt, href: "/expenses" },
   { label: "Documents", icon: FileText, href: "/app/documents" },
+];
+
+const COMPANY_NAV_ITEMS = NAV_ITEMS;
+
+const AGENCY_NAV_ITEMS: NavItem[] = [
+  DASHBOARD_NAV_ITEM,
+  CLIENTS_NAV_ITEM,
+  AGENCY_CONTRACTORS_NAV_ITEM,
+  ...NAV_ITEMS.filter((item) => item.label !== "Dashboard" && item.label !== "Contractors"),
 ];
 
 function cx(...classes: Array<string | false | undefined>) {
@@ -383,10 +410,15 @@ export default function AppSidebar() {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const creatorMode = isCreatorAccountType(accountType);
-  const agencyMode = accountType === "agency";
+  const normalizedAccountType = normalizeAccountType(currentCompany.accountType ?? accountType);
+  const creatorMode = isCreatorAccountType(normalizedAccountType);
+  const agencyMode = isAgencyAccountType(normalizedAccountType);
   const baseNavItems = useMemo(
-    () => (creatorMode ? CREATOR_NAV_ITEMS : NAV_ITEMS.filter((item) => agencyMode || item.label !== "Agency")),
+    () => {
+      if (creatorMode) return CREATOR_NAV_ITEMS;
+      if (agencyMode) return AGENCY_NAV_ITEMS;
+      return COMPANY_NAV_ITEMS;
+    },
     [agencyMode, creatorMode],
   );
 
