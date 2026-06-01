@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
-import { users, companies, employees, onboardingCases } from "@/db/schema";
+import { users, companies, employees, onboardingCases, onboardingProgress } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import {
+  normalizeAccountType,
+  normalizeEntityType,
+  toLegacyCreatorEntityType,
+  type AccountType,
+} from "@/lib/account-types";
+import { getWizardStepIds } from "@/lib/signup-wizard-engine";
 
 const SIGNUP_DRAFT_COOKIE = "cw_signup_partial";
-const ACCOUNT_TYPES = new Set(["company", "agency", "creator_solo"]);
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,21 +41,17 @@ function parseSalary(value: unknown) {
   return Number.isFinite(amount) ? Math.round(amount) : 0;
 }
 
-function getAccountType(value: unknown) {
-  return typeof value === "string" && ACCOUNT_TYPES.has(value) ? value : "company";
-}
-
 function parseContractorCount(value: unknown) {
   const count = Number(value);
   return Number.isFinite(count) ? Math.max(0, Math.min(999, Math.round(count))) : 0;
 }
 
-function getAccountName(accountType: string, step1: Record<string, unknown> | undefined, step2: Record<string, unknown> | undefined) {
+function getAccountName(accountType: AccountType, step1: Record<string, unknown> | undefined, step2: Record<string, unknown> | undefined) {
   const companyName = typeof step2?.companyName === "string" ? step2.companyName.trim() : "";
   if (companyName) return companyName;
 
   const fullName = typeof step1?.fullName === "string" ? step1.fullName.trim() : "";
-  if (accountType === "creator_solo") return fullName ? `${fullName} Studio` : "Creator Studio";
+  if (accountType === "creator") return fullName ? `${fullName} Studio` : "Creator Studio";
   return "My Company";
 }
 
@@ -57,8 +59,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { account, step1, step2, step3, step4, creator, googleAuth } = body;
-    const accountType = getAccountType(account?.accountType);
+    const accountType = normalizeAccountType(account?.accountType);
     const fullFlowSignup = accountType === "company" || accountType === "agency";
+    const entityType = accountType === "creator" ? normalizeEntityType(creator?.entityType) : null;
 
     const email = (step1?.email as string)?.toLowerCase().trim();
 
@@ -150,11 +153,31 @@ export async function POST(req: NextRequest) {
           .values({
             name: accountName,
             accountType,
-            creatorEntityType: accountType === "creator_solo" ? creator?.entityType || null : null,
-            paySelfAsOwner: accountType === "creator_solo" ? Boolean(creator?.paySelfAsOwner) : false,
-            contractorCount: accountType === "creator_solo" ? parseContractorCount(creator?.contractorCount) : 0,
+            entityType,
+            creatorEntityType: accountType === "creator" ? toLegacyCreatorEntityType(creator?.entityType) : null,
+            paySelfAsOwner: accountType === "creator" ? Boolean(creator?.paySelfAsOwner) : false,
+            contractorCount: accountType === "creator" ? parseContractorCount(creator?.contractorCount) : 0,
           })
           .returning();
+
+        await tx
+          .insert(onboardingProgress)
+          .values({
+            accountId: company.id,
+            currentStep: "complete",
+            completedSteps: getWizardStepIds(accountType).filter((step) => step !== "complete"),
+            status: "complete",
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: onboardingProgress.accountId,
+            set: {
+              currentStep: "complete",
+              completedSteps: getWizardStepIds(accountType).filter((step) => step !== "complete"),
+              status: "complete",
+              updatedAt: new Date(),
+            },
+          });
 
         await tx.insert(employees).values({
           userId: newUser.id,
@@ -163,7 +186,7 @@ export async function POST(req: NextRequest) {
           lastName: fullFlowSignup && step4?.isAdminEmployee ? (step4.lastName || adminName.lastName) : adminName.lastName,
           email,
           jobTitle:
-            accountType === "creator_solo"
+            accountType === "creator"
               ? "Owner"
               : step4?.isAdminEmployee
                 ? (step4.title || "Company Admin")

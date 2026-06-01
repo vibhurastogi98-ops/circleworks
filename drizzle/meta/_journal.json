@@ -141,6 +141,20 @@
       "when": 1779548400000,
       "tag": "0019_signup_account_type",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1779552000000,
+      "tag": "0020_agency_client_assignments",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1779555600000,
+      "tag": "0021_account_type_foundation",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
-import { pgTable, serial, text, integer, timestamp, date, boolean, real, pgEnum, primaryKey } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, serial, text, integer, timestamp, date, boolean, real, pgEnum, primaryKey, jsonb } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 
 // --- ENUMS ---
 export const roleEnum = pgEnum('role', ['admin', 'hr', 'employee', 'accountant']);
@@ -15,6 +15,9 @@ export const invoiceStatusEnum = pgEnum('invoice_status', ['Pending', 'Approved'
 export const agencyInvoiceStatusEnum = pgEnum('agency_invoice_status', ['Draft', 'Approved', 'Sent', 'Paid']);
 export const billingRateTypeEnum = pgEnum('billing_rate_type', ['cost-plus', 'fixed', 'hourly']);
 export const billingCycleEnum = pgEnum('billing_cycle', ['weekly', 'bi-weekly', 'monthly']);
+export const accountTypeEnum = pgEnum('account_type', ['company', 'agency', 'creator']);
+export const entityTypeEnum = pgEnum('entity_type', ['sole_prop', 'smllc', 'mmllc', 's_corp', 'c_corp', 'none']);
+export const onboardingProgressStatusEnum = pgEnum('onboarding_progress_status', ['in_progress', 'complete']);
 
 // --- TABLES ---
 
@@ -31,12 +34,21 @@ export const users = pgTable('users', {
 export const companies = pgTable('companies', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  accountType: text('account_type').default('company').notNull(),
+  accountType: accountTypeEnum('account_type'),
+  entityType: entityTypeEnum('entity_type'),
   creatorEntityType: text('creator_entity_type'),
   paySelfAsOwner: boolean('pay_self_as_owner').default(false),
   contractorCount: integer('contractor_count').default(0),
   logoUrl: text('logo_url'),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const onboardingProgress = pgTable('onboarding_progress', {
+  accountId: integer('account_id').primaryKey().references(() => companies.id, { onDelete: 'cascade' }),
+  currentStep: text('current_step').notNull(),
+  completedSteps: jsonb('completed_steps').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  status: onboardingProgressStatusEnum('status').notNull().default('in_progress'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const employees = pgTable('employees', {
@@ -966,7 +978,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   automationRecipes: many(automationRecipes),
 }));
 
-export const companiesRelations = relations(companies, ({ many }) => ({
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+  onboardingProgress: one(onboardingProgress, { fields: [companies.id], references: [onboardingProgress.accountId] }),
   employees: many(employees),
   payrolls: many(payrolls),
   paySchedules: many(paySchedules),
@@ -1041,6 +1054,10 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
 
 export const paySchedulesRelations = relations(paySchedules, ({ one }) => ({
   company: one(companies, { fields: [paySchedules.companyId], references: [companies.id] }),
+}));
+
+export const onboardingProgressRelations = relations(onboardingProgress, ({ one }) => ({
+  account: one(companies, { fields: [onboardingProgress.accountId], references: [companies.id] }),
 }));
 
 export const payrollTimeImportsRelations = relations(payrollTimeImports, ({ one }) => ({

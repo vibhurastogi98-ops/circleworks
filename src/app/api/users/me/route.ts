@@ -45,12 +45,28 @@ function ensureUserTourColumn() {
 function ensureCompanyCreatorColumns() {
   if (!companyCreatorColumnsPromise) {
     companyCreatorColumnsPromise = db.execute(sql`
+    DO $$ BEGIN
+      CREATE TYPE "public"."account_type" AS ENUM ('company', 'agency', 'creator');
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END $$;
+    DO $$ BEGIN
+      CREATE TYPE "public"."entity_type" AS ENUM ('sole_prop', 'smllc', 'mmllc', 's_corp', 'c_corp', 'none');
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END $$;
     ALTER TABLE companies
-      ADD COLUMN IF NOT EXISTS account_type text DEFAULT 'company' NOT NULL,
+      ADD COLUMN IF NOT EXISTS account_type "public"."account_type",
+      ADD COLUMN IF NOT EXISTS entity_type "public"."entity_type",
       ADD COLUMN IF NOT EXISTS creator_entity_type text,
       ADD COLUMN IF NOT EXISTS pay_self_as_owner boolean DEFAULT false,
       ADD COLUMN IF NOT EXISTS contractor_count integer DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS logo_url text
+      ADD COLUMN IF NOT EXISTS logo_url text;
+    ALTER TABLE companies
+      ALTER COLUMN account_type DROP DEFAULT,
+      ALTER COLUMN account_type DROP NOT NULL,
+      ALTER COLUMN entity_type DROP DEFAULT,
+      ALTER COLUMN entity_type DROP NOT NULL
     `).then(() => undefined).catch((error) => {
       companyCreatorColumnsPromise = null;
       throw error;
@@ -94,6 +110,7 @@ async function loadCurrentUserEmployee(userId: number) {
       companyId: companies.id,
       companyName: companies.name,
       companyAccountType: companies.accountType,
+      entityType: companies.entityType,
       creatorEntityType: companies.creatorEntityType,
       paySelfAsOwner: companies.paySelfAsOwner,
       contractorCount: companies.contractorCount,
@@ -196,6 +213,7 @@ export async function GET() {
         id: currentUserEmployee.companyId?.toString() ?? "",
         name: currentUserEmployee.companyName || "Workspace",
         accountType: currentUserEmployee.companyAccountType || "company",
+        entityType: currentUserEmployee.entityType || null,
         creatorEntityType: currentUserEmployee.creatorEntityType || null,
         paySelfAsOwner: Boolean(currentUserEmployee.paySelfAsOwner),
         contractorCount: currentUserEmployee.contractorCount ?? 0,

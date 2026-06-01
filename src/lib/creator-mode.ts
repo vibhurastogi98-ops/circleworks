@@ -1,8 +1,10 @@
-export type PlatformAccountType =
-  | "company"
-  | "agency"
-  | "creator_solo"
-  | "contractor_payer";
+import {
+  normalizeAccountType as normalizeCanonicalAccountType,
+  normalizeEnumToken,
+  type AccountType,
+} from "@/lib/account-types";
+
+export type PlatformAccountType = AccountType | "contractor_payer";
 
 const creatorAliases = new Set([
   "creator",
@@ -23,20 +25,16 @@ const creatorAliases = new Set([
   "creator_individual",
 ]);
 
-function normalizeRawAccountType(value?: string | null) {
-  return (value ?? "company").trim().toLowerCase().replace(/[/-]+/g, "_").replace(/\s+/g, "_");
-}
-
 export function normalizeAccountType(value?: string | null): PlatformAccountType {
-  const normalized = normalizeRawAccountType(value);
-  if (creatorAliases.has(normalized)) return "creator_solo";
+  const normalized = normalizeEnumToken(value);
+  if (creatorAliases.has(normalized)) return "creator";
   if (normalized === "agency") return "agency";
   if (normalized === "contractor_payer" || normalized === "contractor-payer") return "contractor_payer";
-  return "company";
+  return normalizeCanonicalAccountType(value);
 }
 
 export function isCreatorAccountType(value?: string | null) {
-  return normalizeAccountType(value) === "creator_solo";
+  return normalizeAccountType(value) === "creator";
 }
 
 export function isAgencyAccountType(value?: string | null) {
@@ -103,7 +101,7 @@ export function getCreatorModeRedirect(pathname: string) {
 export function getAccountTypeRouteRedirect(accountType: string | null | undefined, pathname: string) {
   const normalizedAccountType = normalizeAccountType(accountType);
 
-  if (normalizedAccountType === "creator_solo") {
+  if (normalizedAccountType === "creator") {
     return getCreatorModeRedirect(pathname);
   }
 

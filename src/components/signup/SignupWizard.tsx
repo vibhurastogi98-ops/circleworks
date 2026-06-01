@@ -177,7 +177,7 @@ const PAY_SCHEDULES = [
 type PaySchedule = (typeof PAY_SCHEDULES)[number]["value"];
 type SignupProvider = Extract<Provider, "google" | "azure">;
 type SignupMode = "email" | "google" | "microsoft";
-type AccountType = "company" | "agency" | "creator_solo";
+type AccountType = "company" | "agency" | "creator";
 type CreatorEntityType = "sole-prop" | "llc" | "s-corp" | "";
 
 const ACCOUNT_TYPES = [
@@ -194,7 +194,7 @@ const ACCOUNT_TYPES = [
     icon: BriefcaseBusiness,
   },
   {
-    value: "creator_solo",
+    value: "creator",
     title: "Creator / Solo",
     description: "Set up your owner profile and contractor count without team payroll.",
     icon: UserRound,
@@ -300,7 +300,7 @@ const errorBase = "mt-1.5 text-sm font-medium text-red-600 lg:mt-1 lg:text-xs";
 
 const accountTypeSchema = z
   .object({
-    accountType: z.enum(["company", "agency", "creator_solo"]).or(z.literal("")),
+    accountType: z.enum(["company", "agency", "creator"]).or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (!data.accountType) {
@@ -607,7 +607,7 @@ function isFullFlow(accountType: AccountType | "") {
 }
 
 function getFlowSteps(accountType: AccountType | "") {
-  if (accountType === "creator_solo") {
+  if (accountType === "creator") {
     return [
       { title: "Type", detail: "Choose workspace" },
       { title: "Account", detail: "Create your login" },
@@ -1731,7 +1731,7 @@ function Step5Success({ data }: { data: WizardData }) {
           year: "numeric",
         })
       : "Not set";
-  const employees = accountType === "creator_solo"
+  const employees = accountType === "creator"
     ? `${data.creator.contractorCount} contractors`
     : data.step4.skip
       ? "1 admin"
@@ -1739,7 +1739,7 @@ function Step5Success({ data }: { data: WizardData }) {
         ? "1 employee"
         : "2 employees";
 
-  const actionCards = accountType === "creator_solo"
+  const actionCards = accountType === "creator"
     ? [
         {
           title: "Open Contractors",
@@ -1911,13 +1911,16 @@ function getSignupMode(rawMode: string | null): SignupMode {
 }
 
 function normalizeAccountType(value: unknown): AccountType | "" {
-  return value === "company" || value === "agency" || value === "creator_solo" ? value : "";
+  if (typeof value !== "string") return "";
+  const normalized = value.trim().toLowerCase().replace(/[/-]+/g, "_").replace(/\s+/g, "_");
+  if (normalized === "creator_solo" || normalized === "solo_creator" || normalized === "solo") return "creator";
+  return normalized === "company" || normalized === "agency" || normalized === "creator" ? normalized : "";
 }
 
 function getAccountTypeFromSearch(rawType: string | null, rawPlan: string | null): AccountType | "" {
   const accountType = normalizeAccountType(rawType);
   if (accountType) return accountType;
-  if (rawPlan === "contractor") return "creator_solo";
+  if (rawPlan === "contractor") return "creator";
   return "";
 }
 
@@ -2392,7 +2395,7 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 2 && accountType === "creator_solo" && (
+              {step === 2 && accountType === "creator" && (
                 <CreatorSoloForm
                   data={wizardData.creator}
                   loading={completionLoading}

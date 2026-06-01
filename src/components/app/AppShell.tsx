@@ -97,6 +97,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             id?: string | number | null;
             name?: string | null;
             accountType?: string | null;
+            entityType?: string | null;
             creatorEntityType?: string | null;
             paySelfAsOwner?: boolean | null;
             contractorCount?: number | null;
@@ -121,6 +122,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 : "Workspace",
             role: "Owner",
             accountType: resolvedAccountType,
+            entityType: data.company.entityType ?? null,
             creatorEntityType: data.company.creatorEntityType ?? null,
             paySelfAsOwner: Boolean(data.company.paySelfAsOwner),
             contractorCount: data.company.contractorCount ?? 0,

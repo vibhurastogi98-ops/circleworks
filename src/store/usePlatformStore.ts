@@ -17,6 +17,7 @@ export interface PlatformCompany {
   domain?: string;
   role?: string;
   accountType?: PlatformAccountType;
+  entityType?: string | null;
   creatorEntityType?: string | null;
   paySelfAsOwner?: boolean;
   contractorCount?: number;
