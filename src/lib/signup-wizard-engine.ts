@@ -21,6 +21,7 @@ export type WizardStepId =
   | "first_client"
   | "pay_schedules"
   | "creator_profile"
+  | "creator_identity"
   | "complete";
 
 export type WizardStep = {
@@ -65,7 +66,10 @@ export const SIGNUP_WIZARD_STEPS = {
     { id: "account_type", title: "Type", detail: "Choose workspace" },
     { id: "credentials", title: "Account", detail: "Create login" },
     { id: "creator_profile", title: "Creator", detail: "Entity setup" },
-    { id: "complete", title: "Ready", detail: "Launch CircleWorks", terminal: true },
+    { id: "creator_identity", title: "Identity", detail: "Business details" },
+    { id: "bank_funding", title: "Bank", detail: "Funding source" },
+    { id: "review_finish", title: "Review", detail: "Finish setup" },
+    { id: "complete", title: "Ready", detail: "Creator dashboard", terminal: true },
   ],
 } as const satisfies Record<AccountType, readonly WizardStep[]>;
 

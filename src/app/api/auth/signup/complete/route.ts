@@ -10,6 +10,7 @@ import {
   onboardingProgress,
   companyOnboardingDetails,
   agencyOnboardingDetails,
+  creatorOnboardingDetails,
   agencyClients,
   agencyProjects,
   agencyClientAssignments,
@@ -216,18 +217,36 @@ function sanitizeAgencyPaySchedules(value: unknown) {
     .filter((schedule) => schedule.frequency && schedule.firstPayDate);
 }
 
+function sanitizeCreatorIdentity(value: unknown) {
+  const identity = getRecord(value);
+  return {
+    legalName: getString(identity.legalName),
+    businessName: getString(identity.businessName),
+    ein: getString(identity.ein),
+    homeState: getString(identity.homeState),
+    workState: getString(identity.workState),
+  };
+}
+
 function getAccountName(
   accountType: AccountType,
   step1: Record<string, unknown> | undefined,
   step2: Record<string, unknown> | undefined,
   business: Record<string, unknown> | undefined,
   agencyDetails: Record<string, unknown> | undefined,
+  creatorIdentity: Record<string, unknown> | undefined,
 ) {
   const legalName = typeof business?.legalName === "string" ? business.legalName.trim() : "";
   if (legalName) return legalName;
 
   const agencyLegalName = typeof agencyDetails?.legalName === "string" ? agencyDetails.legalName.trim() : "";
   if (agencyLegalName) return agencyLegalName;
+
+  const creatorBusinessName = typeof creatorIdentity?.businessName === "string" ? creatorIdentity.businessName.trim() : "";
+  if (creatorBusinessName) return creatorBusinessName;
+
+  const creatorLegalName = typeof creatorIdentity?.legalName === "string" ? creatorIdentity.legalName.trim() : "";
+  if (creatorLegalName) return creatorLegalName;
 
   const companyName = typeof step2?.companyName === "string" ? step2.companyName.trim() : "";
   if (companyName) return companyName;
@@ -257,6 +276,8 @@ export async function POST(req: NextRequest) {
       agencyTaxSetup,
       agencyFirstClient,
       agencyPaySchedules,
+      creatorIdentity,
+      creatorBankFunding,
       googleAuth,
     } = body;
     const accountType = normalizeAccountType(account?.accountType);
@@ -344,7 +365,8 @@ export async function POST(req: NextRequest) {
     }
     const adminName = splitFullName(step1?.fullName);
     const agencyDetailsRecord = getRecord(agencyDetails);
-    const accountName = getAccountName(accountType, step1, step2, business, agencyDetailsRecord);
+    const creatorIdentityRecord = getRecord(creatorIdentity);
+    const accountName = getAccountName(accountType, step1, step2, business, agencyDetailsRecord, creatorIdentityRecord);
     const businessRecord = getRecord(business);
     const inviteRecord = getRecord(employeeInvites);
     const companyBankFunding = sanitizeCompanyBankFunding(bankFunding);
@@ -355,6 +377,8 @@ export async function POST(req: NextRequest) {
     const sanitizedAgencyTaxSetup = sanitizeAgencyTaxSetup(agencyTaxSetup);
     const sanitizedAgencyFirstClient = sanitizeAgencyFirstClient(agencyFirstClient);
     const sanitizedAgencyPaySchedules = sanitizeAgencyPaySchedules(agencyPaySchedules);
+    const sanitizedCreatorIdentity = sanitizeCreatorIdentity(creatorIdentity);
+    const sanitizedCreatorBankFunding = sanitizeCompanyBankFunding(creatorBankFunding);
     const rawInviteEmails = parseInviteEmails(inviteRecord.emails);
     const employeeInviteEmails =
       inviteRecord.skip === true
@@ -550,6 +574,39 @@ export async function POST(req: NextRequest) {
               updatedAt: new Date(),
             });
           }
+        }
+
+        if (accountType === "creator") {
+          await tx
+            .insert(creatorOnboardingDetails)
+            .values({
+              accountId: company.id,
+              legalName: sanitizedCreatorIdentity.legalName || accountName,
+              businessName: sanitizedCreatorIdentity.businessName || accountName,
+              einMasked: maskEin(sanitizedCreatorIdentity.ein),
+              entityType,
+              paySelfAsOwner: Boolean(creator?.paySelfAsOwner),
+              contractorCount: parseContractorCount(creator?.contractorCount),
+              homeState: sanitizedCreatorIdentity.homeState || null,
+              workState: sanitizedCreatorIdentity.workState || null,
+              bankFunding: sanitizedCreatorBankFunding,
+              updatedAt: new Date(),
+            })
+            .onConflictDoUpdate({
+              target: creatorOnboardingDetails.accountId,
+              set: {
+                legalName: sanitizedCreatorIdentity.legalName || accountName,
+                businessName: sanitizedCreatorIdentity.businessName || accountName,
+                einMasked: maskEin(sanitizedCreatorIdentity.ein),
+                entityType,
+                paySelfAsOwner: Boolean(creator?.paySelfAsOwner),
+                contractorCount: parseContractorCount(creator?.contractorCount),
+                homeState: sanitizedCreatorIdentity.homeState || null,
+                workState: sanitizedCreatorIdentity.workState || null,
+                bankFunding: sanitizedCreatorBankFunding,
+                updatedAt: new Date(),
+              },
+            });
         }
 
         await tx.insert(employees).values({

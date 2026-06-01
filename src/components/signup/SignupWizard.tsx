@@ -182,7 +182,7 @@ type PaySchedule = (typeof PAY_SCHEDULES)[number]["value"];
 type SignupProvider = Extract<Provider, "google" | "azure">;
 type SignupMode = "email" | "google" | "microsoft";
 type AccountType = "company" | "agency" | "creator";
-type CreatorEntityType = "sole-prop" | "llc" | "s-corp" | "";
+type CreatorEntityType = "sole_prop" | "smllc" | "mmllc" | "s_corp" | "";
 type CompanyEntityType = "sole_prop" | "smllc" | "mmllc" | "s_corp" | "c_corp" | "none" | "";
 type FundingMethod = "plaid" | "manual" | "";
 type AdminRole = "owner" | "admin";
@@ -212,9 +212,10 @@ const ACCOUNT_TYPES = [
 ] as const;
 
 const CREATOR_ENTITY_TYPES = [
-  { value: "sole-prop", label: "Sole Prop" },
-  { value: "llc", label: "LLC" },
-  { value: "s-corp", label: "S-Corp" },
+  { value: "sole_prop", label: "Sole Prop" },
+  { value: "smllc", label: "Single-member LLC" },
+  { value: "mmllc", label: "Multi-member LLC" },
+  { value: "s_corp", label: "S-Corp" },
 ] as const;
 
 const COMPANY_ENTITY_TYPES = [
@@ -357,6 +358,14 @@ type WizardData = {
     paySelfAsOwner: boolean;
     contractorCount: number;
   };
+  creatorIdentity: {
+    legalName: string;
+    businessName: string;
+    ein: string;
+    homeState: string;
+    workState: string;
+  };
+  creatorBankFunding: BankFundingData;
 };
 
 const INITIAL_DATA: WizardData = {
@@ -463,6 +472,22 @@ const INITIAL_DATA: WizardData = {
     entityType: "",
     paySelfAsOwner: true,
     contractorCount: 0,
+  },
+  creatorIdentity: {
+    legalName: "",
+    businessName: "",
+    ein: "",
+    homeState: "",
+    workState: "",
+  },
+  creatorBankFunding: {
+    method: "",
+    institutionName: "",
+    accountType: "checking",
+    accountMask: "",
+    routingMask: "",
+    bankAccountToken: "",
+    verified: false,
   },
 };
 
@@ -919,7 +944,7 @@ const step4Schema = z
 
 const creatorSchema = z
   .object({
-    entityType: z.enum(["sole-prop", "llc", "s-corp"]).or(z.literal("")),
+    entityType: z.enum(["sole_prop", "smllc", "mmllc", "s_corp"]).or(z.literal("")),
     paySelfAsOwner: z.boolean(),
     contractorCount: z
       .number({
@@ -935,6 +960,26 @@ const creatorSchema = z
         code: "custom",
         path: ["entityType"],
         message: "Select your entity type",
+      });
+    }
+  });
+
+const creatorIdentitySchema = z
+  .object({
+    legalName: z.string().trim().min(2, "Legal name is required"),
+    businessName: z.string().trim().min(2, "Business name is required"),
+    ein: z.string(),
+    homeState: z.string().min(1, "Select your home state"),
+    workState: z.string().min(1, "Select your work state"),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.ein.trim()) return;
+
+    if (!/^\d{2}-\d{7}$/.test(data.ein)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ein"],
+        message: "EIN must be formatted as XX-XXXXXXX",
       });
     }
   });
@@ -957,6 +1002,7 @@ type Step2Values = z.infer<typeof step2Schema>;
 type Step3Values = z.infer<typeof step3Schema>;
 type Step4Values = z.infer<typeof step4Schema>;
 type CreatorValues = z.infer<typeof creatorSchema>;
+type CreatorIdentityValues = z.infer<typeof creatorIdentitySchema>;
 
 function getPasswordStrength(password: string) {
   let score = 0;
@@ -1148,8 +1194,10 @@ function getFlowSteps(accountType: AccountType | "") {
     return [
       { title: "Type", detail: "Choose workspace" },
       { title: "Account", detail: "Create your login" },
-      { title: "Solo", detail: "Entity setup" },
-      { title: "Ready", detail: "Launch CircleWorks" },
+      { title: "Creator", detail: "Entity setup" },
+      { title: "Identity", detail: "Business details" },
+      { title: "Bank", detail: "Funding source" },
+      { title: "Review", detail: "Finish setup" },
     ];
   }
 
@@ -3627,11 +3675,9 @@ function Step4Form({
 
 function CreatorSoloForm({
   data,
-  loading,
   onComplete,
 }: {
   data: WizardData["creator"];
-  loading: boolean;
   onComplete: (data: WizardData["creator"]) => void;
 }) {
   const {
@@ -3651,16 +3697,16 @@ function CreatorSoloForm({
     <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["creator"]))} noValidate className="space-y-5 lg:space-y-4">
       <header>
         <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">
-          Set up your solo account
+          Creator setup
         </h2>
         <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
-          We&apos;ll skip team payroll and start with owner and contractor basics.
+          Choose your entity type, owner pay preference, and contractor count.
         </p>
       </header>
 
       <fieldset>
         <legend className={labelBase}>Entity type</legend>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {CREATOR_ENTITY_TYPES.map((option) => {
             const active = entityType === option.value;
 
@@ -3710,9 +3756,18 @@ function CreatorSoloForm({
         </p>
       </div>
 
+      {entityType === "s_corp" && paySelfAsOwner && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-bold text-blue-900">Reasonable salary helper</p>
+          <p className="mt-1 text-sm leading-5 text-blue-800">
+            S-Corp owners who work in the business typically review a market-based salary before taking distributions. This is informational and not tax or legal advice.
+          </p>
+        </div>
+      )}
+
       <div>
         <label htmlFor="contractorCount" className={labelBase}>
-          Number of contractors
+          Editors, VAs, or designers you pay
         </label>
         <input
           id="contractorCount"
@@ -3727,26 +3782,200 @@ function CreatorSoloForm({
         <InlineError id="contractorCount-error" message={errors.contractorCount?.message} />
       </div>
 
-      <div className="flex justify-end pt-1">
+      <WizardActions />
+    </form>
+  );
+}
+
+function CreatorIdentityBusinessForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["creatorIdentity"];
+  onComplete: (data: WizardData["creatorIdentity"]) => void;
+}) {
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CreatorIdentityValues>({
+    resolver: zodResolver(creatorIdentitySchema),
+    defaultValues: data,
+  });
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["creatorIdentity"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">
+          Identity & business
+        </h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Add the owner and business details needed for creator payments.
+        </p>
+      </header>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="creatorLegalName" className={labelBase}>Legal name</label>
+          <input
+            id="creatorLegalName"
+            autoFocus
+            autoComplete="name"
+            {...register("legalName")}
+            className={fieldClass(Boolean(errors.legalName))}
+            aria-invalid={Boolean(errors.legalName)}
+            aria-describedby={errors.legalName ? "creatorLegalName-error" : undefined}
+          />
+          <InlineError id="creatorLegalName-error" message={errors.legalName?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="creatorBusinessName" className={labelBase}>Business name</label>
+          <input
+            id="creatorBusinessName"
+            {...register("businessName")}
+            className={fieldClass(Boolean(errors.businessName))}
+            aria-invalid={Boolean(errors.businessName)}
+            aria-describedby={errors.businessName ? "creatorBusinessName-error" : undefined}
+          />
+          <InlineError id="creatorBusinessName-error" message={errors.businessName?.message} />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="creatorEin" className={labelBase}>EIN</label>
+        <Controller
+          name="ein"
+          control={control}
+          render={({ field }) => (
+            <input
+              id="creatorEin"
+              type="password"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="Optional"
+              autoComplete="off"
+              value={field.value}
+              onBlur={field.onBlur}
+              ref={field.ref}
+              onChange={(event) => field.onChange(formatEin(event.target.value))}
+              className={`${fieldClass(Boolean(errors.ein))} font-mono`}
+              aria-invalid={Boolean(errors.ein)}
+              aria-describedby={errors.ein ? "creatorEin-error" : undefined}
+            />
+          )}
+        />
+        <InlineError id="creatorEin-error" message={errors.ein?.message} />
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="creatorHomeState" className={labelBase}>Home state</label>
+          <select
+            id="creatorHomeState"
+            {...register("homeState")}
+            className={selectClass(Boolean(errors.homeState))}
+            aria-invalid={Boolean(errors.homeState)}
+            aria-describedby={errors.homeState ? "creatorHomeState-error" : undefined}
+          >
+            <option value="">Select state</option>
+            {US_STATES.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
+          <InlineError id="creatorHomeState-error" message={errors.homeState?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="creatorWorkState" className={labelBase}>Work state</label>
+          <select
+            id="creatorWorkState"
+            {...register("workState")}
+            className={selectClass(Boolean(errors.workState))}
+            aria-invalid={Boolean(errors.workState)}
+            aria-describedby={errors.workState ? "creatorWorkState-error" : undefined}
+          >
+            <option value="">Select state</option>
+            {US_STATES.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
+          <InlineError id="creatorWorkState-error" message={errors.workState?.message} />
+        </div>
+      </div>
+
+      <WizardActions />
+    </form>
+  );
+}
+
+function CreatorReviewFinish({
+  data,
+  loading,
+  onFinish,
+}: {
+  data: WizardData;
+  loading: boolean;
+  onFinish: () => void;
+}) {
+  const entityLabel =
+    CREATOR_ENTITY_TYPES.find((type) => type.value === data.creator.entityType)?.label || "Not set";
+  const funding =
+    data.creatorBankFunding.method === "plaid"
+      ? "Plaid connected"
+      : `Manual account ••••${data.creatorBankFunding.accountMask}`;
+  const summaryRows = [
+    ["Entity type", entityLabel],
+    ["Pay yourself", data.creator.paySelfAsOwner ? "Yes" : "No"],
+    ["Contractors", String(data.creator.contractorCount)],
+    ["Legal name", data.creatorIdentity.legalName],
+    ["Business name", data.creatorIdentity.businessName],
+    ["EIN", data.creatorIdentity.ein ? maskEin(data.creatorIdentity.ein) : "Not provided"],
+    ["Home state", data.creatorIdentity.homeState],
+    ["Work state", data.creatorIdentity.workState],
+    ["Funding", funding],
+  ];
+
+  return (
+    <div className="space-y-6 lg:space-y-5">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Review & finish</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Confirm your creator setup. Finishing opens your simplified Creator dashboard.
+        </p>
+      </header>
+
+      <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+        {summaryRows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs font-bold uppercase text-slate-500">{label}</dt>
+            <dd className="mt-1 text-sm font-bold text-slate-900">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="flex justify-end">
         <button
-          type="submit"
+          type="button"
+          onClick={onFinish}
           disabled={loading}
-          className="flex h-12 min-w-40 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
+          className="flex h-12 min-w-44 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
         >
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Setting up...
+              Finishing...
             </>
           ) : (
             <>
-              Submit
+              Finish setup
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </>
           )}
         </button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -3926,6 +4155,12 @@ function sanitizeDraft(data: WizardData) {
       routingMask: data.agencyBankFunding.routingMask,
       bankAccountToken: data.agencyBankFunding.bankAccountToken,
     },
+    creatorBankFunding: {
+      ...data.creatorBankFunding,
+      accountMask: data.creatorBankFunding.accountMask,
+      routingMask: data.creatorBankFunding.routingMask,
+      bankAccountToken: data.creatorBankFunding.bankAccountToken,
+    },
   };
 }
 
@@ -3933,6 +4168,7 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
   const accountType = data.account.accountType || "company";
   const isCompany = accountType === "company";
   const isAgency = accountType === "agency";
+  const isCreator = accountType === "creator";
   const adminName = splitName(data.step1.fullName);
   const firstAgencySchedule = data.agencyPaySchedules.schedules[0];
   const agencyTypeLabel =
@@ -3995,17 +4231,48 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
     payRate: "",
     skip: true,
   };
+  const creatorAccountName =
+    data.creatorIdentity.businessName ||
+    data.creatorIdentity.legalName ||
+    `${data.step1.fullName || "Creator"} Studio`;
+  const creatorStep2 = {
+    companyName: creatorAccountName,
+    companySize: "1",
+    industry: "Creator",
+    primaryState: data.creatorIdentity.workState || data.creatorIdentity.homeState,
+    multipleStates:
+      Boolean(data.creatorIdentity.homeState && data.creatorIdentity.workState) &&
+      data.creatorIdentity.homeState !== data.creatorIdentity.workState,
+    legalName: data.creatorIdentity.legalName,
+    businessName: data.creatorIdentity.businessName,
+    ein: data.creatorIdentity.ein,
+    entityType: data.creator.entityType,
+  };
+  const creatorStep3 = {
+    ...INITIAL_DATA.step3,
+    skipPayroll: true,
+  };
+  const creatorStep4 = {
+    ...INITIAL_DATA.step4,
+    firstName: adminName.firstName,
+    lastName: adminName.lastName,
+    employeeEmail: data.step1.email,
+    title: "Owner",
+    skip: true,
+  };
 
   return {
     account: data.account,
     step1: data.step1,
-    step2: isCompany ? companyStep2 : isAgency ? agencyStep2 : data.step2,
-    step3: isCompany ? companyStep3 : isAgency ? agencyStep3 : data.step3,
+    step2: isCompany ? companyStep2 : isAgency ? agencyStep2 : isCreator ? creatorStep2 : data.step2,
+    step3: isCompany ? companyStep3 : isAgency ? agencyStep3 : isCreator ? creatorStep3 : data.step3,
     step4: isCompany
       ? companyStep4
       : isAgency
         ? agencyStep4
-      : {
+        : isCreator
+          ? creatorStep4
+          : {
           isAdminEmployee: data.step4.isAdminEmployee,
           firstName: data.step4.firstName,
           lastName: data.step4.lastName,
@@ -4032,6 +4299,8 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
     agencyFirstClient: isAgency ? data.agencyFirstClient : null,
     agencyPaySchedules: isAgency ? data.agencyPaySchedules : null,
     creator: data.creator,
+    creatorIdentity: isCreator ? data.creatorIdentity : null,
+    creatorBankFunding: isCreator ? data.creatorBankFunding : null,
     googleAuth: signupMode !== "email",
   };
 }
@@ -4057,6 +4326,16 @@ function normalizeAccountType(value: unknown): AccountType | "" {
   const normalized = value.trim().toLowerCase().replace(/[/-]+/g, "_").replace(/\s+/g, "_");
   if (normalized === "creator_solo" || normalized === "solo_creator" || normalized === "solo") return "creator";
   return normalized === "company" || normalized === "agency" || normalized === "creator" ? normalized : "";
+}
+
+function normalizeCreatorEntityType(value: unknown): CreatorEntityType {
+  if (typeof value !== "string") return "";
+  const normalized = value.trim().toLowerCase().replace(/[/-]+/g, "_").replace(/\s+/g, "_");
+  if (normalized === "sole_prop" || normalized === "sole_proprietorship") return "sole_prop";
+  if (normalized === "llc" || normalized === "smllc" || normalized === "single_member_llc") return "smllc";
+  if (normalized === "mmllc" || normalized === "multi_member_llc") return "mmllc";
+  if (normalized === "s_corp" || normalized === "scorp" || normalized === "s_corporation") return "s_corp";
+  return "";
 }
 
 function getAccountTypeFromSearch(rawType: string | null, rawPlan: string | null): AccountType | "" {
@@ -4139,6 +4418,7 @@ function SignupWizardInner() {
   const accountType = wizardData.account.accountType;
   const companyPath = accountType === "company";
   const agencyPath = accountType === "agency";
+  const creatorPath = accountType === "creator";
   const successStep = getSuccessStep(accountType);
   const hasProgress = step > 0 && step < successStep;
 
@@ -4336,6 +4616,15 @@ function SignupWizardInner() {
       creator: {
         ...INITIAL_DATA.creator,
         ...(draftData.creator ?? {}),
+        entityType: normalizeCreatorEntityType(draftData.creator?.entityType),
+      },
+      creatorIdentity: {
+        ...INITIAL_DATA.creatorIdentity,
+        ...(draftData.creatorIdentity ?? {}),
+      },
+      creatorBankFunding: {
+        ...INITIAL_DATA.creatorBankFunding,
+        ...(draftData.creatorBankFunding ?? {}),
       },
     };
 
@@ -4435,6 +4724,10 @@ function SignupWizardInner() {
     void completeSignup(wizardData, { redirectToDashboard: true });
   };
 
+  const finishCreatorSignup = () => {
+    void completeSignup(wizardData, { redirectToDashboard: true });
+  };
+
   const handleStep4Complete = (step4: WizardData["step4"]) => {
     const nextData = { ...wizardData, step4 };
     void completeSignup(nextData);
@@ -4445,32 +4738,6 @@ function SignupWizardInner() {
       ...wizardData,
       step4: {
         ...INITIAL_DATA.step4,
-        skip: true,
-      },
-    };
-    void completeSignup(nextData);
-  };
-
-  const handleCreatorComplete = (creator: WizardData["creator"]) => {
-    const nextData = {
-      ...wizardData,
-      creator,
-      step2: {
-        ...wizardData.step2,
-        companyName: wizardData.step2.companyName || `${wizardData.step1.fullName || "Creator"} Studio`,
-        companySize: "1–10",
-        industry: wizardData.step2.industry || "Other",
-      },
-      step3: {
-        ...INITIAL_DATA.step3,
-        skipPayroll: true,
-      },
-      step4: {
-        ...INITIAL_DATA.step4,
-        firstName: splitName(wizardData.step1.fullName).firstName,
-        lastName: splitName(wizardData.step1.fullName).lastName,
-        workEmail: wizardData.step1.email,
-        jobTitle: "Owner",
         skip: true,
       },
     };
@@ -4607,7 +4874,7 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 1 && !companyPath && !agencyPath && (
+              {step === 1 && creatorPath && (
                 <Step1Form
                   data={wizardData.step1}
                   onComplete={(step1) => void advance({ step1 }, 2)}
@@ -4634,11 +4901,10 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 2 && accountType === "creator" && (
+              {step === 2 && creatorPath && (
                 <CreatorSoloForm
                   data={wizardData.creator}
-                  loading={completionLoading}
-                  onComplete={handleCreatorComplete}
+                  onComplete={(creator) => void advance({ creator }, 3)}
                 />
               )}
 
@@ -4656,6 +4922,13 @@ function SignupWizardInner() {
                 />
               )}
 
+              {step === 3 && creatorPath && (
+                <CreatorIdentityBusinessForm
+                  data={wizardData.creatorIdentity}
+                  onComplete={(creatorIdentity) => void advance({ creatorIdentity }, 4)}
+                />
+              )}
+
               {step === 4 && companyPath && (
                 <CompanyTaxSetupForm
                   data={wizardData.companyTaxSetup}
@@ -4669,6 +4942,13 @@ function SignupWizardInner() {
                   data={wizardData.agencyTaxSetup}
                   agency={wizardData.agencyDetails}
                   onComplete={(agencyTaxSetup) => void advance({ agencyTaxSetup }, 5)}
+                />
+              )}
+
+              {step === 4 && creatorPath && (
+                <CompanyBankFundingForm
+                  data={wizardData.creatorBankFunding}
+                  onComplete={(creatorBankFunding) => void advance({ creatorBankFunding }, 5)}
                 />
               )}
 
@@ -4738,7 +5018,15 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === successStep && !companyPath && !agencyPath && <Step5Success data={wizardData} />}
+              {step === 5 && creatorPath && (
+                <CreatorReviewFinish
+                  data={wizardData}
+                  loading={completionLoading}
+                  onFinish={finishCreatorSignup}
+                />
+              )}
+
+              {step === successStep && !companyPath && !agencyPath && !creatorPath && <Step5Success data={wizardData} />}
             </motion.div>
           </AnimatePresence>
         </div>

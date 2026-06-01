@@ -44,6 +44,9 @@ describe("account type foundation", () => {
       "account_type",
       "credentials",
       "creator_profile",
+      "creator_identity",
+      "bank_funding",
+      "review_finish",
       "complete",
     ]);
   });
