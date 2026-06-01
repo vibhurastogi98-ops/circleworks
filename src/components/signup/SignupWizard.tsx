@@ -26,6 +26,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import type { Provider } from "@supabase/supabase-js";
+import type { PlaidLinkOnSuccessMetadata } from "react-plaid-link";
+import { usePlaidLink } from "react-plaid-link";
 import { z } from "zod";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase";
@@ -1447,9 +1449,11 @@ function CompanyBusinessDetailsForm({
             render={({ field }) => (
               <input
                 id="companyEin"
+                type="password"
                 inputMode="numeric"
                 maxLength={10}
                 placeholder="XX-XXXXXXX"
+                autoComplete="off"
                 value={field.value}
                 onBlur={field.onBlur}
                 ref={field.ref}
@@ -1578,9 +1582,14 @@ function CompanyBankFundingForm({
 }) {
   const [accountNumber, setAccountNumber] = useState("");
   const [routingNumber, setRoutingNumber] = useState("");
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [pendingPlaidOpen, setPendingPlaidOpen] = useState(false);
+  const [plaidLoading, setPlaidLoading] = useState(false);
+  const [plaidError, setPlaidError] = useState("");
   const {
     register,
     handleSubmit,
+    clearErrors,
     setError,
     setValue,
     watch,
@@ -1601,16 +1610,130 @@ function CompanyBankFundingForm({
     setValue("verified", false, { shouldDirty: true });
   };
 
-  const connectPlaid = () => {
+  const applyPlaidFunding = useCallback(
+    ({
+      institutionName,
+      accountMask: nextAccountMask,
+      routingMask: nextRoutingMask,
+      accountType: nextAccountType,
+    }: {
+      institutionName: string;
+      accountMask: string;
+      routingMask: string;
+      accountType: "checking" | "savings";
+    }) => {
+      setValue("method", "plaid", { shouldDirty: true, shouldValidate: true });
+      setValue("institutionName", institutionName, { shouldDirty: true });
+      setValue("accountType", nextAccountType, { shouldDirty: true });
+      setValue("accountMask", nextAccountMask, { shouldDirty: true });
+      setValue("routingMask", nextRoutingMask, { shouldDirty: true });
+      setValue("bankAccountToken", createBankToken("plaid"), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue("verified", true, { shouldDirty: true });
+      setAccountNumber("");
+      setRoutingNumber("");
+      clearErrors("method");
+    },
+    [clearErrors, setValue],
+  );
+
+  const handlePlaidSuccess = useCallback(
+    async (publicToken: string, metadata: PlaidLinkOnSuccessMetadata) => {
+      setPlaidLoading(true);
+      setPlaidError("");
+
+      try {
+        const response = await fetch("/api/plaid/exchange-public-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ public_token: publicToken }),
+        });
+        const accountData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(accountData?.error || "Plaid verification failed");
+        }
+
+        const plaidAccount = accountData.account || accountData.mock_account || {};
+        const selectedAccount = metadata.accounts?.[0];
+        const selectedSubtype = selectedAccount?.subtype === "savings" ? "savings" : "checking";
+
+        applyPlaidFunding({
+          institutionName:
+            metadata.institution?.name ||
+            plaidAccount.name ||
+            selectedAccount?.name ||
+            "Plaid verified bank",
+          accountMask: last4(plaidAccount.account || selectedAccount?.mask || "0000"),
+          routingMask: last4(plaidAccount.routing || "0000"),
+          accountType: selectedSubtype,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Plaid is unavailable right now. You can enter bank details manually.";
+        setPlaidError(message);
+        setError("method", { type: "plaid", message });
+      } finally {
+        setPlaidLoading(false);
+      }
+    },
+    [applyPlaidFunding, setError],
+  );
+
+  const { open: openPlaid, ready: plaidReady } = usePlaidLink({
+    token: linkToken,
+    onSuccess: handlePlaidSuccess,
+    onExit: (error) => {
+      setPendingPlaidOpen(false);
+      setPlaidLoading(false);
+      if (error) {
+        const message = error.display_message || error.error_message || "Plaid Link closed before verification completed.";
+        setPlaidError(message);
+        setError("method", { type: "plaid", message });
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!pendingPlaidOpen || !linkToken || !plaidReady) return;
+    openPlaid();
+    setPendingPlaidOpen(false);
+  }, [linkToken, openPlaid, pendingPlaidOpen, plaidReady]);
+
+  const connectPlaid = async () => {
+    setPlaidLoading(true);
+    setPlaidError("");
+    clearErrors("method");
     setValue("method", "plaid", { shouldDirty: true, shouldValidate: true });
-    setValue("institutionName", "Plaid verified bank", { shouldDirty: true });
-    setValue("accountType", "checking", { shouldDirty: true });
-    setValue("accountMask", "0000", { shouldDirty: true });
-    setValue("routingMask", "0000", { shouldDirty: true });
-    setValue("bankAccountToken", `plaid_${Date.now().toString(36)}`, { shouldDirty: true, shouldValidate: true });
-    setValue("verified", true, { shouldDirty: true });
-    setAccountNumber("");
-    setRoutingNumber("");
+
+    try {
+      const response = await fetch("/api/plaid/create-link-token", { method: "POST" });
+      const tokenData = await response.json();
+
+      if (!response.ok || !tokenData.link_token) {
+        throw new Error(tokenData?.error || "Could not start Plaid Link");
+      }
+
+      if (tokenData.is_mock) {
+        applyPlaidFunding({
+          institutionName: "Plaid Sandbox Bank",
+          accountMask: "1111",
+          routingMask: "5678",
+          accountType: "checking",
+        });
+        return;
+      }
+
+      setLinkToken(tokenData.link_token);
+      setPendingPlaidOpen(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Plaid is unavailable right now. You can enter bank details manually.";
+      setPlaidError(message);
+      setError("method", { type: "plaid", message });
+    } finally {
+      setPlaidLoading(false);
+    }
   };
 
   const tokenizeManualAccount = () => {
@@ -1655,11 +1778,15 @@ function CompanyBankFundingForm({
           <button
             type="button"
             onClick={connectPlaid}
+            disabled={plaidLoading}
             className={`min-h-24 rounded-lg border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
               method === "plaid" ? "border-blue-600 bg-blue-50" : "border-slate-300 bg-white hover:bg-slate-50"
-            }`}
+            } disabled:cursor-not-allowed disabled:opacity-70`}
           >
-            <span className="block text-sm font-bold text-slate-900">Connect with Plaid</span>
+            <span className="flex items-center gap-2 text-sm font-bold text-slate-900">
+              {plaidLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              Connect with Plaid
+            </span>
             <span className="mt-2 block text-sm leading-5 text-slate-500">Fast bank verification for payroll funding.</span>
           </button>
           <button
@@ -1677,6 +1804,9 @@ function CompanyBankFundingForm({
           </button>
         </div>
         <InlineError id="fundingMethod-error" message={errors.method?.message} />
+        {plaidError && !errors.method?.message && (
+          <p className="mt-2 text-sm font-medium text-red-600 lg:text-xs">{plaidError}</p>
+        )}
       </fieldset>
 
       {method === "manual" && (
@@ -1709,6 +1839,7 @@ function CompanyBankFundingForm({
               <label htmlFor="routingNumber" className={labelBase}>Routing number</label>
               <input
                 id="routingNumber"
+                type="password"
                 inputMode="numeric"
                 value={routingNumber}
                 onChange={(event) => {
@@ -1723,6 +1854,7 @@ function CompanyBankFundingForm({
               <label htmlFor="accountNumber" className={labelBase}>Account number</label>
               <input
                 id="accountNumber"
+                type="password"
                 inputMode="numeric"
                 value={accountNumber}
                 onChange={(event) => {
@@ -3016,6 +3148,10 @@ function getSignupMode(rawMode: string | null): SignupMode {
   return "email";
 }
 
+function getAdminRoleFromSearch(rawRole: string | null): AdminRole {
+  return rawRole === "admin" ? "admin" : "owner";
+}
+
 function normalizeAccountType(value: unknown): AccountType | "" {
   if (typeof value !== "string") return "";
   const normalized = value.trim().toLowerCase().replace(/[/-]+/g, "_").replace(/\s+/g, "_");
@@ -3050,6 +3186,7 @@ function SignupWizardInner() {
     searchParams.get("plan")
   );
   const requestedStep = getStepFromSearch(searchParams.get("step"));
+  const requestedRole = getAdminRoleFromSearch(searchParams.get("role"));
 
   const [step, setStep] = useState(() => {
     const initialStep =
@@ -3078,9 +3215,12 @@ function SignupWizardInner() {
           password: "__oauth_password__",
           confirmPassword: "__oauth_password__",
           agreedToTerms: true,
-          role: "owner",
+          role: requestedRole,
         }
-      : INITIAL_DATA.step1,
+      : {
+          ...INITIAL_DATA.step1,
+          role: requestedRole,
+        },
     step4: isOAuthSignup
       ? {
           ...INITIAL_DATA.step4,
@@ -3307,6 +3447,7 @@ function SignupWizardInner() {
     const callbackParams = new URLSearchParams();
     if (accountType) callbackParams.set("accountType", accountType);
     if (accountType === "company") callbackParams.set("step", "4");
+    callbackParams.set("role", wizardData.step1.role);
     const callbackQuery = callbackParams.toString();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,

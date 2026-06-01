@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   const requestedNext = searchParams.get("next");
   const requestedAccountType = searchParams.get("accountType");
   const requestedStep = searchParams.get("step");
+  const requestedRole = searchParams.get("role");
   const next = requestedNext?.startsWith("/") ? requestedNext : null;
   const accountType =
     requestedAccountType === "company" ||
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
     requestedAccountType === "creator_solo"
       ? requestedAccountType === "creator_solo" ? "creator" : requestedAccountType
       : null;
+  const role = requestedRole === "owner" || requestedRole === "admin" ? requestedRole : null;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
@@ -83,6 +85,7 @@ export async function GET(request: NextRequest) {
     const params = new URLSearchParams({ mode: signupMode, email: normalizedEmail, name: fullName });
     if (accountType) params.set("accountType", accountType);
     if (requestedStep && /^\d+$/.test(requestedStep)) params.set("step", requestedStep);
+    if (role) params.set("role", role);
     destination = `${origin}/signup?${params.toString()}`;
   }
 

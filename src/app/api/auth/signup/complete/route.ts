@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
-import { users, companies, employees, onboardingCases, onboardingProgress } from "@/db/schema";
+import {
+  users,
+  companies,
+  employees,
+  onboardingCases,
+  onboardingProgress,
+  companyOnboardingDetails,
+  paySchedules,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { generateInviteToken } from "@/lib/tokens";
+import { sendEmail } from "@/lib/email";
 import {
   normalizeAccountType,
   normalizeEntityType,
@@ -15,6 +25,7 @@ import {
 import { getWizardStepIds } from "@/lib/signup-wizard-engine";
 
 const SIGNUP_DRAFT_COOKIE = "cw_signup_partial";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,6 +57,108 @@ function parseContractorCount(value: unknown) {
   return Number.isFinite(count) ? Math.max(0, Math.min(999, Math.round(count))) : 0;
 }
 
+function getRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => getString(item))
+    .filter(Boolean);
+}
+
+function parseEmployeeCount(value: unknown) {
+  const count = Number(value);
+  return Number.isInteger(count) && count > 0 ? count : null;
+}
+
+function maskEin(value: unknown) {
+  const digits = getString(value).replace(/\D/g, "");
+  return digits.length >= 4 ? `**-***${digits.slice(-4)}` : null;
+}
+
+function parseInviteEmails(value: unknown) {
+  const source = Array.isArray(value) ? value.join(",") : getString(value);
+  return Array.from(
+    new Set(
+      source
+        .split(/[\n,;]+/)
+        .map((email) => email.trim().toLowerCase())
+        .filter((email) => EMAIL_PATTERN.test(email)),
+    ),
+  );
+}
+
+function inviteNameFromEmail(email: string) {
+  const localPart = email.split("@")[0] || "Employee";
+  const firstSegment = localPart.split(/[._+-]/)[0] || "Employee";
+  return firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1);
+}
+
+function normalizePayScheduleFrequency(value: unknown) {
+  const frequency = getString(value);
+  if (frequency === "bi-weekly") return "biweekly";
+  if (frequency === "semi-monthly") return "semi-monthly";
+  if (frequency === "weekly" || frequency === "monthly") return frequency;
+  return "";
+}
+
+function payScheduleName(frequency: string) {
+  if (frequency === "biweekly") return "Biweekly payroll";
+  if (frequency === "semi-monthly") return "Semi-monthly payroll";
+  if (frequency === "weekly") return "Weekly payroll";
+  if (frequency === "monthly") return "Monthly payroll";
+  return "Default payroll";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sanitizeCompanyBankFunding(value: unknown) {
+  const funding = getRecord(value);
+  return {
+    method: getString(funding.method),
+    institutionName: getString(funding.institutionName),
+    accountType: getString(funding.accountType) || "checking",
+    accountMask: getString(funding.accountMask).slice(-4),
+    routingMask: getString(funding.routingMask).slice(-4),
+    bankAccountToken: getString(funding.bankAccountToken),
+    verified: funding.verified === true,
+  };
+}
+
+function sanitizeCompanyTaxSetup(value: unknown) {
+  const taxSetup = getRecord(value);
+  return {
+    federalEinConfirmed: taxSetup.federalEinConfirmed === true,
+    stateTaxIdText: getString(taxSetup.stateTaxIdText),
+    registrationStates: getStringArray(taxSetup.registrationStates),
+  };
+}
+
+function sanitizeCompanyPaySchedule(value: unknown) {
+  const schedule = getRecord(value);
+  return {
+    frequency: getString(schedule.frequency),
+    firstPayDate: normalizeDate(schedule.firstPayDate),
+    payPeriodStart: normalizeDate(schedule.payPeriodStart),
+    payPeriodEnd: normalizeDate(schedule.payPeriodEnd),
+  };
+}
+
 function getAccountName(
   accountType: AccountType,
   step1: Record<string, unknown> | undefined,
@@ -66,7 +179,20 @@ function getAccountName(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { account, step1, step2, step3, step4, creator, business, googleAuth } = body;
+    const {
+      account,
+      step1,
+      step2,
+      step3,
+      step4,
+      creator,
+      business,
+      bankFunding,
+      taxSetup,
+      paySchedule,
+      employeeInvites,
+      googleAuth,
+    } = body;
     const accountType = normalizeAccountType(account?.accountType);
     const fullFlowSignup = accountType === "company" || accountType === "agency";
     const entityType =
@@ -152,6 +278,17 @@ export async function POST(req: NextRequest) {
     }
     const adminName = splitFullName(step1?.fullName);
     const accountName = getAccountName(accountType, step1, step2, business);
+    const businessRecord = getRecord(business);
+    const inviteRecord = getRecord(employeeInvites);
+    const companyBankFunding = sanitizeCompanyBankFunding(bankFunding);
+    const companyTaxSetup = sanitizeCompanyTaxSetup(taxSetup);
+    const companyPaySchedule = sanitizeCompanyPaySchedule(paySchedule);
+    const rawInviteEmails = parseInviteEmails(inviteRecord.emails);
+    const employeeInviteEmails =
+      inviteRecord.skip === true
+        ? []
+        : rawInviteEmails.filter((inviteEmail) => inviteEmail !== email);
+    const queuedInvites: Array<{ id: number; email: string; firstName: string }> = [];
 
     // Persist company + employee records
     try {
@@ -192,6 +329,63 @@ export async function POST(req: NextRequest) {
             },
           });
 
+        if (accountType === "company") {
+          const defaultFrequency = normalizePayScheduleFrequency(companyPaySchedule.frequency);
+
+          await tx
+            .insert(companyOnboardingDetails)
+            .values({
+              accountId: company.id,
+              legalName: getString(businessRecord.legalName) || accountName,
+              dba: getString(businessRecord.dba) || null,
+              einMasked: maskEin(businessRecord.ein),
+              entityType,
+              industry: getString(businessRecord.industry) || null,
+              employeeCount: parseEmployeeCount(businessRecord.employeeCount),
+              workStates: getStringArray(businessRecord.workStates),
+              bankFunding: companyBankFunding,
+              taxSetup: companyTaxSetup,
+              paySchedule: companyPaySchedule,
+              employeeInvites: {
+                emails: employeeInviteEmails,
+                skip: inviteRecord.skip === true,
+                queuedAt: new Date().toISOString(),
+              },
+              updatedAt: new Date(),
+            })
+            .onConflictDoUpdate({
+              target: companyOnboardingDetails.accountId,
+              set: {
+                legalName: getString(businessRecord.legalName) || accountName,
+                dba: getString(businessRecord.dba) || null,
+                einMasked: maskEin(businessRecord.ein),
+                entityType,
+                industry: getString(businessRecord.industry) || null,
+                employeeCount: parseEmployeeCount(businessRecord.employeeCount),
+                workStates: getStringArray(businessRecord.workStates),
+                bankFunding: companyBankFunding,
+                taxSetup: companyTaxSetup,
+                paySchedule: companyPaySchedule,
+                employeeInvites: {
+                  emails: employeeInviteEmails,
+                  skip: inviteRecord.skip === true,
+                  queuedAt: new Date().toISOString(),
+                },
+                updatedAt: new Date(),
+              },
+            });
+
+          if (defaultFrequency) {
+            await tx.insert(paySchedules).values({
+              companyId: company.id,
+              name: payScheduleName(defaultFrequency),
+              frequency: defaultFrequency,
+              isDefault: true,
+              updatedAt: new Date(),
+            });
+          }
+        }
+
         await tx.insert(employees).values({
           userId: newUser.id,
           companyId: company.id,
@@ -230,6 +424,39 @@ export async function POST(req: NextRequest) {
             startDate: normalizeDate(step4.startDate),
           });
         }
+
+        if (accountType === "company" && employeeInviteEmails.length > 0) {
+          for (const inviteEmail of employeeInviteEmails) {
+            const firstName = inviteNameFromEmail(inviteEmail);
+            const [invitedEmployee] = await tx
+              .insert(employees)
+              .values({
+                userId: null,
+                companyId: company.id,
+                firstName,
+                lastName: null,
+                email: inviteEmail,
+                jobTitle: null,
+                startDate: companyPaySchedule.firstPayDate,
+                payType: "salary",
+                salary: 0,
+                status: "onboarding",
+              })
+              .returning();
+
+            await tx.insert(onboardingCases).values({
+              employeeId: invitedEmployee.id,
+              status: "Active",
+              startDate: companyPaySchedule.firstPayDate,
+            });
+
+            queuedInvites.push({
+              id: invitedEmployee.id,
+              email: inviteEmail,
+              firstName,
+            });
+          }
+        }
       });
     } catch (dbErr) {
       // Only delete the Supabase user if we created it (not for Google OAuth users)
@@ -238,6 +465,47 @@ export async function POST(req: NextRequest) {
       }
       console.error("[Signup Complete] DB error:", dbErr);
       return NextResponse.json({ error: "Failed to create account. Please try again." }, { status: 500 });
+    }
+
+    if (queuedInvites.length > 0) {
+      const appUrl = process.env.APP_URL || req.nextUrl.origin;
+      const escapedAccountName = escapeHtml(accountName);
+      await Promise.all(
+        queuedInvites.map(async (invite) => {
+          const token = await generateInviteToken({
+            employeeId: invite.id,
+            email: invite.email,
+            companyName: accountName,
+            firstName: invite.firstName,
+            startDate: companyPaySchedule.firstPayDate || undefined,
+          });
+          const onboardLink = `${appUrl}/welcome/${token}`;
+          const escapedOnboardLink = escapeHtml(onboardLink);
+
+          await sendEmail({
+            to: invite.email,
+            subject: `You're invited to join ${accountName} on CircleWorks`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+                <h2 style="color: #0f172a;">You're invited to join ${escapedAccountName}</h2>
+                <p style="color: #475569; font-size: 16px; line-height: 1.5;">
+                  Hi ${escapeHtml(invite.firstName)},<br><br>
+                  Your employer invited you to complete onboarding in CircleWorks.
+                </p>
+                <p style="text-align: center; margin: 30px 0;">
+                  <a href="${escapedOnboardLink}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    Start onboarding
+                  </a>
+                </p>
+                <p style="color: #64748b; font-size: 14px;">
+                  If the button does not work, copy and paste this link into your browser:<br>
+                  <a href="${escapedOnboardLink}" style="color: #2563eb;">${escapedOnboardLink}</a>
+                </p>
+              </div>
+            `,
+          });
+        }),
+      );
     }
 
     const response = NextResponse.json({ success: true });
