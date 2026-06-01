@@ -19,6 +19,8 @@ import {
   HeartPulse,
   Loader2,
   Mail,
+  Plus,
+  Trash2,
   UserRound,
   Users,
   X,
@@ -184,6 +186,9 @@ type CreatorEntityType = "sole-prop" | "llc" | "s-corp" | "";
 type CompanyEntityType = "sole_prop" | "smllc" | "mmllc" | "s_corp" | "c_corp" | "none" | "";
 type FundingMethod = "plaid" | "manual" | "";
 type AdminRole = "owner" | "admin";
+type AgencyType = "staffing" | "creative" | "marketing" | "talent" | "";
+type AgencyWorkerGroup = "staff" | "contractors";
+type AgencyWorkerType = "w2" | "contractor";
 
 const ACCOUNT_TYPES = [
   {
@@ -221,6 +226,43 @@ const COMPANY_ENTITY_TYPES = [
   { value: "none", label: "Not sure yet" },
 ] as const;
 
+const AGENCY_TYPES = [
+  { value: "staffing", label: "Staffing" },
+  { value: "creative", label: "Creative" },
+  { value: "marketing", label: "Marketing" },
+  { value: "talent", label: "Talent" },
+] as const;
+
+const AGENCY_WORKER_GROUPS = [
+  { value: "staff", label: "Internal W-2 staff" },
+  { value: "contractors", label: "Contractors" },
+] as const;
+
+const DEFAULT_AGENCY_PAY_SCHEDULES = [
+  {
+    id: "contractors",
+    workerGroup: "contractors" as const,
+    frequency: "weekly" as const,
+    firstPayDate: "",
+  },
+  {
+    id: "staff",
+    workerGroup: "staff" as const,
+    frequency: "bi-weekly" as const,
+    firstPayDate: "",
+  },
+];
+
+type BankFundingData = {
+  method: FundingMethod;
+  institutionName: string;
+  accountType: "checking" | "savings";
+  accountMask: string;
+  routingMask: string;
+  bankAccountToken: string;
+  verified: boolean;
+};
+
 type WizardData = {
   account: {
     accountType: AccountType | "";
@@ -242,15 +284,7 @@ type WizardData = {
     employeeCount: string;
     workStates: string[];
   };
-  companyBankFunding: {
-    method: FundingMethod;
-    institutionName: string;
-    accountType: "checking" | "savings";
-    accountMask: string;
-    routingMask: string;
-    bankAccountToken: string;
-    verified: boolean;
-  };
+  companyBankFunding: BankFundingData;
   companyTaxSetup: {
     federalEinConfirmed: boolean;
     stateTaxIdText: string;
@@ -265,6 +299,34 @@ type WizardData = {
   companyInvites: {
     emails: string;
     skip: boolean;
+  };
+  agencyDetails: {
+    legalName: string;
+    ein: string;
+    agencyType: AgencyType;
+    internalStaffCount: string;
+    contractorCount: string;
+  };
+  agencyBankFunding: BankFundingData;
+  agencyTaxSetup: {
+    federalEinConfirmed: boolean;
+    stateTaxIdText: string;
+  };
+  agencyFirstClient: {
+    skip: boolean;
+    clientName: string;
+    projectName: string;
+    workerType: AgencyWorkerType;
+    payRate: string;
+    billRate: string;
+  };
+  agencyPaySchedules: {
+    schedules: Array<{
+      id: string;
+      workerGroup: AgencyWorkerGroup;
+      frequency: PaySchedule | "";
+      firstPayDate: string;
+    }>;
   };
   step2: {
     companyName: string;
@@ -341,6 +403,37 @@ const INITIAL_DATA: WizardData = {
   companyInvites: {
     emails: "",
     skip: false,
+  },
+  agencyDetails: {
+    legalName: "",
+    ein: "",
+    agencyType: "",
+    internalStaffCount: "",
+    contractorCount: "",
+  },
+  agencyBankFunding: {
+    method: "",
+    institutionName: "",
+    accountType: "checking",
+    accountMask: "",
+    routingMask: "",
+    bankAccountToken: "",
+    verified: false,
+  },
+  agencyTaxSetup: {
+    federalEinConfirmed: false,
+    stateTaxIdText: "",
+  },
+  agencyFirstClient: {
+    skip: false,
+    clientName: "",
+    projectName: "",
+    workerType: "contractor",
+    payRate: "",
+    billRate: "",
+  },
+  agencyPaySchedules: {
+    schedules: DEFAULT_AGENCY_PAY_SCHEDULES.map((schedule) => ({ ...schedule })),
   },
   step2: {
     companyName: "",
@@ -562,6 +655,144 @@ const companyInvitesSchema = z
     }
   });
 
+const agencyDetailsSchema = z
+  .object({
+    legalName: z.string().trim().min(2, "Agency legal name is required"),
+    ein: z
+      .string()
+      .min(10, "EIN is required")
+      .regex(/^\d{2}-\d{7}$/, "EIN must be formatted as XX-XXXXXXX"),
+    agencyType: z.enum(["staffing", "creative", "marketing", "talent"]).or(z.literal("")),
+    internalStaffCount: z.string().trim(),
+    contractorCount: z.string().trim(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.agencyType) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["agencyType"],
+        message: "Select an agency type",
+      });
+    }
+
+    const internalStaffCount = Number(data.internalStaffCount);
+    if (!Number.isInteger(internalStaffCount) || internalStaffCount < 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["internalStaffCount"],
+        message: "Enter the number of internal W-2 staff",
+      });
+    }
+
+    const contractorCount = Number(data.contractorCount);
+    if (!Number.isInteger(contractorCount) || contractorCount < 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["contractorCount"],
+        message: "Enter the number of contractors",
+      });
+    }
+  });
+
+const agencyTaxSetupSchema = z.object({
+  federalEinConfirmed: z.boolean().refine((value) => value, {
+    message: "Confirm the federal EIN before continuing",
+  }),
+  stateTaxIdText: z.string().trim().min(1, "Add state tax IDs or registration notes"),
+});
+
+const agencyFirstClientSchema = z
+  .object({
+    skip: hiddenBooleanSchema,
+    clientName: z.string(),
+    projectName: z.string(),
+    workerType: z.enum(["w2", "contractor"]),
+    payRate: z.string(),
+    billRate: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.skip) return;
+
+    if (data.clientName.trim().length < 2) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["clientName"],
+        message: "Client name is required",
+      });
+    }
+
+    if (data.projectName.trim().length < 2) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["projectName"],
+        message: "Project name is required",
+      });
+    }
+
+    const payRate = getCurrencyAmount(data.payRate);
+    const billRate = getCurrencyAmount(data.billRate);
+    if (payRate <= 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["payRate"],
+        message: "Enter the worker pay rate",
+      });
+    }
+
+    if (billRate <= 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["billRate"],
+        message: "Enter the client bill rate",
+      });
+    } else if (payRate > 0 && billRate < payRate) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["billRate"],
+        message: "Bill rate should be at least the pay rate",
+      });
+    }
+  });
+
+const agencyPaySchedulesSchema = z
+  .object({
+    schedules: z
+      .array(
+        z.object({
+          id: z.string(),
+          workerGroup: z.enum(["staff", "contractors"]),
+          frequency: z.enum(["bi-weekly", "semi-monthly", "weekly", "monthly", ""]),
+          firstPayDate: z.string(),
+        }),
+      )
+      .min(1, "Add at least one pay schedule"),
+  })
+  .superRefine((data, ctx) => {
+    data.schedules.forEach((schedule, index) => {
+      if (!schedule.frequency) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["schedules", index, "frequency"],
+          message: "Select a pay frequency",
+        });
+      }
+
+      if (!schedule.firstPayDate) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["schedules", index, "firstPayDate"],
+          message: "Choose a first pay date",
+        });
+      } else if (schedule.firstPayDate < getMinPayrollDate()) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["schedules", index, "firstPayDate"],
+          message: "First pay date must be at least 4 business days from today",
+        });
+      }
+    });
+  });
+
 const step2Schema = z.object({
   companyName: z.string().trim().min(2, "Company legal name is required"),
   companySize: z.string().min(1, "Select a company size"),
@@ -717,6 +948,11 @@ type CompanyTaxSetupValues = z.infer<typeof companyTaxSetupSchema>;
 type CompanyPayScheduleValues = z.infer<typeof companyPayScheduleSchema>;
 type CompanyInvitesFormValues = z.input<typeof companyInvitesSchema>;
 type CompanyInvitesValues = z.output<typeof companyInvitesSchema>;
+type AgencyDetailsValues = z.infer<typeof agencyDetailsSchema>;
+type AgencyTaxSetupValues = z.infer<typeof agencyTaxSetupSchema>;
+type AgencyFirstClientFormValues = z.input<typeof agencyFirstClientSchema>;
+type AgencyFirstClientValues = z.output<typeof agencyFirstClientSchema>;
+type AgencyPaySchedulesValues = z.infer<typeof agencyPaySchedulesSchema>;
 type Step2Values = z.infer<typeof step2Schema>;
 type Step3Values = z.infer<typeof step3Schema>;
 type Step4Values = z.infer<typeof step4Schema>;
@@ -777,6 +1013,11 @@ function last4(value: string) {
   return value.replace(/\D/g, "").slice(-4);
 }
 
+function getCurrencyAmount(value: string) {
+  const amount = Number(value.replace(/[$,\s]/g, ""));
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 function createBankToken(method: Exclude<FundingMethod, "">) {
   const randomPart =
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -784,6 +1025,15 @@ function createBankToken(method: Exclude<FundingMethod, "">) {
       : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
 
   return `bank_${method}_${randomPart.slice(0, 32)}`;
+}
+
+function createLocalId(prefix: string) {
+  const randomPart =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+  return `${prefix}_${randomPart}`;
 }
 
 function parseInviteEmails(value: string) {
@@ -903,10 +1153,23 @@ function getFlowSteps(accountType: AccountType | "") {
     ];
   }
 
+  if (accountType === "agency") {
+    return [
+      { title: "Type", detail: "Choose workspace" },
+      { title: "Agency", detail: "Agency details" },
+      { title: "Admin", detail: "Owner account" },
+      { title: "Bank", detail: "Funding source" },
+      { title: "Taxes", detail: "Federal & state" },
+      { title: "Client", detail: "First project" },
+      { title: "Schedules", detail: "Worker pay" },
+      { title: "Review", detail: "Finish setup" },
+    ];
+  }
+
   return [
     { title: "Type", detail: "Choose workspace" },
     { title: "Account", detail: "Create your login" },
-    { title: accountType === "agency" ? "Agency" : "Company", detail: "Legal profile" },
+    { title: "Company", detail: "Legal profile" },
     { title: "Payroll", detail: "Schedule basics" },
     { title: "Employees", detail: "First team member" },
     { title: "Ready", detail: "Launch CircleWorks" },
@@ -1573,6 +1836,138 @@ function CompanyBusinessDetailsForm({
   );
 }
 
+function AgencyDetailsForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["agencyDetails"];
+  onComplete: (data: WizardData["agencyDetails"]) => void;
+}) {
+  const {
+    control,
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AgencyDetailsValues>({
+    resolver: zodResolver(agencyDetailsSchema),
+    defaultValues: data,
+  });
+  const agencyType = watch("agencyType");
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["agencyDetails"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Agency details</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Set up the agency profile for payroll, client billing, and contractor operations.
+        </p>
+      </header>
+
+      <div>
+        <label htmlFor="agencyLegalName" className={labelBase}>Legal agency name</label>
+        <input
+          id="agencyLegalName"
+          autoFocus
+          {...register("legalName")}
+          className={fieldClass(Boolean(errors.legalName))}
+          aria-invalid={Boolean(errors.legalName)}
+          aria-describedby={errors.legalName ? "agencyLegalName-error" : undefined}
+        />
+        <InlineError id="agencyLegalName-error" message={errors.legalName?.message} />
+      </div>
+
+      <div>
+        <label htmlFor="agencyEin" className={labelBase}>EIN</label>
+        <Controller
+          name="ein"
+          control={control}
+          render={({ field }) => (
+            <input
+              id="agencyEin"
+              type="password"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="XX-XXXXXXX"
+              autoComplete="off"
+              value={field.value}
+              onBlur={field.onBlur}
+              ref={field.ref}
+              onChange={(event) => field.onChange(formatEin(event.target.value))}
+              className={`${fieldClass(Boolean(errors.ein))} font-mono`}
+              aria-invalid={Boolean(errors.ein)}
+              aria-describedby={errors.ein ? "agencyEin-error" : undefined}
+            />
+          )}
+        />
+        <InlineError id="agencyEin-error" message={errors.ein?.message} />
+      </div>
+
+      <fieldset>
+        <legend className={labelBase}>Agency type</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {AGENCY_TYPES.map((option) => {
+            const active = agencyType === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("agencyType", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`min-h-12 rounded-lg border px-3 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+        <InlineError id="agencyType-error" message={errors.agencyType?.message} />
+      </fieldset>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="internalStaffCount" className={labelBase}>Internal W-2 staff</label>
+          <input
+            id="internalStaffCount"
+            inputMode="numeric"
+            placeholder="8"
+            {...register("internalStaffCount")}
+            className={fieldClass(Boolean(errors.internalStaffCount))}
+            aria-invalid={Boolean(errors.internalStaffCount)}
+            aria-describedby={errors.internalStaffCount ? "internalStaffCount-error" : undefined}
+          />
+          <InlineError id="internalStaffCount-error" message={errors.internalStaffCount?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="agencyContractorCount" className={labelBase}>Contractors</label>
+          <input
+            id="agencyContractorCount"
+            inputMode="numeric"
+            placeholder="24"
+            {...register("contractorCount")}
+            className={fieldClass(Boolean(errors.contractorCount))}
+            aria-invalid={Boolean(errors.contractorCount)}
+            aria-describedby={errors.contractorCount ? "agencyContractorCount-error" : undefined}
+          />
+          <InlineError id="agencyContractorCount-error" message={errors.contractorCount?.message} />
+        </div>
+      </div>
+
+      <WizardActions />
+    </form>
+  );
+}
+
 function CompanyBankFundingForm({
   data,
   onComplete,
@@ -1995,6 +2390,70 @@ function CompanyTaxSetupForm({
   );
 }
 
+function AgencyTaxSetupForm({
+  data,
+  agency,
+  onComplete,
+}: {
+  data: WizardData["agencyTaxSetup"];
+  agency: WizardData["agencyDetails"];
+  onComplete: (data: WizardData["agencyTaxSetup"]) => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<AgencyTaxSetupValues>({
+    resolver: zodResolver(agencyTaxSetupSchema),
+    defaultValues: data,
+  });
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["agencyTaxSetup"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Tax setup</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Confirm the federal EIN and add the state IDs needed for mixed-workforce payroll.
+        </p>
+      </header>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <dt className="text-xs font-bold uppercase text-slate-500">Federal EIN</dt>
+        <dd className="mt-1 font-mono text-lg font-bold text-slate-900">{maskEin(agency.ein)}</dd>
+        <label className="mt-4 flex items-start gap-3 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            {...register("federalEinConfirmed")}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+            aria-invalid={Boolean(errors.federalEinConfirmed)}
+            aria-describedby={errors.federalEinConfirmed ? "agencyFederalEinConfirmed-error" : undefined}
+          />
+          <span>I confirm this EIN is correct for federal payroll tax filings.</span>
+        </label>
+        <InlineError id="agencyFederalEinConfirmed-error" message={errors.federalEinConfirmed?.message} />
+      </div>
+
+      <div>
+        <label htmlFor="agencyStateTaxIdText" className={labelBase}>State tax IDs</label>
+        <textarea
+          id="agencyStateTaxIdText"
+          rows={5}
+          placeholder="Example: California SIT 1234567, New York UI pending registration"
+          {...register("stateTaxIdText")}
+          className={`w-full rounded-lg border bg-white px-3 py-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100 ${
+            errors.stateTaxIdText ? "border-red-400 bg-red-50" : "border-slate-300"
+          }`}
+          aria-invalid={Boolean(errors.stateTaxIdText)}
+          aria-describedby={errors.stateTaxIdText ? "agencyStateTaxIdText-error" : undefined}
+        />
+        <InlineError id="agencyStateTaxIdText-error" message={errors.stateTaxIdText?.message} />
+      </div>
+
+      <WizardActions />
+    </form>
+  );
+}
+
 function CompanyPayScheduleForm({
   data,
   onComplete,
@@ -2101,6 +2560,319 @@ function CompanyPayScheduleForm({
   );
 }
 
+function AgencyFirstClientForm({
+  data,
+  onComplete,
+  onSkip,
+}: {
+  data: WizardData["agencyFirstClient"];
+  onComplete: (data: WizardData["agencyFirstClient"]) => void;
+  onSkip: () => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AgencyFirstClientFormValues, unknown, AgencyFirstClientValues>({
+    resolver: zodResolver(agencyFirstClientSchema),
+    defaultValues: data,
+  });
+  const workerType = watch("workerType");
+  const payRate = getCurrencyAmount(watch("payRate") || "");
+  const billRate = getCurrencyAmount(watch("billRate") || "");
+  const spread = billRate > 0 && payRate > 0 ? billRate - payRate : 0;
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["agencyFirstClient"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">First client</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Add an initial client and project with worker pay rate versus client bill rate.
+        </p>
+      </header>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="clientName" className={labelBase}>Client name</label>
+          <input
+            id="clientName"
+            autoFocus
+            {...register("clientName")}
+            className={fieldClass(Boolean(errors.clientName))}
+            aria-invalid={Boolean(errors.clientName)}
+            aria-describedby={errors.clientName ? "clientName-error" : undefined}
+          />
+          <InlineError id="clientName-error" message={errors.clientName?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="projectName" className={labelBase}>Project</label>
+          <input
+            id="projectName"
+            {...register("projectName")}
+            className={fieldClass(Boolean(errors.projectName))}
+            aria-invalid={Boolean(errors.projectName)}
+            aria-describedby={errors.projectName ? "projectName-error" : undefined}
+          />
+          <InlineError id="projectName-error" message={errors.projectName?.message} />
+        </div>
+      </div>
+
+      <fieldset>
+        <legend className={labelBase}>Worker type</legend>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "W-2 worker", value: "w2" as const },
+            { label: "Contractor", value: "contractor" as const },
+          ].map((option) => {
+            const active = workerType === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  setValue("workerType", option.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                className={`h-12 rounded-lg border text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10 ${
+                  active
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="workerPayRate" className={labelBase}>Pay rate</label>
+          <div className="relative">
+            <input
+              id="workerPayRate"
+              inputMode="decimal"
+              placeholder="45"
+              {...register("payRate")}
+              className={`${fieldClass(Boolean(errors.payRate))} pr-20`}
+              aria-invalid={Boolean(errors.payRate)}
+              aria-describedby={errors.payRate ? "workerPayRate-error" : undefined}
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
+              / hour
+            </span>
+          </div>
+          <InlineError id="workerPayRate-error" message={errors.payRate?.message} />
+        </div>
+
+        <div>
+          <label htmlFor="clientBillRate" className={labelBase}>Bill rate</label>
+          <div className="relative">
+            <input
+              id="clientBillRate"
+              inputMode="decimal"
+              placeholder="85"
+              {...register("billRate")}
+              className={`${fieldClass(Boolean(errors.billRate))} pr-20`}
+              aria-invalid={Boolean(errors.billRate)}
+              aria-describedby={errors.billRate ? "clientBillRate-error" : undefined}
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
+              / hour
+            </span>
+          </div>
+          <InlineError id="clientBillRate-error" message={errors.billRate?.message} />
+        </div>
+      </div>
+
+      {spread > 0 && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <p className="text-sm font-bold text-green-800">
+            Spread: {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(spread)} per hour
+          </p>
+        </div>
+      )}
+
+      <input type="hidden" {...register("skip")} />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={onSkip}
+          className="h-12 rounded-lg border border-slate-300 px-5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10"
+        >
+          Skip for later
+        </button>
+        <button
+          type="submit"
+          className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
+        >
+          Add client
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AgencyPaySchedulesForm({
+  data,
+  onComplete,
+}: {
+  data: WizardData["agencyPaySchedules"];
+  onComplete: (data: WizardData["agencyPaySchedules"]) => void;
+}) {
+  const minPayrollDate = useMemo(() => getMinPayrollDate(), []);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<AgencyPaySchedulesValues>({
+    resolver: zodResolver(agencyPaySchedulesSchema),
+    defaultValues: {
+      schedules: data.schedules.length
+        ? data.schedules
+        : DEFAULT_AGENCY_PAY_SCHEDULES.map((schedule) => ({ ...schedule })),
+    },
+  });
+  const schedules = watch("schedules") ?? [];
+
+  const addSchedule = () => {
+    setValue(
+      "schedules",
+      [
+        ...schedules,
+        {
+          id: createLocalId("schedule"),
+          workerGroup: "contractors",
+          frequency: "",
+          firstPayDate: "",
+        },
+      ],
+      { shouldDirty: true, shouldValidate: true },
+    );
+  };
+
+  const removeSchedule = (index: number) => {
+    setValue(
+      "schedules",
+      schedules.filter((_, scheduleIndex) => scheduleIndex !== index),
+      { shouldDirty: true, shouldValidate: true },
+    );
+  };
+
+  return (
+    <form onSubmit={handleSubmit((values) => onComplete(values as WizardData["agencyPaySchedules"]))} noValidate className="space-y-5 lg:space-y-4">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Pay schedules</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Agencies can run separate schedules for contractors and internal staff.
+        </p>
+      </header>
+
+      <div className="space-y-3">
+        {schedules.map((schedule, index) => (
+          <div key={schedule.id || index} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-slate-900">Schedule {index + 1}</p>
+              {schedules.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeSchedule(index)}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                  aria-label={`Remove schedule ${index + 1}`}
+                  title={`Remove schedule ${index + 1}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label htmlFor={`agencyScheduleGroup-${index}`} className={labelBase}>Group</label>
+                <select
+                  id={`agencyScheduleGroup-${index}`}
+                  {...register(`schedules.${index}.workerGroup` as const)}
+                  className={selectClass(Boolean(errors.schedules?.[index]?.workerGroup))}
+                  aria-invalid={Boolean(errors.schedules?.[index]?.workerGroup)}
+                >
+                  {AGENCY_WORKER_GROUPS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor={`agencyScheduleFrequency-${index}`} className={labelBase}>Frequency</label>
+                <select
+                  id={`agencyScheduleFrequency-${index}`}
+                  {...register(`schedules.${index}.frequency` as const)}
+                  className={selectClass(Boolean(errors.schedules?.[index]?.frequency))}
+                  aria-invalid={Boolean(errors.schedules?.[index]?.frequency)}
+                  aria-describedby={errors.schedules?.[index]?.frequency ? `agencyScheduleFrequency-${index}-error` : undefined}
+                >
+                  <option value="">Select frequency</option>
+                  {PAY_SCHEDULES.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <InlineError id={`agencyScheduleFrequency-${index}-error`} message={errors.schedules?.[index]?.frequency?.message} />
+              </div>
+
+              <div>
+                <label htmlFor={`agencyScheduleFirstPay-${index}`} className={labelBase}>First pay date</label>
+                <input
+                  id={`agencyScheduleFirstPay-${index}`}
+                  type="date"
+                  min={minPayrollDate}
+                  {...register(`schedules.${index}.firstPayDate` as const)}
+                  className={fieldClass(Boolean(errors.schedules?.[index]?.firstPayDate))}
+                  aria-invalid={Boolean(errors.schedules?.[index]?.firstPayDate)}
+                  aria-describedby={errors.schedules?.[index]?.firstPayDate ? `agencyScheduleFirstPay-${index}-error` : undefined}
+                />
+                <InlineError id={`agencyScheduleFirstPay-${index}-error`} message={errors.schedules?.[index]?.firstPayDate?.message} />
+              </div>
+            </div>
+
+            <input type="hidden" {...register(`schedules.${index}.id` as const)} />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={addSchedule}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:h-10"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Add schedule
+        </button>
+        <button
+          type="submit"
+          className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 lg:h-10"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      {typeof errors.schedules?.message === "string" && (
+        <InlineError id="agencySchedules-error" message={errors.schedules.message} />
+      )}
+    </form>
+  );
+}
+
 function CompanyInviteEmployeesForm({
   data,
   onComplete,
@@ -2194,6 +2966,89 @@ function CompanyReviewFinish({
         <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Review & finish</h2>
         <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
           Confirm your employer setup. Finishing marks onboarding complete and opens your company dashboard.
+        </p>
+      </header>
+
+      <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+        {summaryRows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs font-bold uppercase text-slate-500">{label}</dt>
+            <dd className="mt-1 text-sm font-bold text-slate-900">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onFinish}
+          disabled={loading}
+          className="flex h-12 min-w-44 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-10"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Finishing...
+            </>
+          ) : (
+            <>
+              Finish setup
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AgencyReviewFinish({
+  data,
+  loading,
+  onFinish,
+}: {
+  data: WizardData;
+  loading: boolean;
+  onFinish: () => void;
+}) {
+  const agencyTypeLabel =
+    AGENCY_TYPES.find((type) => type.value === data.agencyDetails.agencyType)?.label || "Not set";
+  const scheduleSummary = data.agencyPaySchedules.schedules
+    .map((schedule) => {
+      const group = AGENCY_WORKER_GROUPS.find((item) => item.value === schedule.workerGroup)?.label || "Workers";
+      const frequency = PAY_SCHEDULES.find((item) => item.value === schedule.frequency)?.label || "Not set";
+      return `${group}: ${frequency}${schedule.firstPayDate ? ` from ${schedule.firstPayDate}` : ""}`;
+    })
+    .join("; ");
+  const firstClient = data.agencyFirstClient.skip
+    ? "Skipped for later"
+    : `${data.agencyFirstClient.clientName || "Client"} / ${data.agencyFirstClient.projectName || "Project"}`;
+  const firstRate = data.agencyFirstClient.skip
+    ? "Not set"
+    : `$${data.agencyFirstClient.payRate || "0"} pay / $${data.agencyFirstClient.billRate || "0"} bill`;
+  const funding =
+    data.agencyBankFunding.method === "plaid"
+      ? "Plaid connected"
+      : `Manual account ••••${data.agencyBankFunding.accountMask}`;
+  const summaryRows = [
+    ["Legal name", data.agencyDetails.legalName],
+    ["EIN", maskEin(data.agencyDetails.ein)],
+    ["Agency type", agencyTypeLabel],
+    ["Internal staff", data.agencyDetails.internalStaffCount || "0"],
+    ["Contractors", data.agencyDetails.contractorCount || "0"],
+    ["Funding", funding],
+    ["State tax IDs", data.agencyTaxSetup.stateTaxIdText || "Not set"],
+    ["First client", firstClient],
+    ["Rates", firstRate],
+    ["Pay schedules", scheduleSummary || "Not set"],
+  ];
+
+  return (
+    <div className="space-y-6 lg:space-y-5">
+      <header>
+        <h2 className="text-3xl font-bold text-[#0A1628] lg:text-2xl">Review & finish</h2>
+        <p className="mt-2 text-base font-medium text-slate-500 lg:mt-1 lg:text-sm">
+          Finishing marks onboarding complete and opens the agency dashboard with clients and contractors enabled.
         </p>
       </header>
 
@@ -3065,13 +3920,23 @@ function sanitizeDraft(data: WizardData) {
       routingMask: data.companyBankFunding.routingMask,
       bankAccountToken: data.companyBankFunding.bankAccountToken,
     },
+    agencyBankFunding: {
+      ...data.agencyBankFunding,
+      accountMask: data.agencyBankFunding.accountMask,
+      routingMask: data.agencyBankFunding.routingMask,
+      bankAccountToken: data.agencyBankFunding.bankAccountToken,
+    },
   };
 }
 
 function toCompletePayload(data: WizardData, signupMode: SignupMode) {
   const accountType = data.account.accountType || "company";
   const isCompany = accountType === "company";
+  const isAgency = accountType === "agency";
   const adminName = splitName(data.step1.fullName);
+  const firstAgencySchedule = data.agencyPaySchedules.schedules[0];
+  const agencyTypeLabel =
+    AGENCY_TYPES.find((type) => type.value === data.agencyDetails.agencyType)?.label || "Agency";
   const companyStep2 = {
     companyName: data.companyBusiness.legalName,
     companySize: data.companyBusiness.employeeCount,
@@ -3102,14 +3967,44 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
     payRate: "",
     skip: true,
   };
+  const agencyStep2 = {
+    companyName: data.agencyDetails.legalName,
+    companySize: data.agencyDetails.internalStaffCount,
+    industry: `${agencyTypeLabel} agency`,
+    primaryState: "",
+    multipleStates: false,
+    ein: data.agencyDetails.ein,
+    agencyType: data.agencyDetails.agencyType,
+    internalStaffCount: data.agencyDetails.internalStaffCount,
+    contractorCount: data.agencyDetails.contractorCount,
+  };
+  const agencyStep3 = {
+    ein: data.agencyDetails.ein,
+    paySchedule: firstAgencySchedule?.frequency || "",
+    firstPayrollDate: firstAgencySchedule?.firstPayDate || "",
+    skipPayroll: false,
+  };
+  const agencyStep4 = {
+    isAdminEmployee: true,
+    firstName: adminName.firstName,
+    lastName: adminName.lastName,
+    employeeEmail: data.step1.email,
+    title: data.step1.role === "owner" ? "Owner" : "Administrator",
+    startDate: "",
+    payType: "salary",
+    payRate: "",
+    skip: true,
+  };
 
   return {
     account: data.account,
     step1: data.step1,
-    step2: isCompany ? companyStep2 : data.step2,
-    step3: isCompany ? companyStep3 : data.step3,
+    step2: isCompany ? companyStep2 : isAgency ? agencyStep2 : data.step2,
+    step3: isCompany ? companyStep3 : isAgency ? agencyStep3 : data.step3,
     step4: isCompany
       ? companyStep4
+      : isAgency
+        ? agencyStep4
       : {
           isAdminEmployee: data.step4.isAdminEmployee,
           firstName: data.step4.firstName,
@@ -3131,6 +4026,11 @@ function toCompletePayload(data: WizardData, signupMode: SignupMode) {
           skip: data.companyInvites.skip,
         }
       : null,
+    agencyDetails: isAgency ? data.agencyDetails : null,
+    agencyBankFunding: isAgency ? data.agencyBankFunding : null,
+    agencyTaxSetup: isAgency ? data.agencyTaxSetup : null,
+    agencyFirstClient: isAgency ? data.agencyFirstClient : null,
+    agencyPaySchedules: isAgency ? data.agencyPaySchedules : null,
     creator: data.creator,
     googleAuth: signupMode !== "email",
   };
@@ -3192,10 +4092,10 @@ function SignupWizardInner() {
     const initialStep =
       requestedStep && !initialAccountType
         ? 0
-        : requestedStep !== null
-          ? requestedStep
-          : isOAuthSignup && initialAccountType
-            ? initialAccountType === "company"
+          : requestedStep !== null
+            ? requestedStep
+            : isOAuthSignup && initialAccountType
+            ? initialAccountType === "company" || initialAccountType === "agency"
               ? 3
               : 2
             : 0;
@@ -3238,6 +4138,7 @@ function SignupWizardInner() {
 
   const accountType = wizardData.account.accountType;
   const companyPath = accountType === "company";
+  const agencyPath = accountType === "agency";
   const successStep = getSuccessStep(accountType);
   const hasProgress = step > 0 && step < successStep;
 
@@ -3400,6 +4301,26 @@ function SignupWizardInner() {
         ...INITIAL_DATA.companyInvites,
         ...(draftData.companyInvites ?? {}),
       },
+      agencyDetails: {
+        ...INITIAL_DATA.agencyDetails,
+        ...(draftData.agencyDetails ?? {}),
+      },
+      agencyBankFunding: {
+        ...INITIAL_DATA.agencyBankFunding,
+        ...(draftData.agencyBankFunding ?? {}),
+      },
+      agencyTaxSetup: {
+        ...INITIAL_DATA.agencyTaxSetup,
+        ...(draftData.agencyTaxSetup ?? {}),
+      },
+      agencyFirstClient: {
+        ...INITIAL_DATA.agencyFirstClient,
+        ...(draftData.agencyFirstClient ?? {}),
+      },
+      agencyPaySchedules: {
+        ...INITIAL_DATA.agencyPaySchedules,
+        ...(draftData.agencyPaySchedules ?? {}),
+      },
       step2: {
         ...INITIAL_DATA.step2,
         ...(draftData.step2 ?? {}),
@@ -3446,7 +4367,7 @@ function SignupWizardInner() {
     const supabase = createSupabaseBrowserClient();
     const callbackParams = new URLSearchParams();
     if (accountType) callbackParams.set("accountType", accountType);
-    if (accountType === "company") callbackParams.set("step", "4");
+    if (accountType === "company" || accountType === "agency") callbackParams.set("step", "4");
     callbackParams.set("role", wizardData.step1.role);
     const callbackQuery = callbackParams.toString();
     const { error } = await supabase.auth.signInWithOAuth({
@@ -3507,6 +4428,10 @@ function SignupWizardInner() {
   };
 
   const finishCompanySignup = () => {
+    void completeSignup(wizardData, { redirectToDashboard: true });
+  };
+
+  const finishAgencySignup = () => {
     void completeSignup(wizardData, { redirectToDashboard: true });
   };
 
@@ -3616,7 +4541,7 @@ function SignupWizardInner() {
           {step > 0 && step < successStep ? (
             <button
               type="button"
-              onClick={() => goTo(isOAuthSignup && step === 2 ? 0 : step - 1, -1)}
+              onClick={() => goTo(isOAuthSignup && accountType === "creator" && step === 2 ? 0 : step - 1, -1)}
               className="inline-flex items-center gap-2 rounded-lg px-1 py-2 text-sm font-bold text-slate-600 transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -3662,7 +4587,7 @@ function SignupWizardInner() {
                   onComplete={(account) =>
                     void advance(
                       { account },
-                      account.accountType === "company" ? 1 : isOAuthSignup ? 2 : 1,
+                      account.accountType === "creator" && isOAuthSignup ? 2 : 1,
                     )
                   }
                 />
@@ -3675,7 +4600,14 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === 1 && !companyPath && (
+              {step === 1 && agencyPath && (
+                <AgencyDetailsForm
+                  data={wizardData.agencyDetails}
+                  onComplete={(agencyDetails) => void advance({ agencyDetails }, 2)}
+                />
+              )}
+
+              {step === 1 && !companyPath && !agencyPath && (
                 <Step1Form
                   data={wizardData.step1}
                   onComplete={(step1) => void advance({ step1 }, 2)}
@@ -3694,9 +4626,11 @@ function SignupWizardInner() {
               )}
 
               {step === 2 && accountType === "agency" && (
-                <Step2Form
-                  data={wizardData.step2}
-                  onComplete={(step2) => void advance({ step2 }, 3)}
+                <Step1Form
+                  data={wizardData.step1}
+                  onComplete={(step1) => void advance({ step1 }, 3)}
+                  onOAuth={handleOAuthSignup}
+                  oauthLoading={oauthLoading}
                 />
               )}
 
@@ -3716,22 +4650,9 @@ function SignupWizardInner() {
               )}
 
               {step === 3 && accountType === "agency" && (
-                <Step3Form
-                  data={wizardData.step3}
-                  onComplete={(step3) => void advance({ step3 }, 4)}
-                  onSkip={() =>
-                    void advance(
-                      {
-                        step3: {
-                          ein: "",
-                          paySchedule: "",
-                          firstPayrollDate: "",
-                          skipPayroll: true,
-                        },
-                      },
-                      4
-                    )
-                  }
+                <CompanyBankFundingForm
+                  data={wizardData.agencyBankFunding}
+                  onComplete={(agencyBankFunding) => void advance({ agencyBankFunding }, 4)}
                 />
               )}
 
@@ -3744,13 +4665,10 @@ function SignupWizardInner() {
               )}
 
               {step === 4 && accountType === "agency" && (
-                <Step4Form
-                  adminEmail={wizardData.step1.email}
-                  adminName={wizardData.step1.fullName}
-                  data={wizardData.step4}
-                  loading={completionLoading}
-                  onComplete={handleStep4Complete}
-                  onSkip={handleStep4Skip}
+                <AgencyTaxSetupForm
+                  data={wizardData.agencyTaxSetup}
+                  agency={wizardData.agencyDetails}
+                  onComplete={(agencyTaxSetup) => void advance({ agencyTaxSetup }, 5)}
                 />
               )}
 
@@ -3758,6 +4676,24 @@ function SignupWizardInner() {
                 <CompanyPayScheduleForm
                   data={wizardData.companyPaySchedule}
                   onComplete={(companyPaySchedule) => void advance({ companyPaySchedule }, 6)}
+                />
+              )}
+
+              {step === 5 && agencyPath && (
+                <AgencyFirstClientForm
+                  data={wizardData.agencyFirstClient}
+                  onComplete={(agencyFirstClient) => void advance({ agencyFirstClient }, 6)}
+                  onSkip={() =>
+                    void advance(
+                      {
+                        agencyFirstClient: {
+                          ...INITIAL_DATA.agencyFirstClient,
+                          skip: true,
+                        },
+                      },
+                      6,
+                    )
+                  }
                 />
               )}
 
@@ -3779,6 +4715,13 @@ function SignupWizardInner() {
                 />
               )}
 
+              {step === 6 && agencyPath && (
+                <AgencyPaySchedulesForm
+                  data={wizardData.agencyPaySchedules}
+                  onComplete={(agencyPaySchedules) => void advance({ agencyPaySchedules }, 7)}
+                />
+              )}
+
               {step === 7 && companyPath && (
                 <CompanyReviewFinish
                   data={wizardData}
@@ -3787,7 +4730,15 @@ function SignupWizardInner() {
                 />
               )}
 
-              {step === successStep && !companyPath && <Step5Success data={wizardData} />}
+              {step === 7 && agencyPath && (
+                <AgencyReviewFinish
+                  data={wizardData}
+                  loading={completionLoading}
+                  onFinish={finishAgencySignup}
+                />
+              )}
+
+              {step === successStep && !companyPath && !agencyPath && <Step5Success data={wizardData} />}
             </motion.div>
           </AnimatePresence>
         </div>

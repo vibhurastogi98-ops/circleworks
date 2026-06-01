@@ -9,6 +9,10 @@ import {
   onboardingCases,
   onboardingProgress,
   companyOnboardingDetails,
+  agencyOnboardingDetails,
+  agencyClients,
+  agencyProjects,
+  agencyClientAssignments,
   paySchedules,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -50,6 +54,12 @@ function parseSalary(value: unknown) {
   if (value === null || value === undefined || value === "") return 0;
   const amount = Number.parseFloat(String(value).replace(/[$,\s]/g, ""));
   return Number.isFinite(amount) ? Math.round(amount) : 0;
+}
+
+function parseRate(value: unknown) {
+  if (value === null || value === undefined || value === "") return 0;
+  const amount = Number.parseFloat(String(value).replace(/[$,\s]/g, ""));
+  return Number.isFinite(amount) ? Math.max(0, amount) : 0;
 }
 
 function parseContractorCount(value: unknown) {
@@ -159,14 +169,65 @@ function sanitizeCompanyPaySchedule(value: unknown) {
   };
 }
 
+function sanitizeAgencyDetails(value: unknown) {
+  const details = getRecord(value);
+  return {
+    legalName: getString(details.legalName),
+    ein: getString(details.ein),
+    agencyType: getString(details.agencyType),
+    internalStaffCount: parseContractorCount(details.internalStaffCount),
+    contractorCount: parseContractorCount(details.contractorCount),
+  };
+}
+
+function sanitizeAgencyTaxSetup(value: unknown) {
+  const taxSetup = getRecord(value);
+  return {
+    federalEinConfirmed: taxSetup.federalEinConfirmed === true,
+    stateTaxIdText: getString(taxSetup.stateTaxIdText),
+  };
+}
+
+function sanitizeAgencyFirstClient(value: unknown) {
+  const firstClient = getRecord(value);
+  return {
+    skip: firstClient.skip === true,
+    clientName: getString(firstClient.clientName),
+    projectName: getString(firstClient.projectName),
+    workerType: getString(firstClient.workerType) === "w2" ? "w2" : "contractor",
+    payRate: parseRate(firstClient.payRate),
+    billRate: parseRate(firstClient.billRate),
+  };
+}
+
+function sanitizeAgencyPaySchedules(value: unknown) {
+  const record = getRecord(value);
+  const schedules = Array.isArray(record.schedules) ? record.schedules : [];
+  return schedules
+    .map((item) => {
+      const schedule = getRecord(item);
+      return {
+        id: getString(schedule.id),
+        workerGroup: getString(schedule.workerGroup) === "staff" ? "staff" : "contractors",
+        frequency: normalizePayScheduleFrequency(schedule.frequency),
+        firstPayDate: normalizeDate(schedule.firstPayDate),
+      };
+    })
+    .filter((schedule) => schedule.frequency && schedule.firstPayDate);
+}
+
 function getAccountName(
   accountType: AccountType,
   step1: Record<string, unknown> | undefined,
   step2: Record<string, unknown> | undefined,
   business: Record<string, unknown> | undefined,
+  agencyDetails: Record<string, unknown> | undefined,
 ) {
   const legalName = typeof business?.legalName === "string" ? business.legalName.trim() : "";
   if (legalName) return legalName;
+
+  const agencyLegalName = typeof agencyDetails?.legalName === "string" ? agencyDetails.legalName.trim() : "";
+  if (agencyLegalName) return agencyLegalName;
 
   const companyName = typeof step2?.companyName === "string" ? step2.companyName.trim() : "";
   if (companyName) return companyName;
@@ -191,6 +252,11 @@ export async function POST(req: NextRequest) {
       taxSetup,
       paySchedule,
       employeeInvites,
+      agencyDetails,
+      agencyBankFunding,
+      agencyTaxSetup,
+      agencyFirstClient,
+      agencyPaySchedules,
       googleAuth,
     } = body;
     const accountType = normalizeAccountType(account?.accountType);
@@ -277,12 +343,18 @@ export async function POST(req: NextRequest) {
       supabaseUserId = authData.user.id;
     }
     const adminName = splitFullName(step1?.fullName);
-    const accountName = getAccountName(accountType, step1, step2, business);
+    const agencyDetailsRecord = getRecord(agencyDetails);
+    const accountName = getAccountName(accountType, step1, step2, business, agencyDetailsRecord);
     const businessRecord = getRecord(business);
     const inviteRecord = getRecord(employeeInvites);
     const companyBankFunding = sanitizeCompanyBankFunding(bankFunding);
     const companyTaxSetup = sanitizeCompanyTaxSetup(taxSetup);
     const companyPaySchedule = sanitizeCompanyPaySchedule(paySchedule);
+    const sanitizedAgencyDetails = sanitizeAgencyDetails(agencyDetails);
+    const sanitizedAgencyBankFunding = sanitizeCompanyBankFunding(agencyBankFunding);
+    const sanitizedAgencyTaxSetup = sanitizeAgencyTaxSetup(agencyTaxSetup);
+    const sanitizedAgencyFirstClient = sanitizeAgencyFirstClient(agencyFirstClient);
+    const sanitizedAgencyPaySchedules = sanitizeAgencyPaySchedules(agencyPaySchedules);
     const rawInviteEmails = parseInviteEmails(inviteRecord.emails);
     const employeeInviteEmails =
       inviteRecord.skip === true
@@ -306,7 +378,12 @@ export async function POST(req: NextRequest) {
             entityType,
             creatorEntityType: accountType === "creator" ? toLegacyCreatorEntityType(creator?.entityType) : null,
             paySelfAsOwner: accountType === "creator" ? Boolean(creator?.paySelfAsOwner) : false,
-            contractorCount: accountType === "creator" ? parseContractorCount(creator?.contractorCount) : 0,
+            contractorCount:
+              accountType === "creator"
+                ? parseContractorCount(creator?.contractorCount)
+                : accountType === "agency"
+                  ? sanitizedAgencyDetails.contractorCount
+                  : 0,
           })
           .returning();
 
@@ -381,6 +458,95 @@ export async function POST(req: NextRequest) {
               name: payScheduleName(defaultFrequency),
               frequency: defaultFrequency,
               isDefault: true,
+              updatedAt: new Date(),
+            });
+          }
+        }
+
+        if (accountType === "agency") {
+          await tx
+            .insert(agencyOnboardingDetails)
+            .values({
+              accountId: company.id,
+              legalName: sanitizedAgencyDetails.legalName || accountName,
+              einMasked: maskEin(sanitizedAgencyDetails.ein),
+              agencyType: sanitizedAgencyDetails.agencyType || null,
+              internalStaffCount: sanitizedAgencyDetails.internalStaffCount,
+              contractorCount: sanitizedAgencyDetails.contractorCount,
+              bankFunding: sanitizedAgencyBankFunding,
+              taxSetup: sanitizedAgencyTaxSetup,
+              firstClient: sanitizedAgencyFirstClient,
+              paySchedules: sanitizedAgencyPaySchedules,
+              updatedAt: new Date(),
+            })
+            .onConflictDoUpdate({
+              target: agencyOnboardingDetails.accountId,
+              set: {
+                legalName: sanitizedAgencyDetails.legalName || accountName,
+                einMasked: maskEin(sanitizedAgencyDetails.ein),
+                agencyType: sanitizedAgencyDetails.agencyType || null,
+                internalStaffCount: sanitizedAgencyDetails.internalStaffCount,
+                contractorCount: sanitizedAgencyDetails.contractorCount,
+                bankFunding: sanitizedAgencyBankFunding,
+                taxSetup: sanitizedAgencyTaxSetup,
+                firstClient: sanitizedAgencyFirstClient,
+                paySchedules: sanitizedAgencyPaySchedules,
+                updatedAt: new Date(),
+              },
+            });
+
+          for (const [index, schedule] of sanitizedAgencyPaySchedules.entries()) {
+            const groupName = schedule.workerGroup === "staff" ? "Staff" : "Contractor";
+            await tx.insert(paySchedules).values({
+              companyId: company.id,
+              name: `${groupName} ${payScheduleName(schedule.frequency)}`,
+              frequency: schedule.frequency,
+              isDefault: index === 0,
+              updatedAt: new Date(),
+            });
+          }
+
+          if (
+            !sanitizedAgencyFirstClient.skip &&
+            sanitizedAgencyFirstClient.clientName &&
+            sanitizedAgencyFirstClient.projectName
+          ) {
+            const [client] = await tx
+              .insert(agencyClients)
+              .values({
+                companyId: company.id,
+                name: sanitizedAgencyFirstClient.clientName,
+                billingRateType: "hourly",
+                hourlyRate: Math.round(sanitizedAgencyFirstClient.billRate),
+                billingCycle: "weekly",
+                updatedAt: new Date(),
+              })
+              .returning();
+
+            const [project] = await tx
+              .insert(agencyProjects)
+              .values({
+                companyId: company.id,
+                clientId: client.id,
+                name: sanitizedAgencyFirstClient.projectName,
+                status: "Active",
+                updatedAt: new Date(),
+              })
+              .returning();
+
+            await tx.insert(agencyClientAssignments).values({
+              companyId: company.id,
+              clientId: client.id,
+              projectId: project.id,
+              workerType: sanitizedAgencyFirstClient.workerType === "w2" ? "Employee" : "Contractor",
+              workerName:
+                sanitizedAgencyFirstClient.workerType === "w2"
+                  ? "Initial W-2 worker"
+                  : "Initial contractor",
+              role: "Initial placement",
+              payRate: sanitizedAgencyFirstClient.payRate,
+              billRate: sanitizedAgencyFirstClient.billRate,
+              status: "Active",
               updatedAt: new Date(),
             });
           }

@@ -15,8 +15,11 @@ export type WizardStepId =
   | "review_finish"
   | "company_profile"
   | "agency_profile"
+  | "agency_details"
   | "payroll_setup"
   | "first_employee"
+  | "first_client"
+  | "pay_schedules"
   | "creator_profile"
   | "complete";
 
@@ -49,11 +52,14 @@ export const SIGNUP_WIZARD_STEPS = {
   ],
   agency: [
     { id: "account_type", title: "Type", detail: "Choose workspace" },
-    { id: "credentials", title: "Account", detail: "Create login" },
-    { id: "agency_profile", title: "Agency", detail: "Legal profile" },
-    { id: "payroll_setup", title: "Payroll", detail: "Schedule basics", skippable: true },
-    { id: "first_employee", title: "Employees", detail: "First team member", skippable: true },
-    { id: "complete", title: "Ready", detail: "Launch CircleWorks", terminal: true },
+    { id: "agency_details", title: "Agency", detail: "Agency details" },
+    { id: "admin_account", title: "Admin", detail: "Owner account" },
+    { id: "bank_funding", title: "Bank", detail: "Funding source" },
+    { id: "tax_setup", title: "Taxes", detail: "Federal & state" },
+    { id: "first_client", title: "Client", detail: "First project", skippable: true },
+    { id: "pay_schedules", title: "Schedules", detail: "Worker pay" },
+    { id: "review_finish", title: "Review", detail: "Finish setup" },
+    { id: "complete", title: "Ready", detail: "Agency dashboard", terminal: true },
   ],
   creator: [
     { id: "account_type", title: "Type", detail: "Choose workspace" },

@@ -67,6 +67,20 @@ export const companyOnboardingDetails = pgTable('company_onboarding_details', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const agencyOnboardingDetails = pgTable('agency_onboarding_details', {
+  accountId: integer('account_id').primaryKey().references(() => companies.id, { onDelete: 'cascade' }),
+  legalName: text('legal_name').notNull(),
+  einMasked: text('ein_masked'),
+  agencyType: text('agency_type'),
+  internalStaffCount: integer('internal_staff_count'),
+  contractorCount: integer('contractor_count'),
+  bankFunding: jsonb('bank_funding').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  taxSetup: jsonb('tax_setup').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  firstClient: jsonb('first_client').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  paySchedules: jsonb('pay_schedules').$type<Record<string, unknown>[]>().notNull().default(sql`'[]'::jsonb`),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const employees = pgTable('employees', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -997,6 +1011,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const companiesRelations = relations(companies, ({ one, many }) => ({
   onboardingProgress: one(onboardingProgress, { fields: [companies.id], references: [onboardingProgress.accountId] }),
   onboardingDetails: one(companyOnboardingDetails, { fields: [companies.id], references: [companyOnboardingDetails.accountId] }),
+  agencyOnboardingDetails: one(agencyOnboardingDetails, { fields: [companies.id], references: [agencyOnboardingDetails.accountId] }),
   employees: many(employees),
   payrolls: many(payrolls),
   paySchedules: many(paySchedules),
@@ -1079,6 +1094,10 @@ export const onboardingProgressRelations = relations(onboardingProgress, ({ one 
 
 export const companyOnboardingDetailsRelations = relations(companyOnboardingDetails, ({ one }) => ({
   account: one(companies, { fields: [companyOnboardingDetails.accountId], references: [companies.id] }),
+}));
+
+export const agencyOnboardingDetailsRelations = relations(agencyOnboardingDetails, ({ one }) => ({
+  account: one(companies, { fields: [agencyOnboardingDetails.accountId], references: [companies.id] }),
 }));
 
 export const payrollTimeImportsRelations = relations(payrollTimeImports, ({ one }) => ({

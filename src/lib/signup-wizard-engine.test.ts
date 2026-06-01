@@ -29,7 +29,17 @@ describe("account type foundation", () => {
       "review_finish",
       "complete",
     ]);
-    expect(getWizardStepIds("agency")).toContain("agency_profile");
+    expect(getWizardStepIds("agency")).toEqual([
+      "account_type",
+      "agency_details",
+      "admin_account",
+      "bank_funding",
+      "tax_setup",
+      "first_client",
+      "pay_schedules",
+      "review_finish",
+      "complete",
+    ]);
     expect(getWizardStepIds("creator")).toEqual([
       "account_type",
       "credentials",
