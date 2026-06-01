@@ -2,81 +2,101 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-type CountUpOptions = {
-  end: number;
-  decimals?: number;
-  duration?: number;
-  formatter: (value: number) => string;
-};
+const COUNT_UP_DURATION_MS = 1800;
 
-function useCountUp({ end, decimals = 0, duration = 1600, formatter }: CountUpOptions) {
-  const ref = useRef<HTMLDivElement>(null);
+function easeOutQuart(progress: number) {
+  return 1 - Math.pow(1 - progress, 4);
+}
+
+function useCountUp(
+  target: number,
+  duration: number,
+  easing: (progress: number) => number,
+  shouldAnimate: boolean,
+) {
   const hasAnimated = useRef(false);
-  const [displayValue, setDisplayValue] = useState(formatter(0));
+  const frameRef = useRef<number | null>(null);
+  const [value, setValue] = useState(0);
 
   useEffect(() => {
-    const element = ref.current;
-    let animationFrame = 0;
-
-    if (!element) {
+    if (!shouldAnimate || hasAnimated.current) {
       return;
     }
 
-    const animate = () => {
-      if (hasAnimated.current) {
-        return;
+    hasAnimated.current = true;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(target);
+      return;
+    }
+
+    let startTime: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (startTime === null) {
+        startTime = timestamp;
       }
 
-      hasAnimated.current = true;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const nextValue = target * easing(progress);
 
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        setDisplayValue(formatter(end));
-        return;
+      setValue(progress < 1 ? nextValue : target);
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(step);
       }
-
-      let startTime: number | null = null;
-
-      const step = (timestamp: number) => {
-        if (startTime === null) {
-          startTime = timestamp;
-        }
-
-        const elapsed = timestamp - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        const nextValue = Number((easedProgress * end).toFixed(decimals));
-
-        setDisplayValue(formatter(nextValue));
-
-        if (progress < 1) {
-          animationFrame = requestAnimationFrame(step);
-        } else {
-          setDisplayValue(formatter(end));
-        }
-      };
-
-      animationFrame = requestAnimationFrame(step);
     };
+
+    frameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, [duration, easing, shouldAnimate, target]);
+
+  return value;
+}
+
+function useStatsAnimationTrigger() {
+  const ref = useRef<HTMLElement | null>(null);
+  const hasAnimated = useRef(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+
+    if (!element || hasAnimated.current) {
+      return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      hasAnimated.current = true;
+      setShouldAnimate(true);
+      return;
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          animate();
-          observer.unobserve(element);
+        if (entry.intersectionRatio >= 0.3) {
+          hasAnimated.current = true;
+          setShouldAnimate(true);
+          observer.disconnect();
         }
       },
-      { threshold: 0.35 },
+      { threshold: 0.3 },
     );
 
     observer.observe(element);
 
     return () => {
       observer.disconnect();
-      cancelAnimationFrame(animationFrame);
     };
-  }, [decimals, duration, end, formatter]);
+  }, []);
 
-  return { ref, displayValue };
+  return { ref, shouldAnimate };
 }
 
 const stats = [
@@ -101,25 +121,27 @@ const stats = [
   },
   {
     end: 5,
-    number: (value: number) => `<${Math.round(value)} Min`,
+    number: (value: number) => `<${Math.max(1, Math.round(value))} Min`,
     label: "Average First Payroll Setup",
     subLabel: "From signup to first run",
   },
 ];
 
-function StatCard({ stat, isLast }: { stat: (typeof stats)[number]; isLast: boolean }) {
-  const { ref, displayValue } = useCountUp({
-    end: stat.end,
-    decimals: stat.decimals,
-    formatter: stat.number,
-  });
+function StatCard({
+  stat,
+  isLast,
+  shouldAnimate,
+}: {
+  stat: (typeof stats)[number];
+  isLast: boolean;
+  shouldAnimate: boolean;
+}) {
+  const count = useCountUp(stat.end, COUNT_UP_DURATION_MS, easeOutQuart, shouldAnimate);
+  const displayValue = stat.number(count);
 
   return (
     <div className={`flex flex-col items-center px-6 text-center ${isLast ? "" : "lg:border-r lg:border-gray-200"}`}>
-      <div
-        ref={ref}
-        className="min-h-[78px] bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 bg-clip-text text-[64px] font-black leading-none text-transparent"
-      >
+      <div className="min-h-[78px] bg-gradient-to-r from-blue-700 via-blue-500 to-cyan-500 bg-clip-text text-[64px] font-black leading-none text-transparent">
         {displayValue}
       </div>
       <div className="mt-5 text-[20px] font-semibold leading-tight text-gray-900">{stat.label}</div>
@@ -129,12 +151,19 @@ function StatCard({ stat, isLast }: { stat: (typeof stats)[number]; isLast: bool
 }
 
 export function StatsSection() {
+  const { ref, shouldAnimate } = useStatsAnimationTrigger();
+
   return (
-    <section className="w-full bg-white py-16">
+    <section ref={ref} className="w-full bg-white py-16">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-y-12 md:grid-cols-2 md:gap-y-14 lg:grid-cols-4 lg:gap-y-0">
           {stats.map((stat, index) => (
-            <StatCard key={stat.label} stat={stat} isLast={index === stats.length - 1} />
+            <StatCard
+              key={stat.label}
+              stat={stat}
+              isLast={index === stats.length - 1}
+              shouldAnimate={shouldAnimate}
+            />
           ))}
         </div>
       </div>
