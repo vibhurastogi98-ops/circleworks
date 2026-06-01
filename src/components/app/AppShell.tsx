@@ -10,39 +10,10 @@ import {
   isCreatorAccountType,
   normalizeAccountType,
 } from "@/lib/creator-mode";
+import { isPlatformRoute } from "@/lib/platform-routes";
 import AppSidebar from "@/components/app/AppSidebar";
 import AppTopBar from "@/components/app/AppTopBar";
 import OnboardingTour from "@/components/OnboardingTour";
-
-const PLATFORM_ROUTE_PREFIXES = [
-  "/dashboard",
-  "/payroll",
-  "/employees",
-  "/hiring",
-  "/onboarding",
-  "/benefits",
-  "/time",
-  "/expenses",
-  "/performance",
-  "/compliance",
-  "/reports",
-  "/settings",
-  "/app",
-  "/documents",
-  "/help",
-  "/contractors",
-  "/agency",
-  "/learning",
-  "/c/",
-];
-
-function shouldUsePlatformShell(pathname: string) {
-  return PLATFORM_ROUTE_PREFIXES.some((prefix) =>
-    prefix.endsWith("/")
-      ? pathname.startsWith(prefix)
-      : pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
 
 function displayNameFromEmail(email: string) {
   const fallback = email.split("@")[0] || "User";
@@ -70,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setAccountType,
     complianceAlerts,
   } = usePlatformStore();
-  const usePlatformShell = shouldUsePlatformShell(pathname);
+  const usePlatformShell = isPlatformRoute(pathname);
   const normalizedAccountType = normalizeAccountType(accountType);
 
   useEffect(() => {

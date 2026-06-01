@@ -39,7 +39,8 @@ interface SocketState {
 }
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
-const shouldConnectWebSocket = Boolean(WS_URL);
+const websocketsExplicitlyDisabled = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKETS === "false";
+const shouldConnectWebSocket = Boolean(WS_URL) && !websocketsExplicitlyDisabled;
 
 function scheduleReconnect(
   socket: Socket,

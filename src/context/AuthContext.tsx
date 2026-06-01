@@ -8,8 +8,9 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
+import { shouldSyncAuthOnRoute } from "@/lib/platform-routes";
 import type { User } from "@supabase/supabase-js";
 
 export interface AuthUser {
@@ -45,11 +46,41 @@ function mapSupabaseUser(supabaseUser: User | null): AuthUser | null {
   };
 }
 
+function clearSupabaseAuthStorage() {
+  if (typeof window === "undefined") return;
+
+  const storageKeys = new Set<string>();
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const projectRef = supabaseUrl ? new URL(supabaseUrl).hostname.split(".")[0] : "";
+    if (projectRef) storageKeys.add(`sb-${projectRef}-auth-token`);
+  } catch {
+    // Fall back to scanning storage keys below.
+  }
+
+  [window.localStorage, window.sessionStorage].forEach((storage) => {
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith("sb-") && key.endsWith("-auth-token")) {
+        storageKeys.add(key);
+      }
+    }
+    storageKeys.forEach((key) => storage.removeItem(key));
+  });
+}
+
+function isInvalidRefreshTokenError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /invalid refresh token|refresh token not found/i.test(message);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
+  const pathname = usePathname() || "/";
+  const shouldSyncAuth = shouldSyncAuthOnRoute(pathname);
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -62,20 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const [
-        {
-          data: { user: supabaseUser },
-        },
-        {
-          data: { session },
-        },
-      ] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.auth.getSession(),
-      ]);
-      setUser(mapSupabaseUser(supabaseUser));
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(mapSupabaseUser(session?.user ?? null));
       setAccessToken(session?.access_token ?? null);
-    } catch {
+    } catch (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        clearSupabaseAuthStorage();
+      }
       setUser(null);
       setAccessToken(null);
     } finally {
@@ -84,28 +110,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
-    // Load initial session
-    refreshUser();
+    if (!shouldSyncAuth) {
+      setUser(null);
+      setAccessToken(null);
+      setIsLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+    setIsLoaded(false);
 
     const refreshWhenOnline = () => {
       void refreshUser();
     };
     window.addEventListener("online", refreshWhenOnline);
 
-    // Listen to auth state changes (login, logout, token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(mapSupabaseUser(session?.user ?? null));
-      setAccessToken(session?.access_token ?? null);
-      setIsLoaded(true);
-    });
+    const loadSessionAndSubscribe = async () => {
+      await refreshUser();
+      if (cancelled) return;
+
+      // Listen after stale-session cleanup so invalid refresh tokens do not
+      // surface as noisy development overlay errors on public pages.
+      const response = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(mapSupabaseUser(session?.user ?? null));
+        setAccessToken(session?.access_token ?? null);
+        setIsLoaded(true);
+      });
+      subscription = response.data.subscription;
+      if (cancelled) subscription.unsubscribe();
+    };
+
+    void loadSessionAndSubscribe();
 
     return () => {
+      cancelled = true;
       window.removeEventListener("online", refreshWhenOnline);
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, [supabase, refreshUser]);
+  }, [supabase, refreshUser, shouldSyncAuth]);
 
   const signOut = useCallback(
     async (opts?: { redirectUrl?: string }) => {

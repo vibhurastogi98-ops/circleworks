@@ -7,10 +7,12 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 import { useSocketStore } from "@/store/useSocketStore";
 import { useWebSocketEvents } from "@/hooks/useWebSocketEvents";
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore } from "@/store/usePlatformStore";
+import { isPlatformRoute } from "@/lib/platform-routes";
 
 interface SocketContextType {
   isConnected: boolean;
@@ -40,11 +42,18 @@ export default function SocketProvider({
   const { connect, disconnect, manualReconnect, joinRooms } = useSocketStore();
   const { accessToken, isLoaded, isSignedIn, user } = useAuth();
   const currentCompany = usePlatformStore((s) => s.currentCompany);
+  const pathname = usePathname() || "/";
+  const realtimeEnabled = isPlatformRoute(pathname);
   const [now, setNow] = useState(() => Date.now());
 
   useWebSocketEvents();
 
   useEffect(() => {
+    if (!realtimeEnabled) {
+      disconnect();
+      return;
+    }
+
     if (!isLoaded) return;
 
     if (!isSignedIn) {
@@ -61,6 +70,7 @@ export default function SocketProvider({
     currentCompany.id,
     isLoaded,
     isSignedIn,
+    realtimeEnabled,
     user?.userId,
     connect,
     disconnect,
