@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -21,11 +21,15 @@ import {
   ArrowRight,
   BadgeCheck,
   Briefcase,
+  Building2,
   CalendarDays,
   CheckCircle2,
   Clock,
   DollarSign,
+  Eye,
+  FileText,
   FileWarning,
+  Handshake,
   Heart,
   PieChart,
   Play,
@@ -35,20 +39,28 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  WalletCards,
+  X,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { useDashboardRealtimeStore } from "@/store/useDashboardRealtimeStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
 import { useSocketStore } from "@/store/useSocketStore";
+import type { AccountType } from "@/lib/account-types";
+import { getCapabilities, type CapabilityKey } from "@/lib/capabilities";
+import { normalizeAccountType } from "@/lib/creator-mode";
 import type {
   DashboardActivity,
   DashboardActivityType,
-  DashboardKpi,
   DashboardOverview,
   HeadcountBreakdownPoint,
   PayrollTrendPoint,
 } from "@/lib/dashboard-data";
+import type {
+  DashboardQuickAction,
+  DashboardSummary,
+} from "@/lib/dashboard-summary";
 import ErrorState from "@/components/ErrorState";
 import OnboardingChecklistWidget from "@/components/dashboard/OnboardingChecklistWidget";
 import { DashboardSkeleton } from "@/components/skeletons";
@@ -62,17 +74,22 @@ const DATE_RANGES: DateRange[] = [
   "Custom",
 ];
 
-const KPI_ICONS: Record<DashboardKpi["id"], React.ElementType> = {
-  headcount: Users,
-  monthlyGross: DollarSign,
-  taxLiability: ShieldAlert,
-  openPositions: Briefcase,
+type DashboardWidgetTone = "blue" | "emerald" | "amber" | "violet" | "rose";
+
+type DefaultDashboardWidget = {
+  id: string;
+  title: string;
+  value: string;
+  detail: string;
+  delta: string;
+  href: string;
+  icon: React.ElementType;
+  tone: DashboardWidgetTone;
+  empty?: boolean;
+  emptyText?: string;
 };
 
-const TONE_CLASSES: Record<
-  DashboardKpi["tone"],
-  { icon: string; badge: string }
-> = {
+const WIDGET_TONE_CLASSES: Record<DashboardWidgetTone, { icon: string; badge: string }> = {
   blue: {
     icon: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300",
     badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
@@ -89,6 +106,10 @@ const TONE_CLASSES: Record<
     icon: "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300",
     badge: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
   },
+  rose: {
+    icon: "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300",
+    badge: "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300",
+  },
 };
 
 const MODULE_TONES: Record<string, string> = {
@@ -101,6 +122,11 @@ const MODULE_TONES: Record<string, string> = {
 };
 
 const MODULE_ICONS: Record<string, React.ElementType> = {
+  clients: Building2,
+  contractors: Handshake,
+  documents: FileText,
+  ownerPayroll: WalletCards,
+  ownerTaxes: Receipt,
   time: Clock,
   benefits: Heart,
   hiring: Briefcase,
@@ -167,6 +193,28 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatDashboardDate(value: string | null) {
+  if (!value) return "Not scheduled";
+  const [year, month, day] = value.split("-").map(Number);
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not scheduled";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatPercent(value: number | null) {
+  return value == null ? "No margin yet" : `${value.toFixed(value % 1 === 0 ? 0 : 1)}%`;
+}
+
+function accountTypeLabel(accountType: AccountType) {
+  if (accountType === "agency") return "Agency";
+  if (accountType === "creator") return "Creator/Solo";
+  return "Company";
+}
+
 function buildActivityFromSocket(
   type: DashboardActivityType,
   data: Record<string, unknown>,
@@ -200,17 +248,66 @@ function buildActivityFromSocket(
   };
 }
 
+function PreviewBanner({
+  previewAccountType,
+  onExit,
+}: {
+  previewAccountType: AccountType;
+  onExit: () => void;
+}) {
+  return (
+    <section
+      data-testid="dashboard-preview-banner"
+      className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-900 shadow-sm dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-100 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-blue-700 dark:bg-blue-500/15 dark:text-blue-200">
+          <Eye className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-sm font-black">
+            Previewing as {accountTypeLabel(previewAccountType)}
+          </p>
+          <p className="mt-0.5 text-xs font-semibold text-blue-700 dark:text-blue-200">
+            Dashboard actions are read-only.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onExit}
+        className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-blue-200 bg-white px-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100 dark:border-blue-400/30 dark:bg-blue-500/10 dark:text-blue-100 dark:hover:bg-blue-500/20"
+      >
+        <X className="h-4 w-4" />
+        Exit preview
+      </button>
+    </section>
+  );
+}
+
 function PageHeader({
   firstName,
+  accountType,
   dateRange,
   setDateRange,
   onRunPayroll,
+  readOnly = false,
 }: {
   firstName: string;
+  accountType: string;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
   onRunPayroll: () => void;
+  readOnly?: boolean;
 }) {
+  const isCreator = accountType === "creator";
+  const isAgency = accountType === "agency";
+  const secondaryHref = isCreator ? "/app/contractors" : isAgency ? "/app/clients" : "/employees/new";
+  const tertiaryHref = isCreator ? "/app/taxes" : isAgency ? "/agency/profitability" : "/reports";
+  const secondaryLabel = isCreator ? "Contractors" : isAgency ? "Clients" : "Add Employee";
+  const tertiaryLabel = isCreator ? "Tax set-aside" : isAgency ? "Margins" : "View Reports";
+  const SecondaryIcon = isCreator ? Handshake : isAgency ? Building2 : UserPlus;
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
@@ -227,7 +324,11 @@ function PageHeader({
             </span>
           </div>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-            Company health, payroll readiness, team activity, and alerts in one operational view.
+            {isCreator
+              ? "Owner pay, contractor payments, taxes, expenses, and documents in one focused view."
+              : isAgency
+                ? "Client margin, contractor payments, team payroll, and operating alerts in one view."
+                : "Company health, payroll readiness, team activity, and alerts in one operational view."}
           </p>
         </div>
 
@@ -236,25 +337,40 @@ function PageHeader({
             <button
               type="button"
               onClick={onRunPayroll}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+              disabled={readOnly}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 dark:focus-visible:ring-offset-slate-950 dark:disabled:bg-slate-700 dark:disabled:text-slate-300"
             >
-              <Play className="h-4 w-4" />
-              Run Payroll
+              {isCreator ? <WalletCards className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isCreator ? "Pay Myself" : "Run Payroll"}
             </button>
-            <Link
-              href="/employees/new"
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
-            >
-              <UserPlus className="h-4 w-4" />
-              Add Employee
-            </Link>
-            <Link
-              href="/reports"
-              className="inline-flex h-10 items-center gap-2 px-2 text-sm font-bold text-blue-700 transition hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
-            >
-              View Reports
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            {readOnly ? (
+              <span className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                <SecondaryIcon className="h-4 w-4" />
+                {secondaryLabel}
+              </span>
+            ) : (
+              <Link
+                href={secondaryHref}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
+              >
+                <SecondaryIcon className="h-4 w-4" />
+                {secondaryLabel}
+              </Link>
+            )}
+            {readOnly ? (
+              <span className="inline-flex h-10 items-center gap-2 px-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                {tertiaryLabel}
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            ) : (
+              <Link
+                href={tertiaryHref}
+                className="inline-flex h-10 items-center gap-2 px-2 text-sm font-bold text-blue-700 transition hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
+              >
+                {tertiaryLabel}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-950">
@@ -280,22 +396,27 @@ function PageHeader({
   );
 }
 
-function KpiCard({ kpi }: { kpi: DashboardKpi }) {
-  const Icon = KPI_ICONS[kpi.id];
-  const styles = TONE_CLASSES[kpi.tone];
-
-  return (
-    <Link
-      href={kpi.href}
-      className="group rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-blue-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-400/60"
-    >
+function DefaultWidgetCard({
+  widget,
+  readOnly = false,
+}: {
+  widget: DefaultDashboardWidget;
+  readOnly?: boolean;
+}) {
+  const Icon = widget.icon;
+  const styles = WIDGET_TONE_CLASSES[widget.tone];
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            {kpi.detail}
+            {widget.detail}
           </p>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
-            {kpi.value}
+          <p className={cx(
+            "mt-3 text-3xl font-bold tracking-tight",
+            widget.empty ? "text-slate-400 dark:text-slate-500" : "text-slate-950 dark:text-white",
+          )}>
+            {widget.empty ? widget.emptyText ?? widget.value : widget.value}
           </p>
         </div>
         <span className={cx("flex h-12 w-12 items-center justify-center rounded-xl", styles.icon)}>
@@ -304,11 +425,266 @@ function KpiCard({ kpi }: { kpi: DashboardKpi }) {
       </div>
       <div className="mt-5 flex items-center justify-between gap-3">
         <span className={cx("rounded-full px-2.5 py-1 text-xs font-bold", styles.badge)}>
-          {kpi.delta}
+          {widget.delta}
         </span>
-        <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-600" />
+        <ArrowRight className={cx(
+          "h-4 w-4 text-slate-300 transition",
+          !readOnly && "group-hover:translate-x-0.5 group-hover:text-blue-600",
+        )} />
       </div>
+    </>
+  );
+
+  if (readOnly) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={widget.href}
+      className="group rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition hover:border-blue-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-400/60"
+    >
+      {content}
     </Link>
+  );
+}
+
+function getDefaultDashboardWidgets(
+  accountType: string,
+  summary: DashboardSummary,
+): DefaultDashboardWidget[] {
+  if (accountType === "creator") {
+    const nextSelfPay = summary.creator.nextSelfPay;
+    const taxSetAside = summary.creator.taxSetAside;
+    const contractorPayments = summary.creator.contractorPayments;
+
+    return [
+      {
+        id: "creator-next-pay-self",
+        title: "Next pay-self",
+        value: formatDashboardDate(nextSelfPay.date),
+        detail: "Next pay-self",
+        delta: nextSelfPay.date
+          ? `${formatCurrency(nextSelfPay.amount)} estimated deposit`
+          : "Set owner payroll schedule",
+        href: "/app/pay-myself",
+        icon: WalletCards,
+        tone: "blue",
+        empty: !nextSelfPay.date && nextSelfPay.amount === 0,
+        emptyText: "Not scheduled",
+      },
+      {
+        id: "creator-tax-set-aside",
+        title: "Tax set-aside",
+        value: formatCurrency(taxSetAside.amount),
+        detail: "Tax set-aside",
+        delta: taxSetAside.basis === "payroll_taxes"
+          ? "Based on payroll taxes"
+          : taxSetAside.basis === "estimated_gross"
+            ? "Estimated from recent gross"
+            : "No payroll basis yet",
+        href: "/app/taxes",
+        icon: Receipt,
+        tone: "amber",
+        empty: taxSetAside.basis === "none",
+        emptyText: "$0",
+      },
+      {
+        id: "creator-contractor-payments",
+        title: "Contractor payments",
+        value: formatCurrency(contractorPayments.amount),
+        detail: "Contractor payments",
+        delta: contractorPayments.count
+          ? `${contractorPayments.count} invoices - due ${formatDashboardDate(contractorPayments.nextDueDate)}`
+          : "No payments due",
+        href: "/app/contractors",
+        icon: Handshake,
+        tone: "emerald",
+        empty: contractorPayments.count === 0,
+        emptyText: "$0",
+      },
+    ];
+  }
+
+  if (accountType === "agency") {
+    const margin = summary.agency.clientMargin;
+    const contractorPayments = summary.agency.contractorPaymentsDue;
+    const mixedPayroll = summary.agency.nextMixedPayroll;
+
+    return [
+      {
+        id: "agency-margin",
+        title: "Blended margin",
+        value: formatPercent(margin.marginPercent),
+        detail: "Client margin",
+        delta: margin.marginPercent == null
+          ? `${margin.activeClients} active clients`
+          : `${formatCurrency(margin.revenue)} revenue - ${formatCurrency(margin.cost)} cost`,
+        href: "/agency/profitability",
+        icon: TrendingUp,
+        tone: "blue",
+        empty: margin.marginPercent == null,
+        emptyText: "No margin yet",
+      },
+      {
+        id: "agency-contractor-payments",
+        title: "Contractor payments",
+        value: formatCurrency(contractorPayments.amount),
+        detail: "Contractor payments",
+        delta: contractorPayments.count
+          ? `${contractorPayments.count} invoices - due ${formatDashboardDate(contractorPayments.nextDueDate)}`
+          : "No payments due",
+        href: "/app/contractors",
+        icon: Handshake,
+        tone: "emerald",
+        empty: contractorPayments.count === 0,
+        emptyText: "$0",
+      },
+      {
+        id: "agency-next-mixed-payroll",
+        title: "Next mixed payroll run",
+        value: formatDashboardDate(mixedPayroll.date),
+        detail: "Next mixed run",
+        delta: `${mixedPayroll.employeeCount} staff - ${mixedPayroll.contractorCount} contractors`,
+        href: "/payroll/run",
+        icon: CalendarDays,
+        tone: "amber",
+        empty: !mixedPayroll.date && mixedPayroll.contractorCount === 0,
+        emptyText: "Not scheduled",
+      },
+    ];
+  }
+
+  const company = summary.company;
+  return [
+    {
+      id: "company-headcount",
+      title: "Headcount",
+      value: String(company.headcount.active),
+      detail: "Headcount",
+      delta: `${company.headcount.onboarding} onboarding`,
+      href: "/employees",
+      icon: Users,
+      tone: "blue",
+      empty: company.headcount.active === 0,
+      emptyText: "No employees yet",
+    },
+    {
+      id: "company-next-run",
+      title: "Next payroll run",
+      value: formatDashboardDate(company.nextPayroll.date),
+      detail: "Next payroll run",
+      delta: company.nextPayroll.date
+        ? `${company.nextPayroll.employeeCount} employees - ${formatCurrency(company.nextPayroll.estimatedGross)}`
+        : "Set a payroll schedule",
+      href: "/payroll/run",
+      icon: CalendarDays,
+      tone: "emerald",
+      empty: !company.nextPayroll.date,
+      emptyText: "Not scheduled",
+    },
+    {
+      id: "company-pending-hr-tasks",
+      title: "Pending HR tasks",
+      value: String(company.pendingHrTasks.total),
+      detail: "Pending HR/onboarding tasks",
+      delta: `${company.pendingHrTasks.onboardingCases + company.pendingHrTasks.onboardingEmployees} onboarding - ${company.pendingHrTasks.ptoRequests + company.pendingHrTasks.timesheets} approvals`,
+      href: "/onboarding",
+      icon: CheckCircle2,
+      tone: "amber",
+      empty: company.pendingHrTasks.total === 0,
+      emptyText: "Clear",
+    },
+  ];
+}
+
+function DefaultDashboardWidgets({
+  accountType,
+  summary,
+  readOnly = false,
+}: {
+  accountType: string;
+  summary: DashboardSummary;
+  readOnly?: boolean;
+}) {
+  const widgets = getDefaultDashboardWidgets(accountType, summary);
+
+  return (
+    <section className="grid gap-4 md:grid-cols-3">
+      {widgets.map((widget) => (
+        <DefaultWidgetCard key={widget.id} widget={widget} readOnly={readOnly} />
+      ))}
+    </section>
+  );
+}
+
+function getVariantQuickActions(accountType: string, summary: DashboardSummary) {
+  if (accountType === "creator") return summary.creator.quickActions;
+  if (accountType === "agency") return summary.agency.quickActions;
+  return summary.company.quickActions;
+}
+
+function VariantQuickActions({
+  accountType,
+  summary,
+  readOnly = false,
+}: {
+  accountType: string;
+  summary: DashboardSummary;
+  readOnly?: boolean;
+}) {
+  const actions = getVariantQuickActions(accountType, summary);
+  const icons: Record<string, React.ElementType> = {
+    "add-client": Building2,
+    "add-contractor": Handshake,
+    "add-employee": UserPlus,
+    "pay-contractors": Handshake,
+    "pay-myself": WalletCards,
+    "run-payroll": Play,
+  };
+
+  return (
+    <section className="flex flex-wrap gap-3">
+      {actions.map((action: DashboardQuickAction) => {
+        const Icon = icons[action.id] ?? ArrowRight;
+        const classes = cx(
+          "inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition",
+          action.tone === "primary"
+            ? readOnly
+              ? "bg-slate-300 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+            : readOnly
+              ? "border border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300",
+        );
+        return readOnly ? (
+          <button
+            key={action.id}
+            type="button"
+            disabled
+            className={cx(classes, "cursor-not-allowed")}
+          >
+            <Icon className="h-4 w-4" />
+            {action.label}
+          </button>
+        ) : (
+          <Link
+            key={action.id}
+            href={action.href}
+            className={cx(
+              classes,
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {action.label}
+          </Link>
+        );
+      })}
+    </section>
   );
 }
 
@@ -316,10 +692,12 @@ function PayrollStatusCard({
   overview,
   payrollRunInProgress,
   onStart,
+  readOnly = false,
 }: {
   overview: DashboardOverview;
   payrollRunInProgress: boolean;
   onStart: () => void;
+  readOnly?: boolean;
 }) {
   const activeRun = overview.activePayrollRun;
   const hasActiveRun = payrollRunInProgress || activeRun.status !== "NONE";
@@ -340,7 +718,8 @@ function PayrollStatusCard({
           <button
             type="button"
             onClick={onStart}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700"
+            disabled={readOnly}
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 dark:disabled:bg-slate-700 dark:disabled:text-slate-300"
           >
             Start Run
           </button>
@@ -383,12 +762,194 @@ function PayrollStatusCard({
               </div>
             </div>
           ) : null}
+          {readOnly ? (
+            <span className="inline-flex h-10 items-center justify-center rounded-lg bg-white/80 px-4 text-sm font-bold text-blue-700">
+              Review & Submit
+            </span>
+          ) : (
+            <Link
+              href="/payroll/run"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-white px-4 text-sm font-bold text-blue-700 transition hover:bg-blue-50"
+            >
+              Review & Submit
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CreatorPaySelfStatusCard({
+  summary,
+  readOnly = false,
+}: {
+  summary: DashboardSummary["creator"];
+  readOnly?: boolean;
+}) {
+  const hasSelfPay = Boolean(summary.nextSelfPay.date) || summary.nextSelfPay.amount > 0;
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-blue-500/20 bg-blue-600 p-5 text-white shadow-sm">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-black uppercase tracking-wide text-white">
+              {summary.nextSelfPay.status ?? "Not scheduled"}
+            </span>
+            <span className="text-sm font-semibold text-blue-100">
+              Next owner deposit {formatDashboardDate(summary.nextSelfPay.date)}
+            </span>
+          </div>
+          <h2 className="mt-3 text-xl font-bold">
+            {hasSelfPay ? "Owner payroll is ready to review" : "Owner payroll is not scheduled"}
+          </h2>
+          <p className="mt-1 text-sm text-blue-100">
+            Estimated net deposit {formatCurrency(summary.nextSelfPay.amount)}.
+          </p>
+        </div>
+        {readOnly ? (
+          <span className="inline-flex h-10 items-center justify-center rounded-lg bg-white/80 px-4 text-sm font-bold text-blue-700">
+            Review Pay Myself
+          </span>
+        ) : (
           <Link
-            href="/payroll/run"
+            href="/app/pay-myself"
             className="inline-flex h-10 items-center justify-center rounded-lg bg-white px-4 text-sm font-bold text-blue-700 transition hover:bg-blue-50"
           >
-            Review & Submit
+            Review Pay Myself
           </Link>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CreatorDashboardPanels({ summary }: { summary: DashboardSummary["creator"] }) {
+  const upcomingSelfPay = summary.nextSelfPay.date
+    ? [summary.nextSelfPay.date]
+    : [];
+
+  return (
+    <section className="grid gap-6 lg:grid-cols-2">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-950 dark:text-white">Pay-self schedule</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Upcoming owner payroll runs</p>
+          </div>
+          <WalletCards className="h-5 w-5 text-blue-600" />
+        </div>
+        <div className="mt-5 space-y-3">
+          {upcomingSelfPay.length ? (
+            upcomingSelfPay.map((date) => (
+              <div key={date} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
+                <span className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+                  <CalendarDays className="h-4 w-4 text-slate-400" />
+                  {formatDashboardDate(date)}
+                </span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  {summary.nextSelfPay.status ?? "Scheduled"}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg bg-slate-50 px-3 py-4 text-sm font-semibold text-slate-500 dark:bg-slate-950/60 dark:text-slate-400">
+              No owner payroll run scheduled.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-950 dark:text-white">Tax set-aside</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Quarterly estimate coverage</p>
+          </div>
+          <Receipt className="h-5 w-5 text-amber-600" />
+        </div>
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div
+            className="h-full rounded-full bg-amber-500"
+            style={{ width: `${summary.taxSetAside.amount > 0 ? 72 : 0}%` }}
+          />
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+            {summary.taxSetAside.basis === "none" ? "No estimate" : "Current set-aside"}
+          </span>
+          <span className="text-sm font-black text-slate-950 dark:text-white">
+            {formatCurrency(summary.taxSetAside.amount)}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AgencyDashboardPanels({ summary }: { summary: DashboardSummary["agency"] }) {
+  return (
+    <section className="grid gap-6 lg:grid-cols-2">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-950 dark:text-white">Client margin</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {summary.clientMargin.activeClients} clients - {summary.clientMargin.activeProjects} projects
+            </p>
+          </div>
+          <TrendingUp className="h-5 w-5 text-blue-600" />
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg bg-slate-50 px-3 py-3 dark:bg-slate-950/60">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Revenue</p>
+            <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">
+              {formatCurrency(summary.clientMargin.revenue)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-slate-50 px-3 py-3 dark:bg-slate-950/60">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Cost</p>
+            <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">
+              {formatCurrency(summary.clientMargin.cost)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-slate-50 px-3 py-3 dark:bg-slate-950/60">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Margin</p>
+            <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">
+              {formatPercent(summary.clientMargin.marginPercent)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-950 dark:text-white">Mixed payroll queue</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Staff payroll and contractor payments
+            </p>
+          </div>
+          <Handshake className="h-5 w-5 text-emerald-600" />
+        </div>
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              Next run
+            </span>
+            <span className="text-sm font-black text-slate-950 dark:text-white">
+              {formatDashboardDate(summary.nextMixedPayroll.date)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              Contractor payments
+            </span>
+            <span className="text-sm font-black text-slate-950 dark:text-white">
+              {formatCurrency(summary.contractorPaymentsDue.amount)}
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -586,26 +1147,129 @@ function HeadcountBreakdownChart({
   );
 }
 
-function QuickModulesGrid({ overview }: { overview: DashboardOverview }) {
+type QuickModule = DashboardOverview["quickModules"][number];
+
+const QUICK_MODULE_CAPABILITIES: Record<string, CapabilityKey> = {
+  benefits: "benefits",
+  clients: "clients",
+  compliance: "compliance",
+  contractors: "contractors",
+  documents: "documents",
+  expenses: "expenses",
+  hiring: "hiring",
+  onboarding: "onboarding",
+  ownerPayroll: "ownerPayroll",
+  ownerTaxes: "ownerTaxes",
+  time: "time",
+};
+
+function getQuickModulesForAccountType(accountType: string, overview: DashboardOverview): QuickModule[] {
+  const capabilities = getCapabilities(accountType);
+  const allowedOverviewModules = overview.quickModules.filter((module) => {
+    const capability = QUICK_MODULE_CAPABILITIES[module.id];
+    return !capability || capabilities[capability];
+  });
+
+  if (accountType === "creator") {
+    return [
+      {
+        id: "ownerPayroll",
+        title: "Pay Myself",
+        primary: "Owner payroll ready",
+        secondary: "Salary, schedule, AutoPilot, and run-now controls",
+        href: "/app/pay-myself",
+        actionLabel: "Open",
+        tone: "blue",
+      },
+      {
+        id: "ownerTaxes",
+        title: "Taxes",
+        primary: "Q2 set-aside is tracking",
+        secondary: "Quarterly estimates and filing forms",
+        href: "/app/taxes",
+        actionLabel: "Review",
+        tone: "amber",
+      },
+      {
+        id: "contractors",
+        title: "Contractors",
+        primary: "3 collaborators active",
+        secondary: "Editors, VAs, designers, and 1099 payments",
+        href: "/app/contractors",
+        actionLabel: "Manage",
+        tone: "emerald",
+      },
+      {
+        id: "documents",
+        title: "Documents",
+        primary: "4 creator records",
+        secondary: "Owner W-2, 1099, W-9, and tax worksheets",
+        href: "/app/documents",
+        actionLabel: "Open",
+        tone: "violet",
+      },
+      ...allowedOverviewModules.filter((module) => module.id === "expenses"),
+    ];
+  }
+
+  if (accountType === "agency") {
+    return [
+      {
+        id: "clients",
+        title: "Clients",
+        primary: "Client billing ready",
+        secondary: "Projects, bill rates, and margin controls",
+        href: "/app/clients",
+        actionLabel: "Open",
+        tone: "blue",
+      },
+      {
+        id: "contractors",
+        title: "Contractors",
+        primary: "Mixed workforce payments",
+        secondary: "W-2 staff and contractor payroll queues",
+        href: "/app/contractors",
+        actionLabel: "Manage",
+        tone: "emerald",
+      },
+      ...allowedOverviewModules,
+    ];
+  }
+
+  return allowedOverviewModules;
+}
+
+function QuickModulesGrid({
+  overview,
+  accountType,
+  readOnly = false,
+}: {
+  overview: DashboardOverview;
+  accountType: string;
+  readOnly?: boolean;
+}) {
+  const modules = getQuickModulesForAccountType(accountType, overview);
+
+  if (!modules.length) return null;
+
   return (
     <section>
       <h2 className="mb-3 text-base font-bold text-slate-950 dark:text-white">
         Quick Modules
       </h2>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {overview.quickModules.map((module) => {
+        {modules.map((module) => {
           const Icon = MODULE_ICONS[module.id] || CheckCircle2;
-          return (
-            <Link
-              key={module.id}
-              href={module.href}
-              className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-400/60"
-            >
+          const content = (
+            <>
               <div className="flex items-start justify-between gap-3">
                 <span className={cx("flex h-10 w-10 items-center justify-center rounded-lg", MODULE_TONES[module.tone])}>
                   <Icon className="h-5 w-5" />
                 </span>
-                <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-600" />
+                <ArrowRight className={cx(
+                  "h-4 w-4 text-slate-300 transition",
+                  !readOnly && "group-hover:translate-x-0.5 group-hover:text-blue-600",
+                )} />
               </div>
               <h3 className="mt-4 text-sm font-bold text-slate-950 dark:text-white">
                 {module.title}
@@ -619,6 +1283,23 @@ function QuickModulesGrid({ overview }: { overview: DashboardOverview }) {
               <span className="mt-4 inline-flex text-sm font-bold text-blue-700 dark:text-blue-300">
                 {module.actionLabel}
               </span>
+            </>
+          );
+
+          return readOnly ? (
+            <div
+              key={module.id}
+              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              {content}
+            </div>
+          ) : (
+            <Link
+              key={module.id}
+              href={module.href}
+              className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-400/60"
+            >
+              {content}
             </Link>
           );
         })}
@@ -755,7 +1436,9 @@ export default function DashboardPage() {
     currentCompany,
     currentUser,
     accountType,
+    dashboardPreviewAccountType,
     payrollRunInProgress,
+    clearDashboardPreviewAccountType,
     setPayrollRunning,
   } = usePlatformStore();
   const { setPayrollStatus } = useDashboardRealtimeStore();
@@ -766,6 +1449,7 @@ export default function DashboardPage() {
 
   const userRole = user?.role?.toLowerCase() || currentUser.role;
   const firstName = firstNameFromName(currentUser.name);
+  const normalizedAccountType = normalizeAccountType(currentCompany.accountType ?? accountType);
 
   useEffect(() => {
     if (userRole === "accountant") router.push("/accountant-portal");
@@ -783,6 +1467,13 @@ export default function DashboardPage() {
       fetchJson<DashboardOverview>(
         `/api/dashboard/overview?companyId=${encodeURIComponent(currentCompany.id)}&range=${encodeURIComponent(dateRange)}`,
       ),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const summaryQuery = useQuery({
+    queryKey: ["dashboard", "summary", currentCompany.id, normalizedAccountType],
+    queryFn: () => fetchJson<DashboardSummary>("/api/dashboard/summary"),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
   });
@@ -849,24 +1540,39 @@ export default function DashboardPage() {
   }, [currentCompany.id, emit, off, on, socket]);
 
   const overview = overviewQuery.data;
+  const summary = summaryQuery.data;
   const payrollTrend = payrollTrendQuery.data ?? [];
   const headcountBreakdown = headcountBreakdownQuery.data ?? [];
   const isLoading =
+    (summaryQuery.isLoading && !summaryQuery.data) ||
     (overviewQuery.isLoading && !overviewQuery.data) ||
     (payrollTrendQuery.isLoading && !payrollTrendQuery.data) ||
     (headcountBreakdownQuery.isLoading && !headcountBreakdownQuery.data);
   const hasError =
+    summaryQuery.isError ||
     overviewQuery.isError ||
     payrollTrendQuery.isError ||
     headcountBreakdownQuery.isError;
   const queryError =
+    summaryQuery.error ||
     overviewQuery.error ||
     payrollTrendQuery.error ||
     headcountBreakdownQuery.error;
-
-  const kpis = useMemo(() => overview?.kpis ?? [], [overview?.kpis]);
+  const previewAccountType = dashboardPreviewAccountType
+    ? normalizeAccountType(dashboardPreviewAccountType)
+    : null;
+  const isPreviewingDashboard = Boolean(previewAccountType && previewAccountType !== normalizedAccountType);
+  const dashboardAccountType = normalizeAccountType(
+    isPreviewingDashboard ? previewAccountType : summary?.accountType ?? normalizedAccountType,
+  );
 
   const startPayrollRun = () => {
+    if (isPreviewingDashboard) return;
+    if (dashboardAccountType === "creator") {
+      router.push("/app/pay-myself");
+      return;
+    }
+
     setPayrollRunning(true);
     setPayrollStatus({ isRunning: true, employeeCount: overview?.activePayrollRun.employeeCount ?? 0 });
     router.push("/payroll/run");
@@ -876,13 +1582,14 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  if (!overview || hasError) {
+  if (!overview || !summary || hasError) {
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-8rem)] w-full max-w-3xl items-center justify-center px-4">
         <ErrorState
           title="Something went wrong"
           description={queryError instanceof Error ? queryError.message : "Dashboard data could not load."}
           retry={() => {
+            void summaryQuery.refetch();
             void overviewQuery.refetch();
             void payrollTrendQuery.refetch();
             void headcountBreakdownQuery.refetch();
@@ -897,40 +1604,58 @@ export default function DashboardPage() {
       id="tour-dashboard"
       className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-6"
     >
+      {isPreviewingDashboard && previewAccountType ? (
+        <PreviewBanner
+          previewAccountType={previewAccountType}
+          onExit={clearDashboardPreviewAccountType}
+        />
+      ) : null}
+
       <PageHeader
         firstName={firstName}
+        accountType={dashboardAccountType}
         dateRange={dateRange}
         setDateRange={setDateRange}
         onRunPayroll={startPayrollRun}
+        readOnly={isPreviewingDashboard}
       />
 
       <OnboardingChecklistWidget
         companyId={currentCompany.id}
-        accountType={currentCompany.accountType ?? accountType}
+        accountType={dashboardAccountType}
         entityType={currentCompany.entityType}
         creatorEntityType={currentCompany.creatorEntityType}
+        readOnly={isPreviewingDashboard}
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.id} kpi={kpi} />
-        ))}
-      </section>
+      <DefaultDashboardWidgets accountType={dashboardAccountType} summary={summary} readOnly={isPreviewingDashboard} />
+      <VariantQuickActions accountType={dashboardAccountType} summary={summary} readOnly={isPreviewingDashboard} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">
-          <PayrollStatusCard
-            overview={overview}
-            payrollRunInProgress={payrollRunInProgress}
-            onStart={startPayrollRun}
-          />
+          {dashboardAccountType === "creator" ? (
+            <CreatorPaySelfStatusCard summary={summary.creator} readOnly={isPreviewingDashboard} />
+          ) : (
+            <PayrollStatusCard
+              overview={overview}
+              payrollRunInProgress={payrollRunInProgress}
+              onStart={startPayrollRun}
+              readOnly={isPreviewingDashboard}
+            />
+          )}
 
-          <section className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-            <PayrollTrendChart data={payrollTrend} mounted={chartsMounted} />
-            <HeadcountBreakdownChart data={headcountBreakdown} mounted={chartsMounted} />
-          </section>
+          {dashboardAccountType === "creator" ? (
+            <CreatorDashboardPanels summary={summary.creator} />
+          ) : dashboardAccountType === "agency" ? (
+            <AgencyDashboardPanels summary={summary.agency} />
+          ) : (
+            <section className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+              <PayrollTrendChart data={payrollTrend} mounted={chartsMounted} />
+              <HeadcountBreakdownChart data={headcountBreakdown} mounted={chartsMounted} />
+            </section>
+          )}
 
-          <QuickModulesGrid overview={overview} />
+          <QuickModulesGrid overview={overview} accountType={dashboardAccountType} readOnly={isPreviewingDashboard} />
           <AlertsPanel overview={overview} />
         </div>
 

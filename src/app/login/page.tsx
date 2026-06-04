@@ -100,10 +100,10 @@ const providerLabels: Record<SsoProvider, string> = {
 };
 
 function getNextPath() {
-  if (typeof window === "undefined") return "/dashboard";
+  if (typeof window === "undefined") return "/app/dashboard";
   const params = new URLSearchParams(window.location.search);
-  const nextPath = params.get("next") || "/dashboard";
-  return nextPath.startsWith("/") ? nextPath : "/dashboard";
+  const nextPath = params.get("next") || "/app/dashboard";
+  return nextPath.startsWith("/") ? nextPath : "/app/dashboard";
 }
 
 function hasExplicitNext() {

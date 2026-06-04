@@ -3,8 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
 import { users, employees } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { createSessionToken, resolveSessionUserByUserId, SESSION_COOKIE } from "@/lib/session";
 import { warmDashboardCacheOnLogin } from "@/lib/cache-warm";
+import { resolveDashboard } from "@/lib/dashboard-resolver";
 
 const FAILED_LOGIN_LIMIT = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
@@ -131,23 +132,29 @@ export async function POST(req: NextRequest) {
     }
 
     failedLoginStore.delete(normalizedEmail);
+    const sessionUser = (await resolveSessionUserByUserId(appUser.id)) ?? {
+      userId: appUser.id,
+      email: appUser.email,
+      role: appUser.role ?? "employee",
+      accountType: "company",
+    };
 
     const sessionToken = await createSessionToken(
-      {
-        userId: appUser.id,
-        email: appUser.email,
-        role: appUser.role ?? "employee",
-      },
+      sessionUser,
       Boolean(rememberMe)
     );
 
-    let redirectTo = "/dashboard";
-    if (appUser.role === "accountant") {
-      redirectTo = "/accountant-portal";
-    } else if (appUser.role === "contractor") {
-      redirectTo = "/contractor-portal";
-    }
-    const response = NextResponse.json({ success: true, redirectTo });
+    const redirectTo = resolveDashboard(sessionUser.accountType);
+    const response = NextResponse.json({
+      success: true,
+      redirectTo,
+      user: {
+        userId: sessionUser.userId,
+        email: sessionUser.email,
+        role: sessionUser.role,
+        accountType: sessionUser.accountType,
+      },
+    });
 
     pendingCookies.forEach(({ name, value, options }) =>
       response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])

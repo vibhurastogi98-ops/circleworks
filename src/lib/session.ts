@@ -3,7 +3,8 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { db } from "@/db";
-import { users, employees } from "@/db/schema";
+import { users, employees, companies } from "@/db/schema";
+import { normalizeOptionalAccountType, type AccountType } from "@/lib/account-types";
 import { eq, or } from "drizzle-orm";
 
 const SECRET = new TextEncoder().encode(
@@ -17,10 +18,87 @@ export interface SessionUser {
   userId: number;
   email: string;
   role: string;
+  accountType: AccountType | null;
 }
 
-export async function createSessionToken(user: SessionUser, rememberMe = false): Promise<string> {
-  return new SignJWT({ userId: user.userId, email: user.email, role: user.role })
+type SessionUserInput = Omit<SessionUser, "accountType"> & {
+  accountType?: string | null;
+};
+
+function toSessionUser(user: SessionUserInput): SessionUser {
+  return {
+    userId: user.userId,
+    email: user.email,
+    role: user.role || "employee",
+    accountType: normalizeOptionalAccountType(user.accountType),
+  };
+}
+
+export async function resolveSessionUserByUserId(userId: number): Promise<SessionUser | null> {
+  const [row] = await db
+    .select({
+      userId: users.id,
+      email: users.email,
+      role: users.role,
+      accountType: companies.accountType,
+    })
+    .from(users)
+    .leftJoin(employees, eq(employees.userId, users.id))
+    .leftJoin(companies, eq(employees.companyId, companies.id))
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return row
+    ? toSessionUser({
+        userId: row.userId,
+        email: row.email,
+        role: row.role ?? "employee",
+        accountType: row.accountType,
+      })
+    : null;
+}
+
+async function resolveSessionUserFromSupabaseIdentity(identity: {
+  clerkUserId?: string | null;
+  email: string;
+}): Promise<SessionUser | null> {
+  const normalizedEmail = identity.email.toLowerCase().trim();
+  const [row] = await db
+    .select({
+      userId: users.id,
+      email: users.email,
+      role: users.role,
+      accountType: companies.accountType,
+    })
+    .from(users)
+    .leftJoin(employees, eq(employees.userId, users.id))
+    .leftJoin(companies, eq(employees.companyId, companies.id))
+    .where(
+      or(
+        eq(users.clerkUserId, identity.clerkUserId ?? ""),
+        eq(users.email, normalizedEmail)
+      )
+    )
+    .limit(1);
+
+  return row
+    ? toSessionUser({
+        userId: row.userId,
+        email: row.email,
+        role: row.role ?? "employee",
+        accountType: row.accountType,
+      })
+    : null;
+}
+
+export async function createSessionToken(user: SessionUserInput, rememberMe = false): Promise<string> {
+  const sessionUser = toSessionUser(user);
+  return new SignJWT({
+    userId: sessionUser.userId,
+    email: sessionUser.email,
+    role: sessionUser.role,
+    accountType: sessionUser.accountType,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(rememberMe ? "30d" : "24h")
@@ -42,6 +120,10 @@ export async function verifySessionToken(token: string): Promise<SessionUser | n
       userId,
       email: payload.email as string,
       role: payload.role as string,
+      accountType:
+        normalizeOptionalAccountType(payload.accountType) ??
+        (await resolveSessionUserByUserId(userId))?.accountType ??
+        null,
     };
   } catch {
     return null;
@@ -76,24 +158,10 @@ async function resolveSessionFromSupabase(req?: NextRequest): Promise<SessionUse
 
   if (error || !user?.email) return null;
 
-  const normalizedEmail = user.email.toLowerCase().trim();
-  const [appUser] = await db
-    .select({ id: users.id, email: users.email, role: users.role })
-    .from(users)
-    .where(
-      or(
-        eq(users.clerkUserId, user.id),
-        eq(users.email, normalizedEmail)
-      )
-    );
-
-  if (!appUser) return null;
-
-  return {
-    userId: appUser.id,
-    email: appUser.email,
-    role: appUser.role ?? "employee",
-  };
+  return resolveSessionUserFromSupabaseIdentity({
+    clerkUserId: user.id,
+    email: user.email,
+  });
 }
 
 export interface UserContext {
@@ -126,4 +194,9 @@ export async function getSession(req?: NextRequest): Promise<SessionUser | null>
 
   // Fallback for flows where only Supabase cookies are present.
   return resolveSessionFromSupabase(req);
+}
+
+export async function getAccountType(req?: NextRequest): Promise<AccountType | null> {
+  const session = await getSession(req);
+  return session?.accountType ?? null;
 }

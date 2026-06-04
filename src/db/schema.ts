@@ -34,7 +34,7 @@ export const users = pgTable('users', {
 export const companies = pgTable('companies', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  accountType: accountTypeEnum('account_type'),
+  accountType: accountTypeEnum('account_type').notNull().default('company'),
   entityType: entityTypeEnum('entity_type'),
   creatorEntityType: text('creator_entity_type'),
   paySelfAsOwner: boolean('pay_self_as_owner').default(false),
@@ -850,6 +850,18 @@ export const searchAnalytics = pgTable('search_analytics', {
   selectedResultTitle: text('selected_result_title'),
   timeToSelectionMs: integer('time_to_selection_ms'),
   source: text('source').default('command_palette'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const workspaceAuditLogs = pgTable('workspace_audit_logs', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
+  actorUserId: integer('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  action: text('action').notNull(),
+  resource: text('resource').notNull(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

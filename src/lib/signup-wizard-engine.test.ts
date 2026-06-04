@@ -80,7 +80,11 @@ describe("account type foundation", () => {
   it("returns the account capability matrix", () => {
     expect(getCapabilities("agency").clients).toBe(true);
     expect(getCapabilities("company").clients).toBe(false);
+    expect(getCapabilities("company").settings).toBe(true);
     expect(getCapabilities("creator").employees).toBe(false);
+    expect(getCapabilities("creator").payroll).toBe(false);
     expect(getCapabilities("creator").ownerPayroll).toBe(true);
+    expect(getCapabilities("creator").ownerTaxes).toBe(true);
+    expect(getCapabilities("creator").settings).toBe(false);
   });
 });

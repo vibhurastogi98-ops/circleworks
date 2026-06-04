@@ -46,6 +46,7 @@ interface PlatformState {
   currentCompany: PlatformCompany;
   companies: PlatformCompany[];
   accountType: PlatformAccountType;
+  dashboardPreviewAccountType: PlatformAccountType | null;
   isCreatorMode: boolean;
   currentUser: PlatformUser;
   sidebarOpen: boolean;
@@ -66,6 +67,8 @@ interface PlatformState {
   isCirceOpen: boolean;
   setCurrentCompany: (company: PlatformCompany) => void;
   setAccountType: (accountType: string | null | undefined) => void;
+  setDashboardPreviewAccountType: (accountType: string | null | undefined) => void;
+  clearDashboardPreviewAccountType: () => void;
   setCurrentUser: (user: PlatformUser) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -151,12 +154,13 @@ export const usePlatformStore = create<PlatformState>()(
       currentCompany: DEFAULT_COMPANIES[0],
       companies: DEFAULT_COMPANIES,
       accountType: DEFAULT_COMPANIES[0].accountType ?? "company",
+      dashboardPreviewAccountType: null,
       isCreatorMode: false,
       currentUser: DEFAULT_USER,
       sidebarOpen: false,
       isSidebarOpen: false,
       sidebarCollapsed: false,
-      activeRoute: "/dashboard",
+      activeRoute: "/app/dashboard",
       notifications: [],
       unreadCount: 0,
       theme: "system",
@@ -187,6 +191,11 @@ export const usePlatformStore = create<PlatformState>()(
             currentCompany: { ...state.currentCompany, accountType },
           };
         }),
+      setDashboardPreviewAccountType: (value) =>
+        set({
+          dashboardPreviewAccountType: value ? normalizeAccountType(value) : null,
+        }),
+      clearDashboardPreviewAccountType: () => set({ dashboardPreviewAccountType: null }),
       setCurrentUser: (user) =>
         set({
           currentUser: user,

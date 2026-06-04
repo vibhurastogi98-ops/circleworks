@@ -44,7 +44,7 @@ export default function KeyboardShortcuts() {
 
     const navigateFromGSequence = (key: string) => {
       const routes: Record<string, string> = {
-        d: "/dashboard",
+        d: "/app/dashboard",
         p: "/payroll",
         e: "/employees",
         h: "/hiring",

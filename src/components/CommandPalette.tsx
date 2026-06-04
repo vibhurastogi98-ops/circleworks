@@ -39,7 +39,9 @@ import {
 import { usePlatformStore } from "@/store/usePlatformStore";
 import type { SearchResponse, SearchResult, SearchSection } from "@/lib/search/types";
 import { SearchEmptyIllustration } from "@/components/StateIllustrations";
-import { isCreatorAccountType } from "@/lib/creator-mode";
+import { getCapabilities } from "@/lib/capabilities";
+import { isCapabilityRouteAllowed } from "@/lib/capability-routes";
+import { isCreatorAccountType, normalizeAccountType } from "@/lib/creator-mode";
 
 const RECENT_SEARCH_KEY = "recent_search_items";
 const LEGACY_RECENT_SEARCH_KEY = "circleworks:command-recents";
@@ -177,6 +179,34 @@ const CREATOR_QUICK_ACTIONS: PaletteItem[] = [
   },
 ];
 
+const AGENCY_QUICK_ACTIONS: PaletteItem[] = [
+  {
+    id: "agency_add_client",
+    commandValue: "agency_add_client",
+    sectionTitle: "QUICK ACTIONS",
+    analyticsType: "quick_action",
+    entityType: "settings",
+    section: "SETTINGS",
+    title: "Add Client",
+    subtitle: "Open client operations",
+    href: "/app/clients",
+    icon: "Building2",
+  },
+  {
+    id: "agency_pay_contractors",
+    commandValue: "agency_pay_contractors",
+    sectionTitle: "QUICK ACTIONS",
+    analyticsType: "quick_action",
+    entityType: "payroll",
+    section: "PAYROLL RUNS",
+    title: "Pay Contractors",
+    subtitle: "Review contractor payments",
+    href: "/app/contractors",
+    icon: "Users",
+  },
+  ...QUICK_ACTIONS,
+];
+
 function iconFor(name: string) {
   const icons: Record<string, ElementType> = {
     BriefcaseBusiness,
@@ -216,6 +246,10 @@ function toPaletteItem(item: SearchResult & { visitedAt?: string }, sectionTitle
     commandValue: `${sectionTitle.toLowerCase().replace(/\s+/g, "_")}_${item.id}`,
     sectionTitle,
   };
+}
+
+function filterAllowedPaletteItems<T extends { href: string }>(accountType: string, items: T[]) {
+  return items.filter((item) => isCapabilityRouteAllowed(accountType, item.href));
 }
 
 function loadRecentItems() {
@@ -361,16 +395,42 @@ export default function CommandPalette() {
 
   const trimmedQuery = query.trim();
   const isSettlingDebounce = trimmedQuery.length >= 2 && debouncedQuery !== trimmedQuery;
-  const creatorMode = isCreatorAccountType(accountType);
-  const quickActions = creatorMode ? CREATOR_QUICK_ACTIONS : QUICK_ACTIONS;
-  const searchTypes = creatorMode ? "payroll,documents,reports" : SEARCH_TYPES;
+  const normalizedAccountType = normalizeAccountType(currentCompany.accountType ?? accountType);
+  const capabilities = useMemo(() => getCapabilities(normalizedAccountType), [normalizedAccountType]);
+  const creatorMode = isCreatorAccountType(normalizedAccountType);
+  const agencyMode = normalizedAccountType === "agency";
+  const quickActions = useMemo(
+    () =>
+      filterAllowedPaletteItems(
+        normalizedAccountType,
+        creatorMode ? CREATOR_QUICK_ACTIONS : agencyMode ? AGENCY_QUICK_ACTIONS : QUICK_ACTIONS,
+      ),
+    [agencyMode, creatorMode, normalizedAccountType],
+  );
+  const searchTypes = useMemo(() => {
+    const types: string[] = [];
+    if (capabilities.employees) types.push("employees");
+    if (capabilities.payroll) types.push("payroll");
+    if (capabilities.documents) types.push("documents");
+    if (capabilities.reports) types.push("reports");
+    if (capabilities.hiring) types.push("jobs");
+    return types.join(",") || SEARCH_TYPES;
+  }, [capabilities]);
+  const allowedRecents = useMemo(
+    () => filterAllowedPaletteItems(normalizedAccountType, recents),
+    [normalizedAccountType, recents],
+  );
+  const allowedSearchResults = useMemo(
+    () => filterAllowedPaletteItems(normalizedAccountType, searchData?.results ?? []),
+    [normalizedAccountType, searchData?.results],
+  );
 
   const sections = useMemo(() => {
     if (!trimmedQuery) {
       return [
         {
           title: "RECENT" as PaletteSectionTitle,
-          items: recents.slice(0, 8).map((item) => toPaletteItem(item, "RECENT")),
+          items: allowedRecents.slice(0, 8).map((item) => toPaletteItem(item, "RECENT")),
         },
         {
           title: "QUICK ACTIONS" as PaletteSectionTitle,
@@ -380,8 +440,8 @@ export default function CommandPalette() {
     }
 
     if (trimmedQuery.length < 2) return [];
-    return groupedResults(searchData?.results ?? []);
-  }, [quickActions, recents, searchData?.results, trimmedQuery]);
+    return groupedResults(allowedSearchResults);
+  }, [allowedRecents, allowedSearchResults, quickActions, trimmedQuery]);
 
   const visibleItems = useMemo(() => sections.flatMap((section) => section.items), [sections]);
   const isLoading = isSettlingDebounce || searchLoading;
@@ -489,6 +549,7 @@ export default function CommandPalette() {
   };
 
   const runItem = (item: PaletteItem) => {
+    if (!isCapabilityRouteAllowed(normalizedAccountType, item.href)) return;
     if (item.id === "quick_run_payroll") setPayrollRunning(true);
     trackSelection(item);
     saveRecentItem(item);
@@ -549,11 +610,15 @@ export default function CommandPalette() {
             placeholder={
               creatorMode
                 ? "Search contractors, tax forms, documents..."
+                : agencyMode
+                  ? "Search clients, contractors, payroll..."
                 : "Search employees, payroll runs, documents..."
             }
             aria-label={
               creatorMode
                 ? "Search contractors, tax forms, documents"
+                : agencyMode
+                  ? "Search clients, contractors, payroll"
                 : "Search employees, payroll runs, documents"
             }
             autoFocus

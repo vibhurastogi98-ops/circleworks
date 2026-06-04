@@ -227,7 +227,7 @@ export default function EmployeeTopBar() {
                       e.preventDefault();
                       e.stopPropagation();
                       setIsAvatarMenuOpen(false);
-                      router.push("/dashboard");
+                      router.push("/app/dashboard");
                     }} className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md flex items-center gap-2 transition-colors">
                       <Settings size={16} className="text-slate-400" /> Admin Portal
                     </button>

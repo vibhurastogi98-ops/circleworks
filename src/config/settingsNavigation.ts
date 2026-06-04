@@ -1,4 +1,5 @@
 export const SETTINGS_NAV_ITEMS = [
+  { label: "Workspace", href: "/settings/workspace" },
   { label: "Company", href: "/settings/company" },
   { label: "Profile", href: "/settings/profile" },
   { label: "Users", href: "/settings/users" },

@@ -17,7 +17,8 @@ import {
   paySchedules,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { createSessionToken, getSession, resolveSessionUserByUserId, SESSION_COOKIE } from "@/lib/session";
+import { resolveDashboard } from "@/lib/dashboard-resolver";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { generateInviteToken } from "@/lib/tokens";
 import { sendEmail } from "@/lib/email";
@@ -303,14 +304,30 @@ export async function POST(req: NextRequest) {
       .where(eq(users.email, email));
 
     if (existing) {
+      const session = await getSession(req);
+      if (session?.userId === existing.id) {
+        const res = NextResponse.json({
+          success: true,
+          alreadyCompleted: true,
+          redirectTo: resolveDashboard(session.accountType),
+        });
+        res.cookies.set(SIGNUP_DRAFT_COOKIE, "", {
+          path: "/",
+          maxAge: 0,
+        });
+        return res;
+      }
+
       if (googleAuth) {
         // OAuth user already has an account; just mint a session and succeed.
-        const token = await createSessionToken({
+        const sessionUser = (await resolveSessionUserByUserId(existing.id)) ?? {
           userId: existing.id,
           email: existing.email,
           role: existing.role ?? "employee",
-        });
-        const res = NextResponse.json({ success: true });
+          accountType: null,
+        };
+        const token = await createSessionToken(sessionUser);
+        const res = NextResponse.json({ success: true, redirectTo: resolveDashboard(sessionUser.accountType) });
         res.cookies.set(SIGNUP_DRAFT_COOKIE, "", {
           path: "/",
           maxAge: 0,
@@ -742,7 +759,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const response = NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true, redirectTo: resolveDashboard(accountType) });
     response.cookies.set(SIGNUP_DRAFT_COOKIE, "", {
       path: "/",
       maxAge: 0,
@@ -784,6 +801,7 @@ export async function POST(req: NextRequest) {
           userId: appUser.id,
           email: appUser.email,
           role: appUser.role ?? "employee",
+          accountType,
         },
         false
       );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,7 +29,12 @@ import { useDataSync } from "@/hooks/useDataSync";
 import { useDashboardRealtimeStore } from "@/store/useDashboardRealtimeStore";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import { isCreatorAccountType } from "@/lib/creator-mode";
+import { getCapabilities } from "@/lib/capabilities";
+import { isCreatorAccountType, normalizeAccountType } from "@/lib/creator-mode";
+import {
+  getBreadcrumbItemsForPath,
+  getRouteTitleForPath,
+} from "@/lib/app-navigation";
 import Breadcrumb from "@/components/Breadcrumb";
 import CommandPalette from "@/components/CommandPalette";
 import NotificationPanel from "@/components/notifications/NotificationPanel";
@@ -45,45 +50,9 @@ function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function formatRouteLabel(segment: string) {
-  if (!segment) return "Dashboard";
-  const specialLabels: Record<string, string> = {
-    "401k": "401(k)",
-    "cobra": "COBRA",
-    "fsa-hsa": "FSA / HSA",
-    "life-disability": "Life & Supplemental",
-    "oe": "Open Enrollment",
-    "qle": "Life Events",
-    "workers-comp": "Workers' Comp",
-  };
-  if (specialLabels[segment]) return specialLabels[segment];
-  if (/^\d+$/.test(segment)) return `Employee ${segment}`;
-  return segment
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function getRouteTitle(pathParts: string[]) {
-  if (!pathParts.length) return "Dashboard";
-  if (pathParts[0] === "benefits" && pathParts[1] === "enrollment" && pathParts[2]) {
-    return "Enrollment Wizard";
-  }
-  if (pathParts[0] === "benefits") {
-    const benefitTitles: Record<string, string> = {
-      "401k": "401(k) Management",
-      "cobra": "COBRA Administration",
-      "enrollment": "Enrollment",
-      "fsa-hsa": "FSA / HSA Accounts",
-      "life-disability": "Life & Supplemental Benefits",
-      "oe": "Open Enrollment Management",
-      "plans": "Plan Management",
-      "qle": "Qualifying Life Events",
-      "workers-comp": "Workers' Compensation",
-    };
-    return benefitTitles[pathParts[pathParts.length - 1]] || "Benefits";
-  }
-  return formatRouteLabel(pathParts[pathParts.length - 1]);
+function canManageWorkspace(role?: string | null) {
+  const normalizedRole = (role ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return normalizedRole === "owner" || normalizedRole === "super_admin" || normalizedRole === "admin";
 }
 
 function IconButton({
@@ -116,10 +85,11 @@ function IconButton({
 }
 
 export default function AppTopBar() {
-  const pathname = usePathname() || "/dashboard";
+  const pathname = usePathname() || "/app/dashboard";
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const {
+    currentCompany,
     currentUser,
     accountType,
     sidebarCollapsed,
@@ -149,17 +119,14 @@ export default function AppTopBar() {
   const avatarUrl =
     currentUser.avatarUrl ||
     `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(currentUser.email)}&backgroundColor=transparent`;
-  const creatorMode = isCreatorAccountType(accountType);
-  const canRunPayroll = !creatorMode && ["admin", "hr"].includes(currentUser.role);
-  const pathParts = pathname.split("/").filter(Boolean);
-  const title = getRouteTitle(pathParts);
-  const breadcrumbItems = pathParts.map((part, index) => {
-    const href = `/${pathParts.slice(0, index + 1).join("/")}`;
-    return {
-      label: formatRouteLabel(part),
-      href: index < pathParts.length - 1 ? href : undefined,
-    };
-  });
+  const normalizedAccountType = normalizeAccountType(currentCompany.accountType ?? accountType);
+  const capabilities = useMemo(() => getCapabilities(normalizedAccountType), [normalizedAccountType]);
+  const creatorMode = isCreatorAccountType(normalizedAccountType);
+  const agencyMode = normalizedAccountType === "agency";
+  const canRunPayroll = capabilities.payroll && ["admin", "hr"].includes(currentUser.role);
+  const canOpenWorkspaceSettings = canManageWorkspace(user?.role ?? currentUser.role);
+  const title = getRouteTitleForPath(normalizedAccountType, pathname);
+  const breadcrumbItems = getBreadcrumbItemsForPath(normalizedAccountType, pathname);
 
   useEffect(() => {
     void loadNotifications();
@@ -259,6 +226,8 @@ export default function AppTopBar() {
               <span className="min-w-0 flex-1 truncate text-left text-[13px] font-medium">
                 {creatorMode
                   ? "Search contractors, tax forms, documents... (Cmd+K)"
+                  : agencyMode
+                    ? "Search clients, contractors, payroll... (Cmd+K)"
                   : "Search employees, payroll runs, documents... (Cmd+K)"}
               </span>
               <kbd className="hidden h-5 items-center rounded border border-slate-300 bg-white px-1.5 font-mono text-[10px] font-bold text-slate-500 shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 sm:inline-flex">
@@ -398,39 +367,60 @@ export default function AppTopBar() {
                       <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{currentUser.email}</p>
                     </div>
                     <div className="flex flex-col gap-1 p-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAvatarMenuOpen(false);
-                          router.push("/settings/profile");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        <User size={16} className="text-slate-400" />
-                        My Profile
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAvatarMenuOpen(false);
-                          router.push("/settings/company");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        <Settings size={16} className="text-slate-400" />
-                        Company Settings
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAvatarMenuOpen(false);
-                          router.push("/settings/billing");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        <CreditCard size={16} className="text-slate-400" />
-                        Billing
-                      </button>
+                      {capabilities.settings || canOpenWorkspaceSettings ? (
+                        <>
+                          {canOpenWorkspaceSettings ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAvatarMenuOpen(false);
+                                router.push("/settings/workspace");
+                              }}
+                              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                            >
+                              <Settings size={16} className="text-slate-400" />
+                              Workspace
+                            </button>
+                          ) : null}
+                          {capabilities.settings ? (
+                            <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAvatarMenuOpen(false);
+                              router.push("/settings/profile");
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <User size={16} className="text-slate-400" />
+                            My Profile
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAvatarMenuOpen(false);
+                              router.push("/settings/company");
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <Settings size={16} className="text-slate-400" />
+                            Company Settings
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAvatarMenuOpen(false);
+                              router.push("/settings/billing");
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <CreditCard size={16} className="text-slate-400" />
+                            Billing
+                          </button>
+                            </>
+                          ) : null}
+                        </>
+                      ) : null}
                     </div>
                     <div className="border-t border-slate-100 p-2 dark:border-slate-800">
                       <button
@@ -450,7 +440,7 @@ export default function AppTopBar() {
         </header>
 
         <AnimatePresence>
-          {!creatorMode && complianceAlerts.critical > 0 && (
+          {capabilities.compliance && complianceAlerts.critical > 0 && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}

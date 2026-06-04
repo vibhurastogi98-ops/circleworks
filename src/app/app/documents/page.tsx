@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Download,
   FileCheck2,
@@ -6,12 +8,44 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const documents = [
-  { name: "Owner W-2 preview", type: "Payroll", status: "Draft", updated: "May 30, 2026" },
-  { name: "Contractor 1099-NEC packet", type: "Tax", status: "Ready", updated: "May 28, 2026" },
-  { name: "W-9 collection report", type: "Contractors", status: "Ready", updated: "May 24, 2026" },
-  { name: "Quarterly estimated tax worksheet", type: "Tax", status: "Draft", updated: "May 20, 2026" },
-];
+import { normalizeAccountType } from "@/lib/creator-mode";
+import { usePlatformStore } from "@/store/usePlatformStore";
+
+const documentsByType = {
+  company: [
+    { name: "Employee I-9 packet", type: "Compliance", status: "Ready", updated: "May 30, 2026" },
+    { name: "Payroll register export", type: "Payroll", status: "Ready", updated: "May 28, 2026" },
+    { name: "Benefits enrollment summary", type: "Benefits", status: "Draft", updated: "May 24, 2026" },
+    { name: "Handbook acknowledgements", type: "HR", status: "Draft", updated: "May 20, 2026" },
+  ],
+  agency: [
+    { name: "Client SOW packet", type: "Clients", status: "Ready", updated: "May 30, 2026" },
+    { name: "Contractor W-9 collection report", type: "Contractors", status: "Ready", updated: "May 28, 2026" },
+    { name: "Bill-rate approval log", type: "Client billing", status: "Draft", updated: "May 24, 2026" },
+    { name: "1099-NEC filing queue", type: "Tax", status: "Draft", updated: "May 20, 2026" },
+  ],
+  creator: [
+    { name: "Owner W-2 preview", type: "Payroll", status: "Draft", updated: "May 30, 2026" },
+    { name: "Contractor 1099-NEC packet", type: "Tax", status: "Ready", updated: "May 28, 2026" },
+    { name: "W-9 collection report", type: "Contractors", status: "Ready", updated: "May 24, 2026" },
+    { name: "Quarterly estimated tax worksheet", type: "Tax", status: "Draft", updated: "May 20, 2026" },
+  ],
+};
+
+const copyByType = {
+  company: {
+    eyebrow: "Company documents",
+    description: "Employee, payroll, benefits, and compliance documents for the workspace.",
+  },
+  agency: {
+    eyebrow: "Agency records",
+    description: "Client, contractor, billing, and workforce documents for the agency workspace.",
+  },
+  creator: {
+    eyebrow: "Creator records",
+    description: "Payroll, contractor, and tax documents for the creator workspace.",
+  },
+};
 
 function statusClasses(status: string) {
   if (status === "Ready") return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300";
@@ -19,15 +53,26 @@ function statusClasses(status: string) {
 }
 
 export default function CreatorDocumentsPage() {
+  const { accountType, currentCompany } = usePlatformStore();
+  const normalizedAccountType = normalizeAccountType(currentCompany.accountType ?? accountType);
+  const documentType =
+    normalizedAccountType === "agency"
+      ? "agency"
+      : normalizedAccountType === "creator"
+        ? "creator"
+        : "company";
+  const documents = documentsByType[documentType];
+  const copy = copyByType[documentType];
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-sm font-bold text-blue-600 dark:text-blue-300">Creator records</p>
+            <p className="text-sm font-bold text-blue-600 dark:text-blue-300">{copy.eyebrow}</p>
             <h1 className="mt-1 text-2xl font-black text-slate-950 dark:text-white">Documents</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Payroll, contractor, and tax documents for the creator workspace.
+              {copy.description}
             </p>
           </div>
           <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">

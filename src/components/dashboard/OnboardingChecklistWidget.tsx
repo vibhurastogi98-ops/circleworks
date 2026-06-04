@@ -29,6 +29,7 @@ type OnboardingChecklistWidgetProps = {
   accountType?: string | null;
   entityType?: string | null;
   creatorEntityType?: string | null;
+  readOnly?: boolean;
 };
 
 function buildChecklistUrl({
@@ -96,6 +97,7 @@ export default function OnboardingChecklistWidget({
   accountType,
   entityType,
   creatorEntityType,
+  readOnly = false,
 }: OnboardingChecklistWidgetProps) {
   const queryClient = useQueryClient();
   const queryKey = [
@@ -131,7 +133,7 @@ export default function OnboardingChecklistWidget({
   const checklist = checklistQuery.data;
   const currentTask = checklist?.tasks.find((task) => task.id === checklist.currentTaskId);
   const busy = checklistQuery.isLoading || mutation.isPending;
-  const canUpdate = Boolean(checklist?.serverTracked);
+  const canUpdate = Boolean(checklist?.serverTracked) && !readOnly;
 
   if (checklistQuery.isError || !checklist || !checklist.shouldShow) {
     return null;
@@ -160,7 +162,7 @@ export default function OnboardingChecklistWidget({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {currentTask ? (
+          {currentTask && !readOnly ? (
             <Link
               href={currentTask.href}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -168,6 +170,11 @@ export default function OnboardingChecklistWidget({
               Resume
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
+          ) : currentTask ? (
+            <span className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-300 px-4 text-sm font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+              Resume
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </span>
           ) : null}
           <button
             type="button"
@@ -240,12 +247,18 @@ export default function OnboardingChecklistWidget({
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden="true" />
                   ) : null}
                 </div>
-                <Link
-                  href={task.href}
-                  className="mt-2 inline-flex text-xs font-black text-blue-700 underline-offset-2 hover:underline dark:text-blue-300"
-                >
-                  Open
-                </Link>
+                {readOnly ? (
+                  <span className="mt-2 inline-flex text-xs font-black text-slate-500 dark:text-slate-400">
+                    Open
+                  </span>
+                ) : (
+                  <Link
+                    href={task.href}
+                    className="mt-2 inline-flex text-xs font-black text-blue-700 underline-offset-2 hover:underline dark:text-blue-300"
+                  >
+                    Open
+                  </Link>
+                )}
               </div>
             </div>
           );
@@ -254,4 +267,3 @@ export default function OnboardingChecklistWidget({
     </section>
   );
 }
-

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/lib/session";
+import { getCapabilityRouteRedirect } from "@/lib/capability-routes";
 import {
   getRequiredApiPermission,
   getRequiredScreenPermission,
@@ -13,15 +14,33 @@ const SESSION_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "circleworks-dev-secret-change-in-production"
 );
 
-async function getJwtSessionRole(request: NextRequest) {
+type ProxySession = {
+  role: string;
+  accountType: string | null;
+};
+
+async function getJwtSession(request: NextRequest): Promise<ProxySession | null> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) return false;
+  if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, SESSION_SECRET);
-    return (payload.role as string | undefined) ?? "employee";
+    return {
+      role: (payload.role as string | undefined) ?? "employee",
+      accountType: typeof payload.accountType === "string" ? payload.accountType : null,
+    };
   } catch {
-    return false;
+    return null;
   }
+}
+
+function getCapabilityRedirectUrl(
+  request: NextRequest,
+  accountType: string | null,
+  pathname: string,
+) {
+  const redirectTo = getCapabilityRouteRedirect(accountType, pathname);
+  if (!redirectTo || redirectTo === pathname) return null;
+  return new URL(redirectTo, request.url);
 }
 
 export default async function proxy(request: NextRequest) {
@@ -57,10 +76,10 @@ export default async function proxy(request: NextRequest) {
   );
 
   if (needsAuth) {
-    const jwtRole = await getJwtSessionRole(request);
-    if (jwtRole) {
+    const jwtSession = await getJwtSession(request);
+    if (jwtSession) {
       const requiredPermission = apiPermission ?? getRequiredScreenPermission(pathname);
-      if (requiredPermission && !hasPermission(jwtRole, requiredPermission)) {
+      if (requiredPermission && !hasPermission(jwtSession.role, requiredPermission)) {
         if (apiPermission) {
           return NextResponse.json(
             { error: "insufficient_permissions", required: requiredPermission },
@@ -68,10 +87,15 @@ export default async function proxy(request: NextRequest) {
           );
         }
 
-        const deniedUrl = new URL("/dashboard", request.url);
+        const deniedUrl = new URL("/app/dashboard", request.url);
         deniedUrl.searchParams.set("error", "insufficient_permissions");
         deniedUrl.searchParams.set("required", requiredPermission);
         return NextResponse.redirect(deniedUrl);
+      }
+
+      if (!apiPermission) {
+        const capabilityRedirectUrl = getCapabilityRedirectUrl(request, jwtSession.accountType, pathname);
+        if (capabilityRedirectUrl) return NextResponse.redirect(capabilityRedirectUrl);
       }
 
       return response;
@@ -84,6 +108,10 @@ export default async function proxy(request: NextRequest) {
 
     if (user) {
       const role = (user.user_metadata?.role as string | undefined) ?? "employee";
+      const accountType =
+        typeof user.user_metadata?.accountType === "string"
+          ? user.user_metadata.accountType
+          : null;
       const requiredPermission = apiPermission ?? getRequiredScreenPermission(pathname);
       if (requiredPermission && !hasPermission(role, requiredPermission)) {
         if (apiPermission) {
@@ -93,10 +121,15 @@ export default async function proxy(request: NextRequest) {
           );
         }
 
-        const deniedUrl = new URL("/dashboard", request.url);
+        const deniedUrl = new URL("/app/dashboard", request.url);
         deniedUrl.searchParams.set("error", "insufficient_permissions");
         deniedUrl.searchParams.set("required", requiredPermission);
         return NextResponse.redirect(deniedUrl);
+      }
+
+      if (!apiPermission) {
+        const capabilityRedirectUrl = getCapabilityRedirectUrl(request, accountType, pathname);
+        if (capabilityRedirectUrl) return NextResponse.redirect(capabilityRedirectUrl);
       }
 
       return response;

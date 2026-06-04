@@ -4,6 +4,7 @@ export type CapabilityKey =
   | "dashboard"
   | "payroll"
   | "ownerPayroll"
+  | "ownerTaxes"
   | "employees"
   | "contractors"
   | "contractorOnboarding"
@@ -29,6 +30,7 @@ export const CAPABILITY_MATRIX = {
     dashboard: true,
     payroll: true,
     ownerPayroll: false,
+    ownerTaxes: false,
     employees: true,
     contractors: true,
     contractorOnboarding: true,
@@ -51,6 +53,7 @@ export const CAPABILITY_MATRIX = {
     dashboard: true,
     payroll: true,
     ownerPayroll: false,
+    ownerTaxes: false,
     employees: true,
     contractors: true,
     contractorOnboarding: true,
@@ -71,11 +74,12 @@ export const CAPABILITY_MATRIX = {
   },
   creator: {
     dashboard: true,
-    payroll: true,
+    payroll: false,
     ownerPayroll: true,
+    ownerTaxes: true,
     employees: false,
     contractors: true,
-    contractorOnboarding: true,
+    contractorOnboarding: false,
     clients: false,
     hiring: false,
     onboarding: false,
@@ -89,7 +93,7 @@ export const CAPABILITY_MATRIX = {
     reports: false,
     documents: true,
     automations: false,
-    settings: true,
+    settings: false,
   },
 } satisfies Record<AccountType, Capabilities>;
 

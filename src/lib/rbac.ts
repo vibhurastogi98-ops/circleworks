@@ -531,6 +531,7 @@ export const screenPermissionRules: Array<{ prefix: string; permission: string }
   { prefix: "/settings/assets", permission: "view_assets" },
   { prefix: "/settings/billing", permission: "manage_billing" },
   { prefix: "/settings/integrations", permission: "manage_integrations" },
+  { prefix: "/settings/workspace", permission: "manage_company" },
   { prefix: "/settings/company", permission: "manage_company" },
   { prefix: "/settings/users", permission: "manage_users" },
   { prefix: "/settings/sso", permission: "manage_sso" },

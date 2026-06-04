@@ -5,34 +5,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  BarChart2,
-  BookOpen,
-  Briefcase,
-  Building2,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  DollarSign,
-  FileText,
-  Handshake,
-  Heart,
-  HelpCircle,
-  LayoutDashboard,
-  LogOut,
-  Receipt,
-  Settings,
-  Shield,
-  Target,
-  UserPlus,
-  Users,
-  X,
-  Zap,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, LogOut, X } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import { isAgencyAccountType, isCreatorAccountType, normalizeAccountType } from "@/lib/creator-mode";
+import { normalizeAccountType } from "@/lib/creator-mode";
+import {
+  getAppNavItems,
+  navItemMatchesPath,
+  routeMatches,
+  type AppNavItem as NavItem,
+} from "@/lib/app-navigation";
 import { getAtsOverview } from "@/data/mockAts";
 import {
   Dialog,
@@ -49,289 +32,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type NavChild = {
-  label: string;
-  href: string;
-};
-
-type NavItem = {
-  label: string;
-  icon: React.ElementType;
-  href?: string;
-  children?: NavChild[];
-  badge?: {
-    text?: string;
-    count?: number;
-    tone?: "default" | "critical" | "draft";
-  };
-  divider?: boolean;
-};
-
-const DASHBOARD_NAV_ITEM: NavItem = { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" };
-
-const CONTRACTORS_NAV_ITEM: NavItem = {
-  label: "Contractors",
-  icon: Handshake,
-  href: "/app/contractors",
-  children: [
-    { label: "Contractor Module", href: "/app/contractors" },
-    { label: "Contractor Hub", href: "/contractors" },
-    { label: "Onboarding", href: "/contractors/onboarding" },
-    { label: "Contracts", href: "/contractors/contracts" },
-    { label: "Payments", href: "/contractors/payments" },
-    { label: "1099s", href: "/contractors/1099s" },
-    { label: "Portal", href: "/contractors/portal" },
-  ],
-};
-
-const AGENCY_CONTRACTORS_NAV_ITEM: NavItem = {
-  ...CONTRACTORS_NAV_ITEM,
-  badge: { text: "1099" },
-  children: [
-    { label: "Contractor Payments", href: "/app/contractors" },
-    { label: "Pay Contractors", href: "/contractors/payments" },
-    { label: "1099 Tracking", href: "/contractors/1099s" },
-    { label: "Onboarding", href: "/contractors/onboarding" },
-    { label: "Contracts", href: "/contractors/contracts" },
-    { label: "Portal", href: "/contractors/portal" },
-  ],
-};
-
-const CLIENTS_NAV_ITEM: NavItem = {
-  label: "Clients",
-  icon: Building2,
-  href: "/app/clients",
-  children: [
-    { label: "Client Billing", href: "/app/clients" },
-    { label: "Billing", href: "/agency/billing" },
-    { label: "Profitability", href: "/agency/profitability" },
-  ],
-};
-
-const NAV_ITEMS: NavItem[] = [
-  DASHBOARD_NAV_ITEM,
-  {
-    label: "Payroll",
-    icon: DollarSign,
-    href: "/payroll",
-    children: [
-      { label: "Payroll Hub", href: "/payroll" },
-      { label: "Run Payroll", href: "/payroll/run" },
-      { label: "Completed Run", href: "/payroll/run/pr-2026-0515" },
-      { label: "Pay Stubs", href: "/payroll/run/pr-2026-0515/paystubs" },
-      { label: "Off-Cycle", href: "/payroll/off-cycle" },
-      { label: "History", href: "/payroll/history" },
-      { label: "Contractors", href: "/payroll/contractors" },
-      { label: "Pay Schedule", href: "/payroll/schedule" },
-      { label: "Tax Setup", href: "/payroll/tax-setup" },
-      { label: "Garnishments", href: "/payroll/garnishments" },
-      { label: "Earned Wage Access", href: "/payroll/ewa" },
-      { label: "Payroll Bridge", href: "/payroll/bridge" },
-      { label: "Payroll Settings", href: "/payroll/settings" },
-      { label: "Payroll Reports", href: "/payroll/reports" },
-      { label: "GL Mapping", href: "/payroll/gl-mapping" },
-      { label: "Multi-State", href: "/payroll/multi-state" },
-      { label: "Supplemental Pay", href: "/payroll/supplemental-payments" },
-      { label: "Tips", href: "/payroll/tips" },
-      { label: "Union Payroll", href: "/payroll/union" },
-      { label: "Quarterly Recon", href: "/payroll/quarterly-reconciliation" },
-      { label: "Year-End", href: "/payroll/year-end" },
-    ],
-  },
-  {
-    label: "Employees",
-    icon: Users,
-    href: "/employees",
-    children: [
-      { label: "Directory", href: "/employees" },
-      { label: "Add Employee", href: "/employees/new" },
-      { label: "Bulk Import", href: "/employees/bulk" },
-      { label: "Org Chart", href: "/employees/org-chart" },
-      { label: "Employee Profile", href: "/employees/1" },
-      { label: "Compensation", href: "/employees/1/compensation" },
-      { label: "Benefits", href: "/employees/1/benefits" },
-      { label: "Time & PTO", href: "/employees/1/time" },
-      { label: "Documents", href: "/employees/1/documents" },
-      { label: "Payroll", href: "/employees/1/payroll" },
-      { label: "Performance", href: "/employees/1/performance" },
-      { label: "Activity", href: "/employees/1/activity" },
-      { label: "Edit Employee", href: "/employees/1/edit" },
-      { label: "Termination Workflow", href: "/employees/1/terminate" },
-    ],
-  },
-  CONTRACTORS_NAV_ITEM,
-  {
-    label: "Hiring",
-    icon: Briefcase,
-    href: "/hiring",
-    children: [
-      { label: "ATS Overview", href: "/hiring" },
-      { label: "Jobs", href: "/hiring/jobs" },
-      { label: "Candidates", href: "/hiring/candidates" },
-      { label: "Interviews", href: "/hiring/interviews" },
-      { label: "Offers", href: "/hiring/offers" },
-      { label: "Job Templates", href: "/hiring/templates" },
-      { label: "New Job", href: "/hiring/jobs/new" },
-      { label: "New Offer", href: "/hiring/offers/new" },
-      { label: "Hiring Settings", href: "/hiring/settings" },
-    ],
-  },
-  {
-    label: "Onboarding",
-    icon: UserPlus,
-    href: "/onboarding",
-    children: [
-      { label: "Onboarding Hub", href: "/onboarding" },
-      { label: "Company Setup", href: "/onboarding/company-setup" },
-      { label: "Documents", href: "/onboarding/documents" },
-      { label: "Templates", href: "/onboarding/templates" },
-      { label: "Offboarding", href: "/onboarding/offboarding" },
-    ],
-  },
-  {
-    label: "Benefits",
-    icon: Heart,
-    href: "/benefits",
-    children: [
-      { label: "Benefits Overview", href: "/benefits" },
-      { label: "Plan Management", href: "/benefits/plans" },
-      { label: "Enrollment Wizard", href: "/benefits/enrollment/1" },
-      { label: "Open Enrollment", href: "/benefits/oe" },
-      { label: "Life Events", href: "/benefits/qle" },
-      { label: "401(k)", href: "/benefits/401k" },
-      { label: "FSA/HSA", href: "/benefits/fsa-hsa" },
-      { label: "Life & Supplemental", href: "/benefits/life-disability" },
-      { label: "COBRA", href: "/benefits/cobra" },
-      { label: "Workers' Comp", href: "/benefits/workers-comp" },
-    ],
-  },
-  {
-    label: "Time",
-    icon: Clock,
-    href: "/time",
-    children: [
-      { label: "Time Hub", href: "/time" },
-      { label: "Timesheets", href: "/time/timesheets" },
-      { label: "Schedule", href: "/time/schedule" },
-      { label: "Open Shifts", href: "/time/schedule/open-shifts" },
-      { label: "PTO", href: "/time/pto" },
-      { label: "PTO Policies", href: "/time/pto/policies" },
-      { label: "Overtime", href: "/time/overtime" },
-      { label: "Time Settings", href: "/time/settings" },
-      { label: "Breaks", href: "/time/breaks" },
-      { label: "Kiosk", href: "/time/kiosk" },
-    ],
-  },
-  {
-    label: "Expenses",
-    icon: Receipt,
-    href: "/expenses",
-    children: [
-      { label: "Expenses Hub", href: "/expenses" },
-      { label: "Reports", href: "/expenses/reports" },
-      { label: "Policies", href: "/expenses/policies" },
-      { label: "Mileage", href: "/expenses/mileage" },
-    ],
-  },
-  {
-    label: "Performance",
-    icon: Target,
-    href: "/performance",
-    children: [
-      { label: "Performance Hub", href: "/performance" },
-      { label: "Reviews", href: "/performance/reviews" },
-      { label: "OKRs", href: "/performance/okrs" },
-      { label: "Feedback", href: "/performance/feedback" },
-    ],
-  },
-  {
-    label: "Learning",
-    icon: BookOpen,
-    href: "/learning",
-    children: [
-      { label: "Learning Hub", href: "/learning" },
-      { label: "Courses", href: "/learning/courses" },
-      { label: "Assignments", href: "/learning/assignments" },
-    ],
-  },
-  {
-    label: "Compliance",
-    icon: Shield,
-    href: "/compliance",
-    children: [
-      { label: "Dashboard", href: "/compliance" },
-      { label: "I-9", href: "/compliance/i9" },
-      { label: "E-Verify", href: "/compliance/everify" },
-      { label: "EEO-1", href: "/compliance/eeo1" },
-      { label: "OSHA Log", href: "/compliance/osha" },
-      { label: "ACA", href: "/compliance/aca" },
-      { label: "Labor Law", href: "/compliance/labor-law" },
-      { label: "Federal Filings", href: "/compliance/federal-filings" },
-      { label: "Tax Filings", href: "/compliance/tax-filings" },
-      { label: "Paid Leave", href: "/compliance/paid-leave" },
-      { label: "Pay Equity", href: "/compliance/pay-equity" },
-      { label: "Handbook", href: "/compliance/handbook" },
-      { label: "Posters", href: "/compliance/posters" },
-      { label: "WOTC", href: "/compliance/wotc" },
-      { label: "Audit Log", href: "/compliance/audit-log" },
-    ],
-  },
-  {
-    label: "Reports",
-    icon: BarChart2,
-    href: "/reports",
-    children: [
-      { label: "Reports Hub", href: "/reports" },
-      { label: "Payroll Summary", href: "/reports/payroll-summary" },
-      { label: "Headcount", href: "/reports/headcount" },
-      { label: "Pay Equity", href: "/reports/pay-equity" },
-      { label: "Expense Summary", href: "/reports/expense-summary" },
-      { label: "Time Analytics", href: "/reports/time-analytics" },
-      { label: "Custom Reports", href: "/reports/custom" },
-      { label: "Saved Custom Report", href: "/reports/custom/department-cost-center" },
-      { label: "Certified Payroll", href: "/reports/certified-payroll" },
-      { label: "Headcount Forecast", href: "/reports/headcount-forecast" },
-      { label: "Project Profitability", href: "/reports/project-profitability" },
-    ],
-  },
-  {
-    label: "Automations",
-    icon: Zap,
-    href: "/app/automations",
-    children: [
-      { label: "Automations Hub", href: "/app/automations" },
-      { label: "Templates", href: "/app/automations/templates" },
-      { label: "New Automation", href: "/app/automations/new" },
-      { label: "Legacy Workflows", href: "/settings/workflows" },
-    ],
-  },
-  { label: "Divider", icon: LayoutDashboard, divider: true },
-  {
-    label: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
-  { label: "Help", icon: HelpCircle, href: "/help" },
-];
-
-const CREATOR_NAV_ITEMS: NavItem[] = [
-  DASHBOARD_NAV_ITEM,
-  { label: "Pay Myself", icon: DollarSign, href: "/app/pay-myself" },
-  { label: "Contractors", icon: Handshake, href: "/app/contractors" },
-  { label: "Taxes", icon: Shield, href: "/app/taxes" },
-  { label: "Expenses", icon: Receipt, href: "/expenses" },
-  { label: "Documents", icon: FileText, href: "/app/documents" },
-];
-
-const COMPANY_NAV_ITEMS = NAV_ITEMS;
-
-const AGENCY_NAV_ITEMS: NavItem[] = [
-  DASHBOARD_NAV_ITEM,
-  CLIENTS_NAV_ITEM,
-  AGENCY_CONTRACTORS_NAV_ITEM,
-  ...NAV_ITEMS.filter((item) => item.label !== "Dashboard" && item.label !== "Contractors"),
-];
-
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -343,17 +43,6 @@ function getInitials(name: string) {
     .slice(0, 2)
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
-}
-
-function routeMatches(href: string, pathname: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function navItemMatchesPath(item: NavItem, pathname: string) {
-  return Boolean(
-    (item.href && routeMatches(item.href, pathname)) ||
-      item.children?.some((child) => routeMatches(child.href, pathname)),
-  );
 }
 
 function getOpenGroupsForPath(pathname: string, items: NavItem[]) {
@@ -393,7 +82,7 @@ function SidebarBadge({
 }
 
 export default function AppSidebar() {
-  const pathname = usePathname() || "/dashboard";
+  const pathname = usePathname() || "/app/dashboard";
   const { signOut } = useAuth();
   const {
     currentCompany,
@@ -411,15 +100,10 @@ export default function AppSidebar() {
   const [mounted, setMounted] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const normalizedAccountType = normalizeAccountType(currentCompany.accountType ?? accountType);
-  const creatorMode = isCreatorAccountType(normalizedAccountType);
-  const agencyMode = isAgencyAccountType(normalizedAccountType);
+  const creatorMode = normalizedAccountType === "creator";
   const baseNavItems = useMemo(
-    () => {
-      if (creatorMode) return CREATOR_NAV_ITEMS;
-      if (agencyMode) return AGENCY_NAV_ITEMS;
-      return COMPANY_NAV_ITEMS;
-    },
-    [agencyMode, creatorMode],
+    () => getAppNavItems(normalizedAccountType),
+    [normalizedAccountType],
   );
 
   useEffect(() => {
@@ -443,6 +127,9 @@ export default function AppSidebar() {
             badge: payrollRunInProgress ? { text: "DRAFT", tone: "draft" } : undefined,
           };
         }
+        if (normalizedAccountType === "agency" && item.label === "Contractors") {
+          return { ...item, badge: item.badge ?? { text: "1099" }, emphasis: "agency" };
+        }
         if (creatorMode && item.label === "Contractors" && currentCompany.contractorCount) {
           return { ...item, badge: { count: currentCompany.contractorCount } };
         }
@@ -461,7 +148,7 @@ export default function AppSidebar() {
         }
         return item;
       }),
-    [baseNavItems, complianceAlerts.critical, creatorMode, currentCompany.contractorCount, payrollRunInProgress],
+    [baseNavItems, complianceAlerts.critical, creatorMode, currentCompany.contractorCount, normalizedAccountType, payrollRunInProgress],
   );
 
   const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;
@@ -602,7 +289,9 @@ export default function AppSidebar() {
                 "group relative flex min-h-11 w-full items-center rounded-r-lg px-3 text-left transition-colors",
                 active
                   ? "bg-blue-50 font-medium text-blue-600 dark:bg-[var(--surface-subtle)] dark:text-blue-300"
-                  : "text-[var(--text-secondary)] hover:bg-slate-50 hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-subtle)]",
+                  : item.emphasis === "agency"
+                    ? "border border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-200 hover:bg-blue-100/70 dark:border-blue-400/20 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/15"
+                    : "text-[var(--text-secondary)] hover:bg-slate-50 hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-subtle)]",
               );
 
               const content = (

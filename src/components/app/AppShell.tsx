@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
 import { usePlatformStore, type PlatformUser } from "@/store/usePlatformStore";
 import {
-  getAccountTypeRouteRedirect,
   isCreatorAccountType,
   normalizeAccountType,
 } from "@/lib/creator-mode";
+import { getCapabilityRouteRedirect } from "@/lib/capability-routes";
 import { isPlatformRoute } from "@/lib/platform-routes";
 import AppSidebar from "@/components/app/AppSidebar";
 import AppTopBar from "@/components/app/AppTopBar";
@@ -29,6 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [companyContextHydrated, setCompanyContextHydrated] = useState(false);
+  const companyHydrationInFlight = useRef(false);
   const { user } = useAuth();
   const {
     accountType,
@@ -43,6 +44,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   } = usePlatformStore();
   const usePlatformShell = isPlatformRoute(pathname);
   const normalizedAccountType = normalizeAccountType(accountType);
+  const capabilityRedirect =
+    mounted && usePlatformShell && companyContextHydrated
+      ? getCapabilityRouteRedirect(normalizedAccountType, pathname)
+      : null;
 
   useEffect(() => {
     setMounted(true);
@@ -55,7 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!mounted || !usePlatformShell || !companyContextHydrated) return;
-    const redirectTo = getAccountTypeRouteRedirect(normalizedAccountType, pathname);
+    const redirectTo = getCapabilityRouteRedirect(normalizedAccountType, pathname);
     if (redirectTo && redirectTo !== pathname) router.replace(redirectTo);
   }, [companyContextHydrated, mounted, normalizedAccountType, pathname, router, usePlatformShell]);
 
@@ -78,10 +83,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       email: user.email,
       role,
     });
-  }, [setCurrentUser, user]);
+    setAccountType(user.accountType);
+  }, [setAccountType, setCurrentUser, user]);
 
   useEffect(() => {
     if (!mounted || !usePlatformShell) return;
+    if (companyContextHydrated || companyHydrationInFlight.current) return;
+    companyHydrationInFlight.current = true;
 
     let cancelled = false;
 
@@ -107,7 +115,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         };
         if (cancelled) return;
 
-        const resolvedAccountType = normalizeAccountType(data.company?.accountType ?? data.user?.accountType ?? accountType);
+        const resolvedAccountType = normalizeAccountType(
+          data.company?.accountType ?? data.user?.accountType ?? user?.accountType ?? accountType,
+        );
         setAccountType(resolvedAccountType);
 
         if (data.company?.id || data.company?.name) {
@@ -132,6 +142,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("[AppShell company hydrate]", error);
       } finally {
+        companyHydrationInFlight.current = false;
         if (!cancelled) setCompanyContextHydrated(true);
       }
     };
@@ -140,11 +151,28 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     return () => {
       cancelled = true;
+      companyHydrationInFlight.current = false;
     };
-  }, [accountType, isCreatorMode, mounted, setAccountType, setCurrentCompany, usePlatformShell]);
+  }, [accountType, companyContextHydrated, mounted, setAccountType, setCurrentCompany, usePlatformShell, user?.accountType]);
 
   if (!usePlatformShell) {
     return <div className="marketing-surface">{children}</div>;
+  }
+
+  if (!mounted || !companyContextHydrated) {
+    return (
+      <div className="platform-shell flex h-[100dvh] items-center justify-center bg-[var(--surface-subtle)] text-[var(--text-secondary)]">
+        <span className="text-sm font-bold">Checking workspace access...</span>
+      </div>
+    );
+  }
+
+  if (capabilityRedirect && capabilityRedirect !== pathname) {
+    return (
+      <div className="platform-shell flex h-[100dvh] items-center justify-center bg-[var(--surface-subtle)] text-[var(--text-secondary)]">
+        <span className="text-sm font-bold">Checking workspace access...</span>
+      </div>
+    );
   }
 
   const renderedSidebarCollapsed = mounted ? sidebarCollapsed : false;

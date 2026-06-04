@@ -498,7 +498,7 @@ export default function Navbar({ forceLight = false }: { forceLight?: boolean })
                               e.preventDefault();
                               e.stopPropagation();
                               setIsProfileMenuOpen(false);
-                              router.push("/dashboard");
+                              router.push("/app/dashboard");
                             }}
                             className="w-full text-left px-3 py-2 text-[13px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md flex items-center gap-2 transition-colors"
                           >

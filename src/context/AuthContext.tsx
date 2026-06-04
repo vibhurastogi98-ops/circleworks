@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
+import { normalizeAccountType, type AccountType } from "@/lib/account-types";
 import { shouldSyncAuthOnRoute } from "@/lib/platform-routes";
 import type { User } from "@supabase/supabase-js";
 
@@ -17,6 +18,7 @@ export interface AuthUser {
   userId: string;
   email: string;
   role: string;
+  accountType: AccountType;
 }
 
 interface AuthContextType {
@@ -43,7 +45,43 @@ function mapSupabaseUser(supabaseUser: User | null): AuthUser | null {
     userId: supabaseUser.id,
     email: supabaseUser.email ?? "",
     role: (supabaseUser.user_metadata?.role as string) ?? "employee",
+    accountType: normalizeAccountType(supabaseUser.user_metadata?.accountType as string | undefined),
   };
+}
+
+type SessionProfileResponse = {
+  userId?: string | number | null;
+  email?: string | null;
+  role?: string | null;
+  accountType?: string | null;
+};
+
+function mapSessionProfile(profile: SessionProfileResponse, fallbackUser: User | null): AuthUser | null {
+  const fallback = mapSupabaseUser(fallbackUser);
+  const userId = profile.userId != null ? String(profile.userId) : fallback?.userId;
+  const email = profile.email ?? fallback?.email;
+
+  if (!userId || !email) return fallback;
+
+  return {
+    userId,
+    email,
+    role: profile.role ?? fallback?.role ?? "employee",
+    accountType: normalizeAccountType(profile.accountType ?? fallback?.accountType),
+  };
+}
+
+async function fetchSessionProfile(fallbackUser: User | null): Promise<AuthUser | null> {
+  try {
+    const response = await fetch("/api/auth/me", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!response.ok) return mapSupabaseUser(fallbackUser);
+    return mapSessionProfile((await response.json()) as SessionProfileResponse, fallbackUser);
+  } catch {
+    return mapSupabaseUser(fallbackUser);
+  }
 }
 
 function clearSupabaseAuthStorage() {
@@ -96,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setUser(mapSupabaseUser(session?.user ?? null));
+      setUser(session?.user ? await fetchSessionProfile(session.user) : null);
       setAccessToken(session?.access_token ?? null);
     } catch (error) {
       if (isInvalidRefreshTokenError(error)) {
@@ -133,8 +171,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Listen after stale-session cleanup so invalid refresh tokens do not
       // surface as noisy development overlay errors on public pages.
       const response = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(mapSupabaseUser(session?.user ?? null));
         setAccessToken(session?.access_token ?? null);
+        if (session?.user) {
+          setUser(mapSupabaseUser(session.user));
+          void refreshUser();
+        } else {
+          setUser(null);
+        }
         setIsLoaded(true);
       });
       subscription = response.data.subscription;

@@ -56,15 +56,18 @@ function ensureCompanyCreatorColumns() {
       WHEN duplicate_object THEN NULL;
     END $$;
     ALTER TABLE companies
-      ADD COLUMN IF NOT EXISTS account_type "public"."account_type",
+      ADD COLUMN IF NOT EXISTS account_type "public"."account_type" DEFAULT 'company' NOT NULL,
       ADD COLUMN IF NOT EXISTS entity_type "public"."entity_type",
       ADD COLUMN IF NOT EXISTS creator_entity_type text,
       ADD COLUMN IF NOT EXISTS pay_self_as_owner boolean DEFAULT false,
       ADD COLUMN IF NOT EXISTS contractor_count integer DEFAULT 0,
       ADD COLUMN IF NOT EXISTS logo_url text;
+    UPDATE companies
+      SET account_type = 'company'::"public"."account_type"
+      WHERE account_type IS NULL;
     ALTER TABLE companies
-      ALTER COLUMN account_type DROP DEFAULT,
-      ALTER COLUMN account_type DROP NOT NULL,
+      ALTER COLUMN account_type SET DEFAULT 'company',
+      ALTER COLUMN account_type SET NOT NULL,
       ALTER COLUMN entity_type DROP DEFAULT,
       ALTER COLUMN entity_type DROP NOT NULL
     `).then(() => undefined).catch((error) => {
@@ -200,7 +203,7 @@ export async function GET() {
         id: session.userId.toString(),
         email: session.email,
         role: session.role || "employee",
-        accountType: currentUserEmployee.companyAccountType || "company",
+        accountType: currentUserEmployee.companyAccountType || session.accountType || "company",
         permissions: {
           assignAssets: hasPermission(session.role, "assign_assets"),
           manageAssets: hasPermission(session.role, "manage_assets"),
@@ -212,7 +215,7 @@ export async function GET() {
       company: {
         id: currentUserEmployee.companyId?.toString() ?? "",
         name: currentUserEmployee.companyName || "Workspace",
-        accountType: currentUserEmployee.companyAccountType || "company",
+        accountType: currentUserEmployee.companyAccountType || session.accountType || "company",
         entityType: currentUserEmployee.entityType || null,
         creatorEntityType: currentUserEmployee.creatorEntityType || null,
         paySelfAsOwner: Boolean(currentUserEmployee.paySelfAsOwner),

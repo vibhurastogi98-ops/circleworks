@@ -3,7 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { createSessionToken, resolveSessionUserByUserId, SESSION_COOKIE } from "@/lib/session";
+import { resolveDashboard } from "@/lib/dashboard-resolver";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -62,17 +63,19 @@ export async function GET(request: NextRequest) {
     .select({ id: users.id, email: users.email, role: users.role })
     .from(users)
     .where(eq(users.email, normalizedEmail));
+  const sessionUser = appUser
+    ? (await resolveSessionUserByUserId(appUser.id)) ?? {
+        userId: appUser.id,
+        email: appUser.email,
+        role: appUser.role ?? "employee",
+        accountType: null,
+      }
+    : null;
 
   // Determine destination before building the response
   let destination: string;
   if (appUser) {
-    let fallbackNext = "/dashboard";
-    if (appUser.role === "accountant") {
-      fallbackNext = "/accountant-portal";
-    } else if (appUser.role === "contractor") {
-      fallbackNext = "/contractor-portal";
-    }
-    destination = `${origin}${next || fallbackNext}`;
+    destination = `${origin}${next || resolveDashboard(sessionUser?.accountType ?? null)}`;
   } else {
     const fullName =
       (user.user_metadata?.full_name as string) ||
@@ -95,13 +98,9 @@ export async function GET(request: NextRequest) {
     response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
   );
 
-  if (appUser) {
+  if (appUser && sessionUser) {
     // Mint a JWT session for existing users
-    const token = await createSessionToken({
-      userId: appUser.id,
-      email: appUser.email,
-      role: appUser.role ?? "employee",
-    });
+    const token = await createSessionToken(sessionUser);
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

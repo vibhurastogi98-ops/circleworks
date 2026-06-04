@@ -28,6 +28,9 @@ import {
   type NotificationRecord,
   useNotificationStore,
 } from "@/store/useNotificationStore";
+import { useCapabilities } from "@/hooks/useCapabilities";
+import { usePlatformStore } from "@/store/usePlatformStore";
+import { isCapabilityRouteAllowed } from "@/lib/capability-routes";
 import EmptyState from "@/components/EmptyState";
 import { NotificationsEmptyIllustration } from "@/components/StateIllustrations";
 
@@ -182,10 +185,19 @@ function NotificationsEmptyState() {
   );
 }
 
-function NotificationItem({ notification, onClose }: { notification: NotificationRecord; onClose: () => void }) {
+function NotificationItem({
+  accountType,
+  notification,
+  onClose,
+}: {
+  accountType: string;
+  notification: NotificationRecord;
+  onClose: () => void;
+}) {
   const meta = categoryMeta[notification.category];
   const Icon = getItemIcon(notification);
   const secondaryAction = getSecondaryAction(notification);
+  const showSecondaryAction = secondaryAction && isCapabilityRouteAllowed(accountType, secondaryAction.link);
   const readClass = notification.isRead
     ? "bg-white hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900"
     : "bg-blue-50 hover:bg-blue-50/80 dark:bg-blue-500/10 dark:hover:bg-blue-500/15";
@@ -223,7 +235,7 @@ function NotificationItem({ notification, onClose }: { notification: Notificatio
               {meta.label}
             </span>
             <div className="flex items-center gap-3">
-              {secondaryAction ? (
+              {showSecondaryAction ? (
                 <Link
                   href={secondaryAction.link}
                   onClick={onClose}
@@ -255,6 +267,8 @@ export default function NotificationPanel({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const accountType = usePlatformStore((state) => state.accountType);
+  const capabilities = useCapabilities(accountType);
   const {
     notifications,
     unreadCount,
@@ -270,9 +284,14 @@ export default function NotificationPanel({
 
   const filtered = useMemo(() => {
     const categories = getTabCategories(activeTab);
-    if (!categories) return notifications;
-    return notifications.filter((notification) => categories.includes(notification.category));
-  }, [activeTab, notifications]);
+    const categoryFiltered = categories
+      ? notifications.filter((notification) => categories.includes(notification.category))
+      : notifications;
+
+    return categoryFiltered.filter((notification) =>
+      isCapabilityRouteAllowed(accountType, notification.link),
+    );
+  }, [accountType, activeTab, notifications]);
 
   const visibleNotifications = filtered.slice(0, 40);
 
@@ -325,14 +344,16 @@ export default function NotificationPanel({
                   >
                     Mark all read
                   </button>
-                  <Link
-                    href="/app/settings/notifications"
-                    onClick={onClose}
-                    aria-label="Notification settings"
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white"
-                  >
-                    <Settings size={16} />
-                  </Link>
+                  {capabilities.settings ? (
+                    <Link
+                      href="/app/settings/notifications"
+                      onClick={onClose}
+                      aria-label="Notification settings"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800 dark:hover:text-white"
+                    >
+                      <Settings size={16} />
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     onClick={onClose}
@@ -366,7 +387,12 @@ export default function NotificationPanel({
             <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
               {visibleNotifications.length ? (
                 visibleNotifications.map((notification) => (
-                  <NotificationItem key={notification.id} notification={notification} onClose={onClose} />
+                  <NotificationItem
+                    key={notification.id}
+                    accountType={accountType}
+                    notification={notification}
+                    onClose={onClose}
+                  />
                 ))
               ) : (
                 <NotificationsEmptyState />

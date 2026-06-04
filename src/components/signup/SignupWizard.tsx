@@ -32,6 +32,7 @@ import type { PlaidLinkOnSuccessMetadata } from "react-plaid-link";
 import { usePlaidLink } from "react-plaid-link";
 import { z } from "zod";
 
+import { resolveDashboard } from "@/lib/dashboard-resolver";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
 
 const DRAFT_KEY = "signup_in_progress";
@@ -4700,10 +4701,16 @@ function SignupWizardInner() {
         return;
       }
 
+      const body = (await response.json().catch(() => ({}))) as { redirectTo?: unknown };
+
       setWizardData(nextData);
       await clearDrafts();
       if (options.redirectToDashboard) {
-        router.replace("/dashboard");
+        router.replace(
+          typeof body.redirectTo === "string"
+            ? body.redirectTo
+            : resolveDashboard(nextData.account.accountType),
+        );
         router.refresh();
         return;
       }
