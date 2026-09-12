@@ -29,6 +29,7 @@ export const users = pgTable('users', {
   role: text('role').default('employee'), // admin, hr, employee
   hasCompletedTour: boolean('has_completed_tour').default(false),
   createdAt: timestamp('created_at').defaultNow(),
+  softDeletedAt: timestamp('soft_deleted_at'),
 });
 
 export const companies = pgTable('companies', {
@@ -41,6 +42,11 @@ export const companies = pgTable('companies', {
   contractorCount: integer('contractor_count').default(0),
   logoUrl: text('logo_url'),
   createdAt: timestamp('created_at').defaultNow(),
+  // Platform admin controls (see docs/platform-admin-spec.md)
+  suspendedAt: timestamp('suspended_at'),
+  suspendedBy: integer('suspended_by'),        // FK to platform_admins.id, not enforced to keep the tables loosely coupled
+  suspendedReasonCode: text('suspended_reason_code'),
+  softDeletedAt: timestamp('soft_deleted_at'),
 });
 
 export const onboardingProgress = pgTable('onboarding_progress', {
@@ -2269,3 +2275,113 @@ export const contactRequests = pgTable('contact_requests', {
 export const webhookRegistrationsRelations = relations(webhookRegistrations, ({ one }) => ({
   company: one(companies, { fields: [webhookRegistrations.companyId], references: [companies.id] }),
 }));
+
+// =============================================================================
+// PLATFORM ADMIN PANEL
+// See docs/platform-admin-spec.md for the full design. The tables below are
+// intentionally isolated from tenant tables — no FKs into tenant `users` /
+// `companies` from auth tables. `impersonationSessions` is the only bridge,
+// and it references tenant tables only to identify the target of an audited
+// admin action.
+//
+// Hardening TODOs (deferred, tracked in the platform-admin-spec §11):
+//  - REVOKE UPDATE/DELETE on platform_audit_logs from the app DB role
+//  - CREATE ROLE platform_readonly with SELECT-only grants on tenant tables
+//  - Grant scope enforcement lives in the app layer for now; these DB-level
+//    guarantees will be added in a follow-up migration signed off by DBA.
+// =============================================================================
+
+export const platformAdminRoleEnum = pgEnum('platform_admin_role', [
+  'super_admin',
+  'ops',
+  'risk_analyst',
+  'billing_ops',
+  'read_only',
+]);
+
+export const platformAdminStatusEnum = pgEnum('platform_admin_status', [
+  'active',
+  'disabled',
+  'locked',
+]);
+
+export const platformAdmins = pgTable('platform_admins', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  role: platformAdminRoleEnum('role').notNull(),
+  mfaSecretEncrypted: text('mfa_secret_encrypted').notNull(),
+  mfaRecoveryCodesHash: jsonb('mfa_recovery_codes_hash').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  status: platformAdminStatusEnum('status').notNull().default('active'),
+  failedAttempts: integer('failed_attempts').notNull().default(0),
+  lockedUntil: timestamp('locked_until'),
+  lastLoginAt: timestamp('last_login_at'),
+  lastLoginIp: text('last_login_ip'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  createdBy: integer('created_by'), // FK to platform_admins.id, NULL only for bootstrap
+  disabledAt: timestamp('disabled_at'),
+  disabledBy: integer('disabled_by'),
+  disabledReason: text('disabled_reason'),
+});
+
+export const platformAdminSessions = pgTable('platform_admin_sessions', {
+  id: serial('id').primaryKey(),
+  adminId: integer('admin_id').notNull().references(() => platformAdmins.id, { onDelete: 'cascade' }),
+  jti: text('jti').notNull().unique(),
+  issuedAt: timestamp('issued_at').notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+  lastMfaAt: timestamp('last_mfa_at').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  revokedAt: timestamp('revoked_at'),
+  revokedReason: text('revoked_reason'),
+});
+
+export const bootstrapTokens = pgTable('bootstrap_tokens', {
+  id: serial('id').primaryKey(),
+  tokenHash: text('token_hash').notNull().unique(),
+  allowedEmail: text('allowed_email').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  createdByNote: text('created_by_note').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  usedAt: timestamp('used_at'),
+  usedFromIp: text('used_from_ip'),
+});
+
+export const platformAuditLogs = pgTable('platform_audit_logs', {
+  id: serial('id').primaryKey(),
+  actorAdminId: integer('actor_admin_id').references(() => platformAdmins.id),
+  actorRole: platformAdminRoleEnum('actor_role'),
+  action: text('action').notNull(),
+  targetType: text('target_type').notNull(),
+  targetId: text('target_id').notNull(),
+  reasonCode: text('reason_code'),
+  reasonNotes: text('reason_notes'),
+  before: jsonb('before').$type<Record<string, unknown> | null>(),
+  after: jsonb('after').$type<Record<string, unknown> | null>(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const impersonationSessions = pgTable('impersonation_sessions', {
+  id: serial('id').primaryKey(),
+  adminId: integer('admin_id').notNull().references(() => platformAdmins.id),
+  adminSessionId: integer('admin_session_id').notNull().references(() => platformAdminSessions.id),
+  targetUserId: integer('target_user_id').notNull().references(() => users.id),
+  targetCompanyId: integer('target_company_id').notNull().references(() => companies.id),
+  reasonCode: text('reason_code').notNull(),
+  reasonNotes: text('reason_notes').notNull(),
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+  endedAt: timestamp('ended_at'),
+  endedReason: text('ended_reason'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+});
+
+// Additive tenant columns for MVP suspend (Phase 2 in spec, brought forward to
+// MVP because the tenant directory module needs suspend/reactivate).
+// The columns are additive and default NULL — zero impact on existing tenants.
