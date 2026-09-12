@@ -147,6 +147,33 @@ body {
   color: var(--text-primary);
 }
 
+/* Platform admin panel — permanently dark, independent of the tenant toggle.
+   Overrides body's light-mode text color so every child inherits visible text
+   on the #0A1628 background, and switches native controls (select, input,
+   checkbox) to the dark browser theme so their text is readable.
+   Uses :where() throughout so Tailwind's text-*/bg-* utilities (which have
+   normal specificity) still win over these defaults. */
+.platform-panel {
+  color: #f1f5f9;
+  color-scheme: dark;
+  background-color: #0A1628;
+}
+.platform-panel :where(input, select, textarea) {
+  color: #f1f5f9;
+  background-color: #0f172a;
+  border-color: #334155;
+}
+.platform-panel :where(input, textarea)::placeholder {
+  color: #94a3b8;
+}
+.platform-panel :where(option) {
+  color: #f1f5f9;
+  background-color: #0f172a;
+}
+.platform-panel :where(a, button) {
+  color: inherit;
+}
+
 .dark .platform-shell {
   color-scheme: dark;
 }

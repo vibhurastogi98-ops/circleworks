@@ -50,7 +50,7 @@ export default function PlatformBootstrapPage() {
   }
 
   return (
-    <main className="mx-auto max-w-lg px-4 py-10 text-slate-100" style={{ background: "#0A1628", minHeight: "100vh" }}>
+    <main className="mx-auto max-w-lg px-4 py-10" style={{ minHeight: "100vh" }}>
       <h1 className="text-2xl font-black">Platform bootstrap</h1>
       <p className="mt-2 text-sm text-slate-400">
         One-time super-admin creation. This page auto-disables after the first admin is created.
