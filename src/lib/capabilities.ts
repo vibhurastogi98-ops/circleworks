@@ -93,7 +93,7 @@ export const CAPABILITY_MATRIX = {
     reports: false,
     documents: true,
     automations: false,
-    settings: false,
+    settings: true,
   },
 } satisfies Record<AccountType, Capabilities>;
 

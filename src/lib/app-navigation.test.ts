@@ -22,6 +22,8 @@ describe("app navigation", () => {
       "Taxes",
       "Expenses",
       "Documents",
+      "Settings",
+      "Help",
     ]);
 
     const contractors = getAppNavItems("creator").find((item) => item.label === "Contractors");

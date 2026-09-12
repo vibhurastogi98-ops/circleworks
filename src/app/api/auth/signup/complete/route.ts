@@ -238,20 +238,26 @@ function getAccountName(
   agencyDetails: Record<string, unknown> | undefined,
   creatorIdentity: Record<string, unknown> | undefined,
 ) {
-  const legalName = typeof business?.legalName === "string" ? business.legalName.trim() : "";
-  if (legalName) return legalName;
+  const pick = (source: Record<string, unknown> | undefined, ...keys: string[]) => {
+    if (!source) return "";
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return "";
+  };
 
-  const agencyLegalName = typeof agencyDetails?.legalName === "string" ? agencyDetails.legalName.trim() : "";
-  if (agencyLegalName) return agencyLegalName;
+  const businessName = pick(business, "legalName", "companyName", "name", "dba");
+  if (businessName) return businessName;
 
-  const creatorBusinessName = typeof creatorIdentity?.businessName === "string" ? creatorIdentity.businessName.trim() : "";
-  if (creatorBusinessName) return creatorBusinessName;
+  const agencyName = pick(agencyDetails, "legalName", "agencyName", "companyName", "name", "dba");
+  if (agencyName) return agencyName;
 
-  const creatorLegalName = typeof creatorIdentity?.legalName === "string" ? creatorIdentity.legalName.trim() : "";
-  if (creatorLegalName) return creatorLegalName;
+  const creatorName = pick(creatorIdentity, "businessName", "legalName", "companyName", "name");
+  if (creatorName) return creatorName;
 
-  const companyName = typeof step2?.companyName === "string" ? step2.companyName.trim() : "";
-  if (companyName) return companyName;
+  const step2Name = pick(step2, "companyName", "legalName", "name");
+  if (step2Name) return step2Name;
 
   const fullName = typeof step1?.fullName === "string" ? step1.fullName.trim() : "";
   if (accountType === "creator") return fullName ? `${fullName} Studio` : "Creator Studio";
@@ -369,7 +375,7 @@ export async function POST(req: NextRequest) {
         email,
         password,
         email_confirm: true,
-        user_metadata: { role: "admin", fullName: step1?.fullName, accountType },
+        user_metadata: { role: "owner", fullName: step1?.fullName, accountType },
       });
 
       if (authError || !authData.user) {
@@ -409,7 +415,7 @@ export async function POST(req: NextRequest) {
       await db.transaction(async (tx) => {
         const [newUser] = await tx
           .insert(users)
-          .values({ email, clerkUserId: supabaseUserId, role: "admin" })
+          .values({ email, clerkUserId: supabaseUserId, role: "owner" })
           .returning();
 
         const [company] = await tx

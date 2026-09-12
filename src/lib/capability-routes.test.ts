@@ -22,7 +22,7 @@ describe("capability route gating", () => {
     expect(creatorCapabilities.employees).toBe(false);
     expect(creatorCapabilities.benefits).toBe(false);
     expect(creatorCapabilities.contractorOnboarding).toBe(false);
-    expect(creatorCapabilities.settings).toBe(false);
+    expect(creatorCapabilities.settings).toBe(true);
   });
 
   it("blocks direct navigation to hidden creator modules", () => {
@@ -31,12 +31,28 @@ describe("capability route gating", () => {
     expect(isCapabilityRouteAllowed("creator", "/employees")).toBe(false);
     expect(isCapabilityRouteAllowed("creator", "/contractors/onboarding")).toBe(false);
     expect(isCapabilityRouteAllowed("creator", "/contractors/payments")).toBe(false);
-    expect(isCapabilityRouteAllowed("creator", "/settings/profile")).toBe(false);
+    expect(isCapabilityRouteAllowed("creator", "/settings/creator/profile")).toBe(true);
     expect(isCapabilityRouteAllowed("creator", "/settings/workspace")).toBe(true);
     expect(getCapabilityRouteRedirect("creator", "/payroll/run")).toBe("/403");
     expect(getCapabilityRouteRedirect("creator", "/payroll/contractors")).toBe("/403");
-    expect(getCapabilityRouteRedirect("creator", "/settings/profile")).toBe("/403");
+    expect(getCapabilityRouteRedirect("creator", "/settings/creator/profile")).toBeNull();
     expect(getCapabilityRouteRedirect("creator", "/settings/workspace")).toBeNull();
+  });
+
+  it("redirects users away from other categories to their own settings root", () => {
+    expect(isCapabilityRouteAllowed("company", "/settings/agency/business")).toBe(false);
+    expect(getCapabilityRouteRedirect("company", "/settings/agency/business")).toBe(
+      "/settings/company",
+    );
+    expect(getCapabilityRouteRedirect("agency", "/settings/company/users")).toBe("/settings/agency");
+    expect(getCapabilityRouteRedirect("creator", "/settings/company/users")).toBe(
+      "/settings/creator",
+    );
+    expect(getCapabilityRouteRedirect("company", "/settings/creator/billing")).toBe(
+      "/settings/company",
+    );
+    expect(isCapabilityRouteAllowed("creator", "/settings/creator/billing")).toBe(true);
+    expect(isCapabilityRouteAllowed("creator", "/settings/creator/security/devices")).toBe(true);
   });
 
   it("allows the simplified creator contractor module without opening the full contractor hub", () => {
@@ -50,7 +66,7 @@ describe("capability route gating", () => {
     expect(getCapabilities("company").settings).toBe(true);
     expect(getCapabilities("agency").settings).toBe(true);
     expect(isCapabilityRouteAllowed("company", "/settings/company")).toBe(true);
-    expect(isCapabilityRouteAllowed("agency", "/settings/company")).toBe(true);
+    expect(isCapabilityRouteAllowed("agency", "/settings/agency")).toBe(true);
   });
 
   it("routes app shell entry through account-type dashboards", () => {
@@ -79,5 +95,8 @@ describe("capability route gating", () => {
     expect(isCapabilityRouteAllowed("agency", "/settings/agency/clients")).toBe(true);
     expect(isCapabilityRouteAllowed("company", "/app/clients")).toBe(false);
     expect(isCapabilityRouteAllowed("company", "/settings/agency/clients")).toBe(false);
+    expect(getCapabilityRouteRedirect("company", "/settings/agency/clients")).toBe(
+      "/settings/company",
+    );
   });
 });

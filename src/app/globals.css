@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Primary Palette */
   --color-primary: #0A1628;
@@ -668,22 +670,30 @@ body {
   border-radius: 2px;
 }
 
-/* Scrollbar */
+/* Scrollbar — themed to match the surface it sits on so it disappears
+   into panels/sidebars instead of painting a hardcoded dark-navy strip. */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A1628;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.5);
-  border-radius: 3px;
+  background: var(--border-default);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.8);
+  background: var(--text-tertiary, #94a3b8);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
 }
 
 

@@ -525,19 +525,30 @@ export function summarizePermissions(permissionKeys: string[], limit = 5) {
   return `Can access ${highlights.join(", ")}${moduleSummaries.length > limit ? ", and more" : ""}.`;
 }
 
+const SETTINGS_CATEGORIES = ["company", "agency", "creator"] as const;
+const settingsPermissionBySlug: Array<{ slug: string; permission: string }> = [
+  { slug: "roles", permission: "view_roles" },
+  { slug: "announcements", permission: "manage_notifications" },
+  { slug: "assets", permission: "view_assets" },
+  { slug: "billing", permission: "manage_billing" },
+  { slug: "integrations", permission: "manage_integrations" },
+  { slug: "workspace", permission: "manage_company" },
+  { slug: "business", permission: "manage_company" },
+  { slug: "users", permission: "manage_users" },
+  { slug: "sso", permission: "manage_sso" },
+  { slug: "api", permission: "manage_api_keys" },
+  { slug: "workflows", permission: "manage_workflows" },
+  { slug: "audit-log", permission: "view_audit_log_settings" },
+];
+
 export const screenPermissionRules: Array<{ prefix: string; permission: string }> = [
-  { prefix: "/settings/roles", permission: "view_roles" },
-  { prefix: "/settings/announcements", permission: "manage_notifications" },
-  { prefix: "/settings/assets", permission: "view_assets" },
-  { prefix: "/settings/billing", permission: "manage_billing" },
-  { prefix: "/settings/integrations", permission: "manage_integrations" },
-  { prefix: "/settings/workspace", permission: "manage_company" },
-  { prefix: "/settings/company", permission: "manage_company" },
-  { prefix: "/settings/users", permission: "manage_users" },
-  { prefix: "/settings/sso", permission: "manage_sso" },
-  { prefix: "/settings/api", permission: "manage_api_keys" },
-  { prefix: "/settings/workflows", permission: "manage_workflows" },
-  { prefix: "/settings/audit-log", permission: "view_audit_log_settings" },
+  ...SETTINGS_CATEGORIES.flatMap((category) =>
+    settingsPermissionBySlug.map(({ slug, permission }) => ({
+      prefix: `/settings/${category}/${slug}`,
+      permission,
+    })),
+  ),
+  { prefix: "/settings/agency/clients", permission: "view_agency_clients" },
   { prefix: "/app/pay-myself", permission: "run_payroll" },
   { prefix: "/app/taxes", permission: "view_tax_filings" },
   { prefix: "/app/documents", permission: "view_documents" },

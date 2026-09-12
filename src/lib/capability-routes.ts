@@ -1,5 +1,6 @@
 import { getCapabilities, type CapabilityKey } from "@/lib/capabilities";
 import { CHOOSE_ACCOUNT_TYPE_ROUTE, resolveDashboard } from "@/lib/dashboard-resolver";
+import { normalizeAccountType, type AccountType } from "@/lib/account-types";
 
 type CapabilityRouteRule = {
   capability: CapabilityKey;
@@ -10,7 +11,7 @@ const CAPABILITY_ROUTE_RULES: CapabilityRouteRule[] = [
   { capability: "ownerPayroll", prefixes: ["/app/pay-myself"] },
   { capability: "ownerTaxes", prefixes: ["/app/taxes"] },
   { capability: "documents", prefixes: ["/app/documents"] },
-  { capability: "clients", prefixes: ["/app/clients", "/agency", "/settings/agency"] },
+  { capability: "clients", prefixes: ["/app/clients", "/agency"] },
   { capability: "automations", prefixes: ["/app/automations"] },
   { capability: "contractors", prefixes: ["/app/contractors"] },
   { capability: "contractorOnboarding", prefixes: ["/contractors"] },
@@ -29,8 +30,24 @@ const CAPABILITY_ROUTE_RULES: CapabilityRouteRule[] = [
   { capability: "dashboard", prefixes: ["/dashboard", "/app/dashboard"] },
 ];
 
+const SETTINGS_CATEGORY_PREFIXES: Record<AccountType, string> = {
+  company: "/settings/company",
+  agency: "/settings/agency",
+  creator: "/settings/creator",
+};
+
 function pathStartsWith(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function getCategoryOwnerForPath(pathname: string): AccountType | null {
+  for (const [type, prefix] of Object.entries(SETTINGS_CATEGORY_PREFIXES) as Array<[
+    AccountType,
+    string,
+  ]>) {
+    if (pathStartsWith(pathname, prefix)) return type;
+  }
+  return null;
 }
 
 export function getRequiredCapabilityForPath(pathname: string): CapabilityKey | null {
@@ -41,6 +58,12 @@ export function getRequiredCapabilityForPath(pathname: string): CapabilityKey | 
 
 export function isCapabilityRouteAllowed(accountType: string | null | undefined, pathname: string) {
   if (!accountType?.trim()) return pathname === CHOOSE_ACCOUNT_TYPE_ROUTE;
+
+  const categoryOwner = getCategoryOwnerForPath(pathname);
+  if (categoryOwner) {
+    return categoryOwner === normalizeAccountType(accountType);
+  }
+
   if (pathStartsWith(pathname, "/settings/workspace")) return true;
 
   const requiredCapability = getRequiredCapabilityForPath(pathname);
@@ -62,5 +85,13 @@ export function getCapabilityRouteRedirect(accountType: string | null | undefine
     const dashboardRoute = resolveDashboard(accountType);
     return pathname === dashboardRoute ? null : dashboardRoute;
   }
+
+  const categoryOwner = getCategoryOwnerForPath(pathname);
+  if (categoryOwner) {
+    const normalized = normalizeAccountType(accountType);
+    if (categoryOwner === normalized) return null;
+    return `/settings/${normalized}`;
+  }
+
   return isCapabilityRouteAllowed(accountType, pathname) ? null : "/403";
 }

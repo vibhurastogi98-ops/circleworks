@@ -101,6 +101,8 @@ const MODULE_ORDER: Record<AccountType, AppNavKey[]> = {
     "ownerTaxes",
     "expenses",
     "documents",
+    "settings",
+    "help",
   ],
 };
 
@@ -481,7 +483,10 @@ export function getAppNavItems(accountType?: string | null): AppNavItem[] {
     .map((key) => itemsById.get(key))
     .filter((item): item is AppNavItem => Boolean(item))
     .map((item) => normalizeItemForAccountType(normalizedAccountType, item))
-    .filter((item): item is AppNavItem => Boolean(item));
+    .filter((item): item is AppNavItem => Boolean(item))
+    .map((item) =>
+      item.id === "settings" ? { ...item, href: `/settings/${normalizedAccountType}` } : item,
+    );
 
   if (normalizedAccountType === "creator") return orderedItems;
 
