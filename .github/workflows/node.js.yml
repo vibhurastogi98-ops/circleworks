@@ -15,8 +15,14 @@ jobs:
     env:
       # Prevent CI environments from treating Next.js/React warnings as errors
       CI: false
-      # Add safe defaults / fallback values for environment variables so build completes
+      # Add safe defaults / fallback values for environment variables so build completes.
+      # These are only for the CI static-analysis build; the real Vercel deployment
+      # supplies live values via project env vars.
       ANTHROPIC_API_KEY: "dummy_fallback_key"
+      DATABASE_URL: "postgres://dummy:dummy@localhost:5432/dummy"
+      NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_fallback_key"
+      SUPABASE_SERVICE_ROLE_KEY: "dummy_fallback_key"
 
     steps:
       - uses: actions/checkout@v4
