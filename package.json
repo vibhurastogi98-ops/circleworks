@@ -18,7 +18,8 @@
     "antigravity:on": "node ./scripts/antigravity.js on",
     "antigravity:off": "node ./scripts/antigravity.js off",
     "antigravity:toggle": "node ./scripts/antigravity.js toggle",
-    "antigravity:status": "node ./scripts/antigravity.js status"
+    "antigravity:status": "node ./scripts/antigravity.js status",
+    "platform:bootstrap-token": "tsx ./scripts/platform-bootstrap-token.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -92,6 +93,7 @@
     "eslint-config-next": "16.2.1",
     "react-email": "^6.5.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vitest": "^4.1.7"
   }

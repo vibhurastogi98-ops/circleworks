@@ -33,6 +33,30 @@ jobs:
           cache: 'npm'
 
       - run: npm install
+
+      - name: Platform admin security invariants
+        # Enforces docs/platform-admin-spec.md §11 grep-checkable invariants.
+        # Adding any of these imports to /platform code silently weakens the
+        # auth separation between the tenant app and the platform panel.
+        run: |
+          set -e
+          bad=0
+          check() {
+            local msg="$1"; shift
+            if grep -rEn "$@" src/app/platform src/app/api/platform src/lib/platform-audit.ts src/lib/platform-audit-reasons.ts src/lib/platform-rbac.ts src/lib/platform-session.ts src/lib/platform-session-server.ts src/lib/platform-crypto.ts src/lib/platform-rate-limit.ts src/lib/platform-impersonation.ts src/lib/impersonation-context.ts 2>/dev/null; then
+              echo "::error::$msg"
+              bad=1
+            fi
+          }
+          check "Platform code must not import tenant hasPermission()" 'from ["'\'']@/lib/rbac["'\'']|hasPermission\(|resolveBuiltInRole\(|CAPABILITY_MATRIX'
+          check "Platform code must not read the tenant cw_session cookie" '\bSESSION_COOKIE\b|"cw_session"|'"'cw_session'"
+          check "Platform code must not import tenant capability-routes helpers" 'from ["'\'']@/lib/capability-routes["'\'']|getCapabilityRouteRedirect\('
+          if [ "$bad" -ne 0 ]; then
+            echo "Platform security invariant violated. See docs/platform-admin-spec.md §11."
+            exit 1
+          fi
+          echo "Platform admin security invariants OK."
+
       - run: npm run build
       - name: Lighthouse CI
         if: github.event_name == 'pull_request'

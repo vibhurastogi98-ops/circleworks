@@ -6,6 +6,11 @@ import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 import CookieBanner from "@/components/legal/CookieBanner";
 import CirceWidget from "@/components/CirceWidget";
 import AppShell from "@/components/app/AppShell";
+import ImpersonationBanner from "@/components/app/ImpersonationBanner";
+import { getImpersonationFromCookies } from "@/lib/impersonation-context";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import ThemeInitializer from "@/components/app/ThemeInitializer";
 import "./globals.css";
 import "@xyflow/react/dist/style.css";
@@ -63,7 +68,7 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -134,6 +139,19 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
+
+        {await (async () => {
+          const imp = await getImpersonationFromCookies();
+          if (!imp) return null;
+          const [target] = await db.select({ email: users.email }).from(users).where(eq(users.id, imp.targetUserId)).limit(1);
+          return (
+            <ImpersonationBanner
+              impersonationId={imp.impersonationId}
+              targetEmail={target?.email ?? String(imp.targetUserId)}
+              expiresAt={imp.expiresAt.toISOString()}
+            />
+          );
+        })()}
 
         <QueryProvider>
           <AuthProvider>
