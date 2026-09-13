@@ -84,6 +84,21 @@ Same pattern: `/api/employees/module?screen=directory` is real; every other sub-
 
 ---
 
+## Superseded routes (dead code, safe to remove)
+
+- **`src/app/api/onboarding/route.ts`** — the old case-list endpoint with a mock fallback path. Replaced by `/api/onboarding/cases` (session-scoped, real query, no mock fallback). The `useOnboarding` hook in `src/hooks/useOnboarding.ts` still points at the old route but the dashboard page no longer uses that hook, so the route can be deleted along with the hook in a future cleanup pass.
+
+## Orphaned schema declarations (safe to remove)
+
+Flagged during the Performance/Learning build (migration 0034): several table declarations in `src/db/schema.ts` have zero code consumers and correspond to orphaned tables:
+
+- `employeeGoals` (`employee_goals`)
+- `oneOnOneMeetings` (`one_on_one_meetings`)
+- `performanceCycles` (`performance_cycles`)
+- `academyPrograms` (if still present)
+
+Not urgent — they're inert dead code. Safe to remove in a future cleanup pass with a migration that `DROP TABLE IF EXISTS` each one (all verified empty during the Performance batch). Bundle with any other schema-hygiene work.
+
 ## Documentation drift
 
 - `README.md` has never been updated with anything real. Fixed in this pass — it now points to this `/docs`, `/runbooks`, `/brain` structure.

@@ -1,13 +1,32 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getCaseById, OnboardingTask } from "@/data/mockOnboarding";
-import { useOnboarding } from "@/hooks/useOnboarding";
-import { ChevronLeft, CheckCircle2, Circle, SkipForward, Bell, Eye, User, Briefcase, Monitor, UserCheck, Package } from "lucide-react";
+import { Briefcase, CheckCircle2, ChevronLeft, Circle, Loader2, Monitor, User, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
+
+// The route folder is /onboarding/[employeeId] for legacy reasons — the
+// param is now interpreted as a case id. Renaming the folder is a follow-up.
+
+type Task = {
+  id: number;
+  title: string;
+  assigneeRole: string | null;
+  dueOffsetDays: number | null;
+  sortOrder: number | null;
+  completed: boolean;
+  completedAt: string | null;
+};
+
+type CaseInfo = {
+  id: number;
+  templateId: number | null;
+  employeeId: number | null;
+  status: string | null;
+  startDate: string | null;
+};
 
 const ROLE_ICON: Record<string, React.ElementType> = {
   HR: UserCheck,
@@ -15,182 +34,140 @@ const ROLE_ICON: Record<string, React.ElementType> = {
   IT: Monitor,
   Employee: User,
 };
-
 const ROLE_COLOR: Record<string, string> = {
-  HR: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  Manager: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  IT: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  Employee: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  HR: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  Manager: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  IT: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  Employee: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
 };
 
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
+function addDays(base: Date, days: number) {
+  const next = new Date(base);
   next.setDate(next.getDate() + days);
   return next;
 }
 
-function defaultTasksFor(onboardingCase: { id: string; startDate: string; tasks?: unknown[] }): OnboardingTask[] {
-  const start = onboardingCase.startDate && onboardingCase.startDate !== "TBD"
-    ? new Date(`${onboardingCase.startDate}T00:00:00`)
-    : new Date();
-
-  return [
-    { id: `${onboardingCase.id}-profile`, title: "Confirm employee profile", assignee: "HR", dueDate: addDays(start, -5).toISOString(), phase: "Pre-Hire", status: "Pending" },
-    { id: `${onboardingCase.id}-equipment`, title: "Assign Equipment", assignee: "IT", dueDate: start.toISOString(), phase: "Week 1", status: "Pending", taskType: "assign_equipment", equipmentTypes: ["Laptop", "Badge"], autoCreateOnStartDate: true },
-    { id: `${onboardingCase.id}-welcome`, title: "Send first-day welcome details", assignee: "Manager", dueDate: start.toISOString(), phase: "Week 1", status: "Pending" },
-  ];
-}
-
 export default function IndividualOnboarding() {
-  const { employeeId } = useParams();
-  const { data: realCases = [], isLoading } = useOnboarding();
-  const onboardingCase = useMemo(() => {
-    const id = String(employeeId);
-    const liveCase = realCases.find((c) => String(c.employeeId) === id || String(c.id) === id);
-    return liveCase || getCaseById(id);
-  }, [employeeId, realCases]);
-  const [tasks, setTasks] = useState<OnboardingTask[]>([]);
+  const params = useParams();
+  const caseId = Number(params.employeeId);
+  const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [caseInfo, setCaseInfo] = useState<CaseInfo | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!onboardingCase) {
-      setTasks([]);
+  const load = useCallback(async () => {
+    if (!Number.isInteger(caseId)) { setErr("Invalid case id"); return; }
+    try {
+      const r = await fetch(`/api/onboarding/cases/${caseId}/tasks`, { cache: "no-store", credentials: "include" });
+      if (r.status === 401) { setErr("Please sign in."); return; }
+      if (r.status === 404) { setErr("Onboarding case not found."); return; }
+      if (!r.ok) { setErr(`Failed (HTTP ${r.status})`); return; }
+      const d = await r.json();
+      setCaseInfo(d.case ?? null);
+      setTasks(d.tasks ?? []);
+      setErr(null);
+    } catch { setErr("Network error"); }
+  }, [caseId]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function toggle(task: Task) {
+    const next = !task.completed;
+    setToggling(task.id);
+    // Optimistic UI update; roll back on failure so state stays consistent
+    // with what the server actually persisted.
+    setTasks((prev) => prev?.map((t) => t.id === task.id ? { ...t, completed: next } : t) ?? null);
+    const r = await fetch(`/api/onboarding/cases/${caseId}/tasks`, {
+      method: "PATCH", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId: task.id, completed: next }),
+    });
+    setToggling(null);
+    if (!r.ok) {
+      setTasks((prev) => prev?.map((t) => t.id === task.id ? { ...t, completed: task.completed } : t) ?? null);
+      const d = await r.json().catch(() => ({}));
+      toast.error(d.error || "toggle_failed");
       return;
     }
-    setTasks(onboardingCase.tasks?.length ? onboardingCase.tasks : defaultTasksFor(onboardingCase));
-  }, [onboardingCase]);
+    void load();
+  }
 
-  if (isLoading) return <div className="p-12 text-center text-slate-500">Loading onboarding case...</div>;
-  if (!onboardingCase) return <div className="p-12 text-center text-slate-500">Onboarding case not found.</div>;
+  if (err) return <div className="p-12 text-center text-sm text-red-600">{err}</div>;
+  if (tasks === null || !caseInfo) return <div className="p-12 text-center text-slate-500"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></div>;
 
-  const completed = tasks.filter(t => t.status === 'Complete').length;
+  const completed = tasks.filter((t) => t.completed).length;
   const total = tasks.length || 1;
   const pct = Math.round((completed / total) * 100);
-
-  const toggleTask = (taskId: string) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== taskId) return t;
-      return { ...t, status: t.status === 'Complete' ? 'Pending' : 'Complete' };
-    }));
-  };
-
-  const skipTask = (taskId: string) => {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'Skipped' } : t));
-  };
-
-  // Group tasks by phase
-  const phases = ['Pre-Hire', 'Week 1', 'Week 2', '30-60-90 Day'] as const;
+  const startBase = caseInfo.startDate ? new Date(`${caseInfo.startDate}T00:00:00`) : new Date();
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-4xl mx-auto w-full">
-
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col gap-2">
           <Link href="/onboarding" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors w-fit">
             <ChevronLeft size={16} /> Dashboard
           </Link>
-          <div className="flex items-center gap-4">
-            <img src={onboardingCase.avatar} className="w-14 h-14 rounded-full border-2 border-white dark:border-slate-800 shadow-sm object-cover" alt="" />
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{onboardingCase.employeeName}</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{onboardingCase.department} • Starts {formatDate(onboardingCase.startDate)}</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Case #{caseInfo.id}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {caseInfo.startDate ? <>Starts {formatDate(caseInfo.startDate)}</> : "No start date on file"}
+              {caseInfo.templateId === null && <> · No template</>}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => toast.success("Preview Portal opened in a new tab")}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition-colors">
-            <Eye size={16} /> Preview Portal
-          </button>
-          <button 
-            onClick={() => toast.success("Reminder sent successfully to " + onboardingCase.employeeName)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
-            <Bell size={16} /> Send Reminder
-          </button>
+        <div className="text-right">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Completion</p>
+          <p className="text-3xl font-black text-slate-950 dark:text-white">{pct}%</p>
+          <p className="text-xs text-slate-500">{completed} of {tasks.length} tasks</p>
         </div>
       </div>
 
-      {/* Overall Progress */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">Overall Progress</h3>
-          <span className="text-2xl font-black text-slate-900 dark:text-white">{pct}%</span>
-        </div>
-        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all duration-700 ${pct === 100 ? 'bg-green-500' : 'bg-blue-600'}`} style={{ width: `${pct}%` }} />
-        </div>
-        <div className="flex items-center gap-6 mt-3 text-xs text-slate-500">
-          <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-green-500" /> {completed} Complete</span>
-          <span className="flex items-center gap-1"><Circle size={12} className="text-slate-400" /> {tasks.filter(t=>t.status==='Pending').length} Pending</span>
-          <span className="flex items-center gap-1"><SkipForward size={12} className="text-amber-500" /> {tasks.filter(t=>t.status==='Skipped').length} Skipped</span>
-        </div>
+      <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${pct === 100 ? "bg-green-500" : pct >= 60 ? "bg-blue-500" : "bg-amber-500"}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
 
-      {/* Task Stepper by Phase */}
-      {phases.map(phase => {
-        const phaseTasks = tasks.filter(t => t.phase === phase);
-        if (phaseTasks.length === 0) return null;
+      {tasks.length === 0 && (
+        <div className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <p className="text-sm text-slate-500">No tasks configured for this case's template.</p>
+        </div>
+      )}
 
-        return (
-          <div key={phase} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">{phase}</h3>
+      <div className="flex flex-col gap-3">
+        {tasks.map((t) => {
+          const RoleIcon = ROLE_ICON[t.assigneeRole ?? "HR"] ?? UserCheck;
+          const roleColor = ROLE_COLOR[t.assigneeRole ?? "HR"] ?? ROLE_COLOR.HR;
+          const due = t.dueOffsetDays !== null ? addDays(startBase, t.dueOffsetDays ?? 0) : null;
+          return (
+            <div key={t.id} className={`flex items-center gap-4 p-4 rounded-xl border shadow-sm ${t.completed ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30" : "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"}`}>
+              <button
+                onClick={() => toggle(t)}
+                disabled={toggling === t.id}
+                aria-label={t.completed ? "Mark incomplete" : "Mark complete"}
+                className="flex-shrink-0 disabled:opacity-50"
+              >
+                {toggling === t.id ? <Loader2 className="h-6 w-6 animate-spin text-slate-400" /> :
+                  t.completed ? <CheckCircle2 className="h-6 w-6 text-emerald-600" /> :
+                  <Circle className="h-6 w-6 text-slate-300 hover:text-slate-500" />}
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${roleColor}`}>
+                    <RoleIcon size={10} /> {t.assigneeRole ?? "HR"}
+                  </span>
+                  <p className={`font-bold ${t.completed ? "text-slate-500 line-through dark:text-slate-500" : "text-slate-900 dark:text-white"}`}>{t.title}</p>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {due ? <>Due {formatDate(due.toISOString())}</> : "No due date"}
+                  {t.completed && t.completedAt && <> · Completed {formatDate(t.completedAt)}</>}
+                </p>
+              </div>
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {phaseTasks.map(task => {
-                const RoleIcon = ROLE_ICON[task.assignee] || User;
-                return (
-                  <div key={task.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 group transition-colors">
-                    {/* Toggle Button */}
-                    <button onClick={() => toggleTask(task.id)} className="shrink-0 focus:outline-none">
-                      {task.status === 'Complete' ? (
-                        <CheckCircle2 size={22} className="text-green-500 hover:text-green-600 transition-colors" />
-                      ) : task.status === 'Skipped' ? (
-                        <SkipForward size={22} className="text-amber-500" />
-                      ) : (
-                        <Circle size={22} className="text-slate-300 dark:text-slate-600 hover:text-blue-500 transition-colors" />
-                      )}
-                    </button>
-
-                    {/* Task Info */}
-                    <div className="flex-1 min-w-0">
-                      <span className={`font-medium text-sm ${task.status === 'Complete' ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
-                        {task.title}
-                      </span>
-                      {task.taskType === "assign_equipment" && (
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-                            <Package size={10} /> Auto-created on start date
-                          </span>
-                          {(task.equipmentTypes || []).map((type) => (
-                            <span key={type} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                              {type}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="text-xs text-slate-500 mt-0.5">Due: {formatDate(task.dueDate)}</div>
-                    </div>
-
-                    {/* Assignee */}
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${ROLE_COLOR[task.assignee]}`}>
-                      <RoleIcon size={12} /> {task.assignee}
-                    </span>
-
-                    {/* Skip action */}
-                    {task.status === 'Pending' && (
-                      <button onClick={() => skipTask(task.id)} className="text-slate-400 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-all p-1" title="Skip Task">
-                        <SkipForward size={16} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

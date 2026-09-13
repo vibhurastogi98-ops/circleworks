@@ -1751,17 +1751,11 @@ export const performanceCycles = pgTable('performance_cycles', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const performanceReviews = pgTable('performance_reviews', {
-  id: serial('id').primaryKey(),
-  cycleId: integer('cycle_id').references(() => performanceCycles.id, { onDelete: 'cascade' }),
-  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
-  reviewerId: integer('reviewer_id').references(() => employees.id, { onDelete: 'set null' }),
-  status: text('status').default('Pending'), // Pending, In Progress, Submitted, Acknowledged
-  rating: integer('rating'), // e.g. 1-5
-  feedback: text('feedback'),
-  submittedAt: timestamp('submitted_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+// performance_reviews was previously declared here with a cycleId-based
+// schema that never had any consumers. The new declaration lives further
+// down (see performanceReviews near performanceGoals) — that shape backs
+// the /api/performance/reviews route. Migration 0034 drops-and-recreates
+// the DB table to match.
 
 export const employeeGoals = pgTable('employee_goals', {
   id: serial('id').primaryKey(),
@@ -1786,27 +1780,11 @@ export const oneOnOneMeetings = pgTable('one_on_one_meetings', {
 });
 
 // --- LEARNING & DEVELOPMENT ---
-
-export const courses = pgTable('courses', {
-  id: serial('id').primaryKey(),
-  companyId: integer('company_id').references(() => companies.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  description: text('description'),
-  category: text('category'), // Compliance, Skills, Leadership
-  durationMins: integer('duration_mins'),
-  status: text('status').default('Active'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-export const courseEnrollments = pgTable('course_enrollments', {
-  id: serial('id').primaryKey(),
-  courseId: integer('course_id').references(() => courses.id, { onDelete: 'cascade' }),
-  employeeId: integer('employee_id').references(() => employees.id, { onDelete: 'cascade' }),
-  status: text('status').default('Not Started'), // Not Started, In Progress, Completed
-  progress: integer('progress').default(0), // 0-100
-  enrolledAt: timestamp('enrolled_at').defaultNow(),
-  completedAt: timestamp('completed_at'),
-});
+// courses and courseEnrollments were previously declared here with an
+// older shape. The new declarations live further down alongside the
+// performance tables — those back the /api/learning/* routes. Migration
+// 0034 drops-and-recreates the DB tables to match; 0035 seeds the
+// starter course catalog.
 
 // --- GENERAL LEDGER ---
 
@@ -2451,6 +2429,74 @@ export const taxSetAsides = pgTable('tax_set_asides', {
   note: text('note'),
   createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// onboarding_task_completions — per-case task completion. onboarding_tasks
+// holds the template task definitions; this table records which tasks are
+// done for a specific onboarding_case. Unique per (caseId, taskId).
+export const onboardingTaskCompletions = pgTable('onboarding_task_completions', {
+  id: serial('id').primaryKey(),
+  caseId: integer('case_id').notNull().references(() => onboardingCases.id, { onDelete: 'cascade' }),
+  taskId: integer('task_id').notNull().references(() => onboardingTasks.id, { onDelete: 'cascade' }),
+  completedAt: timestamp('completed_at').notNull().defaultNow(),
+  completedBy: integer('completed_by').references(() => users.id, { onDelete: 'set null' }),
+});
+
+// performance_goals — flat goals table (distinct from the hierarchical OKR
+// concept which stays mock for now). progressPct is 0-100.
+export const performanceGoals = pgTable('performance_goals', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').notNull().references(() => employees.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  targetDate: date('target_date'),
+  status: text('status').notNull().default('on_track'), // 'on_track' | 'at_risk' | 'completed'
+  progressPct: integer('progress_pct').notNull().default(0),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// performance_reviews — per-employee reviews, grouped by cycle_period (a
+// free-form label like "Q2 2026" or "H1 2026"). Distinct from any
+// company-wide review cycle definitions.
+export const performanceReviews = pgTable('performance_reviews', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').notNull().references(() => employees.id, { onDelete: 'cascade' }),
+  reviewerId: integer('reviewer_id').references(() => employees.id, { onDelete: 'set null' }),
+  cyclePeriod: text('cycle_period').notNull(),
+  status: text('status').notNull().default('draft'), // 'draft' | 'submitted' | 'completed'
+  overallRating: integer('overall_rating'), // 1-5
+  comments: text('comments'),
+  submittedAt: timestamp('submitted_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// courses — catalog. Global (not tenant-scoped) since a course catalog is
+// typically shared across all workspaces on the platform.
+export const courses = pgTable('courses', {
+  id: serial('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  provider: text('provider'),
+  durationMinutes: integer('duration_minutes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// course_enrollments — a specific employee taking a specific course.
+export const courseEnrollments = pgTable('course_enrollments', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  employeeId: integer('employee_id').notNull().references(() => employees.id, { onDelete: 'cascade' }),
+  courseId: integer('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('enrolled'), // 'enrolled' | 'in_progress' | 'completed'
+  progressPct: integer('progress_pct').notNull().default(0),
+  enrolledAt: timestamp('enrolled_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 // custom_field_definitions — tenant-defined columns that extend the base
