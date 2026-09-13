@@ -4,8 +4,9 @@ import { eq } from "drizzle-orm";
 import { requirePlatformSession } from "@/lib/platform-session-server";
 import { hasPlatformPermission } from "@/lib/platform-rbac";
 import { db } from "@/db";
-import { companies, employees, users } from "@/db/schema";
+import { companies, employees, plans, tenantCapabilityOverrides, tenantPlans, users } from "@/db/schema";
 import TenantActions from "./TenantActions";
+import TenantPhase2 from "./TenantPhase2";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,21 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ c
 
   const canSuspend = hasPlatformPermission(session.role, "tenant.suspend");
   const canImpersonate = hasPlatformPermission(session.role, "impersonation.start");
+  const canChangePlan = hasPlatformPermission(session.role, "billing.changePlan");
+  const canSetOverride = hasPlatformPermission(session.role, "flag.setTenantOverride");
+  const canSoftDelete = hasPlatformPermission(session.role, "tenant.softDelete");
+
+  const [tenantPlan] = await db
+    .select({ planId: tenantPlans.planId, seatCount: tenantPlans.seatCount, status: tenantPlans.status })
+    .from(tenantPlans)
+    .where(eq(tenantPlans.companyId, cid))
+    .limit(1);
+  const planCatalog = await db.select({ id: plans.id, name: plans.name }).from(plans).where(eq(plans.isActive, true));
+  const [overrideRow] = await db
+    .select({ overrides: tenantCapabilityOverrides.overrides })
+    .from(tenantCapabilityOverrides)
+    .where(eq(tenantCapabilityOverrides.companyId, cid))
+    .limit(1);
 
   return (
     <div className="p-8 text-slate-100">
@@ -69,6 +85,39 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ c
           <TenantActions companyId={company.id} suspended={!!company.suspendedAt} canSuspend={canSuspend} canImpersonate={canImpersonate} />
         </div>
       </section>
+
+      <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-4">
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">Plan</h2>
+          <TenantPhase2.PlanForm
+            companyId={company.id}
+            currentPlanId={tenantPlan?.planId ?? null}
+            currentSeatCount={tenantPlan?.seatCount ?? 0}
+            catalog={planCatalog}
+            canEdit={canChangePlan}
+          />
+        </div>
+        <div className="rounded border border-slate-800 bg-slate-950/60 p-4">
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">Capability overrides</h2>
+          <TenantPhase2.OverrideEditor
+            companyId={company.id}
+            overrides={overrideRow?.overrides ?? {}}
+            canEdit={canSetOverride}
+          />
+        </div>
+      </section>
+
+      {canSoftDelete && !company.softDeletedAt && (
+        <section className="mt-6 rounded border border-red-500/40 bg-red-950/20 p-4">
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-red-300">Danger zone</h2>
+          <TenantPhase2.SoftDeleteButton companyId={company.id} />
+        </section>
+      )}
+      {company.softDeletedAt && (
+        <section className="mt-6 rounded border border-red-500/60 bg-red-500/10 p-4 text-sm text-red-300">
+          Tenant is soft-deleted ({company.softDeletedAt.toISOString()}). Undo lands in a follow-up route.
+        </section>
+      )}
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">Team ({team.length})</h2>

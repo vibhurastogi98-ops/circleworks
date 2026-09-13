@@ -2385,3 +2385,52 @@ export const impersonationSessions = pgTable('impersonation_sessions', {
 // Additive tenant columns for MVP suspend (Phase 2 in spec, brought forward to
 // MVP because the tenant directory module needs suspend/reactivate).
 // The columns are additive and default NULL — zero impact on existing tenants.
+
+// =============================================================================
+// PLATFORM ADMIN PANEL — PHASE 2 (billing, plans, per-tenant capability
+// overrides, platform-wide kill switches)
+// See docs/platform-admin-spec.md §6.5.
+// =============================================================================
+
+export const platformPlanStatusEnum = pgEnum('platform_plan_status', [
+  'trial',
+  'active',
+  'past_due',
+  'cancelled',
+]);
+
+export const plans = pgTable('plans', {
+  id: text('id').primaryKey(),                    // 'starter' | 'pro' | 'enterprise' | 'trial'
+  name: text('name').notNull(),
+  basePriceCents: integer('base_price_cents').notNull(),
+  perSeatPriceCents: integer('per_seat_price_cents').notNull(),
+  includedCapabilities: jsonb('included_capabilities').$type<Record<string, boolean>>().notNull().default(sql`'{}'::jsonb`),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const tenantPlans = pgTable('tenant_plans', {
+  companyId: integer('company_id').primaryKey().references(() => companies.id, { onDelete: 'cascade' }),
+  planId: text('plan_id').notNull().references(() => plans.id),
+  seatCount: integer('seat_count').notNull().default(0),
+  trialEndsAt: timestamp('trial_ends_at'),
+  status: platformPlanStatusEnum('status').notNull().default('active'),
+  effectiveFrom: timestamp('effective_from').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by'),               // platform_admins.id
+});
+
+export const tenantCapabilityOverrides = pgTable('tenant_capability_overrides', {
+  companyId: integer('company_id').primaryKey().references(() => companies.id, { onDelete: 'cascade' }),
+  overrides: jsonb('overrides').$type<Record<string, boolean>>().notNull().default(sql`'{}'::jsonb`),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').notNull(),     // platform_admins.id
+});
+
+export const platformKillSwitches = pgTable('platform_kill_switches', {
+  capability: text('capability').primaryKey(),    // one of CapabilityKey
+  enabled: boolean('enabled').notNull().default(true),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').notNull(),
+  reasonCode: text('reason_code').notNull(),
+});
