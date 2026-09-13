@@ -34,7 +34,7 @@ export default function PlatformLoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-4 py-12 text-slate-100" style={{ background: "#0A1628", minHeight: "100vh" }}>
+    <main className="mx-auto max-w-md px-4 py-12" style={{ minHeight: "100vh" }}>
       <div className="mb-8 flex items-center gap-2">
         <span className="rounded bg-orange-500 px-2 py-1 text-xs font-black text-slate-950">PLATFORM</span>
         <h1 className="text-2xl font-black">CircleWorks Admin</h1>

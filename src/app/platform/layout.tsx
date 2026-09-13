@@ -8,6 +8,9 @@ import { hasPlatformPermission } from "@/lib/platform-rbac";
 const NAV: { href: string; label: string; permission?: string }[] = [
   { href: "/platform", label: "Overview" },
   { href: "/platform/tenants", label: "Tenants", permission: "tenant.read" },
+  { href: "/platform/billing", label: "Billing", permission: "billing.viewInvoices" },
+  { href: "/platform/flags", label: "Flags & kills", permission: "flag.setKillSwitch" },
+  { href: "/platform/support", label: "Support", permission: "supportUser.read" },
   { href: "/platform/audit", label: "Audit log", permission: "audit.read" },
   { href: "/platform/admins", label: "Admins", permission: "admin.read" },
 ];
@@ -25,11 +28,11 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   const session = isPublic ? null : await getPlatformSessionServer();
 
   if (isPublic || !session) {
-    return <div style={{ background: "#0A1628", minHeight: "100vh" }}>{children}</div>;
+    return <div className="platform-panel" style={{ minHeight: "100vh" }}>{children}</div>;
   }
 
   return (
-    <div className="flex min-h-screen text-slate-100" style={{ background: "#0A1628" }}>
+    <div className="platform-panel flex min-h-screen">
       <aside className="w-56 shrink-0 border-r border-slate-800 bg-slate-950/50 p-4">
         <div className="mb-6 flex items-center gap-2">
           <span className="rounded bg-orange-500 px-2 py-1 text-xs font-black text-slate-950">PLATFORM</span>
