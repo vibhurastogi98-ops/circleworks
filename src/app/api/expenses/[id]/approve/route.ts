@@ -39,7 +39,7 @@ export async function POST(
     const [updated] = await db
       .update(expenseReports)
       .set({
-        status: "pending_payroll",
+        status: "Pending Payroll",
         approvedAt: new Date(),
         approvedBy: session.userId,
       })
@@ -66,12 +66,12 @@ export async function POST(
       }
     }
 
-    console.log(`[Expense Approve] Report ${reportId} → pending_payroll by user ${session.userId}`);
+    console.log(`[Expense Approve] Report ${reportId} → Pending Payroll by user ${session.userId}`);
 
     return NextResponse.json({
       success: true,
       expenseReportId: reportId,
-      status: "pending_payroll",
+      status: "Pending Payroll",
       message: "Expense report approved and queued for next payroll run.",
     });
   } catch (error: any) {

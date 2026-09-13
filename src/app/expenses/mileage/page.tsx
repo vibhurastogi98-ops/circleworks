@@ -14,6 +14,7 @@ import {
   Info
 } from "lucide-react";
 import { mockMileageEntries, IRS_MILEAGE_RATE } from "@/data/mockExpenses";
+import { DemoDataBanner } from "@/components/DemoDataBanner";
 import { formatDate } from "@/utils/formatDate";
 
 export default function MileageLogPage() {
@@ -26,6 +27,7 @@ export default function MileageLogPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-6xl mx-auto w-full">
+      <DemoDataBanner />
       
       {/* Header */}
       <div className="flex flex-col gap-2">

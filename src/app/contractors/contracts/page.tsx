@@ -7,6 +7,7 @@ import {
   DollarSign, MoreHorizontal, Plus, X, Send, Eye, Filter
 } from "lucide-react";
 import { mockContracts, type ContractRecord, type ContractType } from "@/data/mockContractors";
+import { DemoDataBanner } from "@/components/DemoDataBanner";
 import { ContractorSubNav } from "../page";
 import { formatDate } from "@/utils/formatDate";
 import { toast } from "sonner";
@@ -189,6 +190,7 @@ export default function ContractsPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+      <DemoDataBanner />
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

@@ -7,3 +7,4 @@ dist
 # local antigravity toggle state
 .antigravity-enabled
 .aider*
+tsconfig.tsbuildinfo

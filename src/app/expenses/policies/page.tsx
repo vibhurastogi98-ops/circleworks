@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { mockExpensePolicies, ExpensePolicy } from "@/data/mockExpenses";
+import { DemoDataBanner } from "@/components/DemoDataBanner";
 import { toast } from "sonner";
 
 export default function ExpensePoliciesPage() {
@@ -26,6 +27,7 @@ export default function ExpensePoliciesPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl mx-auto w-full">
+      <DemoDataBanner />
       
       {/* Header */}
       <div className="flex flex-col gap-2">

@@ -151,7 +151,7 @@ body {
    Overrides body's light-mode text color so every child inherits visible text
    on the #0A1628 background, and switches native controls (select, input,
    checkbox) to the dark browser theme so their text is readable.
-   Uses :where() throughout so Tailwind text-*/bg-* utilities still win. */
+   Uses :where() throughout so Tailwind text and bg utilities still win. */
 .platform-panel {
   color: #f1f5f9;
   color-scheme: dark;

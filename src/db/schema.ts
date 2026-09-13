@@ -2434,3 +2434,69 @@ export const platformKillSwitches = pgTable('platform_kill_switches', {
   updatedBy: integer('updated_by').notNull(),
   reasonCode: text('reason_code').notNull(),
 });
+
+// =============================================================================
+// TAX SET-ASIDES (creator-oriented, but usable by any account type)
+// Each row is a real contribution the user set aside toward estimated taxes,
+// bucketed by taxYear + period (Q1..Q4 or ANNUAL). The safe-harbor tracker
+// on /app/taxes shows YTD contributions divided by estimated total tax.
+// =============================================================================
+
+export const taxSetAsides = pgTable('tax_set_asides', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  taxYear: integer('tax_year').notNull(),
+  period: text('period').notNull(), // 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'ANNUAL'
+  amount: integer('amount').notNull(), // whole dollars
+  note: text('note'),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// client_invoices — a creator billing their own clients. Distinct from
+// agency_invoices (agency billing clients for staff labor). Status is a
+// simple manual lifecycle: Draft → Sent → Paid, with Overdue derived.
+export const clientInvoices = pgTable('client_invoices', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  invoiceNumber: text('invoice_number').notNull(),
+  clientName: text('client_name').notNull(),
+  clientEmail: text('client_email'),
+  issueDate: date('issue_date').notNull(),
+  dueDate: date('due_date').notNull(),
+  status: text('status').notNull().default('Draft'), // Draft | Sent | Paid | Overdue
+  notes: text('notes'),
+  subtotalCents: integer('subtotal_cents').notNull().default(0),
+  // Public view token (random URL-safe string); set on send, immutable after.
+  publicToken: text('public_token'),
+  sentAt: timestamp('sent_at'),
+  paidAt: timestamp('paid_at'),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const clientInvoiceItems = pgTable('client_invoice_items', {
+  id: serial('id').primaryKey(),
+  invoiceId: integer('invoice_id').notNull().references(() => clientInvoices.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  quantity: real('quantity').notNull().default(1),
+  rateCents: integer('rate_cents').notNull().default(0),
+  amountCents: integer('amount_cents').notNull().default(0),
+  position: integer('position').notNull().default(0),
+});
+
+// tax_estimator_inputs — persisted state for the /app/taxes estimator form.
+// One row per (companyId, taxYear). Values are whole dollars.
+export const taxEstimatorInputs = pgTable('tax_estimator_inputs', {
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  taxYear: integer('tax_year').notNull(),
+  annualRevenue: integer('annual_revenue').notNull().default(0),
+  businessExpenses: integer('business_expenses').notNull().default(0),
+  ownerSalary: integer('owner_salary').notNull().default(0),
+  withholding: integer('withholding').notNull().default(0),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  updatedBy: integer('updated_by').references(() => users.id, { onDelete: 'set null' }),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.companyId, t.taxYear] }),
+}));

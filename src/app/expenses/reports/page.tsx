@@ -15,6 +15,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { mockExpenseReports, ExpenseStatus } from "@/data/mockExpenses";
+import { DemoDataBanner } from "@/components/DemoDataBanner";
 import { formatDate } from "@/utils/formatDate";
 
 const STATUS_STYLING: Record<ExpenseStatus, string> = {
@@ -42,6 +43,7 @@ export default function ExpenseReportsPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+      <DemoDataBanner />
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

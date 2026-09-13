@@ -18,6 +18,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { approveExpenseReportForPayroll, getExpenseReportById, ExpenseReport, ExpenseItem } from "@/data/mockExpenses";
+import { DemoDataBanner } from "@/components/DemoDataBanner";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
 
@@ -63,6 +64,7 @@ export default function ExpenseReportDetailPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-6xl mx-auto w-full">
+      <DemoDataBanner />
       
       {/* Header & Breadcrumb */}
       <div className="flex flex-col gap-2">

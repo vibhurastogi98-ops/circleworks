@@ -15,6 +15,7 @@ const PLATFORM_ROUTE_PREFIXES = [
   "/documents",
   "/help",
   "/contractors",
+  "/invoices",
   "/agency",
   "/learning",
   "/c/",

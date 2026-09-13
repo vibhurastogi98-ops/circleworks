@@ -98,6 +98,7 @@ const MODULE_ORDER: Record<AccountType, AppNavKey[]> = {
     "dashboard",
     "ownerPayroll",
     "contractors",
+    "clientInvoicing",
     "ownerTaxes",
     "expenses",
     "documents",
@@ -135,6 +136,13 @@ const APP_MODULE_NAV_ITEMS: AppNavItem[] = [
       { label: "Profitability", href: "/agency/profitability", capability: "clients" },
       { label: "Client Settings", href: "/settings/agency/clients", capability: "clients" },
     ],
+  },
+  {
+    id: "clientInvoicing",
+    label: "Invoices",
+    icon: Receipt,
+    capability: "clientInvoicing",
+    href: "/invoices",
   },
   {
     id: "contractors",

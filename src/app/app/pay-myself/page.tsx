@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -24,6 +24,22 @@ const schedulePeriods: Record<PaySchedule, number> = {
 
 const scheduleOptions: PaySchedule[] = ["Weekly", "Biweekly", "Semi-monthly", "Monthly"];
 
+type PayRun = {
+  id: number;
+  status: string;
+  checkDate: string;
+  gross: number;
+  net: number;
+  taxes: number;
+  createdAt: string | null;
+};
+
+type PayMyselfState = {
+  currentAnnualSalary: number;
+  schedule: PaySchedule;
+  history: PayRun[];
+};
+
 function money(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -40,15 +56,65 @@ function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor:
   );
 }
 
+function statusChip(status: string) {
+  const map: Record<string, string> = {
+    pending: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+    processing: "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300",
+    paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
+    cancelled: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  };
+  return map[status] ?? map.pending;
+}
+
 export default function PayMyselfPage() {
   const { currentCompany, payrollRunInProgress, setPayrollRunning } = usePlatformStore();
   const [annualSalary, setAnnualSalary] = useState(96000);
   const [schedule, setSchedule] = useState<PaySchedule>("Semi-monthly");
   const [autoPilot, setAutoPilot] = useState(true);
+  const [state, setState] = useState<PayMyselfState | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/pay-myself", { cache: "no-store", credentials: "include" });
+      if (r.status === 401) {
+        setLoadErr("Please sign in as a creator to use Pay Myself.");
+        return;
+      }
+      if (r.status === 403) {
+        setLoadErr("Pay Myself is available on creator accounts only.");
+        return;
+      }
+      if (!r.ok) {
+        setLoadErr(`Failed to load (HTTP ${r.status}).`);
+        return;
+      }
+      const data = (await r.json()) as PayMyselfState;
+      setState(data);
+      setLoadErr(null);
+      if (data.currentAnnualSalary > 0) setAnnualSalary(data.currentAnnualSalary);
+      if (data.schedule) setSchedule(data.schedule);
+    } catch {
+      setLoadErr("Network error loading Pay Myself.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Poll while any run is in a non-terminal state.
+  useEffect(() => {
+    if (!state) return;
+    const inFlight = state.history.some((r) => r.status === "pending" || r.status === "processing");
+    if (!inFlight) return;
+    const t = setInterval(() => void load(), 3000);
+    return () => clearInterval(t);
+  }, [state, load]);
 
   const payrollPreview = useMemo(() => {
     const gross = annualSalary / schedulePeriods[schedule];
-    const ownerWithholding = gross * 0.22;
+    const ownerWithholding = gross * 0.2;
     const payrollTax = gross * 0.0765;
     const net = gross - ownerWithholding - payrollTax;
     return {
@@ -60,10 +126,27 @@ export default function PayMyselfPage() {
     };
   }, [annualSalary, schedule]);
 
-  const runOwnerPayroll = () => {
+  const runOwnerPayroll = async () => {
     setPayrollRunning(true);
-    window.setTimeout(() => setPayrollRunning(false), 1200);
-    toast.success(`${money(payrollPreview.net)} owner payroll is queued for ${schedule.toLowerCase()} processing.`);
+    try {
+      const r = await fetch("/api/pay-myself", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ annualSalary, schedule }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        toast.error(data.error ?? `Run failed (HTTP ${r.status}).`);
+        return;
+      }
+      toast.success(`${money(data.run.net)} owner payroll queued. Will settle in a few seconds.`);
+      await load();
+    } catch {
+      toast.error("Network error running payroll.");
+    } finally {
+      setPayrollRunning(false);
+    }
   };
 
   return (
@@ -83,6 +166,12 @@ export default function PayMyselfPage() {
           </div>
         </div>
       </section>
+
+      {loadErr && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
+          {loadErr}
+        </div>
+      )}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -181,12 +270,48 @@ export default function PayMyselfPage() {
           <button
             type="button"
             onClick={runOwnerPayroll}
-            disabled={payrollRunInProgress}
+            disabled={payrollRunInProgress || !!loadErr}
             className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700 sm:w-auto"
           >
             <Play className="h-4 w-4" />
             {payrollRunInProgress ? "Running owner payroll" : "Run now"}
           </button>
+
+          {state && state.history.length > 0 && (
+            <div className="mt-8">
+              <h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Recent runs
+              </h2>
+              <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500 dark:bg-slate-950/60 dark:text-slate-400">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Check date</th>
+                      <th className="px-3 py-2 text-right">Gross</th>
+                      <th className="px-3 py-2 text-right">Taxes</th>
+                      <th className="px-3 py-2 text-right">Net</th>
+                      <th className="px-3 py-2 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.history.map((r) => (
+                      <tr key={r.id} className="border-t border-slate-100 dark:border-slate-800">
+                        <td className="px-3 py-2 font-mono text-slate-700 dark:text-slate-200">{r.checkDate}</td>
+                        <td className="px-3 py-2 text-right">{money(r.gross)}</td>
+                        <td className="px-3 py-2 text-right">{money(r.taxes)}</td>
+                        <td className="px-3 py-2 text-right font-bold">{money(r.net)}</td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold uppercase ${statusChip(r.status)}`}>
+                            {r.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         <aside className="space-y-4">
@@ -205,19 +330,21 @@ export default function PayMyselfPage() {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="text-sm font-black text-slate-950 dark:text-white">Upcoming schedule</h2>
+            <h2 className="text-sm font-black text-slate-950 dark:text-white">Recent runs</h2>
             <div className="mt-4 space-y-3">
-              {["Jun 15", "Jun 30", "Jul 15"].map((date, index) => (
-                <div key={date} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
+              {state?.history?.slice(0, 3).map((r) => (
+                <div key={r.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-950/60">
                   <span className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                     <CalendarDays className="h-4 w-4 text-slate-400" />
-                    {date}
+                    {r.checkDate}
                   </span>
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    {index === 0 ? "Ready" : autoPilot ? "AutoPilot" : "Manual"}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase ${statusChip(r.status)}`}>
+                    {r.status}
                   </span>
                 </div>
-              ))}
+              )) ?? (
+                <p className="text-xs text-slate-500 dark:text-slate-400">No runs yet.</p>
+              )}
             </div>
           </div>
         </aside>

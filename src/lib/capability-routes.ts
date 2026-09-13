@@ -15,6 +15,7 @@ const CAPABILITY_ROUTE_RULES: CapabilityRouteRule[] = [
   { capability: "automations", prefixes: ["/app/automations"] },
   { capability: "contractors", prefixes: ["/app/contractors"] },
   { capability: "contractorOnboarding", prefixes: ["/contractors"] },
+  { capability: "clientInvoicing", prefixes: ["/invoices"] },
   { capability: "payroll", prefixes: ["/payroll", "/app/payroll"] },
   { capability: "employees", prefixes: ["/employees"] },
   { capability: "hiring", prefixes: ["/hiring"] },

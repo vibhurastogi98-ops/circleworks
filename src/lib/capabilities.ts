@@ -21,6 +21,7 @@ export type CapabilityKey =
   | "reports"
   | "documents"
   | "automations"
+  | "clientInvoicing"
   | "settings";
 
 export type Capabilities = Record<CapabilityKey, boolean>;
@@ -47,6 +48,7 @@ export const CAPABILITY_MATRIX = {
     reports: true,
     documents: true,
     automations: true,
+    clientInvoicing: false,
     settings: true,
   },
   agency: {
@@ -70,6 +72,7 @@ export const CAPABILITY_MATRIX = {
     reports: true,
     documents: true,
     automations: true,
+    clientInvoicing: false,
     settings: true,
   },
   creator: {
@@ -93,6 +96,7 @@ export const CAPABILITY_MATRIX = {
     reports: false,
     documents: true,
     automations: false,
+    clientInvoicing: true,
     settings: true,
   },
 } satisfies Record<AccountType, Capabilities>;
