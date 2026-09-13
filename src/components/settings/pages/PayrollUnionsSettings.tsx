@@ -1,164 +1,186 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import {
-  Shield, Plus, Settings, ChevronRight, X, Save, Edit3, Trash2,
-  ArrowLeft, Calendar, Percent, Heart, DollarSign, Users, Building2,
-  CheckCircle2, AlertTriangle, Info, Clock,
-} from "lucide-react";
-import {
-  mockUnions,
-  mockUnionContracts,
-  type UnionConfig,
-  type UnionContract,
-  type FringeBenefit,
-} from "@/data/mockUnionPayroll";
-import { formatDate } from "@/utils/formatDate";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, Plus, Trash2, X, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
-/* ─── Color Map ────────────────────────────────────────────────── */
-
-const UNION_COLORS: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
-  "SAG-AFTRA": { bg: "bg-violet-50 dark:bg-violet-900/20", text: "text-violet-700 dark:text-violet-400", border: "border-violet-200 dark:border-violet-800", gradient: "from-violet-500 to-purple-600" },
-  "IATSE": { bg: "bg-sky-50 dark:bg-sky-900/20", text: "text-sky-700 dark:text-sky-400", border: "border-sky-200 dark:border-sky-800", gradient: "from-sky-500 to-cyan-600" },
-  "WGA": { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", border: "border-amber-200 dark:border-amber-800", gradient: "from-amber-500 to-orange-600" },
-  "DGA": { bg: "bg-rose-50 dark:bg-rose-900/20", text: "text-rose-700 dark:text-rose-400", border: "border-rose-200 dark:border-rose-800", gradient: "from-rose-500 to-red-600" },
+type Contract = {
+  id: number;
+  contractName: string;
+  duesType: string;
+  duesRate: number;
+  pensionRate: number;
+  healthWelfareRate: number;
+  workDuesRate: number | null;
+  effectiveDate: string;
+  expirationDate: string | null;
+  status: string | null;
 };
 
-const getUnionColor = (abbr: string) => UNION_COLORS[abbr] || UNION_COLORS["SAG-AFTRA"];
+type Union = {
+  id: number;
+  name: string;
+  abbreviation: string | null;
+  description: string | null;
+  status: string | null;
+  contracts: Contract[];
+};
 
-/* ─── Status Badge ─────────────────────────────────────────────── */
+export default function PayrollUnionsSettingsPage() {
+  const [unions, setUnions] = useState<Union[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [showAddUnion, setShowAddUnion] = useState(false);
+  const [contractFor, setContractFor] = useState<Union | null>(null);
 
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, string> = {
-    Active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    Inactive: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700",
-    Expired: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-red-200 dark:border-red-800",
-    Upcoming: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-  };
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/payroll/unions", { cache: "no-store", credentials: "include" });
+      if (r.status === 401) { setErr("Please sign in."); return; }
+      if (!r.ok) { setErr(`Failed (HTTP ${r.status})`); return; }
+      const data = await r.json();
+      setUnions(data.unions ?? []);
+      setErr(null);
+    } catch { setErr("Network error"); }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function deleteUnion(id: number) {
+    if (!confirm("Remove this union and all its contracts?")) return;
+    const r = await fetch(`/api/payroll/unions?id=${id}`, { method: "DELETE", credentials: "include" });
+    if (!r.ok) { toast.error("delete_failed"); return; }
+    toast.success("Union removed.");
+    void load();
+  }
+
+  async function deleteContract(id: number) {
+    if (!confirm("Remove this contract?")) return;
+    const r = await fetch(`/api/payroll/unions/contracts?id=${id}`, { method: "DELETE", credentials: "include" });
+    if (!r.ok) { toast.error("delete_failed"); return; }
+    toast.success("Contract removed.");
+    void load();
+  }
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${config[status] || config.Active}`}>
-      {status}
-    </span>
+    <div className="flex max-w-5xl animate-in flex-col gap-6 fade-in duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-blue-600" />
+            Payroll Unions
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Configure unions, contract terms, dues, pension &amp; health/welfare rates.</p>
+        </div>
+        <button onClick={() => setShowAddUnion(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">
+          <Plus size={16} /> New Union
+        </button>
+      </div>
+
+      {err && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">{err}</div>
+      )}
+
+      {!unions && !err && <p className="text-sm text-slate-500">Loading…</p>}
+      {unions?.length === 0 && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+          No unions configured. Click <strong>New Union</strong> to add one.
+        </div>
+      )}
+
+      {unions?.map((u) => (
+        <div key={u.id} className="rounded-xl border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h2 className="text-base font-black text-slate-950 dark:text-white">{u.name} {u.abbreviation ? <span className="ml-2 text-slate-400 font-bold text-sm">({u.abbreviation})</span> : null}</h2>
+              {u.description && <p className="mt-1 text-sm text-slate-500">{u.description}</p>}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setContractFor(u)} className="text-sm font-bold text-blue-600 hover:underline">+ Contract</button>
+              <button onClick={() => deleteUnion(u.id)} className="p-2 text-slate-400 hover:text-red-600" aria-label="Delete union"><Trash2 size={16} /></button>
+            </div>
+          </div>
+          <div className="p-5">
+            {u.contracts.length === 0 ? (
+              <p className="text-sm text-slate-500">No contracts on this union yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="pb-2 text-left">Contract</th>
+                    <th className="pb-2 text-right">Dues</th>
+                    <th className="pb-2 text-right">Pension</th>
+                    <th className="pb-2 text-right">H&amp;W</th>
+                    <th className="pb-2 text-right">Effective</th>
+                    <th className="pb-2"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {u.contracts.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-2 font-bold text-slate-900 dark:text-white">{c.contractName}</td>
+                      <td className="py-2 text-right">{c.duesType === "flat" ? `$${c.duesRate}` : `${c.duesRate}%`}</td>
+                      <td className="py-2 text-right">{c.pensionRate}%</td>
+                      <td className="py-2 text-right">{c.healthWelfareRate}%</td>
+                      <td className="py-2 text-right text-slate-500">{c.effectiveDate}{c.expirationDate ? ` – ${c.expirationDate}` : ""}</td>
+                      <td className="py-2 text-right">
+                        <button onClick={() => deleteContract(c.id)} className="p-1.5 text-slate-400 hover:text-red-600" aria-label="Delete contract"><Trash2 size={14} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {showAddUnion && <AddUnionModal onClose={() => setShowAddUnion(false)} onDone={() => { setShowAddUnion(false); void load(); }} />}
+      {contractFor && <AddContractModal union={contractFor} onClose={() => setContractFor(null)} onDone={() => { setContractFor(null); void load(); }} />}
+    </div>
   );
 }
 
-/* ─── Add Union Modal ──────────────────────────────────────────── */
+const inputCls = "w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white text-sm";
 
-function AddUnionModal({ onClose }: { onClose: () => void }) {
+function AddUnionModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [name, setName] = useState("");
   const [abbr, setAbbr] = useState("");
   const [description, setDescription] = useState("");
-  const starterUnions = [
-    {
-      abbr: "SAG-AFTRA",
-      name: "Screen Actors Guild – American Federation of Television and Radio Artists",
-      description: "Performers in film, television, commercials, radio, and new media.",
-    },
-    {
-      abbr: "IATSE",
-      name: "International Alliance of Theatrical Stage Employees",
-      description: "Crew, technicians, artisans, and craftspersons in entertainment.",
-    },
-    {
-      abbr: "WGA",
-      name: "Writers Guild of America",
-      description: "Writers in motion picture, broadcast, cable, and new media.",
-    },
-    {
-      abbr: "DGA",
-      name: "Directors Guild of America",
-      description: "Directors and directorial team members.",
-    },
-  ];
+  const [busy, setBusy] = useState(false);
 
-  const handleSave = () => {
-    if (!name || !abbr) {
-      toast.error("Name and abbreviation are required");
-      return;
-    }
-    toast.success("Union added", { description: `${abbr} has been configured.` });
-    onClose();
-  };
+  async function submit() {
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    setBusy(true);
+    const r = await fetch("/api/payroll/unions", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, abbreviation: abbr, description }),
+    });
+    setBusy(false);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { toast.error(data.error || "create_failed"); return; }
+    toast.success("Union added.");
+    onDone();
+  }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg">
-              <Plus size={20} className="text-white" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Union</h3>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-            <X size={18} className="text-slate-500" />
-          </button>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">New Union</h3>
+          <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
         </div>
-
-        <div className="p-6 flex flex-col gap-5">
-          <div>
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Common Entertainment Unions</label>
-            <div className="grid grid-cols-2 gap-2">
-              {starterUnions.map((union) => (
-                <button
-                  key={union.abbr}
-                  type="button"
-                  onClick={() => {
-                    setName(union.name);
-                    setAbbr(union.abbr);
-                    setDescription(union.description);
-                  }}
-                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-300 hover:border-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-                >
-                  {union.abbr}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Union Name *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Screen Actors Guild – AFTRA"
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Abbreviation *</label>
-            <input
-              type="text"
-              value={abbr}
-              onChange={(e) => setAbbr(e.target.value)}
-              placeholder="e.g. SAG-AFTRA"
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the union..."
-              rows={3}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white resize-none"
-            />
-          </div>
+        <div className="p-5 flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-sm"><span className="font-bold text-slate-600 dark:text-slate-300">Name</span><input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. SAG-AFTRA" /></label>
+          <label className="flex flex-col gap-1 text-sm"><span className="font-bold text-slate-600 dark:text-slate-300">Abbreviation</span><input value={abbr} onChange={(e) => setAbbr(e.target.value)} className={inputCls} placeholder="e.g. SAG" /></label>
+          <label className="flex flex-col gap-1 text-sm"><span className="font-bold text-slate-600 dark:text-slate-300">Description (optional)</span><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={inputCls} /></label>
         </div>
-
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all"
-          >
-            <Save size={16} /> Save Union
+        <div className="p-5 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600">Cancel</button>
+          <button onClick={submit} disabled={busy || !name.trim()} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Create
           </button>
         </div>
       </div>
@@ -166,364 +188,66 @@ function AddUnionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* ─── Add Contract Modal ───────────────────────────────────────── */
-
-function AddContractModal({ unionId, unionName, onClose }: { unionId: string; unionName: string; onClose: () => void }) {
+function AddContractModal({ union, onClose, onDone }: { union: Union; onClose: () => void; onDone: () => void }) {
   const [contractName, setContractName] = useState("");
   const [duesType, setDuesType] = useState<"percentage" | "flat">("percentage");
   const [duesRate, setDuesRate] = useState("");
   const [pensionRate, setPensionRate] = useState("");
-  const [hwRate, setHwRate] = useState("");
-  const [workDuesRate, setWorkDuesRate] = useState("");
-  const [effectiveDate, setEffectiveDate] = useState("");
+  const [healthWelfareRate, setHealthWelfareRate] = useState("");
+  const [workDuesRate, setWorkDuesRate] = useState("0");
+  const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
   const [expirationDate, setExpirationDate] = useState("");
-  const [fringeName, setFringeName] = useState("Vacation Accrual");
-  const [fringeRate, setFringeRate] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSave = () => {
-    if (!contractName || !duesRate || !pensionRate || !hwRate) {
+  async function submit() {
+    if (!contractName.trim() || !duesRate || !pensionRate || !healthWelfareRate) {
       toast.error("All rate fields are required");
       return;
     }
-    toast.success("Contract added", { description: `${contractName} configured for ${unionName}.` });
-    onClose();
-  };
+    setBusy(true);
+    const r = await fetch("/api/payroll/unions/contracts", {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        unionId: union.id, contractName, duesType,
+        duesRate: Number(duesRate), pensionRate: Number(pensionRate),
+        healthWelfareRate: Number(healthWelfareRate), workDuesRate: Number(workDuesRate),
+        effectiveDate, expirationDate: expirationDate || null,
+      }),
+    });
+    setBusy(false);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { toast.error(data.error || "create_failed"); return; }
+    toast.success("Contract added.");
+    onDone();
+  }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">New Contract — {unionName}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Configure rates per collective bargaining agreement</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-            <X size={18} className="text-slate-500" />
-          </button>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">Contract for {union.name}</h3>
+          <button onClick={onClose}><X size={20} className="text-slate-400" /></button>
         </div>
-
-        <div className="p-6 flex flex-col gap-5">
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Contract Name *</label>
-            <input type="text" value={contractName} onChange={(e) => setContractName(e.target.value)} placeholder="e.g. SAG-AFTRA TV/Theatrical Agreement 2024-2027" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-4">
-            <div>
-              <label className="text-xs font-bold text-violet-600 uppercase tracking-wider block mb-2">Dues Type</label>
-              <select
-                value={duesType}
-                onChange={(e) => setDuesType(e.target.value as "percentage" | "flat")}
-                className="w-full px-4 py-2.5 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-white"
-              >
-                <option value="percentage">% of earnings</option>
-                <option value="flat">Flat amount</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-violet-600 uppercase tracking-wider block mb-2">Dues Rate *</label>
-              <input type="number" step="0.01" value={duesRate} onChange={(e) => setDuesRate(e.target.value)} placeholder={duesType === "percentage" ? "1.575" : "75.00"} className="w-full px-4 py-2.5 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-slate-900 dark:text-white" />
-              <p className="text-[10px] text-violet-500 mt-1">{duesType === "percentage" ? "of gross earnings" : "flat amount"} • Employee</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-xs font-bold text-blue-600 uppercase tracking-wider block mb-2">Work Dues (%)</label>
-              <input type="number" step="0.01" value={workDuesRate} onChange={(e) => setWorkDuesRate(e.target.value)} placeholder="1.0" className="w-full px-4 py-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-900 dark:text-white" />
-              <p className="text-[10px] text-blue-500 mt-1">of gross earnings • Employee</p>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-emerald-600 uppercase tracking-wider block mb-2">Pension Rate (%) *</label>
-              <input type="number" step="0.01" value={pensionRate} onChange={(e) => setPensionRate(e.target.value)} placeholder="14.5" className="w-full px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-slate-900 dark:text-white" />
-              <p className="text-[10px] text-emerald-500 mt-1">employer contribution</p>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-pink-600 uppercase tracking-wider block mb-2">H&W Rate (%) *</label>
-              <input type="number" step="0.01" value={hwRate} onChange={(e) => setHwRate(e.target.value)} placeholder="1.0" className="w-full px-4 py-2.5 bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/50 text-slate-900 dark:text-white" />
-              <p className="text-[10px] text-pink-500 mt-1">employer contribution</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Effective Date *</label>
-              <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Expiration Date</label>
-              <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-900 dark:text-white" />
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-950/20 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Heart size={15} className="text-orange-600" />
-              <p className="text-xs font-black uppercase tracking-wider text-orange-700 dark:text-orange-300">Fringe Benefits</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
-              <input
-                type="text"
-                value={fringeName}
-                onChange={(e) => setFringeName(e.target.value)}
-                placeholder="Vacation accrual, annuity, training fund..."
-                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-slate-900 dark:text-white"
-              />
-              <input
-                type="number"
-                step="0.01"
-                value={fringeRate}
-                onChange={(e) => setFringeRate(e.target.value)}
-                placeholder="5.5%"
-                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-orange-200 dark:border-orange-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/40 text-slate-900 dark:text-white"
-              />
-            </div>
-            <p className="text-[10px] text-orange-700 dark:text-orange-400 mt-2">
-              Fringe rates are employer-paid and applied on top of pension and health & welfare contributions.
-            </p>
-          </div>
+        <div className="p-5 grid gap-3 md:grid-cols-2 text-sm">
+          <label className="md:col-span-2 flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Contract name</span><input value={contractName} onChange={(e) => setContractName(e.target.value)} className={inputCls} /></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Dues type</span><select value={duesType} onChange={(e) => setDuesType(e.target.value as "percentage" | "flat")} className={inputCls}><option value="percentage">Percentage</option><option value="flat">Flat</option></select></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Dues rate {duesType === "flat" ? "($)" : "(%)"}</span><input type="number" step="0.01" value={duesRate} onChange={(e) => setDuesRate(e.target.value)} className={inputCls} /></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Pension rate (%)</span><input type="number" step="0.01" value={pensionRate} onChange={(e) => setPensionRate(e.target.value)} className={inputCls} /></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Health &amp; welfare (%)</span><input type="number" step="0.01" value={healthWelfareRate} onChange={(e) => setHealthWelfareRate(e.target.value)} className={inputCls} /></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Work dues (%)</span><input type="number" step="0.01" value={workDuesRate} onChange={(e) => setWorkDuesRate(e.target.value)} className={inputCls} /></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Effective date</span><input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={inputCls} /></label>
+          <label className="flex flex-col gap-1"><span className="font-bold text-slate-600 dark:text-slate-300">Expiration (optional)</span><input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className={inputCls} /></label>
         </div>
-
-        <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-900">
-          <button onClick={onClose} className="px-4 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400">Cancel</button>
-          <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all">
-            <Save size={16} /> Save Contract
+        <div className="p-5 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600">Cancel</button>
+          <button onClick={submit} disabled={busy} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold rounded-lg">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Add Contract
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ─── Main Settings Page ───────────────────────────────────────── */
-
-export default function UnionSettingsPage() {
-  const [showAddUnion, setShowAddUnion] = useState(false);
-  const [addContractFor, setAddContractFor] = useState<{ id: string; name: string } | null>(null);
-  const [expandedUnion, setExpandedUnion] = useState<string | null>("u-001");
-
-  return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/payroll/union" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors">
-              <ArrowLeft size={14} /> Back to Union Payroll
-            </Link>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Settings size={20} className="text-white" />
-            </div>
-            Union Configuration
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 ml-[52px]">
-            Manage union profiles, contract rates, and fringe benefit configurations.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddUnion(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20"
-        >
-          <Plus size={16} /> Add Union
-        </button>
-      </div>
-
-      {/* Info */}
-      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
-        <Info size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-bold text-blue-800 dark:text-blue-300">How Union Configuration Works</p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-            Add unions your company works with, then configure each union&apos;s contract with dues rates, pension fund contributions, health & welfare contributions, work dues, and fringe benefit rates. These rates are automatically applied during payroll processing for union member employees.
-          </p>
-        </div>
-      </div>
-
-      {/* Union Accordion List */}
-      <div className="flex flex-col gap-4">
-        {mockUnions.map((union) => {
-          const uc = getUnionColor(union.abbreviation);
-          const contracts = mockUnionContracts.filter(c => c.unionId === union.id);
-          const isExpanded = expandedUnion === union.id;
-
-          return (
-            <div key={union.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-              {/* Union Header Row */}
-              <button
-                onClick={() => setExpandedUnion(isExpanded ? null : union.id)}
-                className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${uc.gradient} flex items-center justify-center shadow-lg shadow-indigo-500/10`}>
-                    <Shield size={22} className="text-white" />
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-black text-slate-900 dark:text-white">{union.abbreviation}</h3>
-                      <StatusBadge status={union.status} />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{union.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">{contracts.length} contract{contracts.length !== 1 ? "s" : ""}</p>
-                    <p className="text-[10px] text-slate-500">{union.memberCount} members</p>
-                  </div>
-                  <ChevronRight size={20} className={`text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
-                </div>
-              </button>
-
-              {/* Expanded Content */}
-              {isExpanded && (
-                <div className="border-t border-slate-200 dark:border-slate-800">
-                  {/* Description */}
-                  <div className="px-5 py-3 bg-slate-50/50 dark:bg-slate-800/20">
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{union.description}</p>
-                  </div>
-
-                  {/* Contracts */}
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Contracts & Rate Schedules</h4>
-                      <button
-                        onClick={() => setAddContractFor({ id: union.id, name: union.abbreviation })}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
-                      >
-                        <Plus size={12} /> Add Contract
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      {contracts.map((contract) => (
-                        <div key={contract.id} className={`border ${uc.border} rounded-xl overflow-hidden`}>
-                          <div className={`${uc.bg} px-4 py-3 flex items-center justify-between`}>
-                            <div>
-                              <p className={`text-sm font-bold ${uc.text}`}>{contract.contractName}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">
-                                {formatDate(contract.effectiveDate)} — {formatDate(contract.expirationDate)}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <StatusBadge status={contract.status} />
-                              <button className="p-1.5 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
-                                <Edit3 size={14} className="text-slate-400" />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="px-4 py-3 bg-white dark:bg-slate-900">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                              <div className="bg-violet-50 dark:bg-violet-950/30 rounded-lg p-2.5">
-                                <p className="text-[9px] font-bold text-violet-600 uppercase">Dues</p>
-                                <p className="text-base font-black text-violet-800 dark:text-violet-300">{contract.duesRate}%</p>
-                                <p className="text-[8px] text-violet-500">Employee</p>
-                              </div>
-                              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-2.5">
-                                <p className="text-[9px] font-bold text-emerald-600 uppercase">Pension</p>
-                                <p className="text-base font-black text-emerald-800 dark:text-emerald-300">{contract.pensionRate}%</p>
-                                <p className="text-[8px] text-emerald-500">Employer</p>
-                              </div>
-                              <div className="bg-pink-50 dark:bg-pink-950/30 rounded-lg p-2.5">
-                                <p className="text-[9px] font-bold text-pink-600 uppercase">H&W</p>
-                                <p className="text-base font-black text-pink-800 dark:text-pink-300">{contract.healthWelfareRate}%</p>
-                                <p className="text-[8px] text-pink-500">Employer</p>
-                              </div>
-                              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-2.5">
-                                <p className="text-[9px] font-bold text-blue-600 uppercase">Work Dues</p>
-                                <p className="text-base font-black text-blue-800 dark:text-blue-300">{contract.workDuesRate}%</p>
-                                <p className="text-[8px] text-blue-500">Employee</p>
-                              </div>
-                            </div>
-
-                            {/* Fringe benefits */}
-                            {contract.fringeBenefits.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                                <p className="text-[10px] font-bold text-orange-600 uppercase mb-2">Fringe Benefits</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {contract.fringeBenefits.map((fb) => (
-                                    <span key={fb.id} className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800 rounded-lg text-[10px] font-bold">
-                                      {fb.benefitName}: {fb.rate}%
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-
-                      {contracts.length === 0 && (
-                        <div className="text-center py-8 text-slate-500 text-sm">
-                          No contracts configured. Click "Add Contract" to set up rates.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Quick Reference */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Common Union Rate Reference</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-medium tracking-wide">
-              <tr>
-                <th className="px-4 py-3">Union</th>
-                <th className="px-4 py-3 text-right">Typical Dues</th>
-                <th className="px-4 py-3 text-right">Pension</th>
-                <th className="px-4 py-3 text-right">H&W</th>
-                <th className="px-4 py-3 text-right">Total Employer</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {[
-                { name: "SAG-AFTRA", dues: "1.575%", pension: "14.5–17%", hw: "0.84–1%", total: "~23.5%" },
-                { name: "IATSE", dues: "2%", pension: "6.5–10%", hw: "6–8.5%", total: "~27%" },
-                { name: "WGA", dues: "1.5%", pension: "8.5%", hw: "8.5%", total: "~21%" },
-                { name: "DGA", dues: "2.5%", pension: "13%", hw: "7.5%", total: "~25.5%" },
-              ].map((ref) => {
-                const uc = getUnionColor(ref.name);
-                return (
-                  <tr key={ref.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${uc.bg} ${uc.text}`}>
-                        <Shield size={10} />
-                        {ref.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-violet-600">{ref.dues}</td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-emerald-600">{ref.pension}</td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-pink-600">{ref.hw}</td>
-                    <td className="px-4 py-3 text-right text-sm font-black text-slate-900 dark:text-white">{ref.total}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-[10px] text-slate-400 mt-3 italic">
-          * Rates shown are approximate typical values. Actual rates vary by specific contract, classification, and budget tier. Always reference the governing CBA.
-        </p>
-      </div>
-
-      {/* Modals */}
-      {showAddUnion && <AddUnionModal onClose={() => setShowAddUnion(false)} />}
-      {addContractFor && (
-        <AddContractModal
-          unionId={addContractFor.id}
-          unionName={addContractFor.name}
-          onClose={() => setAddContractFor(null)}
-        />
-      )}
     </div>
   );
 }

@@ -2453,6 +2453,63 @@ export const taxSetAsides = pgTable('tax_set_asides', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// custom_roles — tenant-defined RBAC roles layered on top of the built-in
+// `@/lib/rbac` roles. permissions is a string array of permission slugs.
+export const customRoles = pgTable('custom_roles', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  basedOn: text('based_on'), // built-in role id this was cloned from (optional)
+  permissions: jsonb('permissions').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// departments — tenant org unit. Distinct from the `employees.department` text
+// column which is a display cache — this is the canonical row.
+export const departments = pgTable('departments', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  head: text('head'),
+  budgetCents: integer('budget_cents').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// company_locations — the tenant's HQ / branch offices. Separate from
+// time_clock_locations (kiosk geofences) — those are punch-in points, these
+// are the workspaces employees are assigned to.
+export const companyLocations = pgTable('company_locations', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  address: text('address'),
+  timezone: text('timezone'),
+  isHeadquarters: boolean('is_headquarters').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// pending_invites — a user invited to the workspace before they've claimed
+// their account. On acceptance a `users` row is inserted and the invite is
+// consumed (deleted). Distinct from onboarding_cases which model the HR
+// onboarding tasks after the user exists.
+export const pendingInvites = pgTable('pending_invites', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role').notNull().default('employee'),
+  invitedBy: integer('invited_by').references(() => users.id, { onDelete: 'set null' }),
+  token: text('token').notNull(),
+  status: text('status').notNull().default('pending'), // pending | accepted | revoked
+  acceptedAt: timestamp('accepted_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+});
+
 // client_invoices — a creator billing their own clients. Distinct from
 // agency_invoices (agency billing clients for staff labor). Status is a
 // simple manual lifecycle: Draft → Sent → Paid, with Overdue derived.

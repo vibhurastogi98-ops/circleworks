@@ -34,49 +34,6 @@ interface RoleState {
   basedOn?: string;
 }
 
-const starterCustomRoles: RoleState[] = [
-  {
-    id: "recruiter_only",
-    name: "Recruiter Only",
-    type: "Custom",
-    description: "ATS and onboarding access without employee compensation or payroll.",
-    userCount: 5,
-    basedOn: "HR Manager",
-    permissions: [
-      "view_jobs",
-      "manage_jobs",
-      "view_candidates",
-      "manage_candidates",
-      "send_offers",
-      "manage_interviews",
-      "view_interview_feedback",
-      "view_ats_reports",
-      "view_onboarding",
-      "manage_onboarding",
-      "send_onboarding_packets",
-    ],
-  },
-  {
-    id: "audit_read_only",
-    name: "Audit Read Only",
-    type: "Custom",
-    description: "Read-only access to reports, compliance, payroll filings, and audit logs.",
-    userCount: 2,
-    basedOn: "Finance",
-    permissions: [
-      "view_reports",
-      "export_reports",
-      "view_compliance",
-      "view_audit_log",
-      "export_audit_log",
-      "view_tax_filings",
-      "view_payroll_reports",
-      "view_finance_reports",
-      "view_expenses",
-    ],
-  },
-];
-
 const builtInRoleState: RoleState[] = builtInRoles.map((role) => ({
   id: role.id,
   name: role.name,
@@ -86,53 +43,48 @@ const builtInRoleState: RoleState[] = builtInRoles.map((role) => ({
   permissions: role.permissions,
 }));
 
-const CUSTOM_ROLES_STORAGE_KEY = "circleworks.customRoles.v1";
-
 function getPermissionCount(permissions: string[]) {
   return new Set(permissions).size;
 }
 
 function defaultRoles() {
-  return [...builtInRoleState, ...starterCustomRoles];
+  return builtInRoleState;
 }
 
-function isRoleState(value: unknown): value is RoleState {
-  if (!value || typeof value !== "object") return false;
-  const role = value as Partial<RoleState>;
-  return (
-    typeof role.id === "string" &&
-    typeof role.name === "string" &&
-    typeof role.description === "string" &&
-    role.type === "Custom" &&
-    typeof role.userCount === "number" &&
-    Array.isArray(role.permissions) &&
-    role.permissions.every((permission) => typeof permission === "string")
-  );
-}
+// Custom roles now live in the `custom_roles` DB table (see migration 0032).
+// The old localStorage path is gone — this bridges the API shape into the
+// RoleState shape the rest of the component uses.
+type ApiRole = { id: number; name: string; description: string | null; basedOn: string | null; permissions: string[] };
 
-function loadCustomRoles() {
-  if (typeof window === "undefined") return starterCustomRoles;
+async function fetchCustomRoles(): Promise<RoleState[]> {
   try {
-    const raw = window.localStorage.getItem(CUSTOM_ROLES_STORAGE_KEY);
-    if (!raw) return starterCustomRoles;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return starterCustomRoles;
-    return parsed.filter(isRoleState);
+    const r = await fetch("/api/custom-roles", { cache: "no-store", credentials: "include" });
+    if (!r.ok) return [];
+    const data = (await r.json()) as { roles: ApiRole[] };
+    return (data.roles ?? []).map((row) => ({
+      id: `custom_${row.id}`,
+      name: row.name,
+      description: row.description ?? "",
+      type: "Custom" as const,
+      userCount: 0,
+      basedOn: row.basedOn ?? undefined,
+      permissions: row.permissions ?? [],
+    }));
   } catch {
-    return starterCustomRoles;
+    return [];
   }
 }
 
-function persistCustomRoles(roles: RoleState[]) {
-  if (typeof window === "undefined") return;
-  const customRoles = roles.filter((role) => role.type === "Custom");
-  window.localStorage.setItem(CUSTOM_ROLES_STORAGE_KEY, JSON.stringify(customRoles));
+function roleDbIdFromClientId(clientId: string): number | null {
+  const m = /^custom_(\d+)$/.exec(clientId);
+  return m ? Number(m[1]) : null;
 }
 
 function createDraftRole(templateName = "Employee"): RoleState {
   const template = builtInRoleState.find((role) => role.name === templateName) ?? builtInRoleState[0];
   return {
-    id: `custom_${Date.now()}`,
+    // Draft (unsaved) roles use a `new_*` id so we can distinguish from persisted ones.
+    id: `new_${Date.now()}`,
     name: "",
     description: "",
     type: "Custom",
@@ -164,7 +116,10 @@ export default function RolesSettingsPage() {
   }, [selectedPermissions]);
 
   useEffect(() => {
-    setRoles([...builtInRoleState, ...loadCustomRoles()]);
+    void (async () => {
+      const custom = await fetchCustomRoles();
+      setRoles([...builtInRoleState, ...custom]);
+    })();
   }, []);
 
   useEffect(() => {
@@ -234,32 +189,56 @@ export default function RolesSettingsPage() {
     });
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     if (!draftRole?.name.trim()) {
       toast.error("Role name is required.");
       return;
     }
 
-    const savedRole = { ...draftRole, name: draftRole.name.trim(), description: draftRole.description.trim() };
-    const exists = roles.some((role) => role.id === savedRole.id);
-    setRoles((current) => {
-      const nextRoles = exists ? current.map((role) => (role.id === savedRole.id ? savedRole : role)) : [...current, savedRole];
-      persistCustomRoles(nextRoles);
-      return nextRoles;
+    const isNew = draftRole.id.startsWith("new_");
+    const existingDbId = isNew ? null : roleDbIdFromClientId(draftRole.id);
+
+    const payload = {
+      id: existingDbId ?? undefined,
+      name: draftRole.name.trim(),
+      description: draftRole.description.trim(),
+      basedOn: draftRole.basedOn ?? null,
+      permissions: draftRole.permissions,
+    };
+
+    const r = await fetch("/api/custom-roles", {
+      method: isNew ? "POST" : "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
-    setSelectedRoleId(savedRole.id);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      toast.error(data.error === "name_in_use" ? "A role with that name already exists." : (data.error || `save_failed_${r.status}`));
+      return;
+    }
+
+    const custom = await fetchCustomRoles();
+    setRoles([...builtInRoleState, ...custom]);
+    const savedId = `custom_${data.role?.id}`;
+    setSelectedRoleId(savedId);
     setDraftRole(null);
-    router.push(`/settings/roles/${savedRole.id}`);
-    toast.success(`Role "${savedRole.name}" saved.`);
+    router.push(`/settings/roles/${savedId}`);
+    toast.success(`Role "${payload.name}" saved.`);
   };
 
-  const deleteCustomRole = () => {
+  const deleteCustomRole = async () => {
     if (!deleteRole || deleteRole.type !== "Custom") return;
-    setRoles((current) => {
-      const nextRoles = current.filter((role) => role.id !== deleteRole.id);
-      persistCustomRoles(nextRoles);
-      return nextRoles;
-    });
+    const dbId = roleDbIdFromClientId(deleteRole.id);
+    if (!dbId) { toast.error("Can't delete: not a persisted role"); return; }
+    const r = await fetch(`/api/custom-roles?id=${dbId}`, { method: "DELETE", credentials: "include" });
+    if (!r.ok) {
+      const data = await r.json().catch(() => ({}));
+      toast.error(data.error || `delete_failed_${r.status}`);
+      return;
+    }
+    const custom = await fetchCustomRoles();
+    setRoles([...builtInRoleState, ...custom]);
     setSelectedRoleId("owner");
     router.push("/settings/roles/owner");
     setDeleteRole(null);

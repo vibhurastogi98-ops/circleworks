@@ -1,8 +1,10 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clientInvoiceItems, clientInvoices, companies } from "@/db/schema";
+import { rateLimit } from "@/lib/platform-rate-limit";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +16,25 @@ function fmt(cents: number) {
 export default async function PublicInvoicePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!token || token.length < 16 || token.length > 128) notFound();
+
+  // 20 views/hour per (IP, token). Over-quota renders a plain 429 page so a
+  // scraper can't just switch between IPs and keep pulling this page cheaply.
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() || hdrs.get("x-real-ip") || "unknown";
+  const rl = await rateLimit({
+    key: `public-invoice-page:${ip}:${token}`,
+    limit: 20,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rl.allowed) {
+    const retryMin = Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 60000));
+    return (
+      <div className="mx-auto max-w-md p-10 text-center">
+        <h1 className="text-2xl font-black text-slate-950">Too many requests</h1>
+        <p className="mt-2 text-sm text-slate-500">Please try again in about {retryMin} minute{retryMin === 1 ? "" : "s"}.</p>
+      </div>
+    );
+  }
 
   const [invoice] = await db
     .select()

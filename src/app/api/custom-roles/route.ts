@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { unionContracts, unions } from "@/db/schema";
+import { customRoles } from "@/db/schema";
 import { getSession, resolveUserContext } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -12,23 +12,23 @@ async function ctxOr401(request: NextRequest) {
   if (!session) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
   const ctx = await resolveUserContext(session);
   if (!ctx?.companyId) return { error: NextResponse.json({ error: "no_company" }, { status: 400 }) };
-  return { ctx };
+  return { session, ctx };
 }
 
-/**
- * Tenant-scoped list of unions this workspace has configured, with their
- * contracts inlined. Previously accepted `companyId` from the query — now
- * derives it from the session so a caller can't peek at another tenant.
- */
 export async function GET(request: NextRequest) {
   const gate = await ctxOr401(request);
   if ("error" in gate) return gate.error;
-  const rows = await db.query.unions.findMany({
-    where: eq(unions.companyId, gate.ctx.companyId),
-    with: { contracts: true },
-    orderBy: (u, { asc }) => [asc(u.name)],
-  });
-  return NextResponse.json({ unions: rows });
+  const rows = await db
+    .select()
+    .from(customRoles)
+    .where(eq(customRoles.companyId, gate.ctx.companyId))
+    .orderBy(asc(customRoles.name));
+  return NextResponse.json({ roles: rows });
+}
+
+function normalizePermissions(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return Array.from(new Set(input.filter((p) => typeof p === "string" && p.trim()).map((p) => (p as string).trim())));
 }
 
 export async function POST(request: NextRequest) {
@@ -36,15 +36,23 @@ export async function POST(request: NextRequest) {
   if ("error" in gate) return gate.error;
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const name = typeof body.name === "string" ? body.name.trim() : "";
-  const abbreviation = typeof body.abbreviation === "string" ? body.abbreviation.trim() : null;
-  const description = typeof body.description === "string" ? body.description.trim() : null;
   if (!name) return NextResponse.json({ error: "name_required" }, { status: 400 });
 
-  const [row] = await db
-    .insert(unions)
-    .values({ companyId: gate.ctx.companyId, name, abbreviation, description })
-    .returning();
-  return NextResponse.json({ ok: true, union: row });
+  try {
+    const [row] = await db.insert(customRoles).values({
+      companyId: gate.ctx.companyId,
+      name,
+      description: typeof body.description === "string" ? body.description.trim() : null,
+      basedOn: typeof body.basedOn === "string" ? body.basedOn : null,
+      permissions: normalizePermissions(body.permissions),
+      createdBy: gate.session.userId,
+    }).returning();
+    return NextResponse.json({ ok: true, role: row });
+  } catch (e) {
+    const msg = (e as Error).message ?? "insert_failed";
+    if (/unique|duplicate/i.test(msg)) return NextResponse.json({ error: "name_in_use" }, { status: 409 });
+    throw e;
+  }
 }
 
 export async function PATCH(request: NextRequest) {
@@ -54,17 +62,17 @@ export async function PATCH(request: NextRequest) {
   const id = Number(body.id);
   if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
 
-  const [existing] = await db.select({ id: unions.id }).from(unions).where(and(eq(unions.id, id), eq(unions.companyId, gate.ctx.companyId))).limit(1);
+  const [existing] = await db.select({ id: customRoles.id }).from(customRoles).where(and(eq(customRoles.id, id), eq(customRoles.companyId, gate.ctx.companyId))).limit(1);
   if (!existing) return NextResponse.json({ error: "not_found_or_not_yours" }, { status: 404 });
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
-  if (typeof body.abbreviation === "string") patch.abbreviation = body.abbreviation.trim() || null;
   if (typeof body.description === "string") patch.description = body.description.trim() || null;
-  if (typeof body.status === "string" && ["Active", "Inactive"].includes(body.status)) patch.status = body.status;
+  if (typeof body.basedOn === "string") patch.basedOn = body.basedOn || null;
+  if (Array.isArray(body.permissions)) patch.permissions = normalizePermissions(body.permissions);
 
-  const [row] = await db.update(unions).set(patch).where(eq(unions.id, id)).returning();
-  return NextResponse.json({ ok: true, union: row });
+  const [row] = await db.update(customRoles).set(patch).where(eq(customRoles.id, id)).returning();
+  return NextResponse.json({ ok: true, role: row });
 }
 
 export async function DELETE(request: NextRequest) {
@@ -72,8 +80,8 @@ export async function DELETE(request: NextRequest) {
   if ("error" in gate) return gate.error;
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!Number.isInteger(id) || id <= 0) return NextResponse.json({ error: "invalid_id" }, { status: 400 });
-  const [existing] = await db.select({ id: unions.id }).from(unions).where(and(eq(unions.id, id), eq(unions.companyId, gate.ctx.companyId))).limit(1);
+  const [existing] = await db.select({ id: customRoles.id }).from(customRoles).where(and(eq(customRoles.id, id), eq(customRoles.companyId, gate.ctx.companyId))).limit(1);
   if (!existing) return NextResponse.json({ error: "not_found_or_not_yours" }, { status: 404 });
-  await db.delete(unions).where(eq(unions.id, id));
+  await db.delete(customRoles).where(eq(customRoles.id, id));
   return NextResponse.json({ ok: true });
 }

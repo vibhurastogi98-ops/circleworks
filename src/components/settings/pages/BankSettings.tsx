@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Plus, Building, CheckCircle2, AlertCircle, RefreshCw, X, Landmark, ShieldCheck, Trash2, Edit3 } from "lucide-react";
 import { mockBankAccounts } from "@/data/mockSettings";
 import { toast } from "sonner";
+import { DemoDataBanner } from "@/components/DemoDataBanner";
 
 export default function BankSettingsPage() {
   const [accounts, setAccounts] = useState(mockBankAccounts);
@@ -70,6 +71,7 @@ export default function BankSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl">
+      <DemoDataBanner />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bank Accounts</h1>

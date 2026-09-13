@@ -1,140 +1,119 @@
 "use client";
 
-import React, { useState } from "react";
-import { CreditCard, Download, Zap, TrendingUp, Calendar } from "lucide-react";
-import { mockBilling } from "@/data/mockSettings";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { toast } from "sonner";
-import { formatDate } from "@/utils/formatDate";
+import React, { useCallback, useEffect, useState } from "react";
+import { CreditCard, TrendingUp, Zap } from "lucide-react";
+
+type PlanResponse = {
+  hasPlan: boolean;
+  activeEmployees: number;
+  plan: {
+    id: string;
+    name: string;
+    basePriceCents: number;
+    perSeatPriceCents: number;
+    seatCount: number;
+    status: string;
+    trialEndsAt: string | null;
+    effectiveFrom: string | null;
+  } | null;
+  estimatedNextInvoiceCents: number;
+};
+
+function money(cents: number) {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
 
 export default function BillingSettingsPage() {
-  const { isNewUser } = useDashboardData();
-  const [billing] = useState(mockBilling);
+  const [data, setData] = useState<PlanResponse | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  // Dynamic overrides for new users
-  const activeEmployees = isNewUser ? 0 : billing.activeEmployees;
-  const status = isNewUser ? "Free Trial" : billing.status;
-  const renewalDate = isNewUser ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : billing.renewalDate;
-  const invoices = isNewUser ? [] : billing.invoices;
-  const estimatedTotal = isNewUser ? 0 : billing.estimatedNextInvoice;
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/billing/plan", { cache: "no-store", credentials: "include" });
+      if (r.status === 401) { setErr("Please sign in."); return; }
+      if (!r.ok) { setErr(`Failed (HTTP ${r.status})`); return; }
+      const d = (await r.json()) as PlanResponse;
+      setData(d);
+      setErr(null);
+    } catch { setErr("Network error"); }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 max-w-5xl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Billing & Plans</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Manage your subscription, payment methods, and invoices.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Billing &amp; Plans</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Your current subscription. Plan changes are handled by CircleWorks admin — reach out to change tiers.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Current Plan Overview */}
-        <div className="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-blue-950 dark:to-slate-900 rounded-xl p-6 shadow-sm text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-6 opacity-10">
-            <Zap size={120} />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1 block">Current Plan</span>
-                <h2 className="text-3xl font-black">{isNewUser ? "Pro Trial" : billing.plan}</h2>
-              </div>
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-full uppercase tracking-wider border border-green-500/30">
-                {status}
-              </span>
-            </div>
+      {err && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">{err}</div>
+      )}
 
-            <div className="grid grid-cols-3 gap-4 mb-8">
-               <div>
-                 <span className="text-slate-400 text-xs block mb-1">Active Employees</span>
-                 <span className="text-xl font-bold">{activeEmployees}</span>
-               </div>
-               <div>
-                 <span className="text-slate-400 text-xs block mb-1">Per User / Mo</span>
-                 <span className="text-xl font-bold">${billing.pricePerUser}</span>
-               </div>
-               <div>
-                 <span className="text-slate-400 text-xs block mb-1">Base Fee / Mo</span>
-                 <span className="text-xl font-bold">${billing.baseFee}</span>
-               </div>
-            </div>
+      {!data && !err && <p className="text-sm text-slate-500">Loading…</p>}
 
-            <div className="flex items-center justify-between border-t border-slate-700 pt-6">
-              <div>
-                <span className="text-slate-400 text-xs block mb-1">Next Payment Date</span>
-                <span className="text-sm font-bold">{formatDate(renewalDate)}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-slate-400 text-xs block mb-1">Estimated Total</span>
-                <span className="text-2xl font-black text-blue-400">${estimatedTotal}</span>
-              </div>
-            </div>
-          </div>
+      {data && !data.hasPlan && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+          <p className="font-black">No plan on file</p>
+          <p className="mt-1 text-sm">Your workspace hasn't been provisioned to a plan yet. Contact CircleWorks to activate billing.</p>
         </div>
+      )}
 
-        {/* Payment Method */}
-        <div className="md:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Payment Method</h3>
-            <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-              <CreditCard size={24} className="text-slate-500" />
-              <div>
-                <div className="font-bold text-slate-900 dark:text-white text-sm">{billing.paymentMethod.type} ending in {billing.paymentMethod.last4}</div>
-                <div className="text-xs text-slate-500">Expires {billing.paymentMethod.expiry}</div>
+      {data?.plan && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-blue-950 dark:to-slate-900 rounded-xl p-6 shadow-sm text-white overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-6 opacity-10"><Zap size={120} /></div>
+              <div className="relative z-10">
+                <div className="mb-8">
+                  <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1 block">Current plan</span>
+                  <h2 className="text-3xl font-black">{data.plan.name}</h2>
+                  <p className="mt-1 text-xs text-slate-400">Status: <span className="font-black text-white">{data.plan.status}</span></p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Stat label="Base" value={money(data.plan.basePriceCents)} />
+                  <Stat label="Per seat" value={money(data.plan.perSeatPriceCents)} />
+                  <Stat label="Seats billed" value={String(data.plan.seatCount)} />
+                  <Stat label="Active employees" value={String(data.activeEmployees)} />
+                </div>
+                {data.plan.trialEndsAt && (
+                  <p className="mt-6 text-xs text-blue-300">Trial ends {new Date(data.plan.trialEndsAt).toLocaleDateString()}</p>
+                )}
               </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                <TrendingUp size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider">Estimated next invoice</span>
+              </div>
+              <p className="mt-4 text-3xl font-black text-slate-950 dark:text-white">{money(data.estimatedNextInvoiceCents)}</p>
+              <p className="mt-2 text-xs text-slate-500">Base + per-seat × {data.plan.seatCount}. Actual invoices are produced by CircleWorks admin.</p>
             </div>
           </div>
-          <button className="w-full mt-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm rounded-lg transition-colors">
-            Update Method
-          </button>
-        </div>
-      </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-             Invoice History
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 text-slate-500 font-medium">
-              <tr>
-                <th className="px-6 py-3">Invoice ID</th>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3">Amount</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Download</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {invoices.length > 0 ? invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                  <td className="px-6 py-4 font-mono font-medium text-slate-700 dark:text-slate-300">{inv.id}</td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{formatDate(inv.date)}</td>
-                  <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">${inv.amount}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors inline-block">
-                      <Download size={16} />
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                    No invoices found. Your first invoice will be generated at the end of your trial.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <CreditCard size={20} /> Payment method
+            </h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Payment collection isn't wired in this build. To update a payment method, contact CircleWorks.
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-blue-300">{label}</p>
+      <p className="mt-1 text-lg font-black">{value}</p>
     </div>
   );
 }
