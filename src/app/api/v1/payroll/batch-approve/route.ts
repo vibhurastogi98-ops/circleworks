@@ -7,10 +7,14 @@
 import { db } from "@/db";
 import { payrolls } from "@/db/schema";
 import { versionedResponse } from "@/lib/apiVersioning";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { dispatchWebhook } from "../../../../../lib/webhooks";
+import { requireApiKey } from "@/lib/api-key-auth";
 
 export async function POST(req: Request) {
+  const auth = await requireApiKey(req);
+  if (!auth.ok) return auth.response;
+  const { companyId } = auth.ctx;
   try {
     const body = await req.json();
 
@@ -34,11 +38,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch runs to be approved — only approve 'pending' runs
+    // Fetch runs to be approved — scoped to this API key's tenant, pending only.
     const runsToApprove = await db
       .select()
       .from(payrolls)
-      .where(inArray(payrolls.id, runIds));
+      .where(and(inArray(payrolls.id, runIds), eq(payrolls.companyId, companyId)));
 
     const pendingRuns = runsToApprove.filter((r) => r.status === "pending");
     const skipped = runsToApprove.filter((r) => r.status !== "pending").map((r) => r.id);

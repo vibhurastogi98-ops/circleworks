@@ -2453,6 +2453,48 @@ export const taxSetAsides = pgTable('tax_set_asides', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// custom_field_definitions — tenant-defined columns that extend the base
+// employees / contractors record. Values live in custom_field_values keyed
+// by definitionId + entityId (employee_id or contractor_id). Definitions
+// persist; the values UI is deferred.
+export const customFieldDefinitions = pgTable('custom_field_definitions', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  fieldType: text('field_type').notNull(), // 'text' | 'number' | 'date' | 'dropdown'
+  // Options for dropdown; ignored for other types. Free-form array of strings.
+  options: jsonb('options').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  appliesTo: text('applies_to').notNull(), // 'employee' | 'contractor'
+  required: boolean('required').notNull().default(false),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const customFieldValues = pgTable('custom_field_values', {
+  id: serial('id').primaryKey(),
+  definitionId: integer('definition_id').notNull().references(() => customFieldDefinitions.id, { onDelete: 'cascade' }),
+  entityId: integer('entity_id').notNull(),
+  value: text('value'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// api_keys — tenant-issued keys for /api/v1/*. The plaintext key is shown
+// once at creation; only sha256(key) is stored. keyPrefix is the visible
+// display prefix (e.g. "cw_live_ABC1…") that lets tenants identify a key
+// without seeing the secret.
+export const apiKeys = pgTable('api_keys', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  label: text('label').notNull(),
+  keyPrefix: text('key_prefix').notNull(), // first ~12 chars for display
+  hashedKey: text('hashed_key').notNull(), // sha256 hex of full key
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at'),
+  revokedAt: timestamp('revoked_at'),
+});
+
 // custom_roles — tenant-defined RBAC roles layered on top of the built-in
 // `@/lib/rbac` roles. permissions is a string array of permission slugs.
 export const customRoles = pgTable('custom_roles', {

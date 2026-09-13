@@ -88,6 +88,7 @@ Same pattern: `/api/employees/module?screen=directory` is real; every other sub-
 
 - `README.md` has never been updated with anything real. Fixed in this pass — it now points to this `/docs`, `/runbooks`, `/brain` structure.
 - Multiple modules refer to "Section N" or "Prompt N" naming conventions in older commits (`Section 26`, `Prompt 21`, `Sec. 17`) that no longer correspond to any current document. Ignore in new work — this predates the current architecture.
+- **`Sec_35_API_Contract_Additions.md` and `backend/API_IMPLEMENTATION.md` are stale on `/api/v1/*` auth.** Both docs list the three batch endpoints (`/api/v1/employees/batch`, `/api/v1/documents/batch-send`, `/api/v1/payroll/batch-approve`) without mentioning that they now require `Authorization: Bearer <api-key>`. The endpoints previously had no real auth; a session-cookie + `body.companyId` fallback silently accepted any request. As of the API-keys batch (commit adding `api_keys` + `requireApiKey`), all three require a workspace-scoped bearer key minted from `/settings/*/api`. Not urgent, doesn't block anything at runtime — the grep audit before merge confirmed zero in-code callers. Just needs a docs pass eventually.
 
 ---
 

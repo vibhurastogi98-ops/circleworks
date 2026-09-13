@@ -6,15 +6,18 @@
  */
 
 import { db } from "@/db";
-import { employees, onboardingCases, users } from "@/db/schema";
-import { getSession } from "@/lib/session";
+import { employees, onboardingCases } from "@/db/schema";
 import { versionedResponse } from "@/lib/apiVersioning";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { dispatchWebhook } from "../../../../../lib/webhooks";
+import { requireApiKey } from "@/lib/api-key-auth";
 
 const BATCH_CREATE_LIMIT = 100;
 
 export async function GET(req: Request) {
+  const auth = await requireApiKey(req);
+  if (!auth.ok) return auth.response;
+  const { companyId } = auth.ctx;
   try {
     const { searchParams } = new URL(req.url);
     const idsParam = searchParams.get("ids");
@@ -51,10 +54,11 @@ export async function GET(req: Request) {
       );
     }
 
+    // Scope results to this API key's tenant.
     const results = await db
       .select()
       .from(employees)
-      .where(inArray(employees.id, ids));
+      .where(and(inArray(employees.id, ids), eq(employees.companyId, companyId)));
 
     return versionedResponse({
       data: results,
@@ -68,6 +72,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireApiKey(req);
+  if (!auth.ok) return auth.response;
+  const { companyId } = auth.ctx;
   try {
     const body = await req.json();
 
@@ -117,26 +124,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const session = await getSession();
-    const userId = session?.userId ?? null;
-
-    const [userEmployee] = userId
-      ? await db
-          .select({ companyId: employees.companyId })
-          .from(employees)
-          .leftJoin(users, eq(employees.userId, users.id))
-          .where(eq(users.id, userId))
-      : [];
-
-    const companyId = userEmployee?.companyId || body.companyId;
-    if (!companyId) {
-      return versionedResponse(
-        { error: "company_not_found", message: "Could not resolve company for this user." },
-        "v1",
-        req,
-        400
-      );
-    }
+    // companyId comes from the API key — never from the request body.
 
     // Build insert payloads
     const insertData = records.map((emp: any) => ({

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireApiPermission } from "@/lib/apiRbac";
 import { db } from "@/db";
-import { employees, employeeBankAccounts, onboardingCases, users, companies } from "@/db/schema";
-import { generateInviteToken } from "@/lib/tokens";
-import { sendEmail } from "@/lib/email";
+import { employees, users, companies } from "@/db/schema";
+import { createEmployeeForCompany } from "@/lib/employees-create";
 import { desc, sql, eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { applyEmployeeFieldVisibility } from "@/lib/fieldVisibility";
@@ -121,45 +120,23 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 4. DATABASE INSERTION
-    const employeeData = {
+    // 4. DATABASE INSERTION — shared with the CSV importer at
+    //    /api/import/employees/commit via createEmployeeForCompany.
+    const { employee: newEmployee } = await createEmployeeForCompany({
+      companyId,
       firstName: body.firstName,
       lastName: body.lastName || null,
       email: body.email,
-      companyId: companyId,
       jobTitle: body.jobTitle || null,
-      department: body.department && body.department.trim() ? body.department : null,
-      departmentId: null,
+      department: body.department || null,
       location: body.location || null,
-      locationId: null,
-      locationType: body.locationType || "On-Site",
-      avatar: body.avatar || `https://api.dicebear.com/7.x/notionists/svg?seed=${body.firstName}&backgroundColor=transparent`,
+      locationType: body.locationType || null,
+      avatar: body.avatar || null,
       startDate: body.startDate || null,
-      status: "onboarding",
       salary: body.compensation?.salary || body.salary || null,
-      employmentType: body.employmentType || "full-time",
-      payType: "salary",
+      employmentType: body.employmentType || null,
       managerId: body.managerId || null,
-    };
-
-    const [newEmployee] = await db.insert(employees).values(employeeData).returning();
-
-    // 3.1. SAVE BANKING INFO (If provided)
-    if (body.bankInfo && body.bankInfo.bankName) {
-      await db.insert(employeeBankAccounts).values({
-        employeeId: newEmployee.id,
-        bankName: body.bankInfo.bankName,
-        routingNumber: body.bankInfo.routingNumber,
-        accountNumberMasked: body.bankInfo.accountNumberMasked,
-        isPrimary: true,
-      });
-    }
-    
-    // 3.2. CREATE ONBOARDING CASE
-    await db.insert(onboardingCases).values({
-      employeeId: newEmployee.id,
-      status: "Active",
-      startDate: body.startDate || null,
+      bankInfo: body.bankInfo || null,
     });
 
     console.log(`[Employees POST] Created employee ID=${newEmployee.id} for company ID=${companyId}`);

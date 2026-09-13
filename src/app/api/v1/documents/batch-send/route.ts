@@ -7,11 +7,15 @@
 import { db } from "@/db";
 import { employeeDocuments, employees } from "@/db/schema";
 import { versionedResponse } from "@/lib/apiVersioning";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { requireApiKey } from "@/lib/api-key-auth";
 
 const BATCH_SEND_LIMIT = 200;
 
 export async function POST(req: Request) {
+  const auth = await requireApiKey(req);
+  if (!auth.ok) return auth.response;
+  const { companyId } = auth.ctx;
   try {
     const body = await req.json();
 
@@ -40,11 +44,11 @@ export async function POST(req: Request) {
 
     const numericIds: number[] = employeeIds.map(Number).filter((id: number) => !isNaN(id));
 
-    // Verify employees exist
+    // Verify employees exist AND belong to this API key's tenant.
     const validEmployees = await db
       .select({ id: employees.id, companyId: employees.companyId })
       .from(employees)
-      .where(inArray(employees.id, numericIds));
+      .where(and(inArray(employees.id, numericIds), eq(employees.companyId, companyId)));
 
     const validIds = validEmployees.map((e) => e.id);
     const invalidIds = numericIds.filter((id) => !validIds.includes(id));
