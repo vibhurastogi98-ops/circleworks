@@ -1,3 +1,4 @@
+import "@/lib/zod-init";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter } from "next/font/google";
