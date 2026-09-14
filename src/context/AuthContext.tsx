@@ -170,10 +170,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Listen after stale-session cleanup so invalid refresh tokens do not
       // surface as noisy development overlay errors on public pages.
+      //
+      // On token-refresh / focus-regained events for the same identity, do
+      // NOT clobber the already-resolved user with mapSupabaseUser(). That
+      // function falls back to role:"employee" when user_metadata has no
+      // role (e.g. Google OAuth accounts), which briefly flips the role
+      // between refreshUser() calls and can bounce a company owner to /me.
       const response = supabase.auth.onAuthStateChange((_event, session) => {
         setAccessToken(session?.access_token ?? null);
         if (session?.user) {
-          setUser(mapSupabaseUser(session.user));
+          setUser((prev) => {
+            const mapped = mapSupabaseUser(session.user);
+            if (!mapped) return null;
+            // Same identity + we already resolved a real profile → keep it;
+            // the async refreshUser() below will pick up any drift.
+            if (prev && prev.userId === mapped.userId) {
+              return { ...mapped, role: prev.role, accountType: prev.accountType };
+            }
+            return mapped;
+          });
           void refreshUser();
         } else {
           setUser(null);
