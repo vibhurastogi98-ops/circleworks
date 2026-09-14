@@ -189,6 +189,9 @@ export async function POST(req: Request) {
     }
 
     // 8. DISPATCH WEBHOOK: 'employee.auto_created_from_ats'
+    //    Webhook is a downstream notification — never let it fail the hire.
+    //    The employee row and onboarding case are already committed at this
+    //    point; a webhook 4xx/5xx should log and move on, not 500 the caller.
     await dispatchWebhook("employee.auto_created_from_ats", {
       employeeId: newEmployee.id,
       candidateId: candidate.id,
@@ -198,9 +201,12 @@ export async function POST(req: Request) {
       personalEmail: finalEmail,
       startDate: mappedStartDate,
       timestamp: new Date().toISOString()
+    }).catch((err) => {
+      console.error("[Hiring Hire] employee.auto_created_from_ats webhook failed (non-fatal):", err);
     });
 
     // 9. SEND PRE-BOARDING INVITE (Template #28)
+    //    Also non-fatal: email failure shouldn't 500 an otherwise-successful hire.
     if (finalEmail) {
       await sendEmail({
         to: finalEmail,
@@ -239,6 +245,8 @@ export async function POST(req: Request) {
             </p>
           </div>
         `
+      }).catch((err) => {
+        console.error("[Hiring Hire] pre-boarding invite email failed (non-fatal):", err);
       });
     }
 

@@ -118,12 +118,21 @@ const departments = Array.from(new Set([...employees.map((employee) => employee.
 
 async function fetchJson<T>(url: string, fallback: T): Promise<T> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: "include" });
     if (!response.ok) return fallback;
     return (await response.json()) as T;
   } catch {
     return fallback;
   }
+}
+
+// Jobs/candidates/offers are now real endpoints — a failed fetch shouldn't
+// silently paper over with mock rows, so we throw instead of falling back.
+// Interviews stays on the mock fallback until its scheduling backend lands.
+async function fetchReal<T>(url: string): Promise<T> {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) throw new Error(`${url} → ${response.status}`);
+  return (await response.json()) as T;
 }
 
 function useAtsOverviewData() {
@@ -137,7 +146,7 @@ function useAtsOverviewData() {
 function useAtsJobsData() {
   return useQuery({
     queryKey: ["ats", "jobs"],
-    queryFn: () => fetchJson<{ jobs: AtsJob[] }>("/api/ats/jobs", { jobs: getAtsJobs() }),
+    queryFn: () => fetchReal<{ jobs: AtsJob[] }>("/api/ats/jobs"),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -145,7 +154,7 @@ function useAtsJobsData() {
 function useAtsCandidatesData() {
   return useQuery({
     queryKey: ["ats", "candidates"],
-    queryFn: () => fetchJson<{ candidates: AtsCandidate[] }>("/api/ats/candidates", { candidates: getAtsCandidates() }),
+    queryFn: () => fetchReal<{ candidates: AtsCandidate[] }>("/api/ats/candidates"),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -162,8 +171,7 @@ function useAtsInterviewsData() {
 function useAtsOffersData() {
   return useQuery({
     queryKey: ["ats", "offers"],
-    queryFn: () => fetchJson<{ offers: AtsOffer[] }>("/api/ats/offers", { offers: getAtsOffers() }),
-    initialData: { offers: getAtsOffers() },
+    queryFn: () => fetchReal<{ offers: AtsOffer[] }>("/api/ats/offers"),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -1778,7 +1786,7 @@ function InterviewDetailScreen() {
 function OffersScreen() {
   const [filter, setFilter] = useState<OfferStatus | "All">("All");
   const { data: offersData, isFetching } = useAtsOffersData();
-  const offers = offersData.offers.filter((offer) => filter === "All" || offer.status === filter);
+  const offers = (offersData?.offers ?? []).filter((offer) => filter === "All" || offer.status === filter);
   return (
     <div className="space-y-6">
       <PageHeader

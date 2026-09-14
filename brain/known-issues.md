@@ -88,6 +88,8 @@ Same pattern: `/api/employees/module?screen=directory` is real; every other sub-
 
 - **`src/app/api/onboarding/route.ts`** — the old case-list endpoint with a mock fallback path. Replaced by `/api/onboarding/cases` (session-scoped, real query, no mock fallback). The `useOnboarding` hook in `src/hooks/useOnboarding.ts` still points at the old route but the dashboard page no longer uses that hook, so the route can be deleted along with the hook in a future cleanup pass.
 
+- **`src/app/api/ats/candidates/[id]/hire/route.ts`** — a fake ack endpoint that predates the real `/api/hiring/hire`. It has exactly one caller: `src/components/hiring/HiringModuleScreens.tsx:1101`, which fire-and-forget POSTs to it on the kanban drag-to-Hired action and then toasts "Pre-hire created" — a lie, because the endpoint returns a synthetic response and never touches the DB. The real hire path requires an accepted offer + `POST /api/hiring/hire`; the kanban drag doesn't have an offerId in hand. Cleanup options for a future pass: (a) delete both the endpoint and the caller — kanban drag to "Hired" without an accepted offer becomes a no-op that shows "Move a candidate through an offer first"; or (b) rewrite the caller to open the offer-review modal when a candidate is dragged to Hired without one on file. Not urgent — it's misleading UX, not a security issue.
+
 ## Orphaned schema declarations (safe to remove)
 
 Flagged during the Performance/Learning build (migration 0034): several table declarations in `src/db/schema.ts` have zero code consumers and correspond to orphaned tables:
