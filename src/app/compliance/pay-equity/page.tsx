@@ -165,6 +165,16 @@ export default function PayEquityPage() {
     raceEthnicity: "All",
   });
 
+  type RealPoint = { department?: string; jobTitle?: string; count: number; min: number; max: number; mean: number; median: number };
+  type RealAnalysis = {
+    coverage: { totalEmployees: number; withSalaryOnFile: number; missingSalary: number };
+    workspace: { count: number; min: number; max: number; mean: number; median: number };
+    byDepartment: RealPoint[];
+    byJobTitle: RealPoint[];
+    alerts: { jobTitle: string; spreadPct: number; range: { min: number; max: number; count: number } }[];
+  };
+  const [realAnalysis, setRealAnalysis] = useState<RealAnalysis | null>(null);
+
   useEffect(() => {
     Promise.all([fetchStates(), fetchAnalysis()]).then(([states, analysis]) => {
       setStatesData(states);
@@ -178,6 +188,10 @@ export default function PayEquityPage() {
       console.error(err);
       setLoading(false);
     });
+    fetch("/api/compliance/pay-equity", { cache: "no-store", credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: RealAnalysis | null) => setRealAnalysis(d))
+      .catch(() => setRealAnalysis(null));
   }, []);
 
   if (loading) {
@@ -232,6 +246,63 @@ export default function PayEquityPage() {
           </button>
         </div>
       </div>
+
+      {/* Real internal salary analysis — computed from the actual employees
+          table for this tenant. No external submission, no fabricated data.
+          The state-comparison content below remains reference material. */}
+      {realAnalysis && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-emerald-600">Real workspace data</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Internal salary analysis</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Computed live from <strong>{realAnalysis.coverage.withSalaryOnFile}</strong> employees with a salary on file
+                ({realAnalysis.coverage.missingSalary} missing).
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <RealStat label="Workspace median" value={formatCurrency(realAnalysis.workspace.median)} />
+            <RealStat label="Workspace mean" value={formatCurrency(realAnalysis.workspace.mean)} />
+            <RealStat label="Min salary" value={formatCurrency(realAnalysis.workspace.min)} />
+            <RealStat label="Max salary" value={formatCurrency(realAnalysis.workspace.max)} />
+          </div>
+          {realAnalysis.byDepartment.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-black text-slate-950 dark:text-white mb-2">By department</h3>
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs uppercase text-slate-500">
+                  <tr><th className="py-2">Department</th><th className="py-2 text-right">N</th><th className="py-2 text-right">Median</th><th className="py-2 text-right">Mean</th><th className="py-2 text-right">Min – Max</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {realAnalysis.byDepartment.map((r) => (
+                    <tr key={r.department}>
+                      <td className="py-2 font-bold text-slate-900 dark:text-white">{r.department}</td>
+                      <td className="py-2 text-right">{r.count}</td>
+                      <td className="py-2 text-right">{formatCurrency(r.median)}</td>
+                      <td className="py-2 text-right">{formatCurrency(r.mean)}</td>
+                      <td className="py-2 text-right text-slate-500">{formatCurrency(r.min)} – {formatCurrency(r.max)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {realAnalysis.alerts.length > 0 && (
+            <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="text-xs font-black uppercase text-amber-800 dark:text-amber-300">Intra-title spread &gt; 20%</p>
+              <ul className="mt-2 space-y-1 text-sm">
+                {realAnalysis.alerts.slice(0, 10).map((a) => (
+                  <li key={a.jobTitle}>
+                    <strong>{a.jobTitle}</strong>: {formatCurrency(a.range.min)} – {formatCurrency(a.range.max)} across {a.range.count} employees ({a.spreadPct}% spread)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Alerts Section */}
       {alerts && alerts.length > 0 && (
@@ -548,6 +619,15 @@ export default function PayEquityPage() {
 
         </div>
       </div>
+    </div>
+  );
+}
+
+function RealStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-black text-slate-950 dark:text-white">{value}</p>
     </div>
   );
 }

@@ -14,6 +14,8 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { eVerifyCases, type EVerifyCaseStatus } from "@/data/complianceModule";
 
@@ -70,13 +72,32 @@ export default function EVerifyPage() {
     queryFn: getEVerifyCases,
   });
 
-  const submitCase = useMutation({
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [caseNumber, setCaseNumber] = useState("");
+  const [caseEmployee, setCaseEmployee] = useState("");
+
+  const recordExternalCase = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/compliance/everify/submit", { method: "POST" });
-      if (!response.ok) throw new Error("Failed to submit E-Verify case");
+      const response = await fetch("/api/compliance/filings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          filingType: "everify",
+          period: caseEmployee.trim() ? `${new Date().toISOString().slice(0, 10)} · ${caseEmployee.trim()}` : new Date().toISOString().slice(0, 10),
+          status: "filed_externally",
+          externalConfirmationNumber: caseNumber.trim(),
+          notes: caseEmployee.trim() ? `E-Verify case for ${caseEmployee.trim()}` : null,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to record E-Verify case");
       return response.json();
     },
     onSuccess: () => {
+      toast.success("E-Verify case recorded.");
+      setRecordOpen(false);
+      setCaseNumber("");
+      setCaseEmployee("");
       queryClient.invalidateQueries({ queryKey: ["compliance", "everify"] });
     },
   });
@@ -120,11 +141,38 @@ export default function EVerifyPage() {
             USCIS E-Verify case statuses, webhook updates, and I-9 Section 2 automation.
           </p>
         </div>
-        <Button onClick={() => submitCase.mutate()} disabled={submitCase.isPending}>
-          {submitCase.isPending ? <RefreshCw size={16} className="animate-spin" /> : <FileCheck2 size={16} />}
-          Submit Pending Case
+        <Button onClick={() => setRecordOpen((v) => !v)}>
+          <FileCheck2 size={16} />
+          Record external case
         </Button>
       </div>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+        <strong>CircleWorks does not submit E-Verify cases to USCIS.</strong> Run the case on the USCIS E-Verify portal directly and enter the real case number below for our records.
+      </div>
+
+      {recordOpen && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+          <h2 className="font-bold text-slate-900 dark:text-white">Record E-Verify case from USCIS portal</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-bold text-slate-600 dark:text-slate-300">Case number</span>
+              <input value={caseNumber} onChange={(e) => setCaseNumber(e.target.value)} placeholder="From USCIS E-Verify receipt" className="h-10 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white px-3 font-mono" />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-bold text-slate-600 dark:text-slate-300">Employee (optional)</span>
+              <input value={caseEmployee} onChange={(e) => setCaseEmployee(e.target.value)} placeholder="e.g. Jane Doe" className="h-10 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white px-3" />
+            </label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setRecordOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={() => recordExternalCase.mutate()} disabled={recordExternalCase.isPending || !caseNumber.trim()}>
+              {recordExternalCase.isPending ? <RefreshCw size={14} className="animate-spin" /> : <FileCheck2 size={14} />}
+              Save
+            </Button>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">

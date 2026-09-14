@@ -2431,6 +2431,24 @@ export const taxSetAsides = pgTable('tax_set_asides', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// compliance_filings — record-keeping for filings the tenant submits to
+// external government systems (IRS, DHS/E-Verify, OSHA). This app does not
+// submit on behalf of the tenant; the row captures that the tenant filed
+// externally themselves and their real confirmation number.
+export const complianceFilings = pgTable('compliance_filings', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  filingType: text('filing_type').notNull(), // 'federal_941' | 'federal_940' | 'w2' | 'everify' | 'osha_300a'
+  period: text('period').notNull(),          // free-form: "Q2 2026", "2025", "2026-05-14 case #ABC"
+  status: text('status').notNull().default('not_started'), // 'not_started' | 'in_progress' | 'filed_externally'
+  externalConfirmationNumber: text('external_confirmation_number'), // user-entered from the govt portal
+  filedAt: timestamp('filed_at'),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // onboarding_task_completions — per-case task completion. onboarding_tasks
 // holds the template task definitions; this table records which tasks are
 // done for a specific onboarding_case. Unique per (caseId, taskId).

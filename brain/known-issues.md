@@ -92,6 +92,12 @@ Same pattern: `/api/employees/module?screen=directory` is real; every other sub-
 
 - **`src/app/api/benefits/enrollment/route.ts`** (singular) — the old fake enrollment endpoint that returned `{ ok: true, enrollmentId: "ben-enr-<employeeId>-<timestamp>", payrollDeductionUpdate: "queued", carrierSync: "pending next nightly file" }` without touching the DB. Superseded by `/api/benefits/enrollments` (plural), which is real Drizzle-backed CRUD scoped to `resolveUserContext`. The old singular route may still be referenced by `submitBenefitsEnrollment` in `src/components/benefits/BenefitsModuleScreens.tsx:160` (called from the legacy multi-step enrollment wizard, which the new `/benefits/enrollment/[employeeId]` page no longer uses). Safe to delete alongside the wizard's `useEnrollmentSubmit` hook when the legacy wizard is retired. Same cleanup category as the `/api/onboarding` and `/api/ats/candidates/[id]/hire` entries above.
 
+- **`src/app/api/compliance/everify/submit/route.ts`** — fake POST endpoint that returned a synthetic E-Verify case acknowledgment without contacting USCIS. Zero remaining callers: the /compliance/everify page was rewritten to POST real user-entered case numbers to `/api/compliance/filings` instead. Safe to delete.
+
+- **`src/app/api/compliance/osha/300a/route.ts`** — fake OSHA 300A export endpoint that returned fabricated summary rows from `@/data/complianceModule`. Zero remaining callers: the /compliance/osha page's "Export 300A PDF" link was replaced with a "Record 300A filing" flow that stores the user's real ITA confirmation number via `/api/compliance/filings`. Safe to delete.
+
+- **`src/app/api/compliance/federal-filings/submit/route.ts`** — fake IRS submission endpoint that fabricated confirmation numbers. No remaining page callers (the /compliance/federal-filings page's "Submit to IRS" tab now records the user's real IRS confirmation number via `/api/compliance/filings`). Still referenced by an RBAC prefix rule in `src/lib/rbac.ts:625` — remove the RBAC entry when deleting the route.
+
 ## Orphaned schema declarations (safe to remove)
 
 Flagged during the Performance/Learning build (migration 0034): several table declarations in `src/db/schema.ts` have zero code consumers and correspond to orphaned tables:

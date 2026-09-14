@@ -90,23 +90,47 @@ export default function FederalFilingsPage() {
     fetch941();
   }, []);
 
-  const handleSubmission = async () => {
+  const [externalConfirmationNumber, setExternalConfirmationNumber] = useState("");
+  const [externalNotes, setExternalNotes] = useState("");
+
+  const handleMarkFiledExternally = async () => {
+    if (!externalConfirmationNumber.trim()) {
+      toast.error("Enter the confirmation number the IRS gave you after filing.");
+      return;
+    }
     setSubmitting(true);
     setSubmitResult(null);
     try {
-      const res = await fetch("/api/compliance/federal-filings/submit", {
+      const filingType = selectedForm === "940" ? "federal_940" : selectedForm === "941-X" ? "federal_941" : "federal_941";
+      const period = selectedForm === "941" ? (data941?.quarter || "Q1-2026") :
+                     selectedForm === "941-X" ? `${amendmentDraft?.sourceQuarter || "Q1-2026"} (941-X)` :
+                     `${data941?.year ?? 2026}`;
+      const res = await fetch("/api/compliance/filings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          formType: selectedForm,
-          submissionMethod,
-          data: { quarter: data941?.quarter || "Q1-2026" }
-        })
+          filingType,
+          period,
+          status: "filed_externally",
+          externalConfirmationNumber: externalConfirmationNumber.trim(),
+          notes: externalNotes.trim() || null,
+        }),
       });
       const data = await res.json();
-      setSubmitResult(data);
+      if (!res.ok) { toast.error(data.error || "Save failed"); return; }
+      setSubmitResult({
+        confirmationNumber: data.filing.externalConfirmationNumber,
+        filedAt: data.filing.filedAt,
+        filingType: data.filing.filingType,
+        period: data.filing.period,
+      });
+      setExternalConfirmationNumber("");
+      setExternalNotes("");
+      toast.success("Filing recorded.");
     } catch (e) {
       console.error(e);
+      toast.error("Save failed");
     } finally {
       setSubmitting(false);
     }
@@ -419,118 +443,79 @@ export default function FederalFilingsPage() {
             </motion.div>
           )}
 
-          {/* TAB 3: E-FILE SUBMISSION */}
+          {/* TAB 3: MARK-AS-FILED-EXTERNALLY (record-keeping only) */}
           {activeTab === "submit" && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-8">
                <div className="text-center pb-6 border-b border-slate-200 dark:border-slate-800">
                   <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center rounded-full mx-auto mb-4">
-                     <ShieldCheck size={32} />
+                     <FileText size={32} />
                   </div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Authorized IRS E-File</h2>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">Record an external filing</h2>
                   <p className="text-slate-500 mt-2 max-w-lg mx-auto">
-                    Transmit forms directly into the IRS Authorized e-file system, or generate bulk EFTPS XML files for external authorized provider transmission.
+                    <strong>CircleWorks does not submit filings to the IRS.</strong> File on the IRS portal (or through your authorized e-file transmitter) directly, then enter the confirmation number they give you below — we store it for record-keeping.
                   </p>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                  <div className="space-y-4">
-                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">1. Select Form to Transmit</label>
-                     <select 
-                       value={selectedForm}
-                       onChange={(e) => setSelectedForm(e.target.value)}
-                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
-                     >
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Form</label>
+                     <select value={selectedForm} onChange={(e) => setSelectedForm(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3">
                         <option value="941">Form 941 (Quarterly) - {data941?.quarter ?? "Q1-2026"}</option>
                         <option value="940">Form 940 (Annual) - {data941?.year ?? 2026}</option>
-                        <option value="944">Form 944 (Annual) - {data941?.year ?? 2026}</option>
                         {amendmentDraft && <option value="941-X">Form 941-X Amendment - {amendmentDraft.sourceQuarter}</option>}
                      </select>
                   </div>
-
-                  <div className="space-y-4">
-                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">2. Method of Transmission</label>
-                     <select 
-                       value={submissionMethod}
-                       onChange={(e) => setSubmissionMethod(e.target.value)}
-                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
-                     >
-                        <option value="efile">Direct API (IRS Authorized Provider)</option>
-                        <option value="eftps">Generate XML Payload (EFTPS File)</option>
-                     </select>
+                  <div className="space-y-2">
+                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">IRS confirmation number</label>
+                     <input
+                        type="text"
+                        value={externalConfirmationNumber}
+                        onChange={(e) => setExternalConfirmationNumber(e.target.value)}
+                        placeholder="From the IRS receipt after you file"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-mono"
+                     />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                     <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Notes (optional)</label>
+                     <input
+                        type="text"
+                        value={externalNotes}
+                        onChange={(e) => setExternalNotes(e.target.value)}
+                        placeholder="e.g. Filed via Modernized e-File through TaxBandits"
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3"
+                     />
                   </div>
                </div>
 
-               <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-6 text-white my-8 shadow-xl overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                     <Code size={120} />
-                  </div>
-                  <h3 className="font-bold flex items-center gap-2 mb-4 text-emerald-400">
-                     <CheckCircle2 size={18} /> Payload Built Successfully
-                  </h3>
-                  <div className="text-sm font-mono bg-black/40 p-4 rounded-xl border border-white/10 mb-4 h-32 overflow-y-auto">
-                     <pre className="whitespace-pre-wrap text-blue-200">
-                       {data941?.xmlPreview ?? "<IRSSubmission><FormType>941</FormType><Status>Building</Status></IRSSubmission>"}
-                     </pre>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-4">
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <span className="block text-slate-400 mb-1">Provider</span>
-                      <span className="font-semibold">{submissionMethod === "efile" ? "Approved e-file transmitter" : "EFTPS XML export"}</span>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <span className="block text-slate-400 mb-1">Tracking</span>
-                      <span className="font-semibold">Confirmation, timestamp, IRS acknowledgment</span>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                      <span className="block text-slate-400 mb-1">Source</span>
-                      <span className="font-semibold">{data941?.payrollRunCount ?? 0} payroll runs reconciled</span>
-                    </div>
-                  </div>
-                  
-                  {!submitResult ? (
-                     <button 
-                        onClick={handleSubmission}
-                        disabled={submitting}
-                        className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors text-lg"
-                     >
-                        {submitting ? (
-                           <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> Transmitting...</>
-                        ) : (
-                           <>Submit {selectedForm} to IRS <ArrowRight size={20} /></>
-                        )}
-                     </button>
+               <button
+                  onClick={handleMarkFiledExternally}
+                  disabled={submitting || !externalConfirmationNumber.trim()}
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-400 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-lg"
+               >
+                  {submitting ? (
+                     <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> Recording…</>
                   ) : (
-                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-emerald-900/50 border border-emerald-500 p-6 rounded-xl flex flex-col md:flex-row items-center gap-6">
-                        <div className="w-16 h-16bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 bg-emerald-500 shadow-lg shadow-emerald-500/20">
-                           <CheckCircle2 size={32} className="text-white" />
-                        </div>
-                        <div className="flex-1 text-center md:text-left space-y-2">
-                           <h4 className="text-xl font-bold text-white">Transmission Successful</h4>
-                           <p className="text-emerald-200 text-sm">{submitResult.message}</p>
-                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 font-mono text-xs">
-                              <div className="bg-black/30 p-2 rounded border border-white/5">
-                                <span className="block text-emerald-400/70 mb-0.5 font-sans">Confirmation ID</span>
-                                {submitResult.tracking.confirmationNumber}
-                              </div>
-                              <div className="bg-black/30 p-2 rounded border border-white/5">
-                                <span className="block text-emerald-400/70 mb-0.5 font-sans">Timestamp</span>
-                                {new Date(submitResult.tracking.timestamp).toLocaleTimeString()}
-                              </div>
-                              <div className="bg-black/30 p-2 rounded border border-white/5">
-                                <span className="block text-emerald-400/70 mb-0.5 font-sans">IRS Response</span>
-                                {submitResult.tracking.irsAcknowledgment}
-                              </div>
-                           </div>
-                           {submitResult.xmlPayload && (
-                             <pre className="mt-3 max-h-20 overflow-y-auto rounded-lg bg-black/30 p-2 text-[11px] text-emerald-100 border border-white/10">
-                               {submitResult.xmlPayload}
-                             </pre>
-                           )}
-                        </div>
-                     </motion.div>
+                     <>Mark as filed externally <CheckCircle2 size={20} /></>
                   )}
-               </div>
+               </button>
 
+               {submitResult && (
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/40 p-6 rounded-xl">
+                     <div className="flex items-center gap-4">
+                        <CheckCircle2 size={40} className="text-emerald-600" />
+                        <div className="flex-1">
+                           <h4 className="text-lg font-bold text-emerald-900 dark:text-emerald-100">Filing recorded</h4>
+                           <p className="text-sm text-emerald-800 dark:text-emerald-200 mt-1">
+                              {submitResult.filingType} · {submitResult.period}
+                           </p>
+                           <p className="mt-2 font-mono text-sm text-slate-700 dark:text-slate-300">
+                              Confirmation: <strong>{submitResult.confirmationNumber}</strong>
+                              {submitResult.filedAt && <> · at {new Date(submitResult.filedAt).toLocaleString()}</>}
+                           </p>
+                        </div>
+                     </div>
+                  </motion.div>
+               )}
             </motion.div>
           )}
 

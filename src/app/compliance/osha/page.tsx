@@ -111,6 +111,32 @@ function AddIncidentDialog({ open, onOpenChange }: { open: boolean; onOpenChange
 
 export default function OshaPage() {
   const [addOpen, setAddOpen] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [oshaYear, setOshaYear] = useState(String(new Date().getUTCFullYear() - 1));
+  const [oshaConfirmation, setOshaConfirmation] = useState("");
+  const [savingOsha, setSavingOsha] = useState(false);
+  const recordOshaFiling = async () => {
+    if (!oshaConfirmation.trim()) return;
+    setSavingOsha(true);
+    const r = await fetch("/api/compliance/filings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        filingType: "osha_300a",
+        period: oshaYear.trim() || String(new Date().getUTCFullYear() - 1),
+        status: "filed_externally",
+        externalConfirmationNumber: oshaConfirmation.trim(),
+      }),
+    });
+    setSavingOsha(false);
+    if (r.ok) {
+      const { toast } = await import("sonner");
+      toast.success("300A filing recorded.");
+      setRecordOpen(false);
+      setOshaConfirmation("");
+    }
+  };
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["compliance", "osha"],
     queryFn: getOshaData,
@@ -150,14 +176,38 @@ export default function OshaPage() {
             <Plus size={16} />
             Add Incident
           </Button>
-          <a href="/api/compliance/osha/300a" target="_blank" rel="noreferrer">
-            <Button>
-              <Download size={16} />
-              Export 300A PDF
-            </Button>
-          </a>
+          <Button variant="outline" onClick={() => setRecordOpen((v) => !v)}>
+            <ClipboardList size={16} />
+            Record 300A filing
+          </Button>
         </div>
       </div>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+        <strong>CircleWorks does not file OSHA 300A on your behalf.</strong> Submit your 300A summary on the OSHA Injury Tracking Application (ITA) directly and record the confirmation below.
+      </div>
+
+      {recordOpen && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+          <h2 className="font-bold text-slate-900 dark:text-white">Record OSHA 300A external filing</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-bold text-slate-600 dark:text-slate-300">Reporting year</span>
+              <input value={oshaYear} onChange={(e) => setOshaYear(e.target.value)} placeholder="e.g. 2025" className="h-10 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white px-3" />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-bold text-slate-600 dark:text-slate-300">ITA confirmation number</span>
+              <input value={oshaConfirmation} onChange={(e) => setOshaConfirmation(e.target.value)} placeholder="From the OSHA ITA portal" className="h-10 rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-950 dark:text-white px-3 font-mono" />
+            </label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setRecordOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={recordOshaFiling} disabled={savingOsha || !oshaConfirmation.trim()}>
+              {savingOsha ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-4 md:grid-cols-5">
         <SummaryMetric label="Recordable cases" value={summary.recordableCases} />
