@@ -98,6 +98,26 @@ Same pattern: `/api/employees/module?screen=directory` is real; every other sub-
 
 - **`src/app/api/compliance/federal-filings/submit/route.ts`** — fake IRS submission endpoint that fabricated confirmation numbers. No remaining page callers (the /compliance/federal-filings page's "Submit to IRS" tab now records the user's real IRS confirmation number via `/api/compliance/filings`). Still referenced by an RBAC prefix rule in `src/lib/rbac.ts:625` — remove the RBAC entry when deleting the route.
 
+## Orphaned auth rows in `users` (safe to prune during a test-data cleanup)
+
+Discovered during the "signup → login broken" investigation. `users` row 26 (`vibhurastogi98@gmail.com`) was fixed by pointing `clerk_user_id` at the actual Supabase Auth UUID (the DB pointer had gone stale). These 10 rows were left alone at your explicit direction — they're all test fixtures or Clerk-era legacy — but should be reconciled or deleted the next time the test DB is cleaned:
+
+**Kind A — DB row exists, Supabase Auth `getUserById` returns "User not found"** (6 rows, all test fixtures):
+- id 21 `finaltest_1777891966@example.com`
+- id 22 `hello@roommategroups.com` (company)
+- id 23 `cookietest_1777892126@example.com`
+- id 24 `cookiefinal_1777892208@example.com`
+- id 25 `hdrtest_1777892300@example.com`
+- id 67 `creator-verify-1789208129@circleworks.test` (creator)
+
+**Kind B — `clerk_user_id` is a non-UUID string, predates the Clerk → Supabase migration** (4 rows):
+- id 7 `test.admin@circleworks.local`
+- id 39 `fx6-company@circleworks.test` (company)
+- id 40 `fx6-agency@circleworks.test` (agency)
+- id 41 `fx6-creator@circleworks.test` (creator)
+
+None of these can log in via the current Supabase-backed login route. Kind A can be recovered the same way id 26 was (re-point `clerk_user_id` if the email exists in Supabase, or `admin.createUser` + generate recovery link). Kind B always requires the `admin.createUser` path since Supabase never held their password. Any test-fixture email (the `_1777...@example.com` set, `hdrtest`, `cookietest`, `finaltest`) can just be deleted.
+
 ## Orphaned schema declarations (safe to remove)
 
 Flagged during the Performance/Learning build (migration 0034): several table declarations in `src/db/schema.ts` have zero code consumers and correspond to orphaned tables:
