@@ -1745,7 +1745,16 @@ export function AutomationRunsScreen({ automationId }: { automationId: string })
                       )}
                     >
                       <td className="px-5 py-4 text-sm font-bold text-slate-800 dark:text-slate-100">{formatRunTime(run.timestamp)}</td>
-                      <td className="px-5 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">{run.trigger}</td>
+                      <td className="px-5 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                        <div>{run.trigger}</div>
+                        {run.simulated ? (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300">
+                              {run.retriedFromRunId ? "Retry (simulated)" : "Logged manually"}
+                            </span>
+                          </div>
+                        ) : null}
+                      </td>
                       <td className="px-5 py-4">
                         <Badge className={runStatusStyles[run.status]}>{run.status}</Badge>
                       </td>
@@ -1793,6 +1802,11 @@ export function AutomationRunsScreen({ automationId }: { automationId: string })
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Badge className={runStatusStyles[selectedRun.status]}>{selectedRun.status}</Badge>
                   <Badge variant="outline">{formatDuration(selectedRun.durationMs)}</Badge>
+                  {selectedRun.simulated ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-300">
+                      {selectedRun.retriedFromRunId ? "Retry (simulated)" : "Logged manually"}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
             </div>

@@ -76,6 +76,9 @@ function rowToRun(row: typeof automationRuns.$inferSelect, automationId: string)
     (typeof context.affectedEntityLabel === "string" ? context.affectedEntityLabel : undefined) ??
     "Workflow event";
 
+  const simulated = context.simulated === true;
+  const retriedFromRunId = typeof context.retriedFromRunId === "number" ? context.retriedFromRunId : null;
+
   return {
     id: `db-${row.id}`,
     automationId,
@@ -86,6 +89,8 @@ function rowToRun(row: typeof automationRuns.$inferSelect, automationId: string)
     affectedEntity,
     errorMessage: row.errorMessage,
     stepResults: steps,
+    simulated,
+    retriedFromRunId,
   };
 }
 
@@ -94,6 +99,8 @@ function mockRunsForAutomation(id: string): AutomationRunRecord[] {
 }
 
 export async function listAutomationRecipes(ctx: UserContext | null) {
+  // No session → mock (public preview only). Signed-in callers see real data
+  // scoped to their company, empty arrays if none — no silent mock pollution.
   if (!ctx) {
     return {
       automations: ACTIVE_AUTOMATIONS,
@@ -102,30 +109,25 @@ export async function listAutomationRecipes(ctx: UserContext | null) {
     };
   }
 
-  try {
-    const rows = await db
-      .select()
-      .from(automationRecipes)
-      .where(eq(automationRecipes.companyId, ctx.companyId))
-      .orderBy(desc(automationRecipes.updatedAt));
+  const rows = await db
+    .select()
+    .from(automationRecipes)
+    .where(eq(automationRecipes.companyId, ctx.companyId))
+    .orderBy(desc(automationRecipes.updatedAt));
 
-    const dbRecipes = rows.map(rowToRecipe);
-    const automations = dbRecipes.filter((item) => !item.template);
-    const templates = dbRecipes.filter((item) => item.template);
+  const dbRecipes = rows.map(rowToRecipe);
+  const automations = dbRecipes.filter((item) => !item.template);
+  const templates = dbRecipes.filter((item) => item.template);
 
-    return {
-      automations: automations.length ? automations : ACTIVE_AUTOMATIONS,
-      templates: templates.length ? [...templates, ...AUTOMATION_TEMPLATES] : AUTOMATION_TEMPLATES,
-      source: rows.length ? "database" as const : "mock" as const,
-    };
-  } catch (error) {
-    console.warn("Automation recipe list failed; falling back to mock data", error);
-    return {
-      automations: ACTIVE_AUTOMATIONS,
-      templates: AUTOMATION_TEMPLATES,
-      source: "mock" as const,
-    };
-  }
+  return {
+    automations,
+    // AUTOMATION_TEMPLATES is a static starter library (not tenant data) —
+    // shown only when the tenant hasn't saved any of their own templates yet.
+    // Once they have their own, we stop showing the generic library.
+    templates: templates.length ? templates : AUTOMATION_TEMPLATES,
+    source: "database" as const,
+    hasStarterLibrary: templates.length === 0,
+  };
 }
 
 export async function createAutomationRecipe({
@@ -181,11 +183,57 @@ export async function updateAutomationStatus({
   return updated ? rowToRecipe(updated) : null;
 }
 
+/**
+ * Update anything else on the recipe — title / description / category / trigger
+ * label / nodes / edges. Keeps the old updateAutomationStatus around for the
+ * common status-only case so the PATCH route can dispatch either.
+ */
+export async function updateAutomationRecipe({
+  ctx,
+  id,
+  updates,
+}: {
+  ctx: UserContext;
+  id: number;
+  updates: Partial<Pick<AutomationRecipe, "title" | "description" | "category" | "trigger" | "triggerType" | "status" | "template"> & { nodes?: AutomationRecipe["nodes"]; edges?: AutomationRecipe["edges"] }>;
+}) {
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (typeof updates.title === "string" && updates.title.trim()) patch.title = updates.title.trim();
+  if (typeof updates.description === "string") patch.description = updates.description;
+  if (typeof updates.category === "string") patch.category = updates.category;
+  if (typeof updates.trigger === "string" && updates.trigger.trim()) {
+    patch.triggerLabel = updates.trigger.trim();
+    patch.triggerKey = updates.trigger.trim().toLowerCase().replace(/\s+/g, ".");
+  }
+  if (updates.triggerType === "schedule" || updates.triggerType === "webhook" || updates.triggerType === "event") {
+    patch.triggerType = updates.triggerType;
+  }
+  if (updates.status === "Active" || updates.status === "Paused" || updates.status === "Draft") {
+    patch.status = updates.status;
+  }
+  if (typeof updates.template === "boolean") patch.isTemplate = updates.template;
+  if (Array.isArray(updates.nodes)) {
+    patch.nodesJson = JSON.stringify(updates.nodes);
+    patch.estimatedMinutesSaved = updates.nodes.filter((node) => node.type === "action").length * 12;
+  }
+  if (Array.isArray(updates.edges)) patch.edgesJson = JSON.stringify(updates.edges);
+
+  const [updated] = await db
+    .update(automationRecipes)
+    .set(patch)
+    .where(and(eq(automationRecipes.id, id), eq(automationRecipes.companyId, ctx.companyId)))
+    .returning();
+  return updated ? rowToRecipe(updated) : null;
+}
+
 export async function deleteAutomationRecipe(ctx: UserContext, id: number) {
   await db.delete(automationRecipes).where(and(eq(automationRecipes.id, id), eq(automationRecipes.companyId, ctx.companyId)));
 }
 
 export async function listAutomationRuns(ctx: UserContext | null, id: string) {
+  // Same rule as the recipe list: no session → mock preview, otherwise real
+  // scoped rows (empty array if none). Non-numeric ids (i.e. mock recipes
+  // that were never saved) return their mock run history for display fidelity.
   if (!ctx) return mockRunsForAutomation(id);
 
   const automationId = parseAutomationId(id);
@@ -208,6 +256,77 @@ export async function listAutomationRuns(ctx: UserContext | null, id: string) {
   return rows.map((row) => rowToRun(row, `db-${automationId}`));
 }
 
+/**
+ * Manually record a run against a recipe. This is what a user does when they
+ * want to log an execution outcome — the automation engine itself isn't
+ * built (per the module's scope boundary), so runs are user-logged rather
+ * than trigger-fired. The row lands in automation_runs the same way a real
+ * run would, plus lastRunAt / runCount get bumped on the recipe.
+ */
+export async function logAutomationRun({
+  ctx,
+  id,
+  triggerEvent,
+  status,
+  contextJson,
+  affectedEntityLabel,
+  errorMessage,
+}: {
+  ctx: UserContext;
+  id: string;
+  triggerEvent?: string;
+  status?: string;
+  contextJson?: Record<string, unknown>;
+  affectedEntityLabel?: string;
+  errorMessage?: string | null;
+}) {
+  const automationId = parseAutomationId(id);
+  if (!automationId) return null;
+
+  const [automation] = await db
+    .select()
+    .from(automationRecipes)
+    .where(and(eq(automationRecipes.id, automationId), eq(automationRecipes.companyId, ctx.companyId)))
+    .limit(1);
+  if (!automation) return null;
+
+  const normalized = normalizeRunStatus(status ?? "Success");
+  const now = new Date();
+
+  const [row] = await db
+    .insert(automationRuns)
+    .values({
+      companyId: ctx.companyId,
+      automationId,
+      status: normalized,
+      triggerEvent: triggerEvent ?? automation.triggerLabel,
+      contextJson: JSON.stringify({
+        // "simulated: true" is deliberate honest labeling — no trigger engine
+        // actually fired this run; a human chose to log it.
+        simulated: true,
+        loggedByUserManual: true,
+        ...(contextJson ?? {}),
+      }),
+      affectedEntityLabel: affectedEntityLabel ?? null,
+      startedAt: now,
+      completedAt: normalized === "Queued" || normalized === "Running" ? null : now,
+      durationMs: normalized === "Queued" || normalized === "Running" ? null : 0,
+      errorMessage: errorMessage ?? null,
+    })
+    .returning();
+
+  await db
+    .update(automationRecipes)
+    .set({
+      runCount: (automation.runCount ?? 0) + 1,
+      lastRunAt: now,
+      updatedAt: now,
+    })
+    .where(eq(automationRecipes.id, automationId));
+
+  return rowToRun(row, `db-${automationId}`);
+}
+
 export async function retryAutomationRun({
   ctx,
   id,
@@ -220,6 +339,9 @@ export async function retryAutomationRun({
   const automationId = parseAutomationId(id);
   const numericRunId = parseAutomationId(runId);
 
+  // Only fall back to a synthesized retry for the mock-preview path (unsaved
+  // recipes with non-numeric ids). Real recipes must resolve to a real
+  // numeric id or we return null so the UI can show a real error.
   if (!automationId || !numericRunId) {
     const previousRun = mockRunsForAutomation(id).find((run) => run.id === runId);
     if (!previousRun) return null;
@@ -229,10 +351,11 @@ export async function retryAutomationRun({
       timestamp: new Date().toISOString(),
       status: "Success" as const,
       errorMessage: null,
+      simulated: true,
       stepResults: previousRun.stepResults.map((step) => ({
         ...step,
         status: "Success" as const,
-        message: "Retry completed successfully.",
+        message: "Retry (simulated — no engine): step marked success in log.",
       })),
     };
   }
@@ -264,6 +387,9 @@ export async function retryAutomationRun({
       contextJson: JSON.stringify({
         ...previousContext,
         simulateFailure: false,
+        // Honest labeling: this is a re-log, not a real re-execution — no
+        // engine actually re-ran the automation's action steps.
+        simulated: true,
         retriedFromRunId: previousRun.id,
         affectedEntity: previousRun.affectedEntityLabel ?? previousContext.affectedEntity,
       }),

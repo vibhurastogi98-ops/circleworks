@@ -58,6 +58,11 @@ export interface AutomationRunRecord {
   affectedEntity: string;
   errorMessage?: string | null;
   stepResults: AutomationRunStep[];
+  // Set when a row wasn't produced by the (unbuilt) trigger engine — either
+  // manually logged by a user or created via retry-without-execution.
+  simulated?: boolean;
+  // Present when this row was created via a Retry against another run.
+  retriedFromRunId?: number | null;
 }
 
 export const AUTOMATION_CATEGORIES: AutomationCategory[] = [

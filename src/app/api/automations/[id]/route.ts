@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import {
   deleteAutomationRecipe,
+  updateAutomationRecipe,
   updateAutomationStatus,
 } from "@/lib/automations/server";
 import type { AutomationStatus } from "@/data/mockAutomations";
@@ -37,28 +38,36 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Only saved automations can be updated" }, { status: 400 });
   }
 
-  let body: { status?: string };
+  let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as { status?: string };
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid automation payload" }, { status: 400 });
   }
 
-  if (!statuses.includes(body.status as AutomationStatus)) {
-    return NextResponse.json({ error: "Invalid automation status" }, { status: 400 });
-  }
+  // Two dispatch paths:
+  //   • status-only PATCH — the common "Pause / Activate" toggle, kept as
+  //     the narrow fast path for existing callers.
+  //   • full edit — title/description/category/trigger/nodes/edges.
+  const bodyKeys = Object.keys(body);
+  const isStatusOnly = bodyKeys.length === 1 && bodyKeys[0] === "status";
 
   try {
-    const automation = await updateAutomationStatus({
-      ctx,
-      id: automationId,
-      status: body.status as AutomationStatus,
-    });
-
-    if (!automation) {
-      return NextResponse.json({ error: "Automation not found" }, { status: 404 });
+    if (isStatusOnly) {
+      if (!statuses.includes(body.status as AutomationStatus)) {
+        return NextResponse.json({ error: "Invalid automation status" }, { status: 400 });
+      }
+      const automation = await updateAutomationStatus({
+        ctx,
+        id: automationId,
+        status: body.status as AutomationStatus,
+      });
+      if (!automation) return NextResponse.json({ error: "Automation not found" }, { status: 404 });
+      return NextResponse.json({ automation });
     }
 
+    const automation = await updateAutomationRecipe({ ctx, id: automationId, updates: body as never });
+    if (!automation) return NextResponse.json({ error: "Automation not found" }, { status: 404 });
     return NextResponse.json({ automation });
   } catch (error) {
     console.error("[Automations PATCH]", error);
