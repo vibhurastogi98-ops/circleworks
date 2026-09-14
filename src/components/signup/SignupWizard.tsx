@@ -4660,16 +4660,48 @@ function SignupWizardInner() {
     if (accountType === "company" || accountType === "agency") callbackParams.set("step", "4");
     callbackParams.set("role", wizardData.step1.role);
     const callbackQuery = callbackParams.toString();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback${callbackQuery ? `?${callbackQuery}` : ""}`,
-      },
+
+    // Defense-in-depth: if signInWithOAuth never resolves (network stall to
+    // Supabase, blocked by extension/proxy) or the top-level navigation never
+    // fires, the button would otherwise spin forever. Race against a timeout
+    // so oauthLoading always gets cleared and the user sees a real error.
+    const TIMEOUT_MS = 12000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
+      timeoutId = setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
     });
 
-    if (error) {
-      setApiError(error.message || "SSO signup failed. Please try again.");
+    try {
+      const result = await Promise.race([
+        supabase.auth
+          .signInWithOAuth({
+            provider,
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback${callbackQuery ? `?${callbackQuery}` : ""}`,
+            },
+          })
+          .then((r) => ({ timedOut: false as const, error: r.error })),
+        timeoutPromise,
+      ]);
+
+      if ("timedOut" in result && result.timedOut) {
+        setApiError("Couldn't connect to Google — please try again.");
+        setOauthLoading(null);
+        return;
+      }
+
+      if (result.error) {
+        setApiError(result.error.message || "SSO signup failed. Please try again.");
+        setOauthLoading(null);
+      }
+      // Success path: signInWithOAuth triggers window.location.assign to the
+      // provider — this page is unloading, so leave oauthLoading set.
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "SSO signup failed. Please try again.";
+      setApiError(message);
       setOauthLoading(null);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   };
 

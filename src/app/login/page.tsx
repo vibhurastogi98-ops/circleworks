@@ -480,19 +480,53 @@ export function LoginPage() {
       callbackUrl.searchParams.set("next", getNextPath());
     }
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
+    // Defense-in-depth: if signInWithOAuth never resolves or the top-level
+    // navigation never fires, clear ssoLoading and surface a real error
+    // instead of spinning forever.
+    const TIMEOUT_MS = 12000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
+      timeoutId = setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
     });
 
-    if (error) {
+    try {
+      const result = await Promise.race([
+        supabase.auth
+          .signInWithOAuth({
+            provider,
+            options: { redirectTo: callbackUrl.toString() },
+          })
+          .then((r) => ({ timedOut: false as const, error: r.error })),
+        timeoutPromise,
+      ]);
+
+      if ("timedOut" in result && result.timedOut) {
+        setErrorMessage(
+          `Couldn't connect to ${providerLabels[provider]} — please try again.`
+        );
+        setErrorType("server");
+        setSsoLoading(null);
+        return;
+      }
+
+      if (result.error) {
+        setErrorMessage(
+          result.error.message || `${providerLabels[provider]} sign-in failed. Please try again.`
+        );
+        setErrorType("server");
+        setSsoLoading(null);
+      }
+      // Success: browser is navigating to the provider; leave ssoLoading set.
+    } catch (err) {
       setErrorMessage(
-        error.message || `${providerLabels[provider]} sign-in failed. Please try again.`
+        err instanceof Error
+          ? err.message
+          : `${providerLabels[provider]} sign-in failed. Please try again.`
       );
       setErrorType("server");
       setSsoLoading(null);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   };
 
